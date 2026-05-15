@@ -4,6 +4,89 @@
 
 (no entries -- next release window)
 
+## [1.11.258] - 2026-05-15 -- UI: Data-table sort persistence (TODO 11.240)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/hooks/use-table-sort.ts` -- operator-local persistent
+  sort state for any table-shaped surface. Storage shape:
+  `c4:table-sort:<tableKey>` -> `{"v":1,"key":"<col>","dir":"asc"|"desc"}`.
+  Public surface: `useTableSort<K extends string = string>(tableKey,
+  defaultSort = null)` returning
+  `{ sortKey, sortDir, onSortChange, reset, clear }`. The hook is
+  deliberately decoupled from the `<Table>` primitive: any surface
+  that exposes sortable columns (canonical data table, virtualized
+  list, list of cards) can persist its sort via this hook by
+  passing the value into a comparator.
+- `defaultSort` is the initial value when nothing is saved yet and
+  the value `reset()` falls back to. Pass `null` to keep the
+  surface unsorted by default.
+- Cross-tab sync via `storage` event + same-tab `c4:table-sort-changed`
+  CustomEvent so sibling instances in the same tab also re-sync.
+- Robust against malformed JSON, invalid `dir` values, and absent
+  localStorage (SSR-safe).
+- 17 vitest cases covering: undefined defaults, defaultSort
+  passthrough, persisted-value passthrough, onSortChange round-trip,
+  reset to default, reset to undefined, clear() alias, malformed
+  JSON guard, invalid `dir` guard, key namespacing, cross-tab
+  storage event sync, ignored events for other keys, same-tab
+  sibling sync via custom event, reset triggers sibling sync,
+  exported constants `TABLE_SORT_EVENT` + `tableSortStorageKey`.
+
+### Changed
+
+- `web/src/pages/TokenUsage.tsx` -- per-task table is now sortable.
+  - Columns `worker`, `total`, `input`, `output` get `sortable: true`
+    (the `task` text column stays unsortable -- free-text doesn't
+    sort meaningfully).
+  - Default sort = `total` desc (most common operator question:
+    "which task burned the most tokens this window?").
+  - Persisted to `c4:table-sort:token-usage-per-task` via the new
+    hook.
+  - Pure `perTaskComparator(key, dir)` exported so the page-level
+    test doesn't need to render the full TokenUsage tree to verify
+    ordering (9 vitest cases pass).
+  - Sort runs before pagination so the page slice reflects the
+    chosen ordering. `useMemo` keyed on `(rows, sortKey, sortDir)`
+    so unrelated re-renders don't re-sort.
+  - 33/33 existing TokenUsage.test.tsx cases still pass.
+- `web/src/components/HistoryView.tsx` -- sidebar virtualized list
+  now drives operator-local sort through the same hook.
+  - New Select dropdown (Last task / Name / Task count) +
+    direction toggle button (ArrowUpAZ / ArrowDownAZ icons,
+    aria-label that swaps with the direction).
+  - Default sort = `lastTaskAt` desc (matches the prior implicit
+    order so first-load DOM is byte-identical).
+  - Pure `historySidebarComparator(key, dir)` exported, including
+    a deliberate quirk: null `lastTaskAt` entries sort to the end
+    regardless of direction so never-active workers don't crowd
+    the operator's view.
+  - Persisted to `c4:table-sort:history-sidebar` so the override
+    survives reload / route switch.
+  - Sort applies AFTER the search-query filter so changing the
+    sort never changes which rows match the search.
+  - 8/8 new HistoryView.sort.test.ts cases + 43/43 existing
+    HistoryView.test.tsx cases pass.
+
+### Notes
+
+- The `<Table>` primitive in `web/src/components/ui/table.tsx` was
+  not modified -- it was already a controlled component
+  (`sortKey`, `sortDir`, `onSortChange` props), so the hook just
+  feeds it. The decision to keep persistence in a separate hook
+  instead of embedding it inside Table avoids forcing every
+  Table consumer through a new uncontrolled mode and keeps the
+  primitive byte-identical for tests that already mount it.
+- `exactOptionalPropertyTypes: true` is on in the worktree's
+  tsconfig. The new code spreads `sortKey`/`sortDir` props only
+  when defined (`{...(sortKey ? { sortKey } : {})}`) instead of
+  passing `undefined`. Pre-existing failures (Templates / Swarm /
+  Workspaces / Validation) are unchanged and out of scope.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.257] - 2026-05-15 -- UI: Toast severity icons (TODO 11.239)
 
 Component-scope-only polish. No daemon-side change and no `c4`

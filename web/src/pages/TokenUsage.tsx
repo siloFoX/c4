@@ -10,6 +10,7 @@ import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-bre
 import { cn } from '../lib/cn';
 import { dateRange, formatNumber } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useTableSort } from '../hooks/use-table-sort';
 
 // 8.20B Token usage. Calls GET /api/token-usage (with optional
 // ?perTask=1) and renders:
@@ -220,12 +221,59 @@ interface PerTaskTableProps {
 
 const PER_TASK_COLUMN_IDS = ['worker', 'task', 'total', 'input', 'output'] as const;
 
+// (v1.11.258, TODO 11.240) Pure comparator so the sort logic is
+// testable in isolation and so the page never sorts in place
+// (which would surprise the parent + break ExportButton's view).
+type PerTaskSortKey = 'worker' | 'total' | 'input' | 'output';
+
+function perTaskComparator(
+  key: PerTaskSortKey,
+  dir: 'asc' | 'desc',
+): (a: PerTaskRow, b: PerTaskRow) => number {
+  const mult = dir === 'asc' ? 1 : -1;
+  return (a, b) => {
+    if (key === 'worker') {
+      const av = (a.worker ?? a.name ?? '').toLowerCase();
+      const bv = (b.worker ?? b.name ?? '').toLowerCase();
+      if (av < bv) return -1 * mult;
+      if (av > bv) return 1 * mult;
+      return 0;
+    }
+    const av = key === 'total' ? (a.total ?? coerceTotal(a)) : (a[key] ?? 0);
+    const bv = key === 'total' ? (b.total ?? coerceTotal(b)) : (b[key] ?? 0);
+    return ((av as number) - (bv as number)) * mult;
+  };
+}
+
+export { perTaskComparator };
+export type { PerTaskRow, PerTaskSortKey };
+
 function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
-  const totalPages = Math.max(1, Math.ceil(rows.length / PER_TASK_PAGE_SIZE));
+  // (v1.11.258, TODO 11.240) Sort persistence via useTableSort.
+  // Default sort = total desc so the largest-token tasks land at
+  // the top on first open (the operator's most common question is
+  // "which task burned the most tokens this window?"). The hook
+  // persists the operator's override to c4:table-sort:token-usage-per-task
+  // and survives reload / route switch / different tab.
+  const { sortKey, sortDir, onSortChange } = useTableSort<PerTaskSortKey>(
+    'token-usage-per-task',
+    { key: 'total', dir: 'desc' },
+  );
+
+  // Sort once before pagination so the page slice reflects the
+  // chosen ordering. Stable for ties via the input array's order.
+  const sortedRows = useMemo(() => {
+    if (!sortKey || !sortDir) return rows;
+    const copy = [...rows];
+    copy.sort(perTaskComparator(sortKey as PerTaskSortKey, sortDir));
+    return copy;
+  }, [rows, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PER_TASK_PAGE_SIZE));
   useEffect(() => {
     if (page > totalPages) onPageChange(1);
   }, [page, totalPages, onPageChange]);
-  const slice = rows.slice(
+  const slice = sortedRows.slice(
     (page - 1) * PER_TASK_PAGE_SIZE,
     page * PER_TASK_PAGE_SIZE,
   );
@@ -237,6 +285,7 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
       key: 'worker',
       label: t('tokenUsagePage.tableHeader.worker'),
       className: 'truncate',
+      sortable: true,
       render: (e) => e.worker || e.name || '-',
     },
     {
@@ -249,18 +298,21 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
       key: 'total',
       label: t('tokenUsagePage.tableHeader.total'),
       align: 'right',
+      sortable: true,
       render: (e) => formatNumber(e.total ?? coerceTotal(e)),
     },
     {
       key: 'input',
       label: t('tokenUsagePage.tableHeader.input'),
       align: 'right',
+      sortable: true,
       render: (e) => formatNumber(e.input),
     },
     {
       key: 'output',
       label: t('tokenUsagePage.tableHeader.output'),
       align: 'right',
+      sortable: true,
       render: (e) => formatNumber(e.output),
     },
   ];
@@ -268,7 +320,7 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
   const columns = allColumns.filter((c) => visibleSet.has(String(c.key)));
   return (
     <Panel
-      title={tFormat('tokenUsagePage.perTaskHeading', { n: String(rows.length) })}
+      title={tFormat('tokenUsagePage.perTaskHeading', { n: String(sortedRows.length) })}
       className="p-3 text-xs"
     >
       <div className="mb-2 flex justify-end">
@@ -289,11 +341,14 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
         <Table<PerTaskRow>
           columns={columns}
           rows={slice}
+          {...(sortKey ? { sortKey } : {})}
+          {...(sortDir ? { sortDir } : {})}
+          onSortChange={(k, d) => onSortChange(k as PerTaskSortKey, d)}
           className="font-mono"
           ariaLabel={t('tokenUsagePage.perTaskHeading')}
         />
       </div>
-      {rows.length > PER_TASK_PAGE_SIZE && (
+      {sortedRows.length > PER_TASK_PAGE_SIZE && (
         <div className="mt-2 flex justify-center">
           <Pagination
             page={page}

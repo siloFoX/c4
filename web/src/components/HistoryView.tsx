@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import {
+  ArrowDownAZ,
+  ArrowUpAZ,
   History as HistoryIcon,
   NotebookText,
   Search,
@@ -21,6 +23,7 @@ import {
   ExportButton,
   Input,
   Select,
+  Tooltip,
 } from './ui';
 import { parseISODate, toISODate } from '../lib/date-format';
 import { cn } from '../lib/cn';
@@ -30,6 +33,7 @@ import { useHistoryWorkerDetail } from '../lib/use-history-worker-detail';
 import { useHistorySummary } from '../lib/use-history-summary';
 import { useListVirtualizer } from '../hooks/use-list-virtualizer';
 import { useScrollRestoration } from '../hooks/use-scroll-restoration';
+import { useTableSort } from '../hooks/use-table-sort';
 import { SearchEmpty } from './illustrations';
 
 export interface HistoryCommit {
@@ -57,6 +61,45 @@ export interface HistoryWorkerSummary {
   branches: string[];
   alive: boolean;
   liveStatus: string | null;
+}
+
+// (v1.11.258, TODO 11.240) Sidebar sort comparator. Exported so
+// the test file can verify the ordering without rendering the
+// whole HistoryView tree. Three keys cover the questions the
+// operator actually asks of the sidebar: which worker has the
+// most recent activity (lastTaskAt), which name should I scroll
+// to (alphabetical), and which worker has the most history depth
+// (taskCount).
+export type HistorySidebarSortKey = 'name' | 'lastTaskAt' | 'taskCount';
+
+export function historySidebarComparator(
+  key: HistorySidebarSortKey,
+  dir: 'asc' | 'desc',
+): (a: HistoryWorkerSummary, b: HistoryWorkerSummary) => number {
+  const mult = dir === 'asc' ? 1 : -1;
+  return (a, b) => {
+    if (key === 'name') {
+      const av = a.name.toLowerCase();
+      const bv = b.name.toLowerCase();
+      if (av < bv) return -1 * mult;
+      if (av > bv) return 1 * mult;
+      return 0;
+    }
+    if (key === 'taskCount') {
+      return (a.taskCount - b.taskCount) * mult;
+    }
+    // lastTaskAt: null sorts last regardless of direction so the
+    // never-active workers never crowd the top of the operator's
+    // view.
+    const ax = a.lastTaskAt;
+    const bx = b.lastTaskAt;
+    if (ax === null && bx === null) return 0;
+    if (ax === null) return 1;
+    if (bx === null) return -1;
+    if (ax < bx) return -1 * mult;
+    if (ax > bx) return 1 * mult;
+    return 0;
+  };
 }
 
 export interface HistoryListResponse {
@@ -124,6 +167,24 @@ export default function HistoryView() {
     'lastTaskAt',
   ]);
   const visibleColSet = new Set(visibleCols);
+
+  // (v1.11.258, TODO 11.240) Sidebar sort persistence via
+  // useTableSort. Default = lastTaskAt desc (most-recent-activity
+  // first) so first-load matches the prior server-supplied order.
+  // Operator can flip to name (alphabetical) or taskCount (history
+  // depth) and the choice survives reload / route switch.
+  const {
+    sortKey: sidebarSortKey,
+    sortDir: sidebarSortDir,
+    onSortChange: setSidebarSort,
+  } = useTableSort<HistorySidebarSortKey>('history-sidebar', {
+    key: 'lastTaskAt',
+    dir: 'desc',
+  });
+  const toggleSidebarSortDir = useCallback(() => {
+    if (!sidebarSortKey) return;
+    setSidebarSort(sidebarSortKey, sidebarSortDir === 'asc' ? 'desc' : 'asc');
+  }, [sidebarSortKey, sidebarSortDir, setSidebarSort]);
 
   // (11.191) Bulk selection - shift/meta+click toggles membership.
   const [bulk, setBulk] = useState<Set<string>>(() => new Set());
@@ -225,6 +286,51 @@ export default function HistoryView() {
                 { value: 'exited', label: t('history.filter.status.exited') },
               ]}
             />
+            {/* (v1.11.258, TODO 11.240) Sidebar sort. Persisted via
+                useTableSort('history-sidebar'); default = lastTaskAt
+                desc which matches the prior implicit order. */}
+            <div
+              className="flex items-center gap-1"
+              data-testid="history-sidebar-sort"
+            >
+              <Select
+                value={sidebarSortKey ?? 'lastTaskAt'}
+                onChange={(v) =>
+                  setSidebarSort(
+                    v as HistorySidebarSortKey,
+                    sidebarSortDir ?? 'desc',
+                  )
+                }
+                ariaLabel={t('history.sort.label') || 'Sort sidebar'}
+                options={[
+                  { value: 'lastTaskAt', label: 'Last task' },
+                  { value: 'name', label: 'Name' },
+                  { value: 'taskCount', label: 'Task count' },
+                ]}
+                className="flex-1"
+              />
+              <Tooltip label={sidebarSortDir === 'asc' ? 'Ascending' : 'Descending'}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSidebarSortDir}
+                  aria-label={
+                    sidebarSortDir === 'asc'
+                      ? 'Toggle to descending'
+                      : 'Toggle to ascending'
+                  }
+                  data-testid="history-sidebar-sort-dir"
+                  data-sort-dir={sidebarSortDir ?? 'desc'}
+                >
+                  {sidebarSortDir === 'asc' ? (
+                    <ArrowUpAZ className="h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowDownAZ className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </Tooltip>
+            </div>
             {/* (11.176) DateRangePicker primitive adoption.
                 Replaces the prior pair of <Input type="date"> filters.
                 Internal state remains YYYY-MM-DD strings so the
@@ -270,7 +376,19 @@ export default function HistoryView() {
                     return false;
                   })
                 : summary;
-              if (query && filtered.length === 0) {
+              // (v1.11.258, TODO 11.240) Apply operator-local sort
+              // after filtering so the sort outcome doesn't change
+              // the set of rows the search query matches.
+              const sorted =
+                sidebarSortKey && sidebarSortDir
+                  ? [...filtered].sort(
+                      historySidebarComparator(
+                        sidebarSortKey as HistorySidebarSortKey,
+                        sidebarSortDir,
+                      ),
+                    )
+                  : filtered;
+              if (query && sorted.length === 0) {
                 return (
                   <div
                     className="flex flex-col items-center gap-2 py-6 text-center text-xs text-muted-foreground"
@@ -283,7 +401,7 @@ export default function HistoryView() {
               }
               return (
                 <SidebarVirtualizedList
-                  filtered={filtered}
+                  filtered={sorted}
                   selected={selected}
                   showScribe={showScribe}
                   bulk={bulk}
