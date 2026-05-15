@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+export interface CopyResult {
+  ok: boolean;
+  error: Error | null;
+}
+
 export interface UseCopyToClipboardResult {
-  copy: (text: string) => Promise<void>;
+  copy: (text: string) => Promise<CopyResult>;
   copied: boolean;
   error: Error | null;
 }
@@ -48,7 +53,7 @@ export function useCopyToClipboard(
   }, [clearTimer]);
 
   const copy = useCallback(
-    async (text: string): Promise<void> => {
+    async (text: string): Promise<CopyResult> => {
       clearTimer();
       const hasClipboard =
         typeof navigator !== 'undefined' &&
@@ -67,9 +72,12 @@ export function useCopyToClipboard(
           setCopied(false);
           timerRef.current = null;
         }, resetMs);
+        return { ok: true, error: null };
       } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
         setCopied(false);
-        setError(e instanceof Error ? e : new Error(String(e)));
+        setError(err);
+        return { ok: false, error: err };
       }
     },
     [clearTimer, resetMs],

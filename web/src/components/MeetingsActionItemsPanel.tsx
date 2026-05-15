@@ -41,7 +41,7 @@ export default function MeetingsActionItemsPanel({ actions, meetingId }: Props) 
   useLocale();
   const [filter, setFilter] = useState<ActionItemType | null>(null);
   // (v1.10.742) JSON download + MD copy handlers moved to lib/use-action-items-export.
-  const { handleDownloadJson, handleCopyMd } = useActionItemsExport({ actions, meetingId });
+  const { handleDownloadJson, handleCopyMd, copied } = useActionItemsExport({ actions, meetingId });
 
   if (!actions || actions.count === 0) return null;
 
@@ -94,8 +94,9 @@ export default function MeetingsActionItemsPanel({ actions, meetingId }: Props) 
           onClick={handleCopyMd}
           className="rounded border border-border bg-background px-1.5 py-0 text-[10px] text-muted-foreground hover:bg-accent/40"
           title={t('meetings.tooltip.copyActionsMd')}
+          data-copied={copied ? 'true' : undefined}
         >
-          ⧉ MD
+          {copied ? '✓ Copied' : '⧉ MD'}
         </button>
       </div>
       {(['decision', 'action', 'todo', 'blocker'] as ActionItemType[]).filter((k) => filter === null || filter === k).map((kind) => {

@@ -44,10 +44,12 @@ describe('useCopyToClipboard', () => {
   it('calls navigator.clipboard.writeText with the provided text', async () => {
     const { writeText } = installClipboard(() => Promise.resolve());
     const { result } = renderHook(() => useCopyToClipboard());
+    let res: { ok: boolean } | undefined;
     await act(async () => {
-      await result.current.copy('hello world');
+      res = await result.current.copy('hello world');
     });
     expect(writeText).toHaveBeenCalledWith('hello world');
+    expect(res?.ok).toBe(true);
   });
 
   it('flips copied to true after a successful copy', async () => {

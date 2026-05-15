@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { ActionItemType } from '../components/MeetingsView';
 import type { ActionItemsResponse } from '../components/MeetingsActionItemsPanel';
+import { useCopyToClipboard } from '../hooks/use-copy-to-clipboard';
 
 // (v1.10.742) Extracted from MeetingsActionItemsPanel.
 // Two export handlers that hand the action-item
@@ -23,6 +24,7 @@ const KIND_ORDER: ActionItemType[] = ['decision', 'action', 'todo', 'blocker'];
 export interface UseActionItemsExportState {
   handleDownloadJson: () => void;
   handleCopyMd: () => void;
+  copied: boolean;
 }
 
 export function useActionItemsExport(args: {
@@ -30,6 +32,7 @@ export function useActionItemsExport(args: {
   meetingId: string;
 }): UseActionItemsExportState {
   const { actions, meetingId } = args;
+  const { copy, copied } = useCopyToClipboard();
 
   const handleDownloadJson = useCallback(() => {
     if (!actions) return;
@@ -57,8 +60,8 @@ export function useActionItemsExport(args: {
       lines.push('');
     });
     const md = lines.join('\n').trim();
-    navigator.clipboard.writeText(md).catch(() => { /* ignore */ });
-  }, [actions]);
+    void copy(md);
+  }, [actions, copy]);
 
-  return { handleDownloadJson, handleCopyMd };
+  return { handleDownloadJson, handleCopyMd, copied };
 }

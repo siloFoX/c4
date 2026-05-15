@@ -91,17 +91,21 @@ describe('useCopyPulse', () => {
     expect(writeText).toHaveBeenLastCalledWith('two');
   });
 
-  it('is SSR-safe: copy() does not throw when navigator.clipboard is undefined', async () => {
+  it('is SSR-safe: copy() falls back when navigator.clipboard is undefined', async () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: undefined,
     });
+    const execFn = vi.fn(() => true);
+    (document as unknown as { execCommand: typeof execFn }).execCommand = execFn;
     const { result } = renderHook(() => useCopyPulse({ text: 'no-clip' }));
     await act(async () => {
       await result.current.copy();
     });
     expect(result.current.copied).toBe(true);
     expect(writeText).not.toHaveBeenCalled();
+    expect(execFn).toHaveBeenCalledWith('copy');
+    delete (document as unknown as { execCommand?: unknown }).execCommand;
   });
 
   it('does not throw when the pulse timer fires after unmount', async () => {
