@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { Alert, Button, Input, NumberInput, Panel, Switch, Textarea } from '../components/ui';
+import HelpTip from '../components/HelpTip';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -182,6 +183,11 @@ export default function Risk() {
         <h3 className={cn('mb-2 flex items-center gap-2 text-foreground', text.h3)}>
           <Shield className="h-4 w-4 text-muted-foreground" aria-hidden />
           {t('riskPage.classify.heading')}
+          <HelpTip
+            ariaLabel="Help for Risk classifier"
+            data-testid="risk-help-classifier"
+            content="The **risk classifier** inspects a shell command before a worker runs it, returning a level (`low` / `medium` / `high` / `critical`) plus reasons, decoded shell tokens, and inferred intent (files written, network peers, destructive verbs). The same classifier runs in the `PreToolUse` daemon hook, so the preview here mirrors production behaviour. `wouldDeny` reflects whether the configured auto-deny level would block this command if it were dispatched right now."
+          />
         </h3>
         <div className="flex flex-col gap-2">
           <Textarea

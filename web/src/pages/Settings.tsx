@@ -27,6 +27,7 @@ import {
 } from '../hooks/use-density';
 import ThemeToggle from '../components/ThemeToggle';
 import DensityToggle from '../components/DensityToggle';
+import HelpTip from '../components/HelpTip';
 import FeatureFlags from './FeatureFlags';
 
 // (patch 11.199) Consolidated Settings landing page. Six tabs surface the
@@ -84,7 +85,16 @@ function ThemePanel() {
   return (
     <Panel
       icon={<Palette className="h-4 w-4" aria-hidden="true" />}
-      title="Theme"
+      title={
+        <span className="inline-flex items-center gap-1.5">
+          Theme
+          <HelpTip
+            ariaLabel="Help for Theme"
+            data-testid="settings-help-theme"
+            content="**Theme** controls the light / dark color scheme. `system` follows the OS `prefers-color-scheme` media query; `light` / `dark` pin a fixed value. Selection persists to `localStorage` key `c4:theme`."
+          />
+        </span>
+      }
       description={`Selection persists to localStorage 'c4:theme'. Resolved: ${resolvedTheme}.`}
     >
       <div className="flex flex-col gap-3">
@@ -116,7 +126,16 @@ function DensityPanel() {
   return (
     <Panel
       icon={<LayoutDashboard className="h-4 w-4" aria-hidden="true" />}
-      title="Density"
+      title={
+        <span className="inline-flex items-center gap-1.5">
+          Density
+          <HelpTip
+            ariaLabel="Help for Density"
+            data-testid="settings-help-density"
+            content="**Density** adjusts the global spacing scale via CSS variables `--density-row-h`, `--density-card-p`, and `--density-gap-x`. `compact` is tightest (28 / 8 / 6 px); `comfortable` matches the shadcn baseline; `cozy` is most relaxed. Persists to `localStorage` key `c4:density`."
+          />
+        </span>
+      }
       description="Adjusts global spacing (row height, card padding, gap). Persists to localStorage 'c4:density'."
     >
       <div className="flex flex-col gap-3">
@@ -207,7 +226,16 @@ function LocalePanel() {
   return (
     <Panel
       icon={<Globe className="h-4 w-4" aria-hidden="true" />}
-      title="Locale"
+      title={
+        <span className="inline-flex items-center gap-1.5">
+          Locale
+          <HelpTip
+            ariaLabel="Help for Locale"
+            data-testid="settings-help-locale"
+            content="**Locale** picks the dashboard display language. Strings flow through the `t()` helper in `lib/i18n.ts`; missing keys fall back to the source string. Persists via `localStorage` key `c4.locale` and dispatches `c4:locale-changed` so mounted subscribers re-render."
+          />
+        </span>
+      }
       description="Display language for the dashboard. Persists in this browser."
     >
       <div role="radiogroup" aria-label="Locale" className="flex flex-col gap-2">

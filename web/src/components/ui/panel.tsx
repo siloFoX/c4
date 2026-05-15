@@ -15,7 +15,11 @@ export type PanelBreadcrumbsProp =
 
 export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   icon?: ReactNode;
-  title?: string;
+  // (v1.11.264, TODO 11.246) Relaxed from `string` to `ReactNode`
+  // so consumers can append inline glyphs (HelpTip, status chips)
+  // next to the title without losing the Panel's built-in
+  // header layout. String values keep working byte-identically.
+  title?: ReactNode;
   action?: ReactNode;
   description?: string;
   breadcrumbs?: PanelBreadcrumbsProp;
