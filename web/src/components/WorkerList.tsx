@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useScrollRestoration } from '../hooks/use-scroll-restoration';
 import { Lightbulb, Trash2, WifiOff } from 'lucide-react';
 import type { Worker } from '../types';
 import { useWorkerList } from '../lib/use-worker-list';
@@ -203,8 +204,19 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
     );
   };
 
+  // (11.217) Persist scrollTop of the worker list so toggling between
+  // the sidebar's tree/list modes (or unmounting the sidebar in
+  // collapsed view) keeps the operator's place. The root acts as the
+  // scroll surface via `overflow-y-auto`; the outer `<ScrollArea>` in
+  // layout/Sidebar.tsx still wins when this surface fits its content.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  useScrollRestoration({
+    containerRef: scrollRef,
+    storageKey: 'workers:list',
+  });
+
   return (
-    <div className="space-y-2">
+    <div ref={scrollRef} className="space-y-2 overflow-y-auto">
       {!sseConnected && (
         <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
           <WifiOff aria-hidden="true" className="h-3.5 w-3.5" />

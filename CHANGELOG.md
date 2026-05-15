@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.235] - 2026-05-15 -- UI: scroll-restoration hook (11.217)
+
+Component-scope-only addition. No daemon-side change and no `c4` CLI
+surface change.
+
+- `web/src/hooks/use-scroll-restoration.ts` -- new
+  `useScrollRestoration({ containerRef, storageKey, debounceMs? })`
+  hook that mirrors a scroll container's `scrollTop` into
+  `sessionStorage` (debounced, default 100 ms trailing) and restores
+  it on mount. Bare `storageKey` strings are namespaced under
+  `c4:scroll:<key>`; callers that pass a key already containing `:`
+  keep their literal form. Cleanup removes the scroll listener,
+  cancels any pending timer, and flushes the last observed value so
+  unmounts during a debounce window do not lose state. SSR-safe:
+  all `window` / `sessionStorage` access is gated and runs inside
+  `useEffect`. Returns `{ reset() }` for manual eviction.
+- Adopted at the History view sidebar virtualizer scroll container
+  (`web/src/components/HistoryView.tsx`, storage key
+  `history:sidebar`) and the WorkerList root surface
+  (`web/src/components/WorkerList.tsx`, storage key `workers:list`).
+  The WorkerList root gains an explicit `overflow-y-auto` so it
+  can act as its own scroll surface when the parent `ScrollArea`
+  does not clip; the outer `ScrollArea` still wins for short
+  content.
+- Test coverage `web/src/hooks/use-scroll-restoration.test.tsx` --
+  9 cases (vitest + RTL `renderHook`, `vi.useFakeTimers`,
+  `sessionStorage` mock) covering: restore on mount, write after
+  the debounce window, rapid-scroll coalescing to a single write
+  of the latest value, `reset()` clears the stored position,
+  scroll listener removed on unmount, no-storage initial state
+  stays at 0, null `containerRef` is a no-op, two instances with
+  different keys persist independently, and unmount-during-debounce
+  flushes the pending value rather than dropping it.
+
 ## [1.11.234] - 2026-05-15 -- UI: NumberFormat component (11.216)
 
 Component-scope-only addition. No daemon-side change and no `c4` CLI

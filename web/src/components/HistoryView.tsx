@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   History as HistoryIcon,
   NotebookText,
@@ -29,6 +29,7 @@ import { useScribeContext } from '../lib/use-scribe-context';
 import { useHistoryWorkerDetail } from '../lib/use-history-worker-detail';
 import { useHistorySummary } from '../lib/use-history-summary';
 import { useListVirtualizer } from '../hooks/use-list-virtualizer';
+import { useScrollRestoration } from '../hooks/use-scroll-restoration';
 import { SearchEmpty } from './illustrations';
 
 export interface HistoryCommit {
@@ -397,8 +398,17 @@ function SidebarVirtualizedList({
     itemCount: filtered.length,
     itemHeight: SIDEBAR_ITEM_HEIGHT,
   });
+  // (11.217) Persist + restore scrollTop across navigations so
+  // re-entering the History view lands the operator back where they
+  // were rather than at the top of a 1k-row sidebar.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  useScrollRestoration({
+    containerRef: scrollRef,
+    storageKey: 'history:sidebar',
+  });
   return (
     <div
+      ref={scrollRef}
       role="list"
       aria-label={t('history.sidebar.title')}
       className="pr-1 overflow-auto"
