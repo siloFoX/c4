@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react';
+import { Info } from 'lucide-react';
 import {
+  Button,
   Card,
   CardContent,
+  DetailPanel,
 } from './ui';
 import { cn } from '../lib/cn';
 import { useLocale } from '../lib/i18n';
@@ -37,6 +40,12 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
   useLocale();
   const [tab, setTab] = useState<TerminalTab>('screen');
   const [inputText, setInputText] = useState<string>('');
+  // (v1.11.265, TODO 11.247) Info slide-in for worker metadata.
+  // Opens a DetailPanel beside the terminal showing the canonical
+  // worker info (name, current tab, font size, scrollback line
+  // count) without forcing the operator off the persistent
+  // terminal view.
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // (v1.10.637) Font-size persistence hook extracted to
   // ../lib/use-persisted-font-size.
@@ -136,6 +145,65 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
       </CardContent>
     </Card>
     <PinnedRulesEditor workerName={workerName} />
+
+    {/* (v1.11.265, TODO 11.247) Worker info slide-in. The "Info"
+        button at the bottom-right slides in a DetailPanel with the
+        canonical worker metadata (name + active tab + font size +
+        scrollback line count). The persistent terminal pane stays
+        mounted underneath so live output keeps streaming. */}
+    <div className="flex justify-end">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setInfoOpen(true)}
+        aria-label="Show worker info"
+        data-testid="worker-detail-info-trigger"
+      >
+        <Info className="mr-1 h-3.5 w-3.5" />
+        <span>Info</span>
+      </Button>
+    </div>
+    <DetailPanel
+      open={infoOpen}
+      onOpenChange={setInfoOpen}
+      title={workerName}
+      description="Worker info"
+      data-testid="worker-detail-info-panel"
+      footer={
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setInfoOpen(false)}
+          >
+            Close
+          </Button>
+        </div>
+      }
+    >
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
+        <dt className="text-muted-foreground">Worker</dt>
+        <dd className="font-mono text-foreground">{workerName}</dd>
+        <dt className="text-muted-foreground">Active tab</dt>
+        <dd className="font-mono text-foreground">{tab}</dd>
+        <dt className="text-muted-foreground">Font size</dt>
+        <dd className="font-mono text-foreground">{fontSize}px</dd>
+        <dt className="text-muted-foreground">Scrollback lines</dt>
+        <dd className="font-mono text-foreground">
+          {scrollbackContent
+            ? scrollbackContent.split('\n').length
+            : 0}
+        </dd>
+        {actionMsg ? (
+          <>
+            <dt className="text-muted-foreground">Last action</dt>
+            <dd className="text-foreground">{actionMsg}</dd>
+          </>
+        ) : null}
+      </dl>
+    </DetailPanel>
     </div>
   );
 }
