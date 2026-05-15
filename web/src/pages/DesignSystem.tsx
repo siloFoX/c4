@@ -36,6 +36,8 @@ import {
   SearchBar,
   Select,
   Separator,
+  LOADING_MOTION,
+  Skeleton,
   StatCard,
   Stepper,
   Switch,
@@ -45,6 +47,7 @@ import {
   Timeline,
   Tooltip,
 } from '../components/ui';
+import Spinner from '../components/Spinner';
 import { cn } from '../lib/cn';
 
 // Design System docs page (patch 11.185). Inline live demo page showing
@@ -669,6 +672,58 @@ function HScrollDemo() {
   );
 }
 
+function LoadingMotionDemo() {
+  // (v1.11.243, TODO 11.225) Side-by-side visual diff between the
+  // Skeleton shimmer and the Spinner rotate so a reviewer can
+  // confirm by eye that the unified loading-motion contract is in
+  // effect. The summary line surfaces the underlying numbers so
+  // the demo doubles as engineering reference.
+  const summary = `skeleton ${LOADING_MOTION.skeleton.durationMs}ms ${LOADING_MOTION.skeleton.easing} · spinner ${LOADING_MOTION.spinner.durationMs}ms ${LOADING_MOTION.spinner.easing}`;
+  return (
+    <Demo
+      name="Loading motion (skeleton + spinner harmony)"
+      description={`Shared duration + easing contract for the two loading primitives. ${summary}. Both drop the animation under prefers-reduced-motion: reduce.`}
+      code={`import { LOADING_MOTION, getLoadingMotionStyle } from '../components/ui';
+
+LOADING_MOTION.skeleton // { durationMs: 1800, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
+LOADING_MOTION.spinner  // { durationMs: 1200, easing: 'linear' }
+
+// Both primitives consume useReducedMotion() and emit
+// data-motion-reduced when the reduce gate fires.`}
+    >
+      <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2 rounded-md border border-border p-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Skeleton</span>
+            <code className="rounded bg-muted px-1 text-[10px]">
+              {LOADING_MOTION.skeleton.durationMs}ms
+            </code>
+          </div>
+          <Skeleton variant="line" />
+          <Skeleton variant="line" className="w-4/5" />
+          <Skeleton variant="line" className="w-3/5" />
+        </div>
+        <div className="flex flex-col gap-2 rounded-md border border-border p-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Spinner</span>
+            <code className="rounded bg-muted px-1 text-[10px]">
+              {LOADING_MOTION.spinner.durationMs}ms
+            </code>
+          </div>
+          <div className="flex items-center gap-3 text-primary">
+            <Spinner size="sm" />
+            <Spinner size="md" />
+            <Spinner size="lg" />
+          </div>
+          <span className="text-[10px] text-muted-foreground">
+            1.5 rotations per shimmer pulse (3:2 period ratio).
+          </span>
+        </div>
+      </div>
+    </Demo>
+  );
+}
+
 function ProgressDemo() {
   return (
     <Demo
@@ -771,8 +826,8 @@ const CATEGORIES: { label: string; demos: ReactNode }[] = [
         <SeparatorDemo />
         <DataListDemo />
         <TimelineDemo />
+        <LoadingMotionDemo />
         <ProgressDemo />
-        <MissingPrimitive name="Spinner" />
       </>
     ),
   },
