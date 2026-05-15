@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Filter, HelpCircle, RefreshCw } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Filter, GripVertical, HelpCircle, RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
@@ -29,6 +29,10 @@ import { t, tFormat, useLocale } from '../lib/i18n';
 import { text } from '../lib/typography';
 import { useHealth } from '../lib/use-health';
 import { useABVariant } from '../lib/ab-variant';
+import {
+  useHealthLayout,
+  type HealthLayoutKey,
+} from '../lib/use-health-layout';
 
 // 8.20B Health dashboard. Reads GET /api/health and renders the fields
 // the daemon surfaces today (pid, uptime, worker counts). Fields the
@@ -53,8 +57,78 @@ export default function Health() {
   // attribute is the contract that downstream styling / Playwright
   // selectors will pivot on. See web/src/lib/ab-variant.ts.
   const [heroVariant] = useABVariant('health-hero');
+  // (11.204) Health hero card order is operator-reorderable via drag.
+  // Persistence + cross-subtree sync lives in `lib/use-health-layout.ts`.
+  const [heroLayout, setHeroLayout, resetHeroLayout] = useHealthLayout();
+  const dragKey = useRef<HealthLayoutKey | null>(null);
 
   const ok = data?.ok !== false && !error;
+
+  const heroCardRenderers: Record<HealthLayoutKey, () => JSX.Element> = {
+    uptime: () => (
+      <StatCard
+        label="Uptime trend"
+        value={formatDuration((data?.uptime ?? 0) * 1000)}
+        tone="success"
+        noAnimation
+        trend={{ value: 4, label: 'vs last hour' }}
+        sparkline={[12, 14, 13, 15, 16, 18, 19, 21]}
+      />
+    ),
+    workers: () => (
+      <StatCard
+        label="Workers"
+        value={formatNumber(data?.workers)}
+        tone="primary"
+        noAnimation
+        trend={{ value: (data?.workers ?? 0) > 0 ? 2 : 0 }}
+        sparkline={[2, 2, 3, 3, 4, 3, 4, data?.workers ?? 0]}
+      />
+    ),
+    queue: () => (
+      <StatCard
+        label="Queue trend"
+        value={formatNumber(data?.queueDepth)}
+        tone={(data?.queueDepth ?? 0) > 0 ? 'warning' : 'default'}
+        noAnimation
+        trend={{ value: (data?.queueDepth ?? 0) > 0 ? -8 : 0, label: 'vs last hour' }}
+        sparkline={[5, 4, 6, 3, 2, 1, 1, data?.queueDepth ?? 0]}
+      />
+    ),
+  };
+
+  const onCardDragStart =
+    (key: HealthLayoutKey) => (e: React.DragEvent<HTMLDivElement>) => {
+      dragKey.current = key;
+      try {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', key);
+      } catch {
+        /* ignore */
+      }
+    };
+  const onCardDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    try {
+      e.dataTransfer.dropEffect = 'move';
+    } catch {
+      /* ignore */
+    }
+  };
+  const onCardDrop =
+    (target: HealthLayoutKey) => (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const src = dragKey.current;
+      dragKey.current = null;
+      if (!src || src === target) return;
+      const order = [...heroLayout];
+      const from = order.indexOf(src);
+      const to = order.indexOf(target);
+      if (from < 0 || to < 0) return;
+      order.splice(from, 1);
+      order.splice(to, 0, src);
+      setHeroLayout(order);
+    };
 
   return (
     <PageFrame
@@ -179,37 +253,45 @@ export default function Health() {
           </div>
 
           <DashboardGrid data-stat-card-trends gap="sm" data-ab-variant={heroVariant}>
-            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
-              <StatCard
-                label="Uptime trend"
-                value={formatDuration((data.uptime ?? 0) * 1000)}
-                tone="success"
-                noAnimation
-                trend={{ value: 4, label: 'vs last hour' }}
-                sparkline={[12, 14, 13, 15, 16, 18, 19, 21]}
-              />
-            </DashboardGrid.Item>
-            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
-              <StatCard
-                label="Workers"
-                value={formatNumber(data.workers)}
-                tone="primary"
-                noAnimation
-                trend={{ value: (data.workers ?? 0) > 0 ? 2 : 0 }}
-                sparkline={[2, 2, 3, 3, 4, 3, 4, data.workers ?? 0]}
-              />
-            </DashboardGrid.Item>
-            <DashboardGrid.Item span="full" smSpan={6} lgSpan={4}>
-              <StatCard
-                label="Queue trend"
-                value={formatNumber(data.queueDepth)}
-                tone={(data.queueDepth ?? 0) > 0 ? 'warning' : 'default'}
-                noAnimation
-                trend={{ value: (data.queueDepth ?? 0) > 0 ? -8 : 0, label: 'vs last hour' }}
-                sparkline={[5, 4, 6, 3, 2, 1, 1, data.queueDepth ?? 0]}
-              />
-            </DashboardGrid.Item>
+            {heroLayout.map((key) => (
+              <DashboardGrid.Item
+                key={key}
+                span="full"
+                smSpan={6}
+                lgSpan={4}
+              >
+                <div
+                  draggable
+                  data-card-key={key}
+                  onDragStart={onCardDragStart(key)}
+                  onDragOver={onCardDragOver}
+                  onDrop={onCardDrop(key)}
+                  className="relative"
+                >
+                  <button
+                    type="button"
+                    aria-label={`Drag ${key} card`}
+                    data-testid={`health-hero-drag-${key}`}
+                    className="absolute right-1 top-1 z-10 inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing"
+                    tabIndex={-1}
+                  >
+                    <GripVertical className="h-3.5 w-3.5" />
+                  </button>
+                  {heroCardRenderers[key]()}
+                </div>
+              </DashboardGrid.Item>
+            ))}
           </DashboardGrid>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={resetHeroLayout}
+              data-testid="health-hero-reset-layout"
+              className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Reset layout
+            </button>
+          </div>
 
           <Panel className="p-3">
             <DataList
