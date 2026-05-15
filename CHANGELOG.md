@@ -4,6 +4,70 @@
 
 (no entries -- next release window)
 
+## [1.11.242] - 2026-05-15 -- UI: Tag color palette audit (TODO 11.224)
+
+Component-scope-only addition + a follow-up adoption sweep. No
+daemon-side change and no `c4` CLI surface change.
+
+New `web/src/components/ui/tag-palette.ts` codifies the canonical
+8-color tag palette. Five status hues (brand / success / warning /
+info / danger) cover the signal vocabulary; three accent hues
+(accent / magenta / neutral) cover the remaining categorical
+buckets without re-using a signal hue for a non-signal idea.
+Every entry exposes four surface variants (`subtle` / `solid` /
+`outline` / `dot`) pinned to shadcn or chart-N tokens so dark /
+light theme parity is automatic and the ARPS source-of-truth hue
+is recorded per entry for a future migration. The module also
+exports two helpers: `getTagTone(id)` is a safe lookup that falls
+back to `neutral` on null / undefined / unknown ids (defensive
+against backend-driven tag strings), and `pickTagTone(seed)` is a
+deterministic FNV-1a hash-based picker used by call sites that
+have a stable string key (tag name, specialist tier) but no
+explicit colour preference. 13 vitest cases lock the 8-entry
+shape, the canonical id order, the status / accent split, the
+four-surface contract, an allowlist invariant on the dot class
+(no ad-hoc Tailwind hue), and the `getTagTone` / `pickTagTone`
+contracts.
+
+10 ad-hoc colour sites swept onto the canonical palette:
+1-3. `web/src/components/ui/status-dot.tsx` -- `online` /
+   `busy` / `away` move from `bg-green-500` / `bg-yellow-500` /
+   `bg-orange-500` to `bg-success` / `bg-warning` /
+   `bg-chart-3`. `status-dot.test.tsx` retargeted: 4 assertions
+   flipped from raw hue to token class; the pulse-ping
+   assertion follows along.
+4-10. `web/src/components/SpecialistsView.tsx` `TIER_BADGE`
+   map -- 7 tier classes (meeting / design / implement / review /
+   audit / test / deploy) move from the old
+   `border-...500/40 bg-...500/10 text-...600 dark:text-...400`
+   shape onto the palette tones (`info` / `magenta` / `success`
+   / `warning` / `danger` / `accent` / `brand`). The
+   `dark:text-*` overrides drop -- the CSS variables already
+   carry the dark / light pair. The 8th tier (`docs`) was
+   already on the muted-neutral string and stays untouched.
+
+DesignSystem docs page (`web/src/pages/DesignSystem.tsx`) grows
+a new `TagPaletteDemo` block at the top of the Display category
+showing all 8 tones rendered across the three surface variants
+(subtle / solid / outline) with a dot preview, so the page
+doubles as engineering reference. The demo block also surfaces
+the `pickTagTone` / `getTagTone` API in its code snippet.
+
+Audited but deliberately left alone: `MeetingsList` search
+highlights (`bg-amber-500/20` -- a transient highlight, not a
+tag), `GridDebugOverlay` dev-only red / blue tints (not a tag
+surface), `file-input.tsx` `bg-amber-500/20` highlight
+(matches the search-highlight intent, not the tag palette).
+These sites can ride a follow-up if a separate highlight
+palette emerges.
+
+Adopters re-verified in isolation: tag-palette 13/13, status-dot
+13/13, SpecialistsList + SpecialistsSearchFilters 59/59 -- all
+pass.
+
+Bumped `package.json` 1.11.241 -> 1.11.242 and `web/package.json`
+1.11.241 -> 1.11.242 along with both lockfiles.
+
 ## [1.11.241] - 2026-05-15 -- UI: VisuallyHidden primitive (TODO 11.223)
 
 Component-scope-only addition. No daemon-side change and no `c4`
