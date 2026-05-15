@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button, IconButton } from './ui';
@@ -18,6 +18,13 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   destructive?: boolean;
   busy?: boolean;
+  // (v1.11.260, TODO 11.242) Which button receives initial focus
+  // when the dialog opens. Defaults to `dialog` (the container)
+  // for backward compatibility with v1.11.259 callers. Destructive
+  // confirmations should pass `cancel` so a quick Enter on the
+  // newly-opened modal doesn't accidentally trigger the destructive
+  // action -- the operator has to explicitly tab/click to Confirm.
+  initialFocus?: 'dialog' | 'cancel' | 'confirm';
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -35,13 +42,30 @@ export function ConfirmDialog({
   cancelLabel,
   destructive = true,
   busy = false,
+  initialFocus = 'dialog',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   useLocale();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
   // (v1.10.755) Esc + focus restore moved to lib/use-dialog-a11y.
   useDialogA11y({ open, busy, onCancel, dialogRef });
+
+  // (v1.11.260, TODO 11.242) Override the default container-focus
+  // when initialFocus picks a button. Runs after useDialogA11y so
+  // our focus call wins. The setTimeout(0) ensures the dialog tree
+  // has mounted before the focus attempt -- without it the button
+  // ref is still null on the same tick.
+  useEffect(() => {
+    if (!open || initialFocus === 'dialog') return undefined;
+    const id = window.setTimeout(() => {
+      if (initialFocus === 'cancel') cancelButtonRef.current?.focus();
+      else if (initialFocus === 'confirm') confirmButtonRef.current?.focus();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [open, initialFocus]);
 
   // (v1.10.768) Stable backdrop click — guards against
   // dismissing while the confirmed action is in flight.
@@ -101,20 +125,24 @@ export function ConfirmDialog({
         )}
         <div className="mt-4 flex justify-end gap-2">
           <Button
+            ref={cancelButtonRef}
             type="button"
             variant="ghost"
             size="sm"
             onClick={onCancel}
             disabled={busy}
+            data-confirm-dialog-cancel
           >
             {cancelText}
           </Button>
           <Button
+            ref={confirmButtonRef}
             type="button"
             variant={destructive ? 'destructive' : 'default'}
             size="sm"
             onClick={onConfirm}
             disabled={busy}
+            data-confirm-dialog-confirm
           >
             {confirmText}
           </Button>

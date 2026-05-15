@@ -368,4 +368,48 @@ describe('<ConfirmDialog>', () => {
       screen.getByRole('button', { name: 'Drop branch' }),
     ).toBeInTheDocument();
   });
+
+  // ---- 11.242 initialFocus prop --------------------------------
+
+  it('exposes a data-confirm-dialog-cancel hook on the Cancel button', () => {
+    renderDialog();
+    expect(
+      document.querySelector('[data-confirm-dialog-cancel]'),
+    ).not.toBeNull();
+  });
+
+  it('exposes a data-confirm-dialog-confirm hook on the Confirm button', () => {
+    renderDialog();
+    expect(
+      document.querySelector('[data-confirm-dialog-confirm]'),
+    ).not.toBeNull();
+  });
+
+  it('initialFocus="cancel" focuses the Cancel button after open', async () => {
+    renderDialog({ initialFocus: 'cancel' });
+    const cancel = document.querySelector(
+      '[data-confirm-dialog-cancel]',
+    ) as HTMLButtonElement;
+    expect(cancel).not.toBeNull();
+    // The focus runs in a setTimeout(0); flush the macrotask queue.
+    await new Promise<void>((r) => setTimeout(r, 0));
+    expect(document.activeElement).toBe(cancel);
+  });
+
+  it('initialFocus="confirm" focuses the Confirm button after open', async () => {
+    renderDialog({ initialFocus: 'confirm' });
+    const confirm = document.querySelector(
+      '[data-confirm-dialog-confirm]',
+    ) as HTMLButtonElement;
+    expect(confirm).not.toBeNull();
+    await new Promise<void>((r) => setTimeout(r, 0));
+    expect(document.activeElement).toBe(confirm);
+  });
+
+  it('initialFocus default leaves focus on the dialog container (back-compat)', async () => {
+    renderDialog();
+    const dialog = screen.getByRole('dialog');
+    await new Promise<void>((r) => setTimeout(r, 0));
+    expect(document.activeElement).toBe(dialog);
+  });
 });

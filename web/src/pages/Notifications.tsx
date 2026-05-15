@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertOctagon,
   AlertTriangle,
@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   Info,
   Rocket,
+  Trash2,
+  Undo2,
 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
@@ -18,6 +20,7 @@ import {
   Timeline,
 } from '../components/ui';
 import type { TimelineItem, TimelineTone } from '../components/ui';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { cn } from '../lib/cn';
 
 // Notifications feed page (patch 11.186). Renders the unified lifecycle
@@ -78,6 +81,11 @@ function IconForType({ type }: { type: NotificationType }) {
 }
 
 const PAGE_SIZE = 50;
+
+// (v1.11.260, TODO 11.242) How long the inline undo banner stays
+// visible after a Clear all confirm. Exported so tests can drive
+// the timer deterministically without hardcoding a magic number.
+export const UNDO_BANNER_MS = 5000;
 
 function buildMockNotifications(): NotificationItem[] {
   const now = Date.now();
@@ -148,6 +156,13 @@ export default function Notifications() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [readAt, setReadAt] = useState<number | null>(null);
   const [visibleLimit, setVisibleLimit] = useState(PAGE_SIZE);
+  // (v1.11.260, TODO 11.242) Clear all confirm + undo state.
+  // confirmOpen drives the ConfirmDialog; undoSnapshot != null
+  // drives the inline undo banner. The snapshot remembers the
+  // list as it was at clear time so Undo can restore it.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [undoSnapshot, setUndoSnapshot] = useState<NotificationItem[] | null>(null);
+  const undoTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -225,21 +240,74 @@ export default function Notifications() {
 
   const canLoadMore = filtered.length > visible.length;
 
+  // (v1.11.260, TODO 11.242) Clear all flow.
+  const openClearConfirm = () => setConfirmOpen(true);
+  const cancelClearConfirm = () => setConfirmOpen(false);
+  const confirmClearAll = () => {
+    setConfirmOpen(false);
+    if (!items || items.length === 0) return;
+    setUndoSnapshot(items);
+    setItems([]);
+    setVisibleLimit(PAGE_SIZE);
+  };
+  const dismissUndo = () => {
+    setUndoSnapshot(null);
+    if (undoTimerRef.current !== null) {
+      window.clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+  };
+  const undoClear = () => {
+    if (!undoSnapshot) return;
+    setItems(undoSnapshot);
+    dismissUndo();
+  };
+
+  // Auto-dismiss the undo banner after UNDO_BANNER_MS.
+  useEffect(() => {
+    if (!undoSnapshot) return undefined;
+    const id = window.setTimeout(() => {
+      setUndoSnapshot(null);
+      undoTimerRef.current = null;
+    }, UNDO_BANNER_MS);
+    undoTimerRef.current = id;
+    return () => {
+      window.clearTimeout(id);
+      undoTimerRef.current = null;
+    };
+  }, [undoSnapshot]);
+
+  const totalCount = items ? items.length : 0;
+
   return (
     <PageFrame
       title="Notifications"
       description="Unified feed of lifecycle events from the autonomous loop and daemon."
       actions={
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={handleMarkAllRead}
-          disabled={totalUnread === 0}
-          aria-label="Mark all notifications as read"
-        >
-          Mark all read
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={handleMarkAllRead}
+            disabled={totalUnread === 0}
+            aria-label="Mark all notifications as read"
+          >
+            Mark all read
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={openClearConfirm}
+            disabled={totalCount === 0}
+            aria-label="Clear all notifications"
+            data-testid="notifications-clear-all"
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" />
+            Clear all
+          </Button>
+        </div>
       }
     >
       {usingMocks && (
@@ -317,6 +385,56 @@ export default function Notifications() {
           </Button>
         </div>
       )}
+
+      {undoSnapshot !== null && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="notifications-undo-banner"
+          className="fixed bottom-4 right-4 z-40 flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-lg"
+        >
+          <span className="text-sm text-foreground">
+            Cleared {undoSnapshot.length} notification
+            {undoSnapshot.length === 1 ? '' : 's'}.
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={undoClear}
+            aria-label="Undo clear all notifications"
+            data-testid="notifications-undo-action"
+          >
+            <Undo2 className="mr-1 h-3.5 w-3.5" />
+            Undo
+          </Button>
+          <button
+            type="button"
+            onClick={dismissUndo}
+            aria-label="Dismiss undo banner"
+            data-testid="notifications-undo-dismiss"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <span aria-hidden="true">x</span>
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Clear all notifications?"
+        description={
+          totalCount > 0
+            ? `This will remove all ${totalCount} notifications from the feed. You will have 5 seconds to undo.`
+            : 'There are no notifications to clear.'
+        }
+        confirmLabel="Clear all"
+        cancelLabel="Cancel"
+        destructive
+        initialFocus="cancel"
+        onConfirm={confirmClearAll}
+        onCancel={cancelClearConfirm}
+      />
     </PageFrame>
   );
 }
