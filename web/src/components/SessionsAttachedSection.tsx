@@ -3,10 +3,10 @@ import { Avatar, Badge } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import {
-  formatRelative,
   shortId,
   type AttachedSession,
 } from './SessionsView';
+import RelativeTime from './RelativeTime';
 import SessionsEmptyAttachBanner from './SessionsEmptyAttachBanner';
 import SessionsAttachedRowActions from './SessionsAttachedRowActions';
 
@@ -98,7 +98,9 @@ export default function SessionsAttachedSection({
                       <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                         <span>{shortId(a.sessionId)}</span>
                         {a.createdAt ? (
-                          <span>- {formatRelative(a.createdAt)}</span>
+                          <span>
+                            - <RelativeTime value={a.createdAt} />
+                          </span>
                         ) : null}
                       </div>
                     </button>

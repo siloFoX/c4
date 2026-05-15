@@ -13,8 +13,8 @@ import {
   Tooltip,
 } from '../components/ui';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
-import { formatRelativeTime } from '../lib/format';
 import { useLocale } from '../lib/i18n';
+import RelativeTime from '../components/RelativeTime';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
 
@@ -216,7 +216,7 @@ export default function Snapshots() {
                       {s.id}
                     </td>
                     <td className={cn('px-3 py-2 align-top', text.caption, 'text-muted-foreground')}>
-                      {s.createdAt ? formatRelativeTime(s.createdAt) : '-'}
+                      {s.createdAt ? <RelativeTime value={s.createdAt} /> : '-'}
                     </td>
                     <td className={cn('px-3 py-2 align-top', text.caption, 'text-muted-foreground')}>
                       {formatBytes(totalBytes)}

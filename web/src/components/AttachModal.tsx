@@ -5,10 +5,10 @@ import { useAttachForm } from '../lib/use-attach-form';
 import {
   POST_ATTACH_HELP_TITLE_KEY,
   POST_ATTACH_HELP_ITEM_KEYS,
-  formatRelative,
   shortId,
   type SessionSummary,
 } from './SessionsView';
+import RelativeTime from './RelativeTime';
 
 export interface AttachModalProps {
   open: boolean;
@@ -66,9 +66,14 @@ export default function AttachModal({
                     <span className="truncate font-medium text-foreground">
                       {s.projectPath || s.projectDir || t('sessions.preview.unknownProject')}
                     </span>
-                    <span className="ml-auto text-muted-foreground">
-                      {formatRelative(s.updatedAt)}
-                    </span>
+                    {s.updatedAt ? (
+                      <RelativeTime
+                        className="ml-auto text-muted-foreground"
+                        value={s.updatedAt}
+                      />
+                    ) : (
+                      <span className="ml-auto text-muted-foreground" />
+                    )}
                     <Badge variant="secondary">
                       {tFormat('sessions.preview.msgs', { count: s.turnCount })}
                     </Badge>
