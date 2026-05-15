@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Toast, { TOAST_SWIPE_THRESHOLD } from './Toast';
-import type { ToastType } from './Toast';
+import Toast, {
+  TOAST_SWIPE_THRESHOLD,
+  TOAST_PRIORITY,
+  TOAST_VISIBLE_LIMIT,
+  ToastStack,
+  partitionToasts,
+} from './Toast';
+import type { ToastEntry, ToastType } from './Toast';
 
 // Toast is now a portal-rendered, swipe-aware, stack-aware
 // banner. The pure-display contract is preserved (role=status,
@@ -340,5 +346,206 @@ describe('<Toast>', () => {
     fireEvent.pointerUp(wrap, { clientX: TOAST_SWIPE_THRESHOLD + 100, pointerId: 1 });
     vi.advanceTimersByTime(500);
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  // ---- warning tone (11.211) ------------------------------------
+
+  it('applies the warning tone classes when type=warning', () => {
+    renderToast({ type: 'warning' });
+    const status = screen.getByRole('status');
+    expect(status.className).toMatch(/warning/);
+  });
+});
+
+// ===== ToastStack: priority + visible cap (11.211) =================
+
+function entry(id: number, message: string, type: ToastType): ToastEntry {
+  return { id, message, type };
+}
+
+function renderStack(
+  toasts: ToastEntry[],
+  overrides: Partial<Parameters<typeof ToastStack>[0]> = {},
+) {
+  const onDismiss = vi.fn();
+  const utils = render(
+    <ToastStack
+      toasts={toasts}
+      onDismiss={onDismiss}
+      duration={99999}
+      {...overrides}
+    />,
+  );
+  return { ...utils, onDismiss };
+}
+
+function statusMessages(): string[] {
+  return screen.queryAllByRole('status').map((el) => el.textContent ?? '');
+}
+
+describe('TOAST_PRIORITY map', () => {
+  it('orders error > warning > success > info', () => {
+    expect(TOAST_PRIORITY.error).toBeGreaterThan(TOAST_PRIORITY.warning);
+    expect(TOAST_PRIORITY.warning).toBeGreaterThan(TOAST_PRIORITY.success);
+    expect(TOAST_PRIORITY.success).toBeGreaterThan(TOAST_PRIORITY.info);
+  });
+
+  it('uses the exact rubric values (error=3, warning=2, success=1, info=0)', () => {
+    expect(TOAST_PRIORITY).toEqual({ error: 3, warning: 2, success: 1, info: 0 });
+  });
+
+  it('TOAST_VISIBLE_LIMIT is 3', () => {
+    expect(TOAST_VISIBLE_LIMIT).toBe(3);
+  });
+});
+
+describe('partitionToasts', () => {
+  it('returns insertion order for a same-priority queue (FIFO within tier)', () => {
+    const out = partitionToasts([
+      entry(1, 'a', 'info'),
+      entry(2, 'b', 'info'),
+      entry(3, 'c', 'info'),
+    ]);
+    expect(out.visible.map((t) => t.message)).toEqual(['a', 'b', 'c']);
+    expect(out.pending).toEqual([]);
+  });
+
+  it('sorts higher-priority tiers ahead of lower ones', () => {
+    const out = partitionToasts([
+      entry(1, 'i', 'info'),
+      entry(2, 'e', 'error'),
+      entry(3, 's', 'success'),
+      entry(4, 'w', 'warning'),
+    ]);
+    expect(out.visible.map((t) => t.message)).toEqual(['e', 'w', 's']);
+    expect(out.pending.map((t) => t.message)).toEqual(['i']);
+  });
+
+  it('respects a custom visible limit', () => {
+    const out = partitionToasts(
+      [
+        entry(1, 'a', 'info'),
+        entry(2, 'b', 'info'),
+        entry(3, 'c', 'info'),
+      ],
+      1,
+    );
+    expect(out.visible.map((t) => t.message)).toEqual(['a']);
+    expect(out.pending.map((t) => t.message)).toEqual(['b', 'c']);
+  });
+});
+
+describe('<ToastStack>', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    document.getElementById('toast-root')?.remove();
+  });
+
+  it('puts error ahead of info even though info was added first', () => {
+    renderStack([entry(1, 'a', 'info'), entry(2, 'b', 'error')]);
+    const msgs = statusMessages();
+    expect(msgs[0]).toContain('b');
+    expect(msgs[1]).toContain('a');
+  });
+
+  it('caps the visible row at TOAST_VISIBLE_LIMIT (3) when 5 toasts are queued', () => {
+    renderStack([
+      entry(1, 't1', 'info'),
+      entry(2, 't2', 'info'),
+      entry(3, 't3', 'info'),
+      entry(4, 't4', 'info'),
+      entry(5, 't5', 'info'),
+    ]);
+    expect(screen.getAllByRole('status')).toHaveLength(3);
+  });
+
+  it('renders a "+2 more" overflow chip when 5 same-priority toasts are queued', () => {
+    renderStack([
+      entry(1, 't1', 'info'),
+      entry(2, 't2', 'info'),
+      entry(3, 't3', 'info'),
+      entry(4, 't4', 'info'),
+      entry(5, 't5', 'info'),
+    ]);
+    const chip = screen.getByTestId('toast-overflow-chip');
+    expect(chip).toBeInTheDocument();
+    expect(chip).toHaveTextContent('+2 more');
+  });
+
+  it('promotes the highest-priority pending toast when a visible one is removed', () => {
+    const toasts: ToastEntry[] = [
+      entry(1, 'err', 'error'),
+      entry(2, 'warn', 'warning'),
+      entry(3, 'succ', 'success'),
+      entry(4, 'info1', 'info'),
+      entry(5, 'info2', 'info'),
+    ];
+    const { rerender, onDismiss } = renderStack(toasts);
+    // Visible: err, warn, succ; pending: info1, info2.
+    expect(statusMessages().map((m) => m.replace(/\W+/g, ''))).toEqual([
+      'err',
+      'warn',
+      'succ',
+    ]);
+    // Drop the success (lowest of the visible tier); the next-highest
+    // pending entry (info1, FIFO over info2) must take its slot.
+    const remaining = toasts.filter((t) => t.id !== 3);
+    rerender(
+      <ToastStack toasts={remaining} onDismiss={onDismiss} duration={99999} />,
+    );
+    const msgs = statusMessages().map((m) => m.replace(/\W+/g, ''));
+    expect(msgs).toContain('info1');
+    expect(msgs).not.toContain('info2');
+    expect(msgs).not.toContain('succ');
+  });
+
+  it('preserves FIFO order within a tier when all four queued toasts share priority', () => {
+    renderStack([
+      entry(10, 'first', 'success'),
+      entry(11, 'second', 'success'),
+      entry(12, 'third', 'success'),
+      entry(13, 'fourth', 'success'),
+    ]);
+    const msgs = statusMessages();
+    expect(msgs[0]).toContain('first');
+    expect(msgs[1]).toContain('second');
+    expect(msgs[2]).toContain('third');
+    expect(screen.getByTestId('toast-overflow-chip')).toHaveTextContent('+1 more');
+  });
+
+  it('an error inserted last surfaces ahead of any earlier warning/success/info', () => {
+    renderStack([
+      entry(1, 'info-old', 'info'),
+      entry(2, 'success-old', 'success'),
+      entry(3, 'warning-old', 'warning'),
+      entry(4, 'error-new', 'error'),
+    ]);
+    const first = screen.getAllByRole('status')[0]!;
+    expect(first.textContent).toContain('error-new');
+  });
+
+  it('hides the overflow chip entirely when nothing is pending', () => {
+    renderStack([entry(1, 'a', 'info'), entry(2, 'b', 'error')]);
+    expect(screen.queryByTestId('toast-overflow-chip')).toBeNull();
+  });
+
+  it('invokes onDismiss with the dismissed toast id after the duration elapses', () => {
+    const { onDismiss } = renderStack(
+      [entry(1, 'solo', 'info')],
+      { duration: 500 },
+    );
+    vi.advanceTimersByTime(500);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(onDismiss).toHaveBeenCalledWith(1);
+  });
+
+  it('renders nothing when the toasts array is empty (no portal noise, no chip)', () => {
+    renderStack([]);
+    expect(screen.queryAllByRole('status')).toHaveLength(0);
+    expect(screen.queryByTestId('toast-overflow-chip')).toBeNull();
   });
 });
