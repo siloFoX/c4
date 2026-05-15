@@ -44,6 +44,11 @@ export interface DropdownMenuItem {
   variant?: 'default' | 'danger';
   disabled?: boolean;
   onSelect: () => void;
+  // (v1.11.246, TODO 11.228) Fires on hover / focus before the user
+  // commits the item. Use it to warm a lazy chunk (see
+  // lib/route-prefetch) so the post-onSelect navigation does not
+  // stall on the network round trip. Disabled rows skip the call.
+  onPrefetch?: () => void;
 }
 
 interface DropdownMenuProps {
@@ -322,7 +327,13 @@ export function DropdownMenu({
                   type="button"
                   role="menuitem"
                   disabled={item.disabled}
-                  onMouseEnter={() => setHighlight(idx)}
+                  onMouseEnter={() => {
+                    setHighlight(idx);
+                    if (!item.disabled) item.onPrefetch?.();
+                  }}
+                  onFocus={() => {
+                    if (!item.disabled) item.onPrefetch?.();
+                  }}
                   onClick={() => handleItemActivate(item)}
                   onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
                     if (e.key === 'Enter' || e.key === ' ') {

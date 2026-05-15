@@ -16,6 +16,8 @@ import { cn } from '../lib/cn';
 import { dispatchEvent } from '../lib/dispatch-event';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useAuthIdentity } from '../lib/use-auth-identity';
+import { prefetch } from '../lib/route-prefetch';
+import { SETTINGS_LOADER } from '../lib/route-loaders';
 import type { ThemeMode } from '../lib/preferences';
 import {
   HELP_EVENT_OPEN_DRAWER,
@@ -169,6 +171,10 @@ export default function AccountMenu({
             label: t('account.preferences') || ACCOUNT_LABEL_PREFERENCES,
             icon: <Settings className="h-4 w-4" />,
             onSelect: onOpenPreferences,
+            // (v1.11.246, TODO 11.228) Warm the SettingsView lazy
+            // chunk while the user hovers / focuses the row so the
+            // click does not stall on the bundle fetch.
+            onPrefetch: () => prefetch(SETTINGS_LOADER),
           } as DropdownMenuItem,
         ]
       : []),
