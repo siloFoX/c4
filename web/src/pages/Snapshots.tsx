@@ -11,6 +11,7 @@ import {
   Input,
   Skeleton,
   Tooltip,
+  UndoToast,
   VisuallyHidden,
 } from '../components/ui';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
@@ -19,6 +20,7 @@ import RelativeTime from '../components/RelativeTime';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
 import { copyTextToClipboard } from '../hooks/use-copy';
+import { useUndoToast } from '../hooks/use-undo-toast';
 
 // (11.189) Snapshots page. Lists saved snapshots from
 // GET /api/snapshots; supports taking a new snapshot (POST), restoring
@@ -117,20 +119,67 @@ export default function Snapshots() {
     }
   }, [restoreTarget, refresh]);
 
-  const handleDeleteConfirm = useCallback(async () => {
+  // (v1.11.262, TODO 11.244) Snapshot delete is deferred behind a
+  // 5-second undo window. The UI immediately drops the row, but
+  // the actual apiDelete fires only after the undo timer elapses
+  // (or when the operator dismisses the toast). Clicking Undo
+  // restores the snapshot back into the visible list and the
+  // server call never happens.
+  const { active: deleteUndoActive, showUndo: showDeleteUndo } = useUndoToast();
+  const handleDeleteConfirm = useCallback(() => {
     if (!deleteTarget) return;
-    setBusy(true);
+    const target = deleteTarget;
+    setDeleteTarget(null);
     setActionError(null);
-    try {
-      await apiDelete(`/api/snapshots/${encodeURIComponent(deleteTarget.id)}`);
-      setDeleteTarget(null);
-      await refresh();
-    } catch (e) {
-      setActionError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }, [deleteTarget, refresh]);
+    // Optimistic remove from the list. The server call is held
+    // until commit -- undo restores by re-inserting at the same
+    // position.
+    let prevItems: SnapshotMeta[] | null = null;
+    let prevIndex = -1;
+    setItems((cur) => {
+      if (!cur) return cur;
+      prevItems = cur;
+      prevIndex = cur.findIndex((s) => s.id === target.id);
+      return cur.filter((s) => s.id !== target.id);
+    });
+    showDeleteUndo({
+      message: `Deleting snapshot ${target.label || target.id}...`,
+      onCommit: () => {
+        // Fire the actual destructive call now. Errors surface
+        // through actionError; the optimistic remove already
+        // happened so the UI does not need to mutate again.
+        void (async () => {
+          try {
+            await apiDelete(`/api/snapshots/${encodeURIComponent(target.id)}`);
+            await refresh();
+          } catch (e) {
+            setActionError((e as Error).message);
+            // Best-effort restore: if the call failed and we have
+            // the prior list cached, put the row back.
+            if (prevItems) {
+              const restored = [...prevItems];
+              setItems(restored);
+            }
+          }
+        })();
+      },
+      onUndo: () => {
+        if (prevItems) {
+          const restored = [...prevItems];
+          if (prevIndex >= 0) {
+            // No-op if the snapshot is somehow already back (e.g.
+            // a concurrent refresh). Otherwise restore the row at
+            // its prior index.
+            const existing = restored.findIndex((s) => s.id === target.id);
+            if (existing === -1) {
+              restored.splice(prevIndex, 0, target);
+            }
+          }
+          setItems(restored);
+        }
+      },
+    });
+  }, [deleteTarget, showDeleteUndo, refresh]);
 
   return (
     <PageFrame
@@ -396,16 +445,22 @@ export default function Snapshots() {
               size="sm"
               disabled={busy}
               data-testid="snapshots-delete-confirm"
-              onClick={() => {
-                void handleDeleteConfirm();
-              }}
+              onClick={() => handleDeleteConfirm()}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              <span>{busy ? 'Deleting...' : 'Delete'}</span>
+              <span>Delete</span>
             </Button>
           </div>
         </div>
       </Dialog>
+
+      {deleteUndoActive ? (
+        <UndoToast
+          active={deleteUndoActive}
+          data-testid="snapshots-delete-undo"
+          undoLabel="Undo delete"
+        />
+      ) : null}
     </PageFrame>
   );
 }

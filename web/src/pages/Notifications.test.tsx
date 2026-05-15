@@ -243,7 +243,9 @@ describe('<Notifications>', () => {
       document.querySelector('[data-confirm-dialog-confirm]') as HTMLButtonElement,
     );
     expect(screen.getByTestId('notifications-undo-banner')).toBeInTheDocument();
-    await user.click(screen.getByTestId('notifications-undo-action'));
+    // (v1.11.262, TODO 11.244) UndoToast component owns the action
+    // surface now; the page-level banner just wraps it.
+    await user.click(screen.getByTestId('undo-toast-action'));
     expect(
       screen.queryByTestId('notifications-undo-banner'),
     ).not.toBeInTheDocument();
@@ -291,7 +293,7 @@ describe('<Notifications>', () => {
     await user.click(
       document.querySelector('[data-confirm-dialog-confirm]') as HTMLButtonElement,
     );
-    await user.click(screen.getByTestId('notifications-undo-dismiss'));
+    await user.click(screen.getByTestId('undo-toast-dismiss'));
     expect(
       screen.queryByTestId('notifications-undo-banner'),
     ).not.toBeInTheDocument();

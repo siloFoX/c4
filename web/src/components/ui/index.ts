@@ -62,3 +62,4 @@ export * from './tag-palette';
 export * from './loading-motion';
 export * from './widget';
 export * from './sticky-filter-bar';
+export * from './undo-toast';

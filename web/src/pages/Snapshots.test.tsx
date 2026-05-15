@@ -111,4 +111,76 @@ describe('<Snapshots>', () => {
       expect(apiPostMock).toHaveBeenCalledWith('/api/snapshots', { label: 'pre-deploy' });
     });
   });
+
+  // ---- 11.244 deferred delete + undo --------------------------
+
+  it('confirming delete optimistically removes the row and surfaces an undo toast', async () => {
+    apiGetMock.mockResolvedValueOnce({
+      snapshots: [makeSnap({ id: 'snap-d', label: 'doomed' })],
+    });
+    render(<Snapshots />);
+    await screen.findByTestId('snapshots-row-snap-d');
+    const user = userEvent.setup({ delay: null });
+    await act(async () => {
+      await user.click(screen.getByTestId('snapshots-delete-snap-d'));
+    });
+    await act(async () => {
+      await user.click(screen.getByTestId('snapshots-delete-confirm'));
+    });
+    // Row gone from the visible list right away.
+    expect(screen.queryByTestId('snapshots-row-snap-d')).not.toBeInTheDocument();
+    // Undo toast visible.
+    expect(screen.getByTestId('snapshots-delete-undo')).toBeInTheDocument();
+    // apiDelete must NOT have fired yet -- it is deferred until
+    // the undo timer elapses or the operator dismisses the toast.
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it('undo restores the row and never fires apiDelete', async () => {
+    apiGetMock.mockResolvedValueOnce({
+      snapshots: [makeSnap({ id: 'snap-r', label: 'restore-me' })],
+    });
+    render(<Snapshots />);
+    await screen.findByTestId('snapshots-row-snap-r');
+    const user = userEvent.setup({ delay: null });
+    await act(async () => {
+      await user.click(screen.getByTestId('snapshots-delete-snap-r'));
+    });
+    await act(async () => {
+      await user.click(screen.getByTestId('snapshots-delete-confirm'));
+    });
+    expect(screen.queryByTestId('snapshots-row-snap-r')).not.toBeInTheDocument();
+    await act(async () => {
+      await user.click(screen.getByTestId('undo-toast-action'));
+    });
+    // Row is back, apiDelete never fired.
+    expect(screen.getByTestId('snapshots-row-snap-r')).toBeInTheDocument();
+    expect(apiDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it('dismiss-x commits the deferred apiDelete immediately', async () => {
+    apiGetMock
+      .mockResolvedValueOnce({
+        snapshots: [makeSnap({ id: 'snap-c', label: 'commit-me' })],
+      })
+      .mockResolvedValueOnce({ snapshots: [] });
+    apiDeleteMock.mockResolvedValueOnce({ ok: true });
+    render(<Snapshots />);
+    await screen.findByTestId('snapshots-row-snap-c');
+    const user = userEvent.setup({ delay: null });
+    await act(async () => {
+      await user.click(screen.getByTestId('snapshots-delete-snap-c'));
+    });
+    await act(async () => {
+      await user.click(screen.getByTestId('snapshots-delete-confirm'));
+    });
+    await act(async () => {
+      await user.click(screen.getByTestId('undo-toast-dismiss'));
+    });
+    await waitFor(() => {
+      expect(apiDeleteMock).toHaveBeenCalledWith(
+        '/api/snapshots/snap-c',
+      );
+    });
+  });
 });
