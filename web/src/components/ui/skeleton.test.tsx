@@ -309,3 +309,149 @@ describe('<TableRowShape>', () => {
     expect((rects[6] as HTMLElement).style.width).toBe('100%');
   });
 });
+
+// ---- v1.11.208: Skeleton.* compound sub-components ---------------
+
+describe('Skeleton.* compound sub-components', () => {
+  it('Skeleton base renders animate-pulse + role=status (a11y)', () => {
+    const { container } = render(<Skeleton data-testid="sk-base" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveClass('animate-pulse');
+    expect(node).toHaveAttribute('role', 'status');
+    expect(node).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('Skeleton.Text renders a single line at default 100% width / 1em height', () => {
+    const { container } = render(<Skeleton.Text />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('100%');
+    expect(node.style.height).toBe('1em');
+    expect(node).toHaveAttribute('data-skeleton-sub', 'text');
+    expect(node).toHaveClass('animate-pulse');
+    expect(node).toHaveClass('bg-muted');
+  });
+
+  it('Skeleton.Text accepts a width prop (string + number)', () => {
+    const { container: c1 } = render(<Skeleton.Text width="60%" />);
+    expect((c1.firstChild as HTMLElement).style.width).toBe('60%');
+    const { container: c2 } = render(<Skeleton.Text width={140} />);
+    expect((c2.firstChild as HTMLElement).style.width).toBe('140px');
+  });
+
+  it('Skeleton.Text lines=3 renders 3 line elements inside the wrapper', () => {
+    const { container } = render(<Skeleton.Text lines={3} />);
+    const lines = container.querySelectorAll('[data-skeleton-line]');
+    expect(lines).toHaveLength(3);
+    // last line should be naturally shortened
+    expect((lines[2] as HTMLElement).className).toContain('w-4/5');
+  });
+
+  it('Skeleton.Text lines=1 collapses to a single bar (no wrapper)', () => {
+    const { container } = render(<Skeleton.Text lines={1} />);
+    const lines = container.querySelectorAll('[data-skeleton-line]');
+    expect(lines).toHaveLength(0);
+    expect(container.firstChild).toHaveAttribute('data-skeleton-sub', 'text');
+  });
+
+  it('Skeleton.Avatar size=sm renders a 24px circular placeholder', () => {
+    const { container } = render(<Skeleton.Avatar size="sm" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('24px');
+    expect(node.style.height).toBe('24px');
+    expect(node).toHaveClass('rounded-full');
+    expect(node).toHaveAttribute('data-skeleton-avatar-size', 'sm');
+  });
+
+  it('Skeleton.Avatar size=md renders a 32px circular placeholder', () => {
+    const { container } = render(<Skeleton.Avatar size="md" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('32px');
+    expect(node.style.height).toBe('32px');
+  });
+
+  it('Skeleton.Avatar size=lg renders a 48px circular placeholder', () => {
+    const { container } = render(<Skeleton.Avatar size="lg" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('48px');
+    expect(node.style.height).toBe('48px');
+    expect(node).toHaveClass('rounded-full');
+  });
+
+  it('Skeleton.Avatar defaults to md (32px) when no size is supplied', () => {
+    const { container } = render(<Skeleton.Avatar />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('32px');
+  });
+
+  it('Skeleton.Card renders a bordered panel with a header + 2 text rows', () => {
+    const { container } = render(<Skeleton.Card />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('data-skeleton-sub', 'card');
+    expect(wrapper).toHaveClass('rounded-md');
+    expect(wrapper).toHaveClass('border');
+    const header = wrapper.querySelectorAll('[data-skeleton-card="header"]');
+    const lines = wrapper.querySelectorAll('[data-skeleton-card="line"]');
+    expect(header).toHaveLength(1);
+    expect(lines).toHaveLength(2);
+  });
+
+  it('Skeleton.Table renders 1 header row + N body rows with C cells each', () => {
+    const { container } = render(<Skeleton.Table rows={5} cols={3} />);
+    const wrapper = container.firstChild as HTMLElement;
+    const header = wrapper.querySelectorAll('[data-skeleton-table-row="header"]');
+    const body = wrapper.querySelectorAll('[data-skeleton-table-row="body"]');
+    expect(header).toHaveLength(1);
+    expect(body).toHaveLength(5);
+    // 1 header + 5 body = 6 row containers
+    expect(header.length + body.length).toBe(6);
+    body.forEach((row) => {
+      expect(row.querySelectorAll('[data-skeleton-table-cell]')).toHaveLength(3);
+    });
+    expect(header[0]?.querySelectorAll('[data-skeleton-table-cell]')).toHaveLength(
+      3,
+    );
+  });
+
+  it('Skeleton.Table defaults rows=5 cols=3', () => {
+    const { container } = render(<Skeleton.Table />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(
+      wrapper.querySelectorAll('[data-skeleton-table-row="body"]'),
+    ).toHaveLength(5);
+    expect(
+      wrapper.querySelectorAll('[data-skeleton-table-cell]'),
+    ).toHaveLength(3 * 6); // 6 rows (header + 5 body) x 3 cols
+  });
+
+  it('custom className passes through on every sub-component wrapper', () => {
+    const { container: c1 } = render(<Skeleton.Text className="x-text" />);
+    expect(c1.firstChild as HTMLElement).toHaveClass('x-text');
+    const { container: c2 } = render(<Skeleton.Avatar className="x-av" />);
+    expect(c2.firstChild as HTMLElement).toHaveClass('x-av');
+    const { container: c3 } = render(<Skeleton.Card className="x-card" />);
+    expect(c3.firstChild as HTMLElement).toHaveClass('x-card');
+    const { container: c4 } = render(<Skeleton.Table className="x-tbl" />);
+    expect(c4.firstChild as HTMLElement).toHaveClass('x-tbl');
+  });
+
+  it('every sub-component carries role=status + aria-hidden on its wrapper (a11y)', () => {
+    const { container: c1 } = render(<Skeleton.Text />);
+    expect(c1.firstChild as HTMLElement).toHaveAttribute('role', 'status');
+    expect(c1.firstChild as HTMLElement).toHaveAttribute('aria-hidden', 'true');
+    const { container: c2 } = render(<Skeleton.Avatar />);
+    expect(c2.firstChild as HTMLElement).toHaveAttribute('role', 'status');
+    expect(c2.firstChild as HTMLElement).toHaveAttribute('aria-hidden', 'true');
+    const { container: c3 } = render(<Skeleton.Card />);
+    expect(c3.firstChild as HTMLElement).toHaveAttribute('role', 'status');
+    expect(c3.firstChild as HTMLElement).toHaveAttribute('aria-hidden', 'true');
+    const { container: c4 } = render(<Skeleton.Table />);
+    expect(c4.firstChild as HTMLElement).toHaveAttribute('role', 'status');
+    expect(c4.firstChild as HTMLElement).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('Skeleton.* sub-components allow callers to override role (e.g. nested inside another status region)', () => {
+    const { container } = render(<Skeleton.Text role="presentation" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node).toHaveAttribute('role', 'presentation');
+  });
+});

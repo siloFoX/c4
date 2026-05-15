@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui';
+import { Skeleton } from '../components/ui/skeleton';
 import { t, useLocale } from '../lib/i18n';
 
 interface PageFrameProps {
@@ -43,10 +44,11 @@ export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
       {items.map((_, i) => (
-        <div
+        <Skeleton.Text
           key={i}
-          className="h-8 w-full animate-pulse rounded-md bg-muted/50"
-          aria-hidden="true"
+          height="2rem"
+          role="presentation"
+          className="bg-muted/50"
         />
       ))}
       <span className="sr-only">{t('pageFrame.loading')}</span>

@@ -44,7 +44,7 @@ import {
   Tooltip,
 } from '../components/ui';
 import type { BadgeVariant, TimelineItem, TimelineTone } from '../components/ui';
-import { AvatarShape, TableRowShape, TextLine } from '../components/ui/skeleton';
+import { AvatarShape, Skeleton, TableRowShape, TextLine } from '../components/ui/skeleton';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { useLocale } from '../lib/i18n';
@@ -339,10 +339,11 @@ function BlockSkeleton({ rows = 3, className }: BlockSkeletonProps) {
       className={cn('flex flex-col gap-2', className)}
     >
       {Array.from({ length: rows }).map((_, i) => (
-        <div
+        <Skeleton.Text
           key={i}
-          aria-hidden="true"
-          className="h-10 w-full animate-pulse rounded-md bg-muted/60"
+          height="2.5rem"
+          role="presentation"
+          className="bg-muted/60"
         />
       ))}
     </div>
