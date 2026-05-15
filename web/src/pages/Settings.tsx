@@ -12,6 +12,7 @@ import {
 import PageFrame from './PageFrame';
 import {
   Alert,
+  PageHeader,
   Panel,
   Radio,
   Tabs,
@@ -291,6 +292,19 @@ export default function Settings() {
       title={t('feature.settingsPage.label')}
       description={t('feature.settingsPage.description')}
     >
+      {/* (v1.11.267, TODO 11.249) PageHeader bar with breadcrumb
+          trail + back button. Sub-page surface; title stays in
+          PageFrame. */}
+      <PageHeader
+        breadcrumbs={[
+          { id: 'home', label: 'Dashboard', href: '#feature=workers' },
+        ]}
+        backHref="#feature=workers"
+        backLabel="Back to Workers"
+        sticky={false}
+        className="-mx-4 -mt-2 md:-mx-6 md:-mt-2"
+        data-testid="settings-page-header"
+      />
       <Alert variant="info">
         Consolidated landing -- the dedicated Config / Scribe / Notifications /
         Feature Flags pages remain authoritative; this tab strip is a one-stop

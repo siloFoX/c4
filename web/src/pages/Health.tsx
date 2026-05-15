@@ -14,6 +14,7 @@ import {
   Drawer,
   IconButton,
   NumberInput,
+  PageHeader,
   Panel,
   Popover,
   Rating,
@@ -161,6 +162,16 @@ export default function Health() {
         </>
       }
     >
+      <PageHeader
+        breadcrumbs={[
+          { id: 'home', label: 'Dashboard', href: '#feature=workers' },
+        ]}
+        backHref="#feature=workers"
+        backLabel="Back to Workers"
+        sticky={false}
+        className="-mx-4 -mt-2 md:-mx-6 md:-mt-2"
+        data-testid="health-page-header"
+      />
       <Drawer
         open={filtersOpen}
         onOpenChange={setFiltersOpen}

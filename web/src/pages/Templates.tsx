@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FileInput, Label, ListItem, Pagination, Panel, SearchBar, TagInput, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FileInput, Label, ListItem, PageHeader, Pagination, Panel, SearchBar, TagInput, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -76,6 +76,16 @@ export default function Templates() {
         </>
       }
     >
+      <PageHeader
+        breadcrumbs={[
+          { id: 'home', label: 'Dashboard', href: '#feature=workers' },
+        ]}
+        backHref="#feature=workers"
+        backLabel="Back to Workers"
+        sticky={false}
+        className="-mx-4 -mt-2 md:-mx-6 md:-mt-2"
+        data-testid="templates-page-header"
+      />
       <PageDescriptionBanner
         summaryKey="templates.summary"
         cliKey="templates.cli"
