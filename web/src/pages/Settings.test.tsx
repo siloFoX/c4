@@ -15,6 +15,7 @@ import { LOCALE_KEY } from '../lib/i18n';
 const TAB_LABELS = [
   'General',
   'Theme',
+  'Density',
   'Scribe',
   'Notifications',
   'Locale',
@@ -30,7 +31,7 @@ afterEach(() => {
 });
 
 describe('Settings page', () => {
-  it('renders all 6 tab triggers in the consolidated landing strip', () => {
+  it('renders all 7 tab triggers in the consolidated landing strip', () => {
     render(<Settings />);
     const tablist = screen.getByRole('tablist', { name: 'Settings sections' });
     for (const label of TAB_LABELS) {

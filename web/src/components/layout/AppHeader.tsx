@@ -1,5 +1,6 @@
 import { HelpCircle, Keyboard, Menu, X } from 'lucide-react';
 import AccountMenu from '../AccountMenu';
+import DensityToggle from '../DensityToggle';
 import LocaleSwitcher from '../LocaleSwitcher';
 import ThemeToggle from '../ThemeToggle';
 import { IconButton, Navbar, Tooltip } from '../ui';
@@ -110,6 +111,10 @@ export default function AppHeader({
         />
       </Tooltip>
       <ThemeToggle size="sm" />
+      {/* (v1.11.263, TODO 11.245) Global density cycle. The compact
+          variant fits the dense header strip; clicking cycles
+          comfortable -> cozy -> compact -> comfortable. */}
+      <DensityToggle variant="compact" size="sm" />
       <LocaleSwitcher />
       {/* (TODO 8.41) Replaced the standalone LogOut IconButton with a
           compact AccountMenu - the avatar+chevron trigger opens the

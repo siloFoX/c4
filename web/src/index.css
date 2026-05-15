@@ -44,6 +44,36 @@
     --info: 199 89% 42%;
     --info-foreground: 0 0% 98%;
     --radius: 0.5rem;
+    /* (v1.11.263, TODO 11.245) Density spacing scale. The hook
+     * `use-density.ts` toggles `<html data-density="...">` which
+     * overrides these defaults via the per-mode selector blocks
+     * below. Components reference the variables via Tailwind
+     * arbitrary values (e.g. `h-[var(--density-row-h)]`) or
+     * inline styles. Default is `comfortable` so legacy callers
+     * with no opt-in keep the shadcn baseline. */
+    --density-row-h: 36px;
+    --density-card-p: 16px;
+    --density-gap-x: 12px;
+  }
+
+  /* (v1.11.263) Density overrides. The hook sets `data-density`
+   * on `<html>` so the cascade applies globally. Numbers in
+   * lockstep with `DENSITY_SCALE` in `hooks/use-density.ts` --
+   * a future migration should flip both together. */
+  :root[data-density='compact'] {
+    --density-row-h: 28px;
+    --density-card-p: 8px;
+    --density-gap-x: 6px;
+  }
+  :root[data-density='comfortable'] {
+    --density-row-h: 36px;
+    --density-card-p: 16px;
+    --density-gap-x: 12px;
+  }
+  :root[data-density='cozy'] {
+    --density-row-h: 44px;
+    --density-card-p: 24px;
+    --density-gap-x: 16px;
   }
 
   /* (v1.10.346) Dark theme tuned to ARPS' slate-900/800/700

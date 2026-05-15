@@ -4,6 +4,69 @@
 
 (no entries -- next release window)
 
+## [1.11.263] - 2026-05-15 -- UI: Density toggle (TODO 11.245)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/hooks/use-density.ts` -- operator-local density
+  preference with three modes: `compact` / `comfortable`
+  (default) / `cozy`. Mirrors `use-theme`'s shape: read via the
+  hook, write via `setDensity`, hydrate from localStorage (key
+  `c4:density`), apply to `<html data-density="...">`. Cross-tab
+  `storage` event + same-tab `c4:density-changed` CustomEvent
+  sync. Exports `DEFAULT_DENSITY`, `DENSITY_VALUES`,
+  `DENSITY_EVENT`, `DENSITY_SCALE`. 14 vitest cases cover
+  default hydration, malformed-value guard, persistence, DOM
+  reflection, cross-tab + same-tab sync, monotonic scale.
+- `web/src/components/DensityToggle.tsx` -- presentational
+  segmented control / cycle button. `variant="group"` (default)
+  renders a 3-button segmented control with `aria-pressed`;
+  `variant="compact"` renders a single icon button that cycles
+  comfortable -> cozy -> compact -> comfortable. Lucide glyphs
+  `Rows4` / `Rows3` / `LayoutDashboard` (densest to most
+  relaxed). 10 vitest cases cover group + compact variants,
+  persistence, attribute round-trip, hydration.
+- CSS in `web/src/index.css` defines spacing tokens per
+  `[data-density]`:
+  - `--density-row-h`: 28 / 36 / 44 px
+  - `--density-card-p`: 8 / 16 / 24 px
+  - `--density-gap-x`: 6 / 12 / 16 px
+  - Default values match `comfortable` so legacy callers with
+    no opt-in keep the shadcn baseline byte-identical.
+- `DENSITY_SCALE` record in JS mirrors the CSS numbers so
+  components that need to read the scale from JS (measurements,
+  computed styles) don't drift.
+
+### Changed
+
+- `web/src/pages/Settings.tsx` -- new "Density" tab between
+  Theme and Scribe with a `DensityPanel` surface: current
+  selection chip + group toggle + per-mode scale list +
+  active-scale summary. `Settings.test.tsx` updated to expect
+  7 tabs (was 6).
+- `web/src/components/layout/AppHeader.tsx` -- `DensityToggle
+  variant="compact"` placed between `ThemeToggle` and
+  `LocaleSwitcher` in the global header. Single-icon cycle so
+  the header strip stays narrow on mobile.
+
+### Notes
+
+- The new CSS variables are not yet adopted at call sites --
+  shipping the scale + toggle first lets future TODOs migrate
+  individual surfaces (`<Table>` row height, `<Card>` padding,
+  page-level gap-x) at their own cadence without forcing a
+  big-bang rewrite.
+- Density is operator-local and does NOT round-trip through
+  the daemon. The choice persists per-browser per-origin via
+  localStorage.
+- Pre-existing FeatureSidebar test failure ("scribe" filter
+  expects 2 buttons but gets 3) is unrelated to this change
+  (confirmed by stash-and-run on baseline) and out of scope.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.262] - 2026-05-15 -- UI: Command-result undo toast (TODO 11.244)
 
 Component-scope-only addition. No daemon-side change and no `c4`
