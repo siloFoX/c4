@@ -21,7 +21,6 @@ import {
   ExportButton,
   Input,
   Select,
-  VirtualList,
 } from './ui';
 import { parseISODate, toISODate } from '../lib/date-format';
 import { cn } from '../lib/cn';
@@ -29,6 +28,7 @@ import HistoryDetailPane from './HistoryDetailPane';
 import { useScribeContext } from '../lib/use-scribe-context';
 import { useHistoryWorkerDetail } from '../lib/use-history-worker-detail';
 import { useHistorySummary } from '../lib/use-history-summary';
+import { useListVirtualizer } from '../hooks/use-list-virtualizer';
 
 export interface HistoryCommit {
   hash: string;
@@ -251,10 +251,14 @@ export default function HistoryView() {
               <div className="text-xs text-muted-foreground">{t('history.empty')}</div>
             )}
             {(() => {
-              // (v1.11.197) patch 11.179 - VirtualList primitive adoption.
-              // Sidebar summary list virtualizes so >1k workers render
-              // O(viewport) rows instead of O(N). itemHeight=64 covers
-              // the badge row + meta row + space-y-1 gap.
+              // (v1.11.227 / patch 11.209) Sidebar summary list now
+              // virtualizes through the dedicated `useListVirtualizer`
+              // hook (replaces the v1.11.197 VirtualList primitive
+              // adoption). itemHeight=64 covers the badge row + meta
+              // row + space-y-1 gap; the hook's `containerProps` wires
+              // scroll handling onto the outer scrollable div, and the
+              // inner spacer (`totalHeight`) keeps the native scrollbar
+              // honest for >1k workers.
               const filtered = query
                 ? summary.filter((w) => {
                     const needle = query.toLowerCase();
@@ -265,64 +269,14 @@ export default function HistoryView() {
                   })
                 : summary;
               return (
-                <VirtualList
-                  items={filtered}
-                  itemHeight={64}
-                  height="60vh"
-                  getKey={(w) => w.name}
-                  ariaLabel={t('history.sidebar.title')}
-                  className="pr-1"
-                  renderItem={(w) => {
-                    const isSelected = !showScribe && selected === w.name;
-                    const isBulkSelected = bulk.has(w.name);
-                    return (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          if (e.shiftKey || e.metaKey || e.ctrlKey) {
-                            toggleBulk(w.name);
-                            return;
-                          }
-                          selectWorker(w.name);
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          toggleBulk(w.name);
-                        }}
-                        aria-pressed={isSelected}
-                        className={cn(
-                          'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
-                          isSelected
-                            ? 'bg-accent text-accent-foreground ring-1 ring-ring'
-                            : 'bg-muted/30 text-foreground hover:bg-muted',
-                          isBulkSelected && 'ring-2 ring-primary',
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate">{w.name}</span>
-                          {visibleColSet.has('status') && (
-                            <Badge
-                              variant={w.alive ? 'success' : 'secondary'}
-                              className="shrink-0 text-[10px] uppercase"
-                            >
-                              {w.alive ? w.liveStatus || 'live' : 'closed'}
-                            </Badge>
-                          )}
-                        </div>
-                        {visibleColSet.has('branch') && w.branches.length > 0 && (
-                          <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-                            {w.branches[0]}
-                          </div>
-                        )}
-                        {(visibleColSet.has('taskCount') || visibleColSet.has('lastTaskAt')) && (
-                          <div className="mt-0.5 text-[11px] text-muted-foreground">
-                            {visibleColSet.has('taskCount') && tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
-                            {visibleColSet.has('lastTaskAt') && w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  }}
+                <SidebarVirtualizedList
+                  filtered={filtered}
+                  selected={selected}
+                  showScribe={showScribe}
+                  bulk={bulk}
+                  visibleColSet={visibleColSet}
+                  selectWorker={selectWorker}
+                  toggleBulk={toggleBulk}
                 />
               );
             })()}
@@ -399,6 +353,109 @@ export default function HistoryView() {
           },
         ]}
       />
+    </div>
+  );
+}
+
+// (v1.11.227 / patch 11.209) Sidebar summary virtualization extracted
+// into its own component so the `useListVirtualizer` adoption stays
+// readable inside HistoryView's already-dense render tree.
+interface SidebarVirtualizedListProps {
+  filtered: HistoryWorkerSummary[];
+  selected: string | null;
+  showScribe: boolean;
+  bulk: Set<string>;
+  visibleColSet: Set<string>;
+  selectWorker: (name: string) => void;
+  toggleBulk: (name: string) => void;
+}
+
+const SIDEBAR_ITEM_HEIGHT = 64;
+
+function SidebarVirtualizedList({
+  filtered,
+  selected,
+  showScribe,
+  bulk,
+  visibleColSet,
+  selectWorker,
+  toggleBulk,
+}: SidebarVirtualizedListProps) {
+  const { items, totalHeight, offsetY, containerProps } = useListVirtualizer({
+    itemCount: filtered.length,
+    itemHeight: SIDEBAR_ITEM_HEIGHT,
+  });
+  return (
+    <div
+      role="list"
+      aria-label={t('history.sidebar.title')}
+      className="pr-1 overflow-auto"
+      style={{ ...containerProps.style, height: '60vh' }}
+      onScroll={containerProps.onScroll}
+    >
+      <div style={{ height: totalHeight, position: 'relative' }}>
+        <div style={{ transform: `translateY(${offsetY}px)` }}>
+          {items.map(({ index }) => {
+            const w = filtered[index];
+            if (!w) return null;
+            const isSelected = !showScribe && selected === w.name;
+            const isBulkSelected = bulk.has(w.name);
+            return (
+              <div
+                key={w.name}
+                role="listitem"
+                style={{ height: SIDEBAR_ITEM_HEIGHT }}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    if (e.shiftKey || e.metaKey || e.ctrlKey) {
+                      toggleBulk(w.name);
+                      return;
+                    }
+                    selectWorker(w.name);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    toggleBulk(w.name);
+                  }}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
+                    isSelected
+                      ? 'bg-accent text-accent-foreground ring-1 ring-ring'
+                      : 'bg-muted/30 text-foreground hover:bg-muted',
+                    isBulkSelected && 'ring-2 ring-primary',
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">{w.name}</span>
+                    {visibleColSet.has('status') && (
+                      <Badge
+                        variant={w.alive ? 'success' : 'secondary'}
+                        className="shrink-0 text-[10px] uppercase"
+                      >
+                        {w.alive ? w.liveStatus || 'live' : 'closed'}
+                      </Badge>
+                    )}
+                  </div>
+                  {visibleColSet.has('branch') && w.branches.length > 0 && (
+                    <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                      {w.branches[0]}
+                    </div>
+                  )}
+                  {(visibleColSet.has('taskCount') || visibleColSet.has('lastTaskAt')) && (
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      {visibleColSet.has('taskCount') && tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
+                      {visibleColSet.has('lastTaskAt') && w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
+                    </div>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

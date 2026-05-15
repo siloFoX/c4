@@ -4,6 +4,65 @@
 
 (no entries -- next release window)
 
+## [1.11.227] - 2026-05-15 -- UI: list virtualizer hook (11.209)
+
+Standalone `useListVirtualizer` hook for the web UI: a small,
+dependency-free, fixed-row windowed-list primitive. Lives at
+`web/src/hooks/use-list-virtualizer.ts` and ships alongside 9 dedicated
+vitest cases in `web/src/hooks/use-list-virtualizer.test.tsx`. The
+hook returns `{ items: Array<{ index, top }>, totalHeight, offsetY,
+containerProps: { onScroll, style } }` so callers can wire a scroll
+container + an inner translated block without learning a new component
+API. Visible-range math: `floor(scrollTop / itemHeight)` minus
+`overscan` (default 3) above, plus `ceil(viewport / itemHeight) +
+overscan` below; runaway `scrollTop` past the end clamps onto the tail
+window so callers always see a sensible last-page render. SSR-safe -
+the initial viewport reads `containerRef.current.clientHeight` first,
+falls back to `window.innerHeight` only when `window` exists, and
+collapses to 0 (rendering an overscan-sized empty band) otherwise. No
+ResizeObserver in v1; the viewport refreshes on the next scroll event.
+No dynamic row measurement in v1; `itemHeight` is a fixed scalar.
+
+The `HistoryView` sidebar summary list (workers list, previously a
+v1.11.197 `VirtualList` primitive adoption) is migrated to the new
+hook through a small `SidebarVirtualizedList` extracted at the bottom
+of `web/src/components/HistoryView.tsx`. `itemHeight=64` covers the
+existing badge row + meta row + space-y-1 gap; the outer scrollable
+div carries `containerProps.style` plus the existing `60vh` height,
+and the inner `transform: translateY(${offsetY}px)` block holds the
+visible button rows. Visual / behavioral output is byte-equivalent to
+the prior `VirtualList`-based render, and the existing
+`HistoryView.test.tsx` suite stays green without touching its mock
+layer. All ARIA wiring (`role="list"` outer, `role="listitem"` per
+row, `aria-label` from `t('history.sidebar.title')`) is preserved.
+
+9 vitest cases in `web/src/hooks/use-list-virtualizer.test.tsx`:
+
+1. Returns a top-anchored window of items at scrollTop=0 (default).
+2. Updates the visible window on a scroll event (mocked scrollTop).
+3. Honours custom `overscan` above + below the visible band.
+4. `totalHeight = itemCount * itemHeight`.
+5. `offsetY` moves with `startIndex` as the user scrolls.
+6. `itemCount=0` returns `[]` items + `totalHeight=0`.
+7. Clamps the visible window to the last items when scrolled past
+   the end (does not over-run `itemCount`).
+8. Uses `containerRef.current.clientHeight` as the initial viewport
+   when provided.
+9. Falls back to a 0 viewport when `window.innerHeight` is
+   unavailable (SSR-safe path -- no throw).
+
+Test command: `env -C /root/c4-worktree-auto-w193/web
+/root/c4/web/node_modules/.bin/vitest run
+src/hooks/use-list-virtualizer.test.tsx
+src/components/HistoryView.test.tsx` -- 2 / 2 files, 52 / 52 tests
+passing (43 prior `HistoryView` cases + 9 new hook cases). Local
+`web/node_modules` is symlinked to the primary checkout's
+`web/node_modules` (same pattern recent 11.x worker patches use); no
+install was performed in the worktree. `web/package.json` bumped from
+`1.11.226` to `1.11.227`. `package-lock.json` untouched.
+`docs/autonomous-queue-v10.md` untouched (manager owns the queue).
+See `docs/patches/11.209-ui-virtualizer-hook.md`.
+
 ## [1.11.226] - 2026-05-15 -- UI: Skeleton variants (11.208)
 
 Compound `Skeleton.*` loading-state sub-components for the web UI. `web/src/components/ui/skeleton.tsx` is extended with four new building blocks attached to the existing `Skeleton` primitive via a TypeScript `namespace` declaration merge so callers reach them as `Skeleton.Text`, `Skeleton.Avatar`, `Skeleton.Card`, and `Skeleton.Table` without changing the function-component identity of the underlying `Skeleton`. The legacy `Skeleton` primitive (variants `text` / `row` / `card` / `avatar` / `rect` / `line` / `circle` / `page`) and the v1.11.174 shape variants (`TextLine`, `Rect`, `Circle`, `AvatarShape`, `StatCardShape`, `TableRowShape`) stay byte-identical -- the new sub-components are additive. All variants compose the same `animate-pulse bg-muted` base that the rest of the file uses, matching the ARPS design-token classes already wired into the bundle.
