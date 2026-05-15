@@ -4,6 +4,67 @@
 
 (no entries -- next release window)
 
+## [1.11.248] - 2026-05-15 -- UI: Decision Log page + 5 seed ADRs (TODO 11.230)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+New `web/src/pages/DecisionLog.tsx` is an ADR-style architectural
+decision log surfaced under the Features sidebar -> Config
+category (the "Settings group" the brief refers to). The page
+renders a filterable list of ADR cards -- each card has a status
+Badge, a date + version chip, and three subsections (Context,
+Decision, Consequences). A filter input searches across id /
+title / status / context / decision / consequences / version
+with a substring match; the match counter + empty-state copy
+follow the existing Filter idioms used by the FeatureSidebar.
+
+Data is sourced from a split:
+- `docs/decisions.md` (repo root) -- canonical human-readable
+  doc with the same 5 entries. Source of truth for prose edits;
+  contributors update this file when documenting a new decision.
+- `web/src/pages/decision-log-entries.ts` -- typed mirror that
+  the page imports. Keeps the two in lockstep until a follow-up
+  collapses the duplication via a Vite raw markdown import (the
+  `docs/` tree currently sits outside the web/ Vite root, so
+  pulling it in needs either a `server.fs.allow` tweak or moving
+  the file inside web/).
+
+Seed entries (5):
+1. 0001 -- Daemon checkpoint protocol (v1.11.91)
+2. 0002 -- Structured logging via pino (v1.11.100)
+3. 0003 -- Canonical 8-color tag palette (v1.11.242)
+4. 0004 -- Shared loading-motion contract (v1.11.243)
+5. 0005 -- Lazy-route prefetch on user-intent signals (v1.11.246)
+
+Each entry carries its release version, the forcing function in
+the Context section, the chosen approach in the Decision
+section, and the live-with effects in the Consequences section.
+
+Registered in `web/src/pages/registry.ts` under category
+`config` as `decision-log` with the `History` lucide icon.
+i18n labels added for both en + ko bundles
+(`feature.decisionLog.label` / `feature.decisionLog.description`).
+
+Test coverage: `DecisionLog.test.tsx` adds 8 vitest cases
+covering title / description rendering, one card per entry,
+the status Badge per row, date + version chips, a
+title-substring filter, the empty-state when nothing matches,
+and the three ADR sections per card. 8/8 pass.
+
+Pre-existing failures left unchanged (confirmed identical with
+my edits reverted, so out of scope for this push):
+- `FeatureSidebar.test.tsx > filters the feature list by the
+  typed query` already asserted 2 matches for "scribe" but
+  `feature.settingsPage.description` contains "scribe" -- 3
+  matches in en.json today. Pre-dates 11.230.
+- `i18n-keys.test.ts > every t()/tFormat() key referenced
+  exists in en.json` self-matches the regex string literal
+  `t('key')` inside its own source. Pre-dates 11.230.
+
+Bumped `package.json` 1.11.247 -> 1.11.248 and `web/package.json`
+1.11.247 -> 1.11.248 along with both lockfiles.
+
 ## [1.11.247] - 2026-05-15 -- UI: Colour-blindness audit + Badge signal icons (TODO 11.229)
 
 Component-scope-only addition. No daemon-side change and no `c4`
