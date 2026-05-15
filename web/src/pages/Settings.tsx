@@ -5,6 +5,7 @@ import {
   ExternalLink,
   Feather,
   Globe,
+  LayoutDashboard,
   Palette,
   ToggleRight,
 } from 'lucide-react';
@@ -19,7 +20,13 @@ import {
 } from '../components/ui';
 import { LOCALES, getLocale, setLocale, t, useLocale, type Locale } from '../lib/i18n';
 import { useTheme, type Theme } from '../hooks/use-theme';
+import {
+  DENSITY_SCALE,
+  DENSITY_VALUES,
+  useDensity,
+} from '../hooks/use-density';
 import ThemeToggle from '../components/ThemeToggle';
+import DensityToggle from '../components/DensityToggle';
 import FeatureFlags from './FeatureFlags';
 
 // (patch 11.199) Consolidated Settings landing page. Six tabs surface the
@@ -34,6 +41,7 @@ import FeatureFlags from './FeatureFlags';
 type TabKey =
   | 'general'
   | 'theme'
+  | 'density'
   | 'scribe'
   | 'notifications'
   | 'locale'
@@ -97,6 +105,59 @@ function ThemePanel() {
             </li>
           ))}
         </ul>
+      </div>
+    </Panel>
+  );
+}
+
+function DensityPanel() {
+  const { density } = useDensity();
+  const scale = DENSITY_SCALE[density];
+  return (
+    <Panel
+      icon={<LayoutDashboard className="h-4 w-4" aria-hidden="true" />}
+      title="Density"
+      description="Adjusts global spacing (row height, card padding, gap). Persists to localStorage 'c4:density'."
+    >
+      <div className="flex flex-col gap-3">
+        <div className="text-sm text-muted-foreground">
+          Current selection:{' '}
+          <span
+            className="font-medium text-foreground"
+            data-testid="settings-density-current"
+          >
+            {density}
+          </span>
+        </div>
+        <div className="flex flex-row items-center gap-3">
+          <span className="text-sm text-foreground">Quick toggle</span>
+          <DensityToggle variant="group" size="sm" />
+        </div>
+        <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+          {DENSITY_VALUES.map((d) => (
+            <li key={d}>
+              <span className="font-mono">{d}</span> -- row{' '}
+              <span className="font-mono">
+                {DENSITY_SCALE[d].rowHeightPx}px
+              </span>
+              , pad{' '}
+              <span className="font-mono">
+                {DENSITY_SCALE[d].cardPaddingPx}px
+              </span>
+              , gap{' '}
+              <span className="font-mono">{DENSITY_SCALE[d].gapXPx}px</span>
+            </li>
+          ))}
+        </ul>
+        <p
+          className="text-xs text-muted-foreground"
+          data-testid="settings-density-active-scale"
+        >
+          Active scale -- row{' '}
+          <span className="font-mono">{scale.rowHeightPx}px</span>, pad{' '}
+          <span className="font-mono">{scale.cardPaddingPx}px</span>, gap{' '}
+          <span className="font-mono">{scale.gapXPx}px</span>.
+        </p>
       </div>
     </Panel>
   );
@@ -190,6 +251,7 @@ export default function Settings() {
   const items: TabsItem[] = [
     { value: 'general', label: 'General', icon: <Cog className="h-3.5 w-3.5" aria-hidden="true" /> },
     { value: 'theme', label: 'Theme', icon: <Palette className="h-3.5 w-3.5" aria-hidden="true" /> },
+    { value: 'density', label: 'Density', icon: <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" /> },
     { value: 'scribe', label: 'Scribe', icon: <Feather className="h-3.5 w-3.5" aria-hidden="true" /> },
     { value: 'notifications', label: 'Notifications', icon: <Bell className="h-3.5 w-3.5" aria-hidden="true" /> },
     { value: 'locale', label: 'Locale', icon: <Globe className="h-3.5 w-3.5" aria-hidden="true" /> },
@@ -217,6 +279,9 @@ export default function Settings() {
         </TabsPanel>
         <TabsPanel value="theme" className="mt-3">
           <ThemePanel />
+        </TabsPanel>
+        <TabsPanel value="density" className="mt-3">
+          <DensityPanel />
         </TabsPanel>
         <TabsPanel value="scribe" className="mt-3">
           <ScribePanel />
