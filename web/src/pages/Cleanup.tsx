@@ -62,11 +62,17 @@ export default function Cleanup() {
         onOpenHelp={openHelpDrawer}
       />
       {(busy || loading) && (
+        // (v1.11.274, TODO 11.256) labelText surfaces the
+        // "Committing..." vs "Dry running..." copy beside the
+        // working percent indicator. size="lg" gives the strip
+        // hero weight at the top of the page.
         <Progress
           indeterminate
-          label
+          labelText={busy ? t('cleanupPage.commit') : t('cleanupPage.dryRun')}
           variant={busy ? 'destructive' : 'default'}
+          size="lg"
           aria-label={busy ? t('cleanupPage.commit') : t('cleanupPage.dryRun')}
+          data-testid="cleanup-progress"
         />
       )}
       {error && <ErrorPanel message={error} />}

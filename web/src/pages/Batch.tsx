@@ -187,10 +187,17 @@ export default function Batch() {
       </div>
 
       {busy && (
+        // (v1.11.274, TODO 11.256) Dispatch progress strip:
+        // labelText replaces the bare percent-only label so the
+        // operator sees what's happening ("Dispatching ...") next
+        // to the working percent. size="lg" gives the bar more
+        // visual weight as a hero busy indicator.
         <Progress
           indeterminate
-          label
+          labelText={t('batchPage.dispatching')}
+          size="lg"
           aria-label={t('batchPage.dispatching')}
+          data-testid="batch-dispatch-progress"
         />
       )}
 
@@ -204,8 +211,9 @@ export default function Batch() {
           <Progress
             value={result.ok}
             max={result.total || 1}
-            label
+            labelText={`Completed ${result.ok} of ${result.total}`}
             variant={result.fail === 0 ? 'success' : 'warning'}
+            size="lg"
             className="mb-2"
           />
 
