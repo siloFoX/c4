@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, Switch, Table, Tooltip } from '../components/ui';
+import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, ProgressBar, Switch, Table, Tooltip } from '../components/ui';
 import type { TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
@@ -364,20 +364,27 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
 
 type BarTone = 'accent' | 'danger';
 
+// (v1.11.274, TODO 11.256) Replaces the prior hand-rolled
+// <div className="relative h-2 ... bg-muted"> with the shared
+// ProgressBar primitive. Tone mappings:
+//   undefined -> 'default'     (primary)
+//   'accent'  -> 'info'        (sky / informational)
+//   'danger'  -> 'destructive'
+// The visual rhythm is byte-identical at size="md" (h-2).
 function Bar({ value, max, tone }: { value: number; max: number; tone?: BarTone }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  const color = tone === 'danger'
-    ? 'bg-destructive/70'
-    : tone === 'accent'
-      ? 'bg-info/70'
-      : 'bg-primary/70';
+  const variant =
+    tone === 'danger'
+      ? 'destructive'
+      : tone === 'accent'
+        ? 'info'
+        : 'default';
   return (
-    <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">
-      <div
-        className={cn('absolute inset-y-0 left-0', color)}
-        style={{ width: `${pct}%` }}
-        aria-hidden="true"
-      />
-    </div>
+    <ProgressBar
+      value={value}
+      max={max > 0 ? max : 100}
+      variant={variant}
+      size="md"
+      className="flex-1"
+    />
   );
 }

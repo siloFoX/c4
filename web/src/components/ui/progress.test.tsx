@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Progress } from './progress';
+import { Progress, ProgressBar } from './progress';
 
 describe('<Progress>', () => {
   it('sets aria-valuenow / valuemin / valuemax when value is provided', () => {
@@ -116,5 +116,100 @@ describe('<Progress>', () => {
     const { container } = render(<Progress value={3} max={12} />);
     const fill = container.querySelector('[data-progress-fill="true"]') as HTMLElement;
     expect(fill.style.width).toBe('25%');
+  });
+
+  // -- v1.11.274 size + labelText + showPercent (TODO 11.256) -----
+
+  it('default size="md" maps to h-2 bar + data-size="md" attribute', () => {
+    render(<Progress value={50} />);
+    const bar = screen.getByRole('progressbar');
+    expect(bar.className).toContain('h-2');
+    const root = bar.parentElement!;
+    expect(root.getAttribute('data-size')).toBe('md');
+  });
+
+  it('size="sm" thins the bar to h-1', () => {
+    render(<Progress value={50} size="sm" />);
+    const bar = screen.getByRole('progressbar');
+    expect(bar.className).toContain('h-1');
+    expect(bar.parentElement!.getAttribute('data-size')).toBe('sm');
+  });
+
+  it('size="lg" thickens the bar to h-3', () => {
+    render(<Progress value={50} size="lg" />);
+    const bar = screen.getByRole('progressbar');
+    expect(bar.className).toContain('h-3');
+    expect(bar.parentElement!.getAttribute('data-size')).toBe('lg');
+  });
+
+  it('labelText prop auto-enables the label row (no need to set label)', () => {
+    render(<Progress value={20} labelText="Uploading..." />);
+    const labelRow = document.querySelector('[data-progress-label]');
+    expect(labelRow).not.toBeNull();
+    const text = document.querySelector('[data-progress-label-text]');
+    expect(text!.textContent).toBe('Uploading...');
+  });
+
+  it('labelText + percent render side by side on the same row', () => {
+    render(<Progress value={42} labelText="Snapshot" />);
+    expect(
+      document.querySelector('[data-progress-label-text]')!.textContent,
+    ).toBe('Snapshot');
+    expect(
+      document.querySelector('[data-progress-percent]')!.textContent,
+    ).toBe('42%');
+  });
+
+  it('showPercent={false} hides the percent text but keeps the label row when labelText is set', () => {
+    render(
+      <Progress value={70} labelText="Almost there" showPercent={false} />,
+    );
+    expect(
+      document.querySelector('[data-progress-label-text]')!.textContent,
+    ).toBe('Almost there');
+    expect(
+      document.querySelector('[data-progress-percent]'),
+    ).toBeNull();
+  });
+
+  it('label={true} with no labelText still shows the percent on the right', () => {
+    render(<Progress value={88} label />);
+    expect(
+      document.querySelector('[data-progress-label-text]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[data-progress-percent]')!.textContent,
+    ).toBe('88%');
+  });
+
+  it('indeterminate + label="true" still shows "Working..." on the right', () => {
+    render(<Progress indeterminate label />);
+    expect(
+      document.querySelector('[data-progress-percent]')!.textContent,
+    ).toBe('Working...');
+  });
+
+  it('omits the label row entirely when neither label nor labelText is set', () => {
+    render(<Progress value={50} />);
+    expect(
+      document.querySelector('[data-progress-label]'),
+    ).toBeNull();
+  });
+
+  it('exposes data-section="progress" on the root', () => {
+    render(<Progress value={1} />);
+    expect(
+      document.querySelector('[data-section="progress"]'),
+    ).not.toBeNull();
+  });
+
+  // -- v1.11.274 ProgressBar alias (TODO 11.256) -------------------
+
+  it('ProgressBar is an alias of Progress (renders the same DOM)', () => {
+    const a = render(<Progress value={30} max={100} />);
+    const b = render(<ProgressBar value={30} max={100} />);
+    const aBar = a.container.querySelector('[role="progressbar"]');
+    const bBar = b.container.querySelector('[role="progressbar"]');
+    expect(aBar!.outerHTML).toBe(bBar!.outerHTML);
   });
 });
