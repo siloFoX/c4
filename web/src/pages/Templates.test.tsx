@@ -250,14 +250,20 @@ describe('<Templates>', () => {
     expect(screen.queryByText('web')).not.toBeInTheDocument();
   });
 
-  it('renders the Edit + Remove action buttons per template row', () => {
+  it('renders the per-row ListActionMenu with Edit + Remove actions inside', async () => {
+    // (v1.11.280, TODO 11.262) Per-row Edit / Remove buttons
+    // migrated to the canonical ListActionMenu. Open the menu via
+    // its data-testid trigger and verify the action rows appear.
     hookState = {
       ...hookState,
       items: [makeTemplate({ name: 'planner' })],
     };
+    const user = userEvent.setup();
     render(<Templates />);
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+    const trigger = screen.getByTestId('templates-row-actions-planner');
+    await user.click(trigger);
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.getByText('Remove')).toBeInTheDocument();
   });
 
   it('fires a not-implemented toast when the add button is clicked', async () => {
@@ -282,7 +288,10 @@ describe('<Templates>', () => {
     };
     const user = userEvent.setup();
     render(<Templates />);
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    // (v1.11.280, TODO 11.262) Open the per-row menu first, then
+    // click the Edit row.
+    await user.click(screen.getByTestId('templates-row-actions-planner'));
+    await user.click(screen.getByText('Edit'));
     expect(screen.getByTestId('toast')).toBeInTheDocument();
   });
 
@@ -293,7 +302,11 @@ describe('<Templates>', () => {
     };
     const user = userEvent.setup();
     render(<Templates />);
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    // (v1.11.280, TODO 11.262) Same migration as the Edit test
+    // above -- the destructive Remove action lives inside the
+    // ListActionMenu now.
+    await user.click(screen.getByTestId('templates-row-actions-planner'));
+    await user.click(screen.getByText('Remove'));
     expect(screen.getByTestId('toast')).toBeInTheDocument();
   });
 
