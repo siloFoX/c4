@@ -1,6 +1,6 @@
 import { RotateCcw, Sparkles } from 'lucide-react';
 import PageFrame from './PageFrame';
-import { Alert, AlertBanner, Button, Panel, Switch } from '../components/ui';
+import { AlertBanner, Button, Panel, RichText, Switch } from '../components/ui';
 import HelpTip from '../components/HelpTip';
 import { t, useLocale } from '../lib/i18n';
 import {
@@ -87,9 +87,22 @@ export default function FeatureFlags() {
                         </span>
                       ) : null}
                     </p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {flag.description}
-                    </p>
+                    {/* (v1.11.283, TODO 11.265) Feature-flag
+                        rule descriptions now flow through the
+                        RichText primitive. Many flags use
+                        markdown-lite syntax (`code` for env
+                        var names, **bold** for "WARNING" prefix,
+                        [link](url) for ADR references) and
+                        rendering them via the safe primitive
+                        preserves the formatting while
+                        enforcing the URL allowlist + no-HTML
+                        contract. */}
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      <RichText
+                        content={flag.description}
+                        data-testid={`feature-flag-description-${flag.key}`}
+                      />
+                    </div>
                     <p className="mt-1 font-mono text-[11px] text-muted-foreground/80">
                       key={flag.key} default={String(flag.defaultValue)}
                     </p>

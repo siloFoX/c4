@@ -16,6 +16,7 @@ import {
   Chip,
   EmptyState,
   Panel,
+  RichText,
   Timeline,
   UndoToast,
 } from '../components/ui';
@@ -222,7 +223,18 @@ export default function Notifications() {
             ) : null}
           </span>
         ),
-        description: n.description,
+        /* (v1.11.283, TODO 11.265) Notification body now flows
+           through the RichText primitive so operator-authored
+           descriptions can carry markdown-lite formatting
+           (paragraphs, bullets, **bold**, `code`, [links]) -- with
+           the safe URL allowlist enforced and no HTML
+           pass-through. */
+        description: (
+          <RichText
+            content={n.description}
+            data-testid={`notification-body-${n.id}`}
+          />
+        ),
         icon: <IconForType type={n.type} />,
         tone: TONE_BY_TYPE[n.type],
       })),

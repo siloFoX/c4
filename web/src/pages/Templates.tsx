@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, PageHeader, Pagination, Panel, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -134,7 +134,20 @@ export default function Templates() {
                       {tpl.profile && <Chip variant="outline">{tpl.profile}</Chip>}
                     </span>
                   }
-                  description={tpl.description || undefined}
+                  description={
+                    /* (v1.11.283, TODO 11.265) Template descriptions
+                       now render through RichText so operator-authored
+                       template summaries can use markdown-lite
+                       formatting (paragraphs, bullets, **bold**,
+                       `code`, [links]) with the safe URL allowlist
+                       enforced. */
+                    tpl.description ? (
+                      <RichText
+                        content={tpl.description}
+                        data-testid={`templates-row-description-${tpl.name}`}
+                      />
+                    ) : undefined
+                  }
                   trailing={
                     /* (v1.11.280, TODO 11.262) Per-row Edit / Remove
                        buttons consolidated into the canonical
