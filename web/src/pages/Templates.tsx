@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Toolbar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -50,7 +50,16 @@ export default function Templates() {
       title={t('templatesPage.title')}
       description={t('templatesPage.description')}
       actions={
-        <>
+        /* (v1.11.284, TODO 11.266) Editor actions row wrapped
+           in the Toolbar primitive (children-mode) so the row
+           reads as role=toolbar with keyboard arrow nav between
+           the Add + Refresh action buttons. The SearchBar stays
+           inside the toolbar shell as a sibling control. */
+        <Toolbar
+          size="sm"
+          ariaLabel={t('templatesPage.title')}
+          data-testid="templates-page-toolbar"
+        >
           <Tooltip label={t('templates.tooltip.filter')}>
             <SearchBar
               size="sm"
@@ -73,7 +82,7 @@ export default function Templates() {
               <span className="sr-only">{t('common.srOnlyRefresh')}</span>
             </Button>
           </Tooltip>
-        </>
+        </Toolbar>
       }
     >
       <PageHeader

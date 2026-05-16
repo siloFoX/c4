@@ -74,3 +74,4 @@ export * from './sparkline';
 export * from './list-action-menu';
 export * from './field-group';
 export * from './rich-text';
+export * from './toolbar';
