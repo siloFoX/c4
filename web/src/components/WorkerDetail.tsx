@@ -4,8 +4,10 @@ import {
   Button,
   Card,
   CardContent,
+  DataList,
   DetailPanel,
 } from './ui';
+import type { DataListItem } from './ui';
 import { cn } from '../lib/cn';
 import { useLocale } from '../lib/i18n';
 import XtermView from './XtermView';
@@ -183,26 +185,61 @@ export default function WorkerDetail({ workerName }: WorkerDetailProps) {
         </div>
       }
     >
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
-        <dt className="text-muted-foreground">Worker</dt>
-        <dd className="font-mono text-foreground">{workerName}</dd>
-        <dt className="text-muted-foreground">Active tab</dt>
-        <dd className="font-mono text-foreground">{tab}</dd>
-        <dt className="text-muted-foreground">Font size</dt>
-        <dd className="font-mono text-foreground">{fontSize}px</dd>
-        <dt className="text-muted-foreground">Scrollback lines</dt>
-        <dd className="font-mono text-foreground">
-          {scrollbackContent
-            ? scrollbackContent.split('\n').length
-            : 0}
-        </dd>
-        {actionMsg ? (
-          <>
-            <dt className="text-muted-foreground">Last action</dt>
-            <dd className="text-foreground">{actionMsg}</dd>
-          </>
-        ) : null}
-      </dl>
+      {/* (v1.11.277, TODO 11.259) Raw <dl> grid migrated to the
+          DataList primitive (now grouped + density-aware). The
+          three sections (Identity / Terminal / Last action) split
+          the meta so the operator can jump straight to the
+          composer status without scanning every row. */}
+      <DataList
+        data-testid="worker-detail-info-list"
+        groups={(() => {
+          const groups = [
+            {
+              id: 'identity',
+              title: 'Identity',
+              items: [
+                {
+                  id: 'name',
+                  label: 'Worker',
+                  value: workerName,
+                  copyValue: workerName,
+                },
+              ] satisfies DataListItem[],
+            },
+            {
+              id: 'terminal',
+              title: 'Terminal',
+              items: [
+                { id: 'tab', label: 'Active tab', value: tab },
+                {
+                  id: 'fontSize',
+                  label: 'Font size',
+                  value: `${fontSize}px`,
+                },
+                {
+                  id: 'scrollback',
+                  label: 'Scrollback lines',
+                  value: String(
+                    scrollbackContent
+                      ? scrollbackContent.split('\n').length
+                      : 0,
+                  ),
+                },
+              ] satisfies DataListItem[],
+            },
+          ];
+          if (actionMsg) {
+            groups.push({
+              id: 'action',
+              title: 'Last action',
+              items: [
+                { id: 'lastAction', label: 'Message', value: actionMsg },
+              ] satisfies DataListItem[],
+            });
+          }
+          return groups;
+        })()}
+      />
     </DetailPanel>
     </div>
   );

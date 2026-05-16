@@ -382,26 +382,55 @@ export default function Health() {
             }}
             loading={loading}
           >
-            <DataList
-              items={(() => {
-                const all: DataListItem[] = [
-                  { id: 'pid', label: t('healthPage.stat.pid'), value: data.pid != null ? String(data.pid) : '-' },
+            {/* (v1.11.277, TODO 11.259) Health hero metrics migrated
+                from a flat `items` DataList to the grouped API so
+                related rows (Process / Workers / Performance) live
+                under sticky group headers + a hover scrubber for
+                quick jumps. Compact viewMode collapses everything
+                back to a single Workers-flavored set so the rhythm
+                stays the same as v1.11.276. */}
+            {viewMode === 'compact' ? (
+              <DataList
+                items={[
                   { id: 'uptime', label: t('healthPage.stat.uptime'), value: formatDuration((data.uptime ?? 0) * 1000) },
-                  { id: 'started', label: t('healthPage.stat.started'), value: formatRelativeTime(data.startedAt) },
-                  { id: 'workersTotal', label: t('healthPage.stat.workersTotal'), value: formatNumber(data.workers) },
                   { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
-                  { id: 'idle', label: t('healthPage.stat.idle'), value: formatNumber(data.idleWorkers) },
                   { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: formatNumber(data.queueDepth) },
                   { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
-                  { id: 'eventLoopLag', label: t('healthPage.stat.eventLoopLag'), value: data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-' },
-                ];
-                if (viewMode === 'compact') {
-                  const keep = new Set(['uptime', 'active', 'queueDepth', 'lostWorkers']);
-                  return all.filter((it) => keep.has(it.id));
-                }
-                return all;
-              })()}
-            />
+                ] satisfies DataListItem[]}
+              />
+            ) : (
+              <DataList
+                groups={[
+                  {
+                    id: 'process',
+                    title: 'Process',
+                    items: [
+                      { id: 'pid', label: t('healthPage.stat.pid'), value: data.pid != null ? String(data.pid) : '-' },
+                      { id: 'uptime', label: t('healthPage.stat.uptime'), value: formatDuration((data.uptime ?? 0) * 1000) },
+                      { id: 'started', label: t('healthPage.stat.started'), value: formatRelativeTime(data.startedAt) },
+                    ],
+                  },
+                  {
+                    id: 'workers',
+                    title: 'Workers',
+                    items: [
+                      { id: 'workersTotal', label: t('healthPage.stat.workersTotal'), value: formatNumber(data.workers) },
+                      { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
+                      { id: 'idle', label: t('healthPage.stat.idle'), value: formatNumber(data.idleWorkers) },
+                      { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: formatNumber(data.queueDepth) },
+                      { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
+                    ],
+                  },
+                  {
+                    id: 'performance',
+                    title: 'Performance',
+                    items: [
+                      { id: 'eventLoopLag', label: t('healthPage.stat.eventLoopLag'), value: data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-' },
+                    ],
+                  },
+                ]}
+              />
+            )}
           </Widget>
 
           {/* (11.175) Settings panel - NumberInput primitive adoption. */}

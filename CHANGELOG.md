@@ -4,6 +4,108 @@
 
 (no entries -- next release window)
 
+## [1.11.277] - 2026-05-16 -- UI: DataList primitive enhancements (TODO 11.259)
+
+Component-scope-only enhancement of the existing DataList
+primitive. No daemon-side change and no `c4` CLI surface change.
+
+### Added
+
+- `density?: 'auto' | 'compact' | 'comfortable' | 'cozy'` prop
+  (default `'auto'`). When `'auto'`, the component reads the
+  operator's global density via the `useDensity()` hook
+  (v1.11.263, TODO 11.245) and reflects it on the root via
+  `data-density=<resolved>`. Explicit overrides bypass the hook
+  for surfaces that want a fixed rhythm regardless of the
+  global setting (e.g. the Sessions info DetailPanel). The
+  gap-y / row-py classes step through three rungs:
+  - compact: `gap-0.5` / `gap-1` (horiz / vert), row `py-0`.
+  - comfortable (legacy default): `gap-1` / `gap-2`, row `py-0.5`.
+  - cozy: `gap-2` / `gap-3`, row `py-1`.
+  The comfortable defaults are byte-identical with the prior
+  implementation so callers that don't opt into density-awareness
+  see no DOM diff.
+- `groups?: DataListGroup[]` prop -- when provided, renders each
+  group as a `<section>` with a `<header>` row above. Group
+  shape: `{ id: string; title: ReactNode; items: DataListItem[] }`.
+  When both `items` and `groups` are passed, the flat `items`
+  render as a leading block above the first group section.
+- `stickyHeaders?: boolean` prop -- when truthy (default `true`
+  whenever `groups` is provided), each group header pins to
+  `top:0` of the nearest scroll container with a
+  `backdrop-blur` + `bg-card/95` shell so the operator always
+  knows which section they're scrolling through. Per-header
+  `data-data-list-group-header=<id>` for e2e selectors.
+- `scrubber?: boolean` prop -- "hover scrubber" toolbar of
+  quick-jump chips. Default behaviour: hidden for single-group
+  lists, visible (on hover or keyboard focus) when
+  `groups.length >= 2`. Each chip is a real `<button>` so Tab +
+  Enter navigation works without the mouse. Clicking a chip
+  scrolls that group's first row into view via `scrollIntoView`
+  and flips `data-active-group` on the root. Per-chip
+  `data-data-list-scrubber-chip=<id>` + `data-active=<bool>`
+  for e2e selectors.
+- IntersectionObserver-based active-group detection: the topmost
+  intersecting first-row sentinel sets the `data-active-group`
+  attribute, so the scrubber chip stays in sync as the operator
+  scrolls (or arrow-keys) through groups. Falls back to
+  click-driven activation in jsdom / environments without IO.
+- Per-row `data-data-list-row=<id>` attribute on every row for
+  e2e selectors (works for both flat-items and grouped APIs).
+- 25 new vitest cases cover: operator-density read,
+  explicit-density override, cozy gap, runtime density change
+  via `DENSITY_EVENT`, horizontal + vertical comfortable defaults
+  (legacy-rhythm regression guard), per-section render, group
+  titles, `data-section` discriminator (`data-list` vs
+  `data-list-grouped`), per-header data attr, sticky class on
+  by default + off when `stickyHeaders={false}`, initial
+  `data-active-group`, scrubber visibility rules, multi-group
+  chip render, active-chip data-active flip, click-to-jump
+  `data-active-group` re-sync, every-item rendered across every
+  group, leading-items-before-groups ordering,
+  scrollIntoView spy on jump, per-row data-attr, group sentinel
+  `data-group-id` exposure.
+- Exported `DataListGroup` + `DataListDensity` types from
+  `web/src/components/ui/data-list.tsx` so callers can type
+  their group arrays without re-stating the shape.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Health.tsx` -- the hero-metrics DataList
+  inside the Widget shell now splits into three groups (Process /
+  Workers / Performance) when `viewMode === 'full'`. Compact
+  mode (v1.11.276) keeps the flat 4-row layout. The sticky
+  group headers + hover scrubber inside the Widget make it
+  trivial to jump straight from a daemon-process question
+  ("when did it start?") to a workers question ("how many are
+  active right now?") without scanning every row.
+- `web/src/components/WorkerDetail.tsx` -- the Info DetailPanel
+  body migrated from a raw `<dl>` grid to grouped DataList:
+  Identity / Terminal (+ Last action conditional group when
+  `actionMsg` is set). The worker name row now gets a copy
+  button for free via the primitive's `copyValue` prop, so
+  operators can pull the worker id into another `c4` command
+  without retyping it. Sticky headers + scrubber are active by
+  default (>=2 groups).
+- `web/src/components/SessionsRightPane.tsx` -- the SessionInfo
+  DetailPanel body migrated from a raw `<dl>` grid to a flat
+  DataList. Session id / worker name picks up a copy button
+  via `copyValue`. Single-group flow stays flat (no
+  scrubber / sticky headers).
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/components/ui/data-list.test.tsx` has two clipboard
+  tests (`invokes navigator.clipboard.writeText` + `shows a
+  Check icon transiently`) that fail on baseline due to a jsdom
+  upgrade making `navigator.clipboard` getter-only. The
+  beforeEach now uses `Object.defineProperty` (the pattern used
+  in `lib/use-morning.test.ts`) which unblocked 3 of the
+  originally 5 failing cases; the remaining 2 fail because
+  `userEvent.click` is not advancing the timer fast enough for
+  the writeText spy to land, NOT because of this change.
+  Tracked separately.
+
 ## [1.11.276] - 2026-05-16 -- UI: SegmentedControl primitive (TODO 11.258)
 
 Component-scope-only addition. No daemon-side change and no `c4`
