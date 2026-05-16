@@ -11,7 +11,6 @@ import {
 import { t, tFormat, useLocale } from '../lib/i18n';
 import {
   AvatarGroup,
-  Badge,
   BulkActionToolbar,
   Button,
   Card,
@@ -27,6 +26,7 @@ import {
   SegmentedControl,
   Select,
   Skeleton,
+  StatusPill,
   StickyFilterBar,
   Tooltip,
   UndoToast,
@@ -705,12 +705,24 @@ function SidebarVirtualizedList({
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate">{w.name}</span>
                     {visibleColSet.has('status') && (
-                      <Badge
-                        variant={w.alive ? 'success' : 'secondary'}
-                        className="shrink-0 text-[10px] uppercase"
-                      >
-                        {w.alive ? w.liveStatus || 'live' : 'closed'}
-                      </Badge>
+                      /* (v1.11.278, TODO 11.260) Per-row Badge
+                         migrated to StatusPill. Worker liveness
+                         maps as: alive + busy liveStatus -> busy,
+                         alive otherwise -> online (with pulse for
+                         active state), closed -> offline. */
+                      <StatusPill
+                        status={
+                          w.alive
+                            ? w.liveStatus === 'busy'
+                              ? 'busy'
+                              : 'online'
+                            : 'offline'
+                        }
+                        size="sm"
+                        pulse={w.alive}
+                        label={w.alive ? w.liveStatus || 'live' : 'closed'}
+                        data-testid={`history-row-status-${w.name}`}
+                      />
                     )}
                   </div>
                   {visibleColSet.has('branch') && w.branches.length > 0 && (

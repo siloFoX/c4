@@ -8,9 +8,14 @@ import {
   ListItem,
   Skeleton,
   StatusDot,
+  StatusPill,
   Timeline,
 } from './ui';
-import type { ContextMenuItem, StatusDotVariant } from './ui';
+import type {
+  ContextMenuItem,
+  StatusDotVariant,
+  StatusPillStatus,
+} from './ui';
 import type { TimelineItem } from './ui';
 import { WelcomeOnboardingIllustration } from './illustrations';
 import { cn } from '../lib/cn';
@@ -161,10 +166,25 @@ export default function SessionsListSection({
                     : 0;
                   const ageMs = updatedMs ? Date.now() - updatedMs : Infinity;
                   let dotVariant: StatusDotVariant = 'unknown';
+                  // (v1.11.278, TODO 11.260) Status freshness now
+                  // drives both the legacy inline StatusDot (kept
+                  // for the title row) AND a StatusPill in the
+                  // trailing slot. Mapping:
+                  //   <5min   -> online (alive + ready)
+                  //   <60min  -> idle   (alive but quiet)
+                  //   >=60min -> offline (likely stale)
+                  let pillStatus: StatusPillStatus = 'offline';
                   if (updatedMs) {
-                    if (ageMs < 5 * 60_000) dotVariant = 'online';
-                    else if (ageMs < 60 * 60_000) dotVariant = 'away';
-                    else dotVariant = 'offline';
+                    if (ageMs < 5 * 60_000) {
+                      dotVariant = 'online';
+                      pillStatus = 'online';
+                    } else if (ageMs < 60 * 60_000) {
+                      dotVariant = 'away';
+                      pillStatus = 'idle';
+                    } else {
+                      dotVariant = 'offline';
+                      pillStatus = 'offline';
+                    }
                   }
                   const isBulkSelected = selectedIds.has(session.sessionId);
                   const sessionMenuItems: ContextMenuItem[] = [
@@ -213,7 +233,26 @@ export default function SessionsListSection({
                         </>
                       }
                       trailing={
-                        <Badge variant="secondary">{session.turnCount}</Badge>
+                        /* (v1.11.278, TODO 11.260) Trailing
+                           "status column" now combines the
+                           StatusPill freshness chip with the
+                           turn-count Badge. Pill uses size="sm"
+                           and an icon-only render (label suppressed
+                           via aria-label) to keep the trailing
+                           slot compact. */
+                        <span
+                          className="inline-flex items-center gap-1"
+                          data-testid={`sessions-row-status-${session.sessionId}`}
+                        >
+                          <StatusPill
+                            status={pillStatus}
+                            size="sm"
+                            label={null}
+                            pulse={pillStatus === 'online'}
+                            aria-label={`Session status: ${pillStatus}`}
+                          />
+                          <Badge variant="secondary">{session.turnCount}</Badge>
+                        </span>
                       }
                     />
                   );
