@@ -18,6 +18,12 @@ import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'c4:uptime:restart-tracker';
 
+// (v1.11.279, TODO 11.261) Cap the persisted history so the
+// storage slot does not grow unbounded after a long browsing
+// session. 24 samples is enough for the Sparkline trend chart
+// to read as a meaningful shape without dominating localStorage.
+const RESTART_HISTORY_CAP = 24;
+
 interface TrackerState {
   // Snapshot of the last (pid, startedAt) pair we observed.
   lastPid: number | null;
@@ -28,6 +34,12 @@ interface TrackerState {
   // Monotonically-increasing counter; bumped when either pid
   // or startedAt changes from its last-observed value.
   restartCount: number;
+  // (v1.11.279, TODO 11.261) Rolling buffer of the last
+  // RESTART_HISTORY_CAP `restartCount` values, sampled once per
+  // restart event (NOT once per render). Capped to keep the
+  // localStorage slot bounded. Empty until the first restart
+  // event fires.
+  restartHistory: number[];
 }
 
 const EMPTY_STATE: TrackerState = {
@@ -35,6 +47,7 @@ const EMPTY_STATE: TrackerState = {
   lastStartedAt: null,
   firstSeen: null,
   restartCount: 0,
+  restartHistory: [],
 };
 
 function readStored(): TrackerState {
@@ -53,6 +66,18 @@ function readStored(): TrackerState {
         Number.isFinite(parsed.restartCount)
           ? parsed.restartCount
           : 0,
+      // (v1.11.279, TODO 11.261) Defensive parse: tolerate stored
+      // payloads from prior versions that pre-date this field.
+      // Filter to finite numbers so malformed entries can't poison
+      // the Sparkline render. Always cap to the storage limit.
+      restartHistory: Array.isArray(parsed.restartHistory)
+        ? parsed.restartHistory
+            .filter(
+              (v): v is number =>
+                typeof v === 'number' && Number.isFinite(v),
+            )
+            .slice(-RESTART_HISTORY_CAP)
+        : [],
     };
   } catch {
     return EMPTY_STATE;
@@ -78,6 +103,12 @@ export interface UseDaemonRestartTrackerState {
   restartCount: number;
   /** ISO timestamp the operator first opened the tracker. */
   sinceFirstSeen: string | null;
+  /**
+   * (v1.11.279, TODO 11.261) Rolling history of the last
+   * RESTART_HISTORY_CAP `restartCount` values, sampled once per
+   * detected restart event. Empty until the first restart fires.
+   */
+  restartHistory: number[];
 }
 
 export function useDaemonRestartTracker(
@@ -105,6 +136,7 @@ export function useDaemonRestartTracker(
           lastStartedAt: startedAt ?? null,
           firstSeen: first,
           restartCount: prev.restartCount,
+          restartHistory: prev.restartHistory,
         };
         writeStored(next);
         return next;
@@ -115,11 +147,19 @@ export function useDaemonRestartTracker(
         writeStored(next);
         return next;
       }
+      // (v1.11.279, TODO 11.261) Restart event detected: bump the
+      // counter and append the new count to the rolling history
+      // (capped). The Sparkline in Uptime reads this exact array.
+      const bumpedCount = prev.restartCount + 1;
+      const nextHistory = [...prev.restartHistory, bumpedCount].slice(
+        -RESTART_HISTORY_CAP,
+      );
       const next: TrackerState = {
         lastPid: pid ?? null,
         lastStartedAt: startedAt ?? null,
         firstSeen: first,
-        restartCount: prev.restartCount + 1,
+        restartCount: bumpedCount,
+        restartHistory: nextHistory,
       };
       writeStored(next);
       return next;
@@ -129,6 +169,7 @@ export function useDaemonRestartTracker(
   return {
     restartCount: state.restartCount,
     sinceFirstSeen: state.firstSeen,
+    restartHistory: state.restartHistory,
   };
 }
 

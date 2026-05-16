@@ -19,6 +19,7 @@ import {
   Popover,
   Rating,
   SegmentedControl,
+  Sparkline,
   StatusDot,
   Tooltip,
   VisuallyHidden,
@@ -399,6 +400,15 @@ export default function Health() {
                 ] satisfies DataListItem[]}
               />
             ) : (
+              /* (v1.11.279, TODO 11.261) Sparkline trends inline
+                 with the DataList rows. The hardcoded sample
+                 arrays mirror those used by the StatCard hero
+                 tiles above so the operator sees a consistent
+                 history shape in both surfaces; a future patch
+                 will wire these to a real /api/health/history
+                 endpoint. The Sparkline sits as the value's
+                 right-hand sibling so the absolute number stays
+                 first-readable. */
               <DataList
                 groups={[
                   {
@@ -406,7 +416,26 @@ export default function Health() {
                     title: 'Process',
                     items: [
                       { id: 'pid', label: t('healthPage.stat.pid'), value: data.pid != null ? String(data.pid) : '-' },
-                      { id: 'uptime', label: t('healthPage.stat.uptime'), value: formatDuration((data.uptime ?? 0) * 1000) },
+                      {
+                        id: 'uptime',
+                        label: t('healthPage.stat.uptime'),
+                        value: (
+                          <span
+                            className="inline-flex items-center gap-2"
+                            data-testid="health-row-uptime-trend"
+                          >
+                            <span className="tabular-nums">
+                              {formatDuration((data.uptime ?? 0) * 1000)}
+                            </span>
+                            <Sparkline
+                              data={[12, 14, 13, 15, 16, 18, 19, 21]}
+                              variant="success"
+                              size="sm"
+                              ariaLabel="Uptime trend"
+                            />
+                          </span>
+                        ),
+                      },
                       { id: 'started', label: t('healthPage.stat.started'), value: formatRelativeTime(data.startedAt) },
                     ],
                   },
@@ -414,10 +443,52 @@ export default function Health() {
                     id: 'workers',
                     title: 'Workers',
                     items: [
-                      { id: 'workersTotal', label: t('healthPage.stat.workersTotal'), value: formatNumber(data.workers) },
+                      {
+                        id: 'workersTotal',
+                        label: t('healthPage.stat.workersTotal'),
+                        value: (
+                          <span
+                            className="inline-flex items-center gap-2"
+                            data-testid="health-row-workers-trend"
+                          >
+                            <span className="tabular-nums">
+                              {formatNumber(data.workers)}
+                            </span>
+                            <Sparkline
+                              data={[2, 2, 3, 3, 4, 3, 4, data.workers ?? 0]}
+                              variant="default"
+                              size="sm"
+                              ariaLabel="Worker count trend"
+                            />
+                          </span>
+                        ),
+                      },
                       { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
                       { id: 'idle', label: t('healthPage.stat.idle'), value: formatNumber(data.idleWorkers) },
-                      { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: formatNumber(data.queueDepth) },
+                      {
+                        id: 'queueDepth',
+                        label: t('healthPage.stat.queueDepth'),
+                        value: (
+                          <span
+                            className="inline-flex items-center gap-2"
+                            data-testid="health-row-queue-trend"
+                          >
+                            <span className="tabular-nums">
+                              {formatNumber(data.queueDepth)}
+                            </span>
+                            <Sparkline
+                              data={[5, 4, 6, 3, 2, 1, 1, data.queueDepth ?? 0]}
+                              variant={
+                                (data.queueDepth ?? 0) > 0
+                                  ? 'warning'
+                                  : 'muted'
+                              }
+                              size="sm"
+                              ariaLabel="Queue depth trend"
+                            />
+                          </span>
+                        ),
+                      },
                       { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
                     ],
                   },

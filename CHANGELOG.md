@@ -4,6 +4,117 @@
 
 (no entries -- next release window)
 
+## [1.11.279] - 2026-05-16 -- UI: Sparkline primitive (TODO 11.261)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/sparkline.tsx` -- tiny inline SVG line
+  chart for trend rows. No axes, no gridlines, no legend; just
+  the polyline that tells the operator "this number is going
+  up / down / flat" at a glance. Built on the same point-building
+  algorithm the StatCard sparkline has used since v1.10.x,
+  lifted out to a reusable primitive so list-row cells can drop
+  trend lines next to their numbers without re-implementing the
+  math.
+- Sizes `sm` (h-3 / w-12 / text-[10px]), `md` (h-4 / w-16 /
+  text-[11px]), `lg` (h-8 / w-24 / text-xs). Each size picks a
+  paired dot radius so dot markers stay proportional.
+- `width?: number | string` prop -- explicit override that wins
+  over the size preset. Numeric values become `${n}px` styles;
+  string values pass through verbatim (e.g. `"100%"` to fill the
+  parent column).
+- Six variants (`default` / `success` / `warning` /
+  `destructive` / `info` / `muted`) -- map to shadcn text-* /
+  stroke colour tokens so light/dark theme parity is automatic.
+- `showDots?: boolean` -- renders a per-sample circle marker
+  (radius scaled by size). The trailing dot is tagged
+  `data-sparkline-dot="last"` so callers can highlight it via
+  custom CSS without re-iterating the data.
+- `showLastValue?: boolean` -- renders the final value as a
+  trailing label. Custom formatter via `lastValueFormatter`;
+  default `Number.toString()` for integers, `toFixed(2)` for
+  fractional values so the column doesn't overflow.
+- Empty-state handling: when `data.length === 0`, renders a
+  dashed horizontal placeholder at mid-height (keeps column
+  width predictable when a row has no data yet) and the
+  trailing label is suppressed regardless of `showLastValue`.
+- ARIA: root is `role="img"` with an automatic
+  `"Trend: N samples, last <last>"` aria-label that callers can
+  override via `ariaLabel`. The empty state reads
+  `"Trend: no data"`.
+- `data-section="sparkline"` + `data-size` / `data-variant` /
+  `data-empty` on the root; `data-sparkline-svg` / -line / -dot
+  / -last-value / -empty selectors inside for e2e.
+- Exported pure helper `buildSparklinePoints(data, width?,
+  height?)` returns the polyline points string. Useful for
+  call sites that want to render their own SVG without
+  re-implementing the scale math.
+- 32 vitest cases cover: pure helper (empty, single-point,
+  ascending, range scaling, flat zero-range division, custom
+  dimensions), render path (SVG presence, empty-state, root
+  data-* attrs, size scale, width override numeric + string,
+  variant trio classes, default / custom aria-label,
+  empty-state aria-label, viewBox, last-value default +
+  formatter, last-value suppression on empty, dot markers off
+  by default + count when on + trailing data-dot="last",
+  className merge, HTML attr forwarding, ref forwarding).
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/TokenUsage.tsx` -- per-day breakdown panel
+  gains a `<Sparkline>` header summary above the existing bar
+  list. The per-day series is a real time trend so the operator
+  can see the shape of the window (spiking / flat / decaying)
+  before scanning the bar rows below. Uses
+  `variant="info"`, `size="lg"`, `width="100%"`, `showDots`,
+  and `showLastValue` with `formatNumber` so the trailing label
+  reads as e.g. "12,500" rather than the raw `12500`.
+  `data-testid="token-usage-by-day-sparkline"` for e2e.
+- `web/src/pages/Health.tsx` -- the grouped DataList rows
+  (`viewMode === 'full'`) now render inline `<Sparkline>` charts
+  beside three metrics: uptime (success variant, ascending
+  cadence), workers total (default variant), queue depth
+  (warning variant when non-zero, muted when zero). Sample
+  arrays mirror the StatCard hero tiles above so the operator
+  sees a consistent history shape in both surfaces; a future
+  patch will wire these to a real `/api/health/history` endpoint.
+  Per-row `data-testid="health-row-{uptime,workers,queue}-trend"`
+  for e2e.
+- `web/src/pages/Uptime.tsx` -- the Restart counter Widget now
+  renders a `<Sparkline>` showing the rolling
+  `restartHistory[]` series the `useDaemonRestartTracker` hook
+  now maintains. Variant flips from `muted` (no events yet) to
+  `warning` (one or more restarts observed). `showLastValue`
+  prints `"#N"` so the trailing label reads the latest count.
+  `data-testid="restart-history-sparkline"` for e2e.
+
+### Hook contract change (additive)
+
+- `web/src/lib/use-daemon-restart-tracker.ts` -- `TrackerState`
+  + `UseDaemonRestartTrackerState` gain `restartHistory: number[]`.
+  Each detected restart event appends the bumped `restartCount`
+  onto a rolling buffer capped at `RESTART_HISTORY_CAP = 24`.
+  Persisted alongside the existing fields in
+  `localStorage['c4:uptime:restart-tracker']`; the read path
+  filters non-finite entries so a malformed stored payload
+  can't poison the Sparkline render. The first observation
+  (initial daemon contact) does NOT push -- only true restart
+  events bump the history.
+- 5 new vitest cases cover: empty initial buffer, first-contact
+  no-push, per-event push semantics, 24-sample cap (verified
+  with 30 sequential restart events), localStorage persistence
+  across re-mounts.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/pages/Health.test.tsx > does NOT render the loading
+  skeleton when data is already present` -- still failing on
+  baseline (StatusDot's `role="status"` overlaps the skeleton's;
+  documented in v1.11.277 + v1.11.278 entries).
+
 ## [1.11.278] - 2026-05-16 -- UI: StatusPill primitive (TODO 11.260)
 
 Component-scope-only addition. No daemon-side change and no `c4`
