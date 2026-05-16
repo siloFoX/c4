@@ -1082,6 +1082,7 @@
   "history.detail.label.status": "Status",
   "history.detail.label.branch": "Branch",
   "history.detail.label.worktree": "Worktree",
+  "tokenUsage.range.label": "Date range",
   "tokenUsage.range.today": "Today",
   "tokenUsage.range.last7": "Last 7 days",
   "tokenUsage.range.last30": "Last 30 days",

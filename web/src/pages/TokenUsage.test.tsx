@@ -133,19 +133,21 @@ describe('<TokenUsage>', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders all four day-range buttons', () => {
+  it('renders all four day-range tabs (SegmentedControl)', () => {
     render(<TokenUsage />);
+    // (v1.11.276, TODO 11.258) Buttons migrated to SegmentedControl
+    // -- each option now has role="tab" inside role="tablist".
     expect(
-      screen.getByRole('button', { name: 'Today' }),
+      screen.getByRole('tab', { name: 'Today' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Last 7 days' }),
+      screen.getByRole('tab', { name: 'Last 7 days' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Last 30 days' }),
+      screen.getByRole('tab', { name: 'Last 30 days' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Last 90 days' }),
+      screen.getByRole('tab', { name: 'Last 90 days' }),
     ).toBeInTheDocument();
   });
 
@@ -166,17 +168,17 @@ describe('<TokenUsage>', () => {
     expect(screen.getByTestId('page-description-banner')).toBeInTheDocument();
   });
 
-  it('flips the active range button when a different range is clicked', async () => {
+  it('flips the active range tab when a different range is clicked', async () => {
     const user = userEvent.setup();
     const { container } = render(<TokenUsage />);
-    // Default is 7 days.
-    const day1 = screen.getByRole('button', { name: 'Today' });
-    expect(day1.className).toContain('bg-background');
+    // (v1.11.276, TODO 11.258) Default is 7 days. Clicking the
+    // Today tab should flip aria-selected onto it.
+    const day1 = screen.getByRole('tab', { name: 'Today' });
+    expect(day1.getAttribute('aria-selected')).toBe('false');
     await user.click(day1);
-    // After clicking, the Today button picks up the default variant.
     expect(
-      screen.getByRole('button', { name: 'Today' }).className,
-    ).toContain('bg-primary');
+      screen.getByRole('tab', { name: 'Today' }).getAttribute('aria-selected'),
+    ).toBe('true');
     expect(container.firstChild).toBeInTheDocument();
   });
 

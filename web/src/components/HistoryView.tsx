@@ -24,6 +24,7 @@ import {
   EmptyState,
   ExportButton,
   Input,
+  SegmentedControl,
   Select,
   Skeleton,
   StickyFilterBar,
@@ -367,6 +368,57 @@ export default function HistoryView() {
                   )}
                 </Button>
               </Tooltip>
+            </div>
+            {/* (v1.11.276, TODO 11.258) SegmentedControl quick-range
+                chips above the DateRangePicker. Snaps `sinceDay` to
+                a window ending today; "All" clears both ends. Active
+                chip is derived from the current since/until pair so
+                manual edits inside DateRangePicker deselect the chip
+                rather than fighting it. */}
+            <div
+              className="flex items-center gap-1.5"
+              data-testid="history-sidebar-quickrange-row"
+            >
+              <SegmentedControl<'24h' | '7d' | '30d' | 'all'>
+                data-testid="history-sidebar-quickrange"
+                ariaLabel="Quick range"
+                size="sm"
+                value={(() => {
+                  if (!sinceDay && !untilDay) return 'all';
+                  const today = toISODate(new Date());
+                  const since = sinceDay ?? '';
+                  const until = untilDay ?? '';
+                  if (until && until !== today) return 'all';
+                  const d24 = toISODate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000));
+                  const d7 = toISODate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+                  const d30 = toISODate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+                  if (since === d24) return '24h';
+                  if (since === d7) return '7d';
+                  if (since === d30) return '30d';
+                  return 'all';
+                })()}
+                onChange={(v) => {
+                  if (v === 'all') {
+                    setSinceDay('');
+                    setUntilDay('');
+                    return;
+                  }
+                  const today = toISODate(new Date());
+                  const daysAgo =
+                    v === '24h' ? 1 : v === '7d' ? 7 : 30;
+                  const since = toISODate(
+                    new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
+                  );
+                  setSinceDay(since);
+                  setUntilDay(today);
+                }}
+                options={[
+                  { value: '24h', label: '24h' },
+                  { value: '7d', label: '7d' },
+                  { value: '30d', label: '30d' },
+                  { value: 'all', label: 'All' },
+                ]}
+              />
             </div>
             {/* (11.176) DateRangePicker primitive adoption.
                 Replaces the prior pair of <Input type="date"> filters.

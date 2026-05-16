@@ -3,11 +3,10 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, ProgressBar, Switch, Table, Tooltip } from '../components/ui';
+import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, ProgressBar, SegmentedControl, Switch, Table, Tooltip } from '../components/ui';
 import type { TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
-import { cn } from '../lib/cn';
 import { dateRange, formatNumber } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useTableSort } from '../hooks/use-table-sort';
@@ -24,7 +23,9 @@ import { useTableSort } from '../hooks/use-table-sort';
 // QuotaTierSnapshot / QuotaPayload + the data + quota
 // fetch moved to lib/use-token-usage.
 
-const DAY_OPTIONS = [1, 7, 30, 90];
+const DAY_OPTIONS = [1, 7, 30, 90] as const;
+type DayOption = (typeof DAY_OPTIONS)[number];
+const DAY_OPTION_VALUES = DAY_OPTIONS.map((d) => String(d)) as `${DayOption}`[];
 
 // (v1.10.695) coerceTotal + perWorker / perDay memos
 // moved to lib/use-token-usage-breakdowns.
@@ -52,22 +53,32 @@ export default function TokenUsage() {
       description={t('tokenUsagePage.description')}
       actions={
         <>
-          {DAY_OPTIONS.map((d) => (
-            <Tooltip key={d} label={t('tokenUsage.tooltip.days')}>
-              <Button
-                type="button"
-                variant={d === days ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setDays(d)}
-              >
-                {d === 1 ? t('tokenUsage.range.today')
-                  : d === 7 ? t('tokenUsage.range.last7')
-                  : d === 30 ? t('tokenUsage.range.last30')
-                  : d === 90 ? t('tokenUsage.range.last90')
-                  : tFormat('tokenUsage.range.lastN', { days: d })}
-              </Button>
-            </Tooltip>
-          ))}
+          {/* (v1.11.276, TODO 11.258) SegmentedControl adoption: the
+              day-range scope (Today / Last 7 / Last 30 / Last 90)
+              is exactly the "3-5 short choices" pill-control shape.
+              Replaces 4x Button + Tooltip wrappers with a single
+              tablist that handles arrow-key nav + roving tabindex. */}
+          <Tooltip label={t('tokenUsage.tooltip.days')}>
+            <SegmentedControl
+              data-testid="token-usage-range"
+              ariaLabel={t('tokenUsage.range.label')}
+              size="sm"
+              value={String(days) as `${DayOption}`}
+              options={DAY_OPTION_VALUES.map((dv) => {
+                const d = Number(dv) as DayOption;
+                return {
+                  value: dv,
+                  label:
+                    d === 1 ? t('tokenUsage.range.today')
+                    : d === 7 ? t('tokenUsage.range.last7')
+                    : d === 30 ? t('tokenUsage.range.last30')
+                    : d === 90 ? t('tokenUsage.range.last90')
+                    : tFormat('tokenUsage.range.lastN', { days: d }),
+                };
+              })}
+              onChange={(v) => setDays(Number(v) as DayOption)}
+            />
+          </Tooltip>
           <Tooltip label={t('tokenUsage.tooltip.perTask')}>
             <Switch
               checked={perTask}

@@ -68,3 +68,4 @@ export * from './page-header';
 export * from './section-divider';
 export * from './avatar-group';
 export * from './alert-banner';
+export * from './segmented-control';
