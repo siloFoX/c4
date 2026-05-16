@@ -4,6 +4,82 @@
 
 (no entries -- next release window)
 
+## [1.11.273] - 2026-05-16 -- UI: Skeleton.List primitive (TODO 11.255)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Context
+
+The Skeleton primitive system already had `Skeleton.Text` /
+`Skeleton.Avatar` / `Skeleton.Card` / `Skeleton.Table` compound
+members + the `Skeleton` variants (text / row / card / avatar /
+rect / line / circle / page) + the composable shapes (`TextLine`,
+`Rect`, `Circle`, `AvatarShape`, `StatCardShape`, `TableRowShape`).
+This release adds the missing `Skeleton.List` that the dispatch
+calls out.
+
+### Added
+
+- `Skeleton.List` -- N stacked row shapes for list / row-style
+  loading states. Each row optionally renders an avatar circle
+  on the left next to N text lines.
+- Props:
+  - `rows?: number` (default 5, clamped >= 0)
+  - `showAvatar?: boolean` (default false; renders a 32x32
+    circle on the left of each row)
+  - `linesPerRow?: number` (default 2, clamped >= 1; first line
+    full-width, last line `w-3/5`, middle lines `w-4/5`)
+  - `gap?: number` (Tailwind gap scale between rows; default 3)
+- Animation routes through the shared loading-motion contract
+  (`ui/loading-motion.ts`) so the shimmer respects
+  `prefers-reduced-motion: reduce` -- the `animate-pulse` class
+  is dropped under reduced motion, and the root carries
+  `data-motion-reduced` for e2e selectors.
+- Data attributes for selectors: `data-skeleton-sub="list"` +
+  `data-skeleton-rows=N` on the root, `data-skeleton-list-row=R`
+  per row, `data-skeleton-list-avatar` when an avatar is shown,
+  `data-skeleton-line=L` per text shape.
+- 13 new vitest cases (69/69 total in skeleton.test.tsx): rows
+  default + override + clamp (negative / fractional),
+  `data-skeleton-rows` attribute, `showAvatar` toggle,
+  `linesPerRow` default + override + clamp, `gap` class,
+  default `gap=3`, `rows=0` still renders the root, role=status
+  + aria-hidden, className merge.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Snapshots.tsx` -- the inline
+  `Array.from({length:4}).map(<Skeleton variant="row" />)`
+  loading grid is replaced by `<Skeleton.List rows={4} />`.
+  `data-testid="snapshots-loading"` preserved. 8/8 Snapshots
+  tests still pass.
+- `web/src/pages/Templates.tsx` -- the `LoadingSkeleton` helper
+  call is replaced by `<Skeleton.List rows={3} data-testid=
+  "templates-loading" />`. Test migrated from
+  `getByRole('status')` to `getByTestId('templates-loading')`
+  since `Skeleton.List` uses `aria-hidden="true"` (consistent
+  with the rest of the Skeleton family). 32/33 Templates tests
+  pass (1 unrelated pre-existing failure about the `<ul>`
+  wrapper).
+- `web/src/components/HistoryView.tsx` -- the scribe-loading
+  plain text (`"Loading..."`) is replaced by `<Skeleton.List
+  rows={4} data-testid="history-scribe-loading" />` so the
+  placeholder mocks the scribe-context line layout while the
+  fetch resolves. Test migrated from
+  `getByText('Loading...')` to
+  `getByTestId('history-scribe-loading')`. 43/43 HistoryView
+  tests pass.
+
+### Notes
+
+- Skeleton.List uses `role="status"` + `aria-hidden="true"`
+  consistent with every other Skeleton variant. Screen readers
+  skip the placeholder; the surrounding live region (e.g.
+  `aria-live` on the parent) is responsible for announcing the
+  loading state in human terms.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.272] - 2026-05-15 -- UI: Avatar group stack (TODO 11.254)
 
 Component-scope-only addition. No daemon-side change and no `c4`

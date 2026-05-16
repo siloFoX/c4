@@ -454,4 +454,108 @@ describe('Skeleton.* compound sub-components', () => {
     const node = container.firstChild as HTMLElement;
     expect(node).toHaveAttribute('role', 'presentation');
   });
+
+  // -- v1.11.273 Skeleton.List (TODO 11.255) -----------------------
+
+  it('Skeleton.List renders N row containers (default 5)', () => {
+    const { container } = render(<Skeleton.List />);
+    const rows = container.querySelectorAll('[data-skeleton-list-row]');
+    expect(rows.length).toBe(5);
+  });
+
+  it('Skeleton.List rows respect the rows prop', () => {
+    const { container } = render(<Skeleton.List rows={3} />);
+    const rows = container.querySelectorAll('[data-skeleton-list-row]');
+    expect(rows.length).toBe(3);
+  });
+
+  it('Skeleton.List clamps negative / fractional rows to 0 / floor', () => {
+    const { container: a } = render(<Skeleton.List rows={-2} />);
+    expect(
+      a.querySelectorAll('[data-skeleton-list-row]'),
+    ).toHaveLength(0);
+    const { container: b } = render(<Skeleton.List rows={3.7} />);
+    expect(
+      b.querySelectorAll('[data-skeleton-list-row]'),
+    ).toHaveLength(3);
+  });
+
+  it('Skeleton.List exposes data-skeleton-rows on the root', () => {
+    render(<Skeleton.List rows={4} />);
+    const root = document.querySelector('[data-skeleton-sub="list"]')!;
+    expect(root.getAttribute('data-skeleton-rows')).toBe('4');
+  });
+
+  it('Skeleton.List shows an avatar circle per row only when showAvatar is true', () => {
+    const { container: a } = render(<Skeleton.List rows={3} />);
+    expect(
+      a.querySelectorAll('[data-skeleton-list-avatar]'),
+    ).toHaveLength(0);
+    const { container: b } = render(
+      <Skeleton.List rows={3} showAvatar />,
+    );
+    expect(
+      b.querySelectorAll('[data-skeleton-list-avatar]'),
+    ).toHaveLength(3);
+  });
+
+  it('Skeleton.List default linesPerRow=2 yields 2 line shapes per row', () => {
+    const { container } = render(<Skeleton.List rows={3} />);
+    const lines = container.querySelectorAll('[data-skeleton-line]');
+    expect(lines.length).toBe(6);
+  });
+
+  it('Skeleton.List honours custom linesPerRow', () => {
+    const { container } = render(
+      <Skeleton.List rows={2} linesPerRow={4} />,
+    );
+    const lines = container.querySelectorAll('[data-skeleton-line]');
+    expect(lines.length).toBe(8);
+  });
+
+  it('Skeleton.List linesPerRow=0 clamps to 1 minimum', () => {
+    const { container } = render(
+      <Skeleton.List rows={2} linesPerRow={0} />,
+    );
+    const lines = container.querySelectorAll('[data-skeleton-line]');
+    expect(lines.length).toBe(2);
+  });
+
+  it('Skeleton.List gap prop maps to Tailwind gap-N on the root', () => {
+    const { container } = render(<Skeleton.List rows={2} gap={5} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.className).toContain('gap-5');
+  });
+
+  it('Skeleton.List default gap=3 -> gap-3', () => {
+    const { container } = render(<Skeleton.List rows={2} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.className).toContain('gap-3');
+  });
+
+  it('Skeleton.List rows=0 renders no row containers (still valid root)', () => {
+    const { container } = render(<Skeleton.List rows={0} />);
+    expect(
+      container.querySelectorAll('[data-skeleton-list-row]'),
+    ).toHaveLength(0);
+    expect(
+      container.querySelector('[data-skeleton-sub="list"]'),
+    ).not.toBeNull();
+  });
+
+  it('Skeleton.List root carries role=status + aria-hidden for screen readers', () => {
+    const { container } = render(<Skeleton.List rows={2} />);
+    const root = container.firstChild as HTMLElement;
+    expect(root.getAttribute('role')).toBe('status');
+    expect(root.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('Skeleton.List merges caller className with built-in classes', () => {
+    const { container } = render(
+      <Skeleton.List rows={1} className="custom-list" />,
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.className).toContain('custom-list');
+    expect(root.className).toContain('flex-col');
+  });
 });

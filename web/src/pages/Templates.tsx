@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FileInput, Label, ListItem, PageHeader, Pagination, Panel, SearchBar, TagInput, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FileInput, Label, ListItem, PageHeader, Pagination, Panel, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -94,7 +94,14 @@ export default function Templates() {
         onOpenHelp={openHelpDrawer}
       />
       {error && <ErrorPanel message={error} />}
-      {loading && items.length === 0 ? <LoadingSkeleton rows={3} /> : null}
+      {loading && items.length === 0 ? (
+        // (v1.11.273, TODO 11.255) Replaces the legacy
+        // LoadingSkeleton text-stack with Skeleton.List so each
+        // placeholder row mirrors the real template-row layout
+        // (2 lines per row) and the shimmer respects
+        // useReducedMotion.
+        <Skeleton.List rows={3} data-testid="templates-loading" />
+      ) : null}
       {!loading && filtered.length === 0 ? (
         <EmptyState
           size="md"
