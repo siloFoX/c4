@@ -119,6 +119,8 @@
   "planPage.title": "플랜",
   "planPage.description": "플래닝 작업을 보내고 워커의 plan.md 를 렌더링합니다. 한 번의 클릭으로 플랜을 실제 작업으로 재배포할 수 있습니다.",
   "planPage.refreshPlan": "플랜 새로고침",
+  "planPage.formHeading": "플랜 대상 + 본문",
+  "planPage.formDescription": "워커를 선택하고, 필요하면 브랜치 + 출력 경로를 고정한 뒤 작업 내용을 작성하세요.",
   "planPage.worker": "워커",
   "planPage.branch": "브랜치 (선택)",
   "planPage.branch.placeholder": "c4/my-plan",

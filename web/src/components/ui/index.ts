@@ -72,3 +72,4 @@ export * from './segmented-control';
 export * from './status-pill';
 export * from './sparkline';
 export * from './list-action-menu';
+export * from './field-group';

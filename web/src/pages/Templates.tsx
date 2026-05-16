@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FileInput, Label, ListActionMenu, ListItem, PageHeader, Pagination, Panel, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, PageHeader, Pagination, Panel, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -206,10 +206,21 @@ function ImportTemplateForm() {
   const [error, setError] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   return (
-    <div className="mt-4 space-y-3">
+    /* (v1.11.281, TODO 11.263) FieldGroup adoption: the import
+       form now lives inside a labeled FieldGroup so the section
+       carries a consistent heading + description rhythm. The
+       ad-hoc <Label>Tags</Label> wrapper is also migrated to
+       FormField so the label, helper text, and aria wiring all
+       use the canonical primitive. */
+    <FieldGroup
+      title="Import template"
+      description="Upload a JSON or YAML template file (no daemon endpoint yet)."
+      className="mt-4"
+      data-testid="templates-import-form"
+    >
       <FileInput
-        label="Import template"
-        hint="Upload a JSON or YAML template file (no daemon endpoint yet)"
+        label="Template file"
+        hint="JSON or YAML, max 1 MB."
         accept="application/json,application/yaml,.json,.yaml,.yml"
         maxSize={1024 * 1024}
         error={error ?? undefined}
@@ -220,16 +231,17 @@ function ImportTemplateForm() {
         }}
         onError={(msg) => setError(msg)}
       />
-      <div className="space-y-1.5">
-        <Label>Tags</Label>
-        <TagInput
-          value={tags}
-          onChange={setTags}
-          ariaLabel="Template tags"
-          placeholder="Add tag..."
-          normalize={(raw) => raw.trim().toLowerCase()}
-        />
-      </div>
-    </div>
+      <FormField label="Tags" helperText="Comma-separated; press Enter to commit.">
+        <div>
+          <TagInput
+            value={tags}
+            onChange={setTags}
+            ariaLabel="Template tags"
+            placeholder="Add tag..."
+            normalize={(raw) => raw.trim().toLowerCase()}
+          />
+        </div>
+      </FormField>
+    </FieldGroup>
   );
 }

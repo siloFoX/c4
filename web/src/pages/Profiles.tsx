@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, ExportButton, Fieldset, HeroCard, ListItem, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, EmptyState, ExportButton, FieldGroup, HeroCard, ListItem, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -151,15 +151,24 @@ export default function Profiles() {
                     }
                   />
                   {isOpen && (
-                    <Fieldset
-                      legend={t('profiles.list.allow') + ' / ' + t('profiles.list.deny')}
+                    /* (v1.11.281, TODO 11.263) Fieldset migrated
+                       to the new FieldGroup primitive: same
+                       fieldset semantics + legend, plus the
+                       canonical heading + description rhythm
+                       and the grid layout built in. The
+                       allow/deny pattern panels now sit inside
+                       a 2-column grid via FieldGroup. */
+                    <FieldGroup
+                      title={t('profiles.list.allow') + ' / ' + t('profiles.list.deny')}
+                      description="Allow + deny pattern lists. Operator-local edits land once the daemon endpoints exist."
+                      layout="grid"
+                      columns={2}
                       className="mt-3"
+                      data-testid={`profiles-patterns-${p.name}`}
                     >
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <PatternList label={t('profiles.list.allow')} items={allow} tone="ok" />
-                        <PatternList label={t('profiles.list.deny')} items={deny} tone="danger" />
-                      </div>
-                    </Fieldset>
+                      <PatternList label={t('profiles.list.allow')} items={allow} tone="ok" />
+                      <PatternList label={t('profiles.list.deny')} items={deny} tone="danger" />
+                    </FieldGroup>
                   )}
                   {isOpen && (
                     <div className="mt-3 flex gap-2">
