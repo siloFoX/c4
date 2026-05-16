@@ -1,10 +1,9 @@
-import { useRef, useState } from 'react';
-import { Filter, GripVertical, HelpCircle, RefreshCw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Filter, GripVertical, HelpCircle, LayoutGrid, List, RefreshCw } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import {
-  Alert,
   AlertBanner,
   Badge,
   Button,
@@ -19,6 +18,7 @@ import {
   Panel,
   Popover,
   Rating,
+  SegmentedControl,
   StatusDot,
   Tooltip,
   VisuallyHidden,
@@ -44,10 +44,44 @@ import {
 // queue depth) render as `-` and leave a sub-TODO in docs.
 // (v1.10.729) Fetch + 10s poll moved to lib/use-health.
 
+type HealthViewMode = 'compact' | 'full';
+const VIEW_MODE_KEY = 'c4:health-view-mode';
+
+function readViewMode(): HealthViewMode {
+  if (typeof window === 'undefined') return 'full';
+  try {
+    const raw = window.localStorage.getItem(VIEW_MODE_KEY);
+    return raw === 'compact' ? 'compact' : 'full';
+  } catch {
+    return 'full';
+  }
+}
+
 export default function Health() {
   useLocale();
   const { data, loading, error, refresh } = useHealth();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // (v1.11.276, TODO 11.258) Health "view mode" toggle. Compact
+  // keeps only the four operator-critical metrics (uptime, active
+  // workers, queue depth, lost workers) in the hero DataList. Full
+  // is the previous behaviour (all nine entries). Persisted to
+  // localStorage so the operator's choice survives reload + tab
+  // switch; cross-tab sync via the 'storage' event.
+  const [viewMode, setViewMode] = useState<HealthViewMode>(() => readViewMode());
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
+    } catch {
+      /* ignore */
+    }
+  }, [viewMode]);
+  useEffect(() => {
+    function onStorage(ev: StorageEvent) {
+      if (ev.key === VIEW_MODE_KEY) setViewMode(readViewMode());
+    }
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
   // (11.175) Placeholder health-poll timeout setting to demonstrate
   // NumberInput adoption. Local-only; not yet wired to the polling
   // hook - a follow-up will pass this into useHealth.
@@ -140,6 +174,25 @@ export default function Health() {
       description={t('healthPage.description')}
       actions={
         <>
+          <SegmentedControl<HealthViewMode>
+            data-testid="health-view-mode"
+            ariaLabel="Health view mode"
+            size="sm"
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              {
+                value: 'compact',
+                icon: <List className="h-3.5 w-3.5" />,
+                ariaLabel: 'Compact view',
+              },
+              {
+                value: 'full',
+                icon: <LayoutGrid className="h-3.5 w-3.5" />,
+                ariaLabel: 'Full view',
+              },
+            ]}
+          />
           <Tooltip label="Filters">
             <IconButton
               icon={<Filter className="h-3.5 w-3.5" />}
@@ -330,17 +383,24 @@ export default function Health() {
             loading={loading}
           >
             <DataList
-              items={[
-                { id: 'pid', label: t('healthPage.stat.pid'), value: data.pid != null ? String(data.pid) : '-' },
-                { id: 'uptime', label: t('healthPage.stat.uptime'), value: formatDuration((data.uptime ?? 0) * 1000) },
-                { id: 'started', label: t('healthPage.stat.started'), value: formatRelativeTime(data.startedAt) },
-                { id: 'workersTotal', label: t('healthPage.stat.workersTotal'), value: formatNumber(data.workers) },
-                { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
-                { id: 'idle', label: t('healthPage.stat.idle'), value: formatNumber(data.idleWorkers) },
-                { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: formatNumber(data.queueDepth) },
-                { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
-                { id: 'eventLoopLag', label: t('healthPage.stat.eventLoopLag'), value: data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-' },
-              ] satisfies DataListItem[]}
+              items={(() => {
+                const all: DataListItem[] = [
+                  { id: 'pid', label: t('healthPage.stat.pid'), value: data.pid != null ? String(data.pid) : '-' },
+                  { id: 'uptime', label: t('healthPage.stat.uptime'), value: formatDuration((data.uptime ?? 0) * 1000) },
+                  { id: 'started', label: t('healthPage.stat.started'), value: formatRelativeTime(data.startedAt) },
+                  { id: 'workersTotal', label: t('healthPage.stat.workersTotal'), value: formatNumber(data.workers) },
+                  { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
+                  { id: 'idle', label: t('healthPage.stat.idle'), value: formatNumber(data.idleWorkers) },
+                  { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: formatNumber(data.queueDepth) },
+                  { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
+                  { id: 'eventLoopLag', label: t('healthPage.stat.eventLoopLag'), value: data.eventLoopLagMs != null ? `${data.eventLoopLagMs} ms` : '-' },
+                ];
+                if (viewMode === 'compact') {
+                  const keep = new Set(['uptime', 'active', 'queueDepth', 'lostWorkers']);
+                  return all.filter((it) => keep.has(it.id));
+                }
+                return all;
+              })()}
             />
           </Widget>
 

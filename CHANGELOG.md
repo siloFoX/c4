@@ -4,6 +4,101 @@
 
 (no entries -- next release window)
 
+## [1.11.276] - 2026-05-16 -- UI: SegmentedControl primitive (TODO 11.258)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/segmented-control.tsx` -- pill-shaped
+  single-select option group built for the "3-5 short choices"
+  shape (date-range tabs, view-mode toggle, scope selector). For
+  larger sets reach for `<Tabs>` or `<Select>`.
+- Generic component (`SegmentedControl<V extends string>`) -- the
+  value type narrows down to the union of `options[].value` so
+  `onChange` is statically typed at the call site.
+- Keyboard contract:
+  - `ArrowLeft` / `ArrowRight` (and `ArrowUp` / `ArrowDown` for
+    vertical-tab affordance) move focus between segments.
+  - `Home` / `End` jump to the first / last segment.
+  - `Enter` / `Space` select the focused segment.
+  - Disabled segments are skipped during arrow navigation.
+- Roving `tabindex`: only the active segment is `tabindex=0`; the
+  rest are `tabindex=-1`. Calling code does not manage refs.
+- Two `selectOnFocus` modes -- `false` (default, manual: arrow
+  nav moves focus only) and `true` (automatic: arrow nav also
+  fires `onChange`).
+- Sizes `sm` (h-6) and `md` (h-8). Icon-only segments share the
+  size grid (h-6 w-6 / h-8 w-8).
+- Out-of-band controlled value changes re-sync the roving
+  tabindex onto the new active segment (via `useEffect` on the
+  computed `activeIndex`).
+- `data-section="segmented-control"` + per-segment
+  `data-segmented-value` / `data-segmented-active` attrs for e2e
+  selectors.
+- ARIA: root is `role="tablist"` with optional `ariaLabel`; each
+  segment is `role="tab"` with `aria-selected` flipped to the
+  active state. Icon-only segments accept a per-option
+  `ariaLabel` so the accessible name is preserved without a
+  visible label.
+- 24 vitest cases cover: render count, `aria-selected` mapping,
+  root `tablist` + `aria-label`, root `data-section` / `data-size`,
+  click selection, roving `tabindex`, ArrowRight / ArrowLeft
+  focus movement + wrap, Home / End jumps, Enter + Space select,
+  `selectOnFocus` auto-fire, disabled-segment skip in arrow nav,
+  disabled-segment click no-op, icon-only `ariaLabel`, icon +
+  label render, both sizes, e2e data-attrs, value re-sync on
+  rerender, native `disabled` attr forwarding, caller className
+  merge, arbitrary HTML attr forwarding (`data-testid`).
+- Exported from `web/src/components/ui` barrel.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/TokenUsage.tsx` -- the day-range scope (Today /
+  Last 7 / Last 30 / Last 90) is now a `SegmentedControl` instead
+  of 4 `Button` + `Tooltip` wrappers. Single tablist; the tooltip
+  wraps the whole strip rather than per-button. `tokenUsage.range.label`
+  i18n key added (en + ko).
+- `web/src/pages/Health.tsx` -- new "view mode" toggle in the
+  page actions (icon-only: List for `compact`, LayoutGrid for
+  `full`). Compact filters the hero `DataList` down to the four
+  operator-critical metrics (uptime / active / queueDepth /
+  lostWorkers); full keeps all nine. Persisted to
+  `localStorage['c4:health-view-mode']` with cross-tab `storage`
+  event sync.
+- `web/src/components/HistoryView.tsx` -- new "quick range" chip
+  row (24h / 7d / 30d / All) above the `DateRangePicker` in the
+  sidebar. Snaps `sinceDay` to the matching window ending today;
+  "All" clears both ends. Active chip is derived from the
+  current since/until pair so manual edits inside the date picker
+  deselect the chip rather than fighting it.
+
+### Test updates
+
+- `web/src/pages/TokenUsage.test.tsx` -- two existing cases
+  migrated from `getByRole('button', ...)` to `getByRole('tab',
+  ...)` to match the new SegmentedControl role. Active-state
+  assertion now reads `aria-selected` instead of class diff.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/pages/Health.test.tsx > does NOT render the loading
+  skeleton when data is already present` is failing on
+  `c4/c4-mgr-auto` tip prior to this TODO (verified via baseline
+  stash test). The assumption that "any role=status here would
+  be the skeleton" was already invalidated by the `StatusDot`
+  adoption in the data section. Not regressed by this change.
+
+### Drive-by
+
+- `web/src/pages/TokenUsage.tsx` -- removed unused `cn` import
+  (pre-existing dead import from a prior commit; cleaned up
+  while touching the file).
+- `web/src/pages/Health.tsx` -- removed unused `Alert` import
+  (replaced by `AlertBanner` in v1.11.275; cleaned up while
+  touching the file).
+
 ## [1.11.275] - 2026-05-16 -- UI: AlertBanner primitive (TODO 11.257)
 
 Component-scope-only addition. No daemon-side change and no `c4`
