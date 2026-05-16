@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Clock, GitBranch, Hash } from 'lucide-react';
 import {
   Badge,
@@ -8,6 +9,7 @@ import {
   CardTitle,
   DataList,
   HScroll,
+  Pagination,
   Panel,
   type BadgeVariant,
   type DataListItem,
@@ -40,8 +42,22 @@ interface Props {
   detail: HistoryWorkerDetail;
 }
 
+// (v1.11.282, TODO 11.264) Past-tasks pagination state. 5 rows
+// per page keeps the detail pane scrollable but bounded; the
+// raw scrollback section above the records expands to fill the
+// rest of the vertical space.
+const RECORDS_PAGE_SIZE = 5;
+
 export default function HistoryDetailPane({ detail }: Props) {
   useLocale();
+  const [recordsPage, setRecordsPage] = useState(1);
+  const recordsTotal = detail.records.length;
+  const recordsTotalPages = Math.max(1, Math.ceil(recordsTotal / RECORDS_PAGE_SIZE));
+  const safeRecordsPage = Math.min(Math.max(1, recordsPage), recordsTotalPages);
+  const visibleRecords = detail.records.slice(
+    (safeRecordsPage - 1) * RECORDS_PAGE_SIZE,
+    safeRecordsPage * RECORDS_PAGE_SIZE,
+  );
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
       <CardHeader className="p-4 md:p-5">
@@ -100,7 +116,7 @@ export default function HistoryDetailPane({ detail }: Props) {
             <div className="text-sm text-muted-foreground">{t('history.empty.tasks')}</div>
           ) : (
             <ul className="space-y-2">
-              {detail.records.map((r, i) => (
+              {visibleRecords.map((r, i) => (
                 <Panel
                   key={`${r.completedAt || i}-${i}`}
                   className="text-xs text-foreground"
@@ -140,6 +156,26 @@ export default function HistoryDetailPane({ detail }: Props) {
               ))}
             </ul>
           )}
+          {/* (v1.11.282, TODO 11.264) Past-tasks pagination. Only
+              renders when the record count exceeds the page size
+              so short histories stay clean. Uses showFirstLast +
+              showJumpToPage for long-running workers (hundreds of
+              recorded tasks). */}
+          {detail.records.length > RECORDS_PAGE_SIZE ? (
+            <div
+              className="mt-3 flex justify-center"
+              data-testid="history-records-pagination"
+            >
+              <Pagination
+                page={safeRecordsPage}
+                totalPages={recordsTotalPages}
+                onPageChange={setRecordsPage}
+                ariaLabel="Past tasks pagination"
+                showFirstLast
+                showJumpToPage
+              />
+            </div>
+          ) : null}
         </section>
 
         <section className="flex min-h-0 flex-1 flex-col">

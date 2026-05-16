@@ -387,11 +387,19 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
       </div>
       {sortedRows.length > PER_TASK_PAGE_SIZE && (
         <div className="mt-2 flex justify-center">
+          {/* (v1.11.282, TODO 11.264) Pagination enhancements:
+              showFirstLast for quick "jump to top / bottom of
+              the list" on large per-task windows; showJumpToPage
+              for direct page-number entry. The per-task table
+              routinely spills 5+ pages on a busy daemon, so
+              both affordances matter here. */}
           <Pagination
             page={page}
             totalPages={totalPages}
             onPageChange={onPageChange}
             ariaLabel="Per-task pagination"
+            showFirstLast
+            showJumpToPage
           />
         </div>
       )}

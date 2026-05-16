@@ -3,13 +3,13 @@ import type { FormEvent } from 'react';
 import { Archive, Copy, RotateCcw, Save, Trash2 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
-  Alert,
   AlertBanner,
   Button,
   Dialog,
   EmptyState,
   ErrorState,
   Input,
+  Pagination,
   Skeleton,
   Tooltip,
   UndoToast,
@@ -52,6 +52,11 @@ function formatBytes(n: number): string {
 export default function Snapshots() {
   useLocale();
   const [items, setItems] = useState<SnapshotMeta[] | null>(null);
+  // (v1.11.282, TODO 11.264) Pagination state for the grid. The
+  // snapshots list can grow into the hundreds once an operator
+  // takes daily snapshots; 10 rows per page keeps the table
+  // readable.
+  const [page, setPage] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -265,7 +270,19 @@ export default function Snapshots() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {items.map((s) => {
+              {(() => {
+                const PAGE_SIZE = 10;
+                const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+                // Clamp the current page so a delete that drops
+                // below the current slot does not strand the
+                // table on an empty page.
+                const safePage = Math.min(Math.max(1, page), totalPages);
+                const slice = items.slice(
+                  (safePage - 1) * PAGE_SIZE,
+                  safePage * PAGE_SIZE,
+                );
+                return slice;
+              })().map((s) => {
                 const totalBytes = (s.configBytes || 0) + (s.queueBytes || 0);
                 return (
                   <tr
@@ -350,6 +367,25 @@ export default function Snapshots() {
               })}
             </tbody>
           </table>
+          {/* (v1.11.282, TODO 11.264) Pagination footer below
+              the snapshots table. Hidden when the list fits in
+              one page. Shows First / Last + Jump-to-page for
+              long lists. */}
+          {items.length > 10 ? (
+            <div
+              className="flex justify-center border-t border-border bg-card/40 px-3 py-2"
+              data-testid="snapshots-pagination"
+            >
+              <Pagination
+                page={Math.min(Math.max(1, page), Math.max(1, Math.ceil(items.length / 10)))}
+                totalPages={Math.max(1, Math.ceil(items.length / 10))}
+                onPageChange={setPage}
+                ariaLabel="Snapshots pagination"
+                showFirstLast
+                showJumpToPage
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
