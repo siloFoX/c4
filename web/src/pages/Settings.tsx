@@ -12,6 +12,7 @@ import {
 import PageFrame from './PageFrame';
 import {
   Alert,
+  AlertBanner,
   PageHeader,
   Panel,
   Radio,
@@ -306,11 +307,16 @@ export default function Settings() {
         className="-mx-4 -mt-2 md:-mx-6 md:-mt-2"
         data-testid="settings-page-header"
       />
-      <Alert variant="info">
+      {/* (v1.11.275, TODO 11.257) AlertBanner replaces the
+          generic Alert for the Settings consolidation notice.
+          The banner reads as a persistent advisory ("these
+          dedicated pages override this surface") -- perfect fit
+          for AlertBanner's role=alert + aria-live=polite contract. */}
+      <AlertBanner severity="info" data-testid="settings-override-banner">
         Consolidated landing -- the dedicated Config / Scribe / Notifications /
         Feature Flags pages remain authoritative; this tab strip is a one-stop
         entry point and does not duplicate their state.
-      </Alert>
+      </AlertBanner>
       {/* (v1.11.269, TODO 11.251) Section break between the
           consolidated-landing alert and the actual preference
           tabs. label-left places the heading flush against the

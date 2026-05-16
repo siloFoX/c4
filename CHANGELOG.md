@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.275] - 2026-05-16 -- UI: AlertBanner primitive (TODO 11.257)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/alert-banner.tsx` -- persistent inline
+  alert primitive that wraps the existing `Alert` with three
+  small deltas:
+  1. `severity` prop (`'info' | 'success' | 'warning' |
+     'danger'`) replaces `variant`; the new `'danger'` token
+     maps to Alert's pre-existing `'error'` variant. The
+     `legacyVariant` prop opts callers into the broader
+     `AlertVariant` (`'error' | 'neutral'`) for gradual
+     migration -- `severity` wins when both are passed.
+  2. Pins `role="alert"` + `aria-live="polite"` on the root so
+     every banner reads as a persistent advisory, per the
+     dispatch's exact wording. The combination is unusual
+     (`role="alert"` defaults to `aria-live="assertive"`) but
+     matches the spec.
+  3. `data-section="alert-banner"` + `data-severity=<resolved>`
+     attributes for e2e selectors.
+- Icon / title / body / dismissible / onDismiss / action all
+  pass through to the underlying Alert.
+- 17 vitest cases cover: data-section + data-severity attrs,
+  body + title + icon + action + dismiss button render +
+  onDismiss click + dismiss omitted, role=alert pin, all 4
+  severity -> variant mappings, legacyVariant passthrough,
+  severity-wins-over-legacy, className merge + HTML attr
+  forwarding.
+- Exported from `web/src/components/ui` barrel.
+
+### Changed (4 adoption sites)
+
+Each replaces an existing `<Alert variant=...>` with the
+equivalent `<AlertBanner severity=...>`.
+
+- `web/src/pages/Settings.tsx` -- the consolidation notice
+  (`severity="info"`,
+  `data-testid="settings-override-banner"`). 6/6 Settings
+  tests pass.
+- `web/src/pages/Health.tsx` -- the filter-drawer "Coming
+  soon" advisory (`severity="info"`,
+  `data-testid="health-incident-strip"`). 36/37 Health tests
+  pass (1 pre-existing failure unrelated to this change,
+  documented in v1.11.249).
+- `web/src/pages/Snapshots.tsx` -- the action-error surface
+  (`severity="danger"`, `dismissible` + `onDismiss` clears
+  the error, `data-testid="snapshots-action-error"`). 8/8
+  Snapshots tests pass.
+- `web/src/pages/FeatureFlags.tsx` -- the "Component-scoped
+  flags" experimental advisory (`severity="info"` + Sparkles
+  icon, `data-testid="feature-flags-experimental-banner"`).
+
+### Notes
+
+- The dispatch listed "Snapshots failed upload" as the third
+  site, but Snapshots has no upload flow today (take /
+  restore / delete are immediate ops). The action-error
+  surface filled the slot as the closest real failure
+  banner.
+- The Alert primitive remains the underlying renderer.
+  AlertBanner is the canonical name for the "persistent
+  inline advisory" use case; bare `<Alert>` stays available
+  for transient / variant-driven cases.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.274] - 2026-05-16 -- UI: ProgressBar primitive (TODO 11.256)
 
 Component-scope-only polish. No daemon-side change and no `c4`

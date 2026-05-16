@@ -1,6 +1,6 @@
 import { RotateCcw, Sparkles } from 'lucide-react';
 import PageFrame from './PageFrame';
-import { Alert, Button, Panel, Switch } from '../components/ui';
+import { Alert, AlertBanner, Button, Panel, Switch } from '../components/ui';
 import HelpTip from '../components/HelpTip';
 import { t, useLocale } from '../lib/i18n';
 import {
@@ -39,16 +39,23 @@ export default function FeatureFlags() {
         </Button>
       }
     >
-      <Alert
-        variant="info"
+      {/* (v1.11.275, TODO 11.257) AlertBanner replaces the
+          inline Alert. The "experimental badge" framing -- these
+          flags ship UI experiments that the operator opts into
+          per browser -- is exactly the AlertBanner role=alert +
+          aria-live polite contract. Sparkles icon stays as the
+          experimental visual cue. */}
+      <AlertBanner
+        severity="info"
         icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
         title="Component-scoped flags"
+        data-testid="feature-flags-experimental-banner"
       >
         These switches toggle browser-local UI behavior only. They persist
         in <code className="font-mono">localStorage</code> under{' '}
         <code className="font-mono">c4:feature-flags</code> and never round-trip
         to the daemon.
-      </Alert>
+      </AlertBanner>
       <ul className="flex flex-col gap-2">
         {FLAGS.map((flag) => {
           const checked = values[flag.key];
