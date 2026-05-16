@@ -4,6 +4,87 @@
 
 (no entries -- next release window)
 
+## [1.11.278] - 2026-05-16 -- UI: StatusPill primitive (TODO 11.260)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/status-pill.tsx` -- small rounded
+  status chip that communicates an entity's lifecycle state with
+  an icon + label combo. Built for "status column" / "header
+  chip" use cases where the existing `StatusDot` alone is too
+  quiet (operators want to scan a column and see "busy" instead
+  of "amber").
+- Five canonical status keys mapped to a fixed palette so the
+  surface never drifts and a future hue migration only has to
+  touch the primitive: `online` (success / CircleDot),
+  `busy` (warning / Loader2 -- spins when pulse + non-reduced-motion),
+  `idle` (muted / Pause), `offline` (card neutral / Moon),
+  `error` (destructive / AlertTriangle). Every status pairs the
+  hue with a distinct glyph so colour-blind operators read the
+  same signal as everyone else.
+- `pulse?: boolean` prop -- only the two "active" states
+  (`online`, `busy`) honour the pulse. Pulse halo + busy-spinner
+  are gated on `useReducedMotion()` (v1.11.234) so operators
+  with `prefers-reduced-motion` never see the animation. Idle /
+  offline / error always render statically regardless of the
+  prop because pulsing those would be misleading.
+- `label === null` opts the pill into icon-only mode without
+  losing the accessible name: aria-label folds back to the
+  default `"Status: <Capitalised>"` string so screen readers
+  still know what they're reading.
+- `icon?: ReactNode | null` -- override the per-status default
+  glyph, or pass `null` to render text-only.
+- Sizes `sm` (h-5 / text-[10px]) and `md` (h-6 / text-xs).
+- `role="status"` + `aria-label="Status: <label>"` on the root.
+- `data-section="status-pill"` + per-instance `data-status`,
+  `data-size`, `data-pulse` attrs; per-halo
+  `data-status-pill-pulse="true"` selector.
+- 30 vitest cases cover: default labels for all 5 statuses,
+  label override, custom aria-label override, root role +
+  data-* attrs, size scale, per-status colour trios (all 5),
+  default glyph render, custom icon override, `icon={null}`
+  suppression, `label={null}` suppression + aria fallback, pulse
+  state matrix (active vs inactive, reduced-motion suppression,
+  halo render, busy-spinner spin on/off), all-status render
+  loop, className merge, HTML attr forwarding, ref forwarding.
+- Exported `StatusPill` + `StatusPillStatus` + `StatusPillSize`
+  + `StatusPillProps` from `web/src/components/ui/status-pill.tsx`
+  and re-exported via the UI barrel.
+
+### Changed (3 adoption sites)
+
+- `web/src/components/HistoryView.tsx` -- per-row status `Badge`
+  migrated to `StatusPill`. Liveness mapping:
+  `alive && liveStatus === 'busy'` -> `busy`,
+  `alive` -> `online` (with pulse + halo), `!alive` -> `offline`.
+  Per-row `data-testid="history-row-status-<name>"`. The `Badge`
+  import was removed from the barrel since the component is no
+  longer referenced.
+- `web/src/components/SessionsListSection.tsx` -- new "status
+  column" affordance in the trailing slot: a `StatusPill`
+  (size=sm, icon-only via `label={null}`) renders alongside the
+  existing turn-count `Badge`. Freshness mapping based on
+  `updatedAt` age: <5min -> `online` (pulse), <60min -> `idle`,
+  otherwise -> `offline`. The legacy inline StatusDot stays in
+  the title row so the visual rhythm is preserved.
+- `web/src/components/WorkerDetailHeader.tsx` -- new optional
+  `liveStatus?: StatusPillStatus` + `liveLabel?: string` props
+  surface a `StatusPill` next to the worker title. When omitted
+  (the v1.11.277 baseline) no pill renders, so existing call
+  sites stay byte-identical. Pulse turns on for active states
+  (`online` / `busy`).
+
+### Pre-existing failures (out of scope)
+
+- `web/src/components/SessionsListSection.test.tsx` -- 12 cases
+  fail on baseline (confirmed via stash-keep-index test).
+  Unrelated to this change; the rows under the collapse toggle
+  break group-collapse assertions that the v1.11.272 AvatarGroup
+  + v1.11.270 Stepper combo also surfaced as out-of-scope.
+
 ## [1.11.277] - 2026-05-16 -- UI: DataList primitive enhancements (TODO 11.259)
 
 Component-scope-only enhancement of the existing DataList

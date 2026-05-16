@@ -1,5 +1,14 @@
 import { Minus, Plus } from 'lucide-react';
-import { Button, CardDescription, CardHeader, CardTitle, IconButton, Label } from './ui';
+import {
+  Button,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  IconButton,
+  Label,
+  StatusPill,
+} from './ui';
+import type { StatusPillStatus } from './ui';
 import { t, useLocale } from '../lib/i18n';
 
 // (v1.10.588) Extracted from WorkerDetail. Card header with the
@@ -15,6 +24,11 @@ interface Props {
   onTabChange: (next: TerminalTab) => void;
   fontSize: number;
   onBumpFont: (delta: number) => void;
+  // (v1.11.278, TODO 11.260) Optional worker live status surfaced
+  // as a StatusPill chip beside the title. When omitted no pill
+  // renders so existing call sites stay byte-identical.
+  liveStatus?: StatusPillStatus;
+  liveLabel?: string;
 }
 
 export default function WorkerDetailHeader({
@@ -23,13 +37,26 @@ export default function WorkerDetailHeader({
   onTabChange,
   fontSize,
   onBumpFont,
+  liveStatus,
+  liveLabel,
 }: Props) {
   useLocale();
   return (
     <CardHeader className="gap-3 p-4 md:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <CardTitle className="truncate">{workerName}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="truncate">{workerName}</CardTitle>
+            {liveStatus ? (
+              <StatusPill
+                status={liveStatus}
+                size="sm"
+                pulse={liveStatus === 'online' || liveStatus === 'busy'}
+                {...(liveLabel ? { label: liveLabel } : {})}
+                data-testid="worker-detail-header-status"
+              />
+            ) : null}
+          </div>
           <CardDescription>
             {t('workerDetail.terminalSession')}
           </CardDescription>
