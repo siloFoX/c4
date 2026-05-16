@@ -4,6 +4,94 @@
 
 (no entries -- next release window)
 
+## [1.11.281] - 2026-05-16 -- UI: FieldGroup primitive (TODO 11.263)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/field-group.tsx` -- higher-level
+  wrapper that groups related `FormField` (or raw control)
+  children under a shared legend + description. Built so editor
+  surfaces can lay out "Connection settings" / "Output format"
+  / "Behaviour" blocks without re-inventing the spacing +
+  heading + helper-text rhythm every time.
+- Renders a `<fieldset>` at the root so the native disabled
+  cascade keeps working (`disabled` prop forwards to the
+  fieldset, which the browser propagates to every form control
+  inside).
+- Layouts: `stack` (default, vertical list with consistent
+  gap-3 between rows), `grid` (1/2/3 columns with responsive
+  breakpoints). Grid columns prop is only honoured when
+  `layout === 'grid'`.
+- Optional `title` (rendered as a `<legend>`), `description`
+  (muted helper paragraph below the legend), `headingActions`
+  (right-aligned slot, e.g. an "Add row" button beside the
+  title -- only renders when `title` is also set so an orphan
+  button never appears).
+- Header block (title + description + actions) self-collapses:
+  if all three are absent, no header DOM at all.
+- `data-section="field-group"` + `data-layout=<stack|grid>` +
+  `data-columns=<n>` (grid only) on the root for e2e selectors.
+  Per-slot `data-section="field-group-{header,title,description,
+  actions,body}"`.
+- Differs from the existing `Fieldset` primitive: Fieldset is
+  the raw HTML wrapper + legend; FieldGroup is opinionated
+  about layout, header rhythm, and integrates the grid /
+  stack split. FieldGroup is the new canonical choice;
+  Fieldset stays for callers that want the raw shell.
+- 25 vitest cases cover: children render, fieldset root,
+  data-section + data-layout, title -> legend, no-legend when
+  no title, description with + without title, heading actions
+  visibility rules (with title vs orphan suppression), stack
+  layout flex-col gap-3, grid layout grid-cols-N (1 / 2 / 3),
+  grid `lg:grid-cols-3` breakpoint, `data-columns` exposure on
+  grid + absence on stack, disabled forwards to fieldset
+  (jsdom-safe assertion since jsdom does not implement the
+  descendant cascade), opacity dimming, non-disabled default,
+  FormField composition smoke test, className merge, HTML attr
+  forwarding, ref forwarding, full-header-collapse, header
+  renders for description-only.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Templates.tsx` (ImportTemplateForm) -- the
+  ad-hoc `<Label>Tags</Label>` block migrated to a `FormField`
+  inside a `FieldGroup`. The FileInput moves under the same
+  group so the import form reads as one cohesive section with
+  a heading + description. `data-testid="templates-import-form"`.
+- `web/src/pages/Profiles.tsx` -- the `Fieldset` wrapper around
+  the allow / deny pattern lists migrated to `FieldGroup` with
+  `layout="grid"` and `columns={2}`. The two-column grid layout
+  now lives in the primitive instead of an ad-hoc inner
+  `<div className="grid grid-cols-1 ... sm:grid-cols-2">`.
+  Per-profile `data-testid="profiles-patterns-<name>"`.
+- `web/src/pages/Plan.tsx` -- the four-field plan form
+  (worker / branch / task / output) migrated from a raw
+  `<div className="grid grid-cols-1 gap-3 md:grid-cols-2">`
+  wrapper to `FieldGroup layout="grid" columns={2}` with a
+  shared `planPage.formHeading` legend + `planPage.formDescription`
+  description. New i18n keys added to `en.json` + `ko.json`.
+  The `md:col-span-2` on the Task textarea wrapper is preserved.
+  `data-testid="plan-form-fields"`.
+
+### Deferral
+
+- The dispatch literal called out a "Settings editor" adoption
+  but `web/src/pages/Settings.tsx` does not have any
+  ad-hoc `<Label><Input/></Label>` form blocks today -- the
+  page is a `Tabs`-driven list of Panels, each owning its own
+  surface (Theme / Density / Locale / Notifications / Feature
+  Flags). The Plan form was substituted as the third real
+  adoption site instead.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/pages/Templates.test.tsx > renders all rows in a
+  single <ul> wrapper` -- pre-existing failure, documented in
+  earlier CHANGELOG entries.
+
 ## [1.11.280] - 2026-05-16 -- UI: ListActionMenu primitive (TODO 11.262)
 
 Component-scope-only addition. No daemon-side change and no `c4`

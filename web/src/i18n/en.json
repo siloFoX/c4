@@ -119,6 +119,8 @@
   "planPage.title": "Plan",
   "planPage.description": "Dispatch a planning task and render the worker's plan.md. Re-dispatch the plan as real work with one click.",
   "planPage.refreshPlan": "Refresh plan",
+  "planPage.formHeading": "Plan target + body",
+  "planPage.formDescription": "Pick a worker, optionally pin a branch + output path, then describe the work.",
   "planPage.worker": "Worker",
   "planPage.branch": "Branch (optional)",
   "planPage.branch.placeholder": "c4/my-plan",

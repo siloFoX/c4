@@ -4,7 +4,7 @@ import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame'
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, FileTree, FormField, Input, Panel, Popover, Stepper, Textarea, Tooltip } from '../components/ui';
+import { Button, FieldGroup, FileTree, FormField, Input, Panel, Popover, Stepper, Textarea, Tooltip } from '../components/ui';
 import type { FileTreeNode } from '../components/ui';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
@@ -161,7 +161,20 @@ export default function Plan() {
           }
         />
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {/* (v1.11.281, TODO 11.263) Plan form fields grouped under
+          a labeled FieldGroup so the section reads as a coherent
+          "describe the work" block. The raw <div className="grid
+          grid-cols-1 gap-3 md:grid-cols-2"> wrapper migrates to
+          FieldGroup layout="grid" columns={2}. The full-width
+          Task textarea preserves its md:col-span-2 via its
+          wrapper div. */}
+      <FieldGroup
+        title={t('planPage.formHeading')}
+        description={t('planPage.formDescription')}
+        layout="grid"
+        columns={2}
+        data-testid="plan-form-fields"
+      >
         <FormField id="plan-worker" label={t('planPage.worker')}>
           <select
             value={selected}
@@ -208,7 +221,7 @@ export default function Plan() {
             />
           </Tooltip>
         </div>
-      </div>
+      </FieldGroup>
 
       <div className="flex flex-wrap gap-2">
         <Tooltip label={t('plan.tooltip.dispatch')}>
