@@ -4,6 +4,7 @@ import { Archive, Copy, RotateCcw, Save, Trash2 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
   Alert,
+  AlertBanner,
   Button,
   Dialog,
   EmptyState,
@@ -201,7 +202,20 @@ export default function Snapshots() {
       }
     >
       {actionError ? (
-        <Alert variant="error">Action failed: {actionError}</Alert>
+        // (v1.11.275, TODO 11.257) The action-error Alert is now
+        // an AlertBanner with severity="danger". The dispatch's
+        // "Snapshots failed upload" slot maps to this error
+        // surface since Snapshots has no separate upload flow
+        // (take / restore / delete are immediate ops and surface
+        // their failures here).
+        <AlertBanner
+          severity="danger"
+          dismissible
+          onDismiss={() => setActionError(null)}
+          data-testid="snapshots-action-error"
+        >
+          Action failed: {actionError}
+        </AlertBanner>
       ) : null}
 
       {loading && !items ? (

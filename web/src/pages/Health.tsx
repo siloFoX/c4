@@ -5,6 +5,7 @@ import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import {
   Alert,
+  AlertBanner,
   Badge,
   Button,
   Collapsible,
@@ -178,10 +179,18 @@ export default function Health() {
         title="Filters"
         description="status, severity, since"
       >
-        <Alert variant="info" title="Coming soon">
+        {/* (v1.11.275, TODO 11.257) AlertBanner replaces the
+            inline Alert for the filter "coming soon" advisory.
+            Persistent inline notice -- exactly the AlertBanner
+            use case. */}
+        <AlertBanner
+          severity="info"
+          title="Coming soon"
+          data-testid="health-incident-strip"
+        >
           Filter wiring lands in a follow-up. Drawer is integrated so the
           surface is ready.
-        </Alert>
+        </AlertBanner>
         {/* (11.176) DatePicker primitive adoption - placeholder since
             filter; not yet threaded into useHealth. */}
         <div className="mt-3 flex items-center gap-2 text-xs">
