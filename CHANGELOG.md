@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.282] - 2026-05-16 -- UI: Pagination enhancements (TODO 11.264)
+
+Component-scope-only enhancement of the existing Pagination
+primitive. No daemon-side change and no `c4` CLI surface change.
+
+### Added (Pagination primitive)
+
+- `showFirstLast?: boolean` (default `false`) prop on
+  `web/src/components/ui/pagination.tsx`. When true, two extra
+  buttons bracket the prev/next pair, jumping directly to page 1
+  or the final page. `firstLabel` + `lastLabel` props for custom
+  text. Default labels: `"First"` / `"Last"`. Buttons honour the
+  same disabled rules as prev/next (First disabled on page 1,
+  Last disabled on the final page).
+- `showJumpToPage?: boolean` (default `false`) prop. When true,
+  a numeric input + "Go" button render at the tail of the nav so
+  the operator can punch in a page number directly. Out-of-range
+  jumps are clamped to `[1, totalPages]`. Enter inside the input
+  also submits (no need to mouse over to Go). The Go button is
+  disabled while the input is empty. `jumpToPageLabel` prop
+  customizes the input's accessible name (default `"Jump to
+  page"`).
+- `data-section="pagination"` + `data-current-page` +
+  `data-total-pages` on the nav root.
+- Per-button `data-pagination-action` (`first` / `prev` /
+  `next` / `last` / `jump`) + `data-pagination-page` on every
+  numbered button for e2e selectors.
+- 17 new vitest cases (43 total) cover: First/Last default off,
+  visible when prop on, page-1 / final-page jumps, disabled
+  rules, label overrides; jump-to-page default off, input + Go
+  render, Go disabled when empty, type-then-click submit, Enter
+  submit, out-of-range clamp, same-page no-fire, non-numeric
+  draft no-submit; data-* attribute exposure (root data-* +
+  per-button data-pagination-action / -page).
+- Back-compat: every prior call site continues to render
+  byte-identical DOM because both new affordances are off by
+  default.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/TokenUsage.tsx` (PerTaskTable) -- enabled
+  `showFirstLast` + `showJumpToPage` on the existing Per-task
+  pagination footer. The per-task table routinely spills 5+
+  pages on a busy daemon; jump-to-page is the operator-facing
+  affordance for "show me page 42 of the burn report" without
+  clicking Next 41 times.
+- `web/src/pages/Snapshots.tsx` -- the snapshots table did NOT
+  have pagination before; this release adds it. 10 rows per
+  page, with First/Last + jump-to-page enabled when the list
+  exceeds one page. `data-testid="snapshots-pagination"`. Page
+  state is clamped on each render so a destructive delete that
+  shrinks the list below the current page does not strand the
+  table on an empty page.
+- `web/src/components/HistoryDetailPane.tsx` -- the past-tasks
+  records section gains pagination (5 rows per page, with
+  First/Last + jump-to-page). Hidden when the record count
+  fits in one page so short histories stay clean. The raw
+  scrollback section below the records still expands to fill
+  the rest of the detail pane's vertical space.
+  `data-testid="history-records-pagination"`.
+
+### Drive-by
+
+- `web/src/pages/Snapshots.tsx` -- removed an unused `Alert`
+  import (the type was referenced only in a code comment after
+  the v1.11.275 AlertBanner migration; cleaned up while
+  touching the import list).
+
 ## [1.11.281] - 2026-05-16 -- UI: FieldGroup primitive (TODO 11.263)
 
 Component-scope-only addition. No daemon-side change and no `c4`
