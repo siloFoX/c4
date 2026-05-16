@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Collapsible,
+  CopyButton,
   DashboardGrid,
   DataList,
   DatePicker,
@@ -301,9 +302,21 @@ export default function Health() {
               <span className={text.caption}>v{String(data.version)}</span>
             )}
             {data.configPath && (
-              <span className={cn('truncate', text.caption, 'font-mono')}>
-                {String(data.configPath)}
-              </span>
+              <>
+                <span className={cn('truncate', text.caption, 'font-mono')}>
+                  {String(data.configPath)}
+                </span>
+                {/* (v1.11.285, TODO 11.267) CopyButton beside the
+                    config path so the operator can pop it into a
+                    `c4 config validate <path>` invocation without
+                    selecting and copying the truncated text. */}
+                <CopyButton
+                  value={String(data.configPath)}
+                  label="config path"
+                  size="sm"
+                  data-testid="health-config-path-copy"
+                />
+              </>
             )}
             <Popover
               placement="bottom"
