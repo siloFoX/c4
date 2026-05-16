@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, ProgressBar, SegmentedControl, Switch, Table, Tooltip } from '../components/ui';
+import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, ProgressBar, SegmentedControl, Sparkline, Switch, Table, Tooltip } from '../components/ui';
 import type { TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
@@ -164,19 +164,45 @@ export default function TokenUsage() {
             {perDay.length === 0 ? (
               <EmptyPanel message={t('tokenUsagePage.byDay.empty')} />
             ) : (
-              <ul className="flex flex-col gap-1.5">
-                {perDay.map((e) => (
-                  <li key={e.date} className="flex items-center gap-2 text-xs">
-                    <span className="w-24 shrink-0 font-mono text-foreground">
-                      {e.date}
-                    </span>
-                    <Bar value={e.total} max={dayMax} tone="accent" />
-                    <span className="w-20 shrink-0 text-right font-mono text-muted-foreground">
-                      {formatNumber(e.total)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {/* (v1.11.279, TODO 11.261) Sparkline header
+                    summary: the per-day series is a real time
+                    trend so the operator can see the shape of the
+                    window (spiking / flat / decaying) before
+                    scanning the bar rows below. */}
+                <div
+                  className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground"
+                  data-testid="token-usage-by-day-sparkline"
+                >
+                  <span className="font-medium uppercase tracking-wide">
+                    Trend
+                  </span>
+                  <Sparkline
+                    data={perDay.map((e) => e.total)}
+                    variant="info"
+                    size="lg"
+                    width="100%"
+                    showDots
+                    showLastValue
+                    lastValueFormatter={formatNumber}
+                    className="flex-1"
+                    ariaLabel={`Daily token totals trend across ${perDay.length} days`}
+                  />
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {perDay.map((e) => (
+                    <li key={e.date} className="flex items-center gap-2 text-xs">
+                      <span className="w-24 shrink-0 font-mono text-foreground">
+                        {e.date}
+                      </span>
+                      <Bar value={e.total} max={dayMax} tone="accent" />
+                      <span className="w-20 shrink-0 text-right font-mono text-muted-foreground">
+                        {formatNumber(e.total)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </Panel>
 

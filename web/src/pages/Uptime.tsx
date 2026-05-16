@@ -4,6 +4,7 @@ import {
   Badge,
   DataList,
   EmptyState,
+  Sparkline,
   Widget,
 } from '../components/ui';
 import { formatDuration, formatRelativeTime } from '../lib/format';
@@ -147,9 +148,25 @@ export default function Uptime() {
           )
         }
       >
-        <span className="text-[11px] text-muted-foreground">
-          Local to this browser session.
-        </span>
+        {/* (v1.11.279, TODO 11.261) Sparkline trend of the
+            rolling restartHistory[] series the hook now maintains.
+            The pill stays flat when the daemon is healthy (no
+            new entries appended) and rises step-wise on each
+            restart bump -- the visual is intentionally a step
+            chart rather than a smooth curve because that mirrors
+            the counter's discrete semantics. */}
+        <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          <span>Local to this browser session.</span>
+          <Sparkline
+            data={restart.restartHistory}
+            variant={restart.restartHistory.length > 0 ? 'warning' : 'muted'}
+            size="md"
+            showLastValue={restart.restartHistory.length > 0}
+            lastValueFormatter={(v) => `#${v}`}
+            ariaLabel={`Restart-count trend, ${restart.restartHistory.length} samples`}
+            data-testid="restart-history-sparkline"
+          />
+        </div>
       </Widget>
 
       <Widget

@@ -99,4 +99,63 @@ describe('useDaemonRestartTracker', () => {
     );
     expect(second.result.current.restartCount).toBe(1);
   });
+
+  // (v1.11.279, TODO 11.261) restartHistory rolling buffer.
+
+  it('starts with an empty restartHistory before any contact', () => {
+    const { result } = renderHook(() =>
+      useDaemonRestartTracker({ pid: undefined, startedAt: undefined }),
+    );
+    expect(result.current.restartHistory).toEqual([]);
+  });
+
+  it('first daemon contact does NOT push to restartHistory', () => {
+    const { result } = renderHook(() =>
+      useDaemonRestartTracker({ pid: 1, startedAt: 'a' }),
+    );
+    expect(result.current.restartHistory).toEqual([]);
+  });
+
+  it('pushes the bumped count into restartHistory on each restart event', () => {
+    const { result, rerender } = renderHook(
+      ({ pid, startedAt }: { pid: number; startedAt: string }) =>
+        useDaemonRestartTracker({ pid, startedAt }),
+      { initialProps: { pid: 1, startedAt: 'a' } },
+    );
+    rerender({ pid: 2, startedAt: 'b' });
+    rerender({ pid: 3, startedAt: 'c' });
+    rerender({ pid: 4, startedAt: 'd' });
+    expect(result.current.restartHistory).toEqual([1, 2, 3]);
+  });
+
+  it('caps restartHistory to the most recent 24 samples', () => {
+    const { result, rerender } = renderHook(
+      ({ pid, startedAt }: { pid: number; startedAt: string }) =>
+        useDaemonRestartTracker({ pid, startedAt }),
+      { initialProps: { pid: 0, startedAt: 's0' } },
+    );
+    for (let i = 1; i <= 30; i += 1) {
+      rerender({ pid: i, startedAt: `s${i}` });
+    }
+    expect(result.current.restartHistory).toHaveLength(24);
+    expect(result.current.restartHistory[0]).toBe(7);
+    expect(
+      result.current.restartHistory[result.current.restartHistory.length - 1],
+    ).toBe(30);
+  });
+
+  it('restartHistory persists across re-mounts', () => {
+    const first = renderHook(
+      ({ pid, startedAt }: { pid: number; startedAt: string }) =>
+        useDaemonRestartTracker({ pid, startedAt }),
+      { initialProps: { pid: 1, startedAt: 'a' } },
+    );
+    first.rerender({ pid: 2, startedAt: 'b' });
+    first.rerender({ pid: 3, startedAt: 'c' });
+    first.unmount();
+    const second = renderHook(() =>
+      useDaemonRestartTracker({ pid: 3, startedAt: 'c' }),
+    );
+    expect(second.result.current.restartHistory).toEqual([1, 2]);
+  });
 });
