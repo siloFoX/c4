@@ -4,6 +4,91 @@
 
 (no entries -- next release window)
 
+## [1.11.284] - 2026-05-16 -- UI: Toolbar primitive (TODO 11.266)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/toolbar.tsx` -- generic inline
+  toolbar shell for "editor action bars" and "row footers".
+  Built as a distinct primitive from the existing
+  `<BulkActionToolbar>` (which is a floating bulk-selection
+  HUD over the content); `<Toolbar>` lives in the document
+  flow next to the surface it acts on.
+- Two render modes:
+  - `items` (declarative): pass an array of `ToolbarItem`s
+    (buttons + dividers) and the primitive renders the row.
+    Action shape `{ id, label?, icon?, ariaLabel?, variant?,
+    disabled?, onClick? }`. Divider items render as a 1-px
+    pipe with `data-toolbar-item-type="divider"`.
+  - `children` (escape hatch): pass arbitrary JSX (e.g.
+    pre-existing `<Tooltip><Button/></Tooltip>` rows) and the
+    primitive only contributes the role=toolbar shell +
+    keyboard arrow nav + the consistent height/padding/border
+    tokens. Passing both `items` and `children` renders items
+    first, children second.
+- `overflowAfter?: number` -- when set, items beyond the first
+  N fold into a More popover. Trailing dividers in the inline
+  slice are trimmed so the More chip is never preceded by a
+  dangling pipe. Honoured only in `items` mode.
+- Keyboard arrow navigation between buttons via roving
+  tabindex (only the focused button is `tabindex=0`). `ArrowRight`
+  / `ArrowLeft` move focus and wrap at the ends; `Home` / `End`
+  jump to first / last. Focus tracking keys off the button
+  `id`, not the array index, so re-orderings don't strand
+  focus.
+- Sizes `sm` (h-7 root / h-6 button / text-[11px]) and `md`
+  (h-9 root / h-7 button / text-xs).
+- Per-instance `data-section="toolbar"` + `data-size` on the
+  root. Per-button `data-toolbar-item=<id>` +
+  `data-toolbar-item-type="button"`. Per-divider
+  `data-toolbar-item-type="divider"`. Overflow trigger
+  `data-toolbar-overflow-trigger="true"`. Overflow menu items
+  `data-toolbar-overflow-item=<id>`.
+- 30 vitest cases cover: role=toolbar root, default + override
+  ariaLabel, data-section + data-size, button render per
+  item, divider render, per-button data-toolbar-item attr,
+  onClick fires, disabled no-fire, roving tabindex,
+  ArrowRight + ArrowLeft + wrap (both ends), Home + End,
+  overflow hidden / visible threshold, trailing-divider trim
+  in the inline slice, overflow menu open + render + onClick,
+  destructive variant text class, both sizes, icon-only
+  ariaLabel preservation, className merge, empty items array,
+  HTML attr forwarding, children-mode render with verbatim
+  JSX, items + children co-render order, children-mode size
+  token forwarding.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Snapshots.tsx` -- per-row Copy / Restore /
+  Delete buttons (with their existing Tooltip wrappers + the
+  conditional Copy-label button when `s.label` is present)
+  migrate from a raw `<div className="inline-flex">` to a
+  `<Toolbar size="sm">` (children-mode). The row now reads as
+  `role="toolbar"` with keyboard arrow nav between the
+  buttons; existing `data-testid` attrs stay byte-identical.
+  Per-row `data-testid="snapshots-row-toolbar-<id>"`.
+- `web/src/pages/Templates.tsx` -- page-level actions slot
+  (SearchBar + Add + Refresh) wrapped in a `<Toolbar size="sm">`
+  (children-mode). Same Tooltip + Button JSX as before; the
+  shell adds the role + keyboard nav contract.
+  `data-testid="templates-page-toolbar"`.
+- `web/src/components/HistoryView.tsx` -- sidebar CardHeader
+  actions (ColumnPicker + ExportButton + Scribe toggle) wrapped
+  in a `<Toolbar size="sm">` (children-mode).
+  `data-testid="history-sidebar-toolbar"`. Note: the floating
+  bulk-selection HUD continues to use `<BulkActionToolbar>` --
+  that primitive owns a different UX (transient overlay with
+  count + clear-x) and isn't replaced by this change.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/pages/Templates.test.tsx > renders all rows in a
+  single <ul> wrapper` -- pre-existing failure, documented in
+  prior CHANGELOG entries.
+
 ## [1.11.283] - 2026-05-16 -- UI: RichText primitive (TODO 11.265)
 
 Component-scope-only addition. No daemon-side change and no `c4`

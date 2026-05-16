@@ -29,6 +29,7 @@ import {
   Skeleton,
   StatusPill,
   StickyFilterBar,
+  Toolbar,
   Tooltip,
   UndoToast,
 } from './ui';
@@ -248,7 +249,17 @@ export default function HistoryView() {
                 {t('history.sidebar.title')}
               </CardTitle>
             </div>
-            <div className="flex items-center gap-1">
+            {/* (v1.11.284, TODO 11.266) Sidebar header actions
+                now live inside a Toolbar (children-mode) so the
+                column picker + export + scribe controls share a
+                role=toolbar shell with keyboard arrow nav between
+                them. Floating bulk-action HUD continues to use
+                <BulkActionToolbar> (a different primitive). */}
+            <Toolbar
+              size="sm"
+              ariaLabel="History sidebar actions"
+              data-testid="history-sidebar-toolbar"
+            >
               {/* (11.190) ExportButton adoption: download visible history
                   workers as CSV/JSON. */}
               <ColumnPicker
@@ -288,7 +299,7 @@ export default function HistoryView() {
                   {t('history.sidebar.scribeButton')}
                 </span>
               </Button>
-            </div>
+            </Toolbar>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 p-0 pt-3">
             {/* (v1.11.261, TODO 11.243) Sticky filter row. Pins

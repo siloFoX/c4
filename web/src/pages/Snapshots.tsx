@@ -11,6 +11,7 @@ import {
   Input,
   Pagination,
   Skeleton,
+  Toolbar,
   Tooltip,
   UndoToast,
   VisuallyHidden,
@@ -303,7 +304,18 @@ export default function Snapshots() {
                       {formatBytes(totalBytes)}
                     </td>
                     <td className="px-3 py-2 text-right align-top">
-                      <div className="inline-flex items-center gap-1">
+                      {/* (v1.11.284, TODO 11.266) Per-row actions
+                          wrapped in the Toolbar primitive
+                          (children-mode escape hatch) so the row
+                          carries role=toolbar + keyboard arrow nav
+                          + the canonical height/border tokens.
+                          Tooltips + per-button data-testid attrs
+                          stay verbatim. */}
+                      <Toolbar
+                        size="sm"
+                        ariaLabel={`Actions for snapshot ${s.id}`}
+                        data-testid={`snapshots-row-toolbar-${s.id}`}
+                      >
                         <Tooltip label="Copy snapshot id">
                           <Button
                             type="button"
@@ -360,7 +372,7 @@ export default function Snapshots() {
                             <span className="sr-only">Delete {s.id}</span>
                           </Button>
                         </Tooltip>
-                      </div>
+                      </Toolbar>
                     </td>
                   </tr>
                 );
