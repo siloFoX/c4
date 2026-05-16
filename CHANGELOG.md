@@ -4,6 +4,83 @@
 
 (no entries -- next release window)
 
+## [1.11.274] - 2026-05-16 -- UI: ProgressBar primitive (TODO 11.256)
+
+Component-scope-only polish. No daemon-side change and no `c4`
+CLI surface change.
+
+### Context
+
+The `Progress` component (in `progress.tsx`) already supported
+`value` / `max` (determinate) + `indeterminate` (animated) +
+`label` (toggle) + `variant` (default / success / warning /
+destructive). This release extends it with the four pieces the
+dispatch calls out and renames the canonical export to
+`ProgressBar`.
+
+### Added
+
+- `size?: 'sm' | 'md' | 'lg'` -- default `md` matches the prior
+  fixed `h-2` layout so every existing caller stays
+  byte-identical. `sm` = `h-1` hairline for dense rows
+  (token per-task table, sidebar widgets), `lg` = `h-3` for
+  hero / upload surfaces. `data-size` attribute exposed on
+  the root for e2e selectors.
+- `labelText?: ReactNode` -- free-form copy on the left of the
+  label row ("Uploading snapshot...", "Dispatching..."). When
+  set, auto-enables the row so callers don't have to also pass
+  `label={true}`.
+- `showPercent?: boolean` -- defaults to `true`; setting
+  `false` hides the percent number on the right so a
+  `labelText`-only row is possible.
+- New `'info'` variant -- maps to `bg-info` for
+  "informational measurement" tone (used by TokenUsage's
+  per-day breakdown).
+- `ProgressBar` export alias + `ProgressBarProps` /
+  `ProgressBarVariant` / `ProgressBarSize` type aliases.
+- New file `web/src/components/ui/progress-bar.tsx` -- thin
+  re-export under the `ProgressBar` name (the dispatch's
+  literal file path and the primitive's preferred name going
+  forward). Both `Progress` and `ProgressBar` resolve to the
+  same component; the barrel exports both.
+- 12 new vitest cases (30/30 total in `progress.test.tsx`):
+  size default + sm + lg + data-size attr, labelText
+  auto-enables row, labelText + percent side-by-side,
+  showPercent=false hides percent, label=true no labelText
+  (legacy path), indeterminate + label "Working...",
+  no-row when neither prop set, data-section attr,
+  ProgressBar alias renders identical DOM.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/TokenUsage.tsx` -- the local hand-rolled
+  `<Bar>` component (`h-2` + `bg-primary/70` etc.) is replaced
+  by `ProgressBar` with variant mapping
+  (`undefined -> 'default'`, `'accent' -> 'info'`,
+  `'danger' -> 'destructive'`). The visual rhythm is
+  byte-identical at `size="md"` (h-2). 33/33 TokenUsage tests
+  pass.
+- `web/src/pages/Batch.tsx` -- the busy indeterminate strip +
+  result success bar both use `labelText` ("Dispatching..." /
+  "Completed N of N") and `size="lg"` for hero weight.
+  `data-testid="batch-dispatch-progress"` on the busy strip.
+  37/37 Batch tests pass (1 test migrated from
+  `getByText('Dispatching')` to `getAllByText` since the
+  dispatch copy now intentionally appears in two places).
+- `web/src/pages/Cleanup.tsx` -- the existing Progress strip
+  upgrades to use `labelText` ("Committing..." / "Dry
+  running...") + `size="lg"` + `data-testid="cleanup-progress"`.
+  32/32 Cleanup tests pass.
+
+### Notes
+
+- The dispatch listed "Snapshots upload bars" as a third site,
+  but Snapshots has no upload functionality (take / restore /
+  delete are immediate ops) -- no progress bars to adopt.
+  Cleanup.tsx replaced the slot as a real third site that
+  benefits from the labelText + size enhancements.
+- Reference design tokens: `/root/c4/arps-design-system-v1/`.
+
 ## [1.11.273] - 2026-05-16 -- UI: Skeleton.List primitive (TODO 11.255)
 
 Component-scope-only addition. No daemon-side change and no `c4`
