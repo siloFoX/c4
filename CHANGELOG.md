@@ -4,6 +4,88 @@
 
 (no entries -- next release window)
 
+## [1.11.285] - 2026-05-16 -- UI: CopyButton primitive (TODO 11.267)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/copy-button.tsx` -- canonical
+  copy-to-clipboard affordance. Wraps the existing
+  `lib/clipboard.ts::copyTextToClipboardWithError()` helper
+  with a consistent "Copy <thing>" / "Copied!" tooltip rhythm
+  so every adoption site reads the same way and the operator's
+  muscle memory ports between pages.
+- Two render shapes:
+  - `variant="icon-only"` (default): an `IconButton` with the
+    lucide `Copy` glyph. On success the glyph swaps to `Check`
+    (with `text-success`) for the transient pulse window
+    (default `pulseMs=1200`). Tooltip flips from
+    `"Copy <label>"` to `"Copied!"` during the same window.
+    `aria-label` flips between `"Copy <label>"` and
+    `"Copied <label>"`.
+  - `variant="icon+label"`: a `Button` with an inline icon +
+    visible body text. The body text uses the caller's
+    `children`, or defaults to `"Copy <label>"` / `"Copied!"`.
+- Props: `value` (the text written to the clipboard), `label`
+  (used for the aria-label + tooltip + toast wording; defaults
+  to `"value"`), `variant`, `children`, `size` (`sm` h-6/h-3
+  or `md` h-7/h-3.5), `pulseMs`, `onCopy(value)`, `onError(err)`,
+  `showToast(message, tone)` for non-tooltip toast feedback,
+  `disabled`, `tooltipPlacement`, `data-testid`.
+- `data-section="copy-button"` + `data-variant` + `data-size` +
+  `data-copied` on the trigger; per-glyph
+  `data-copy-button-glyph="copy" | "check"` so e2e selectors
+  can address state.
+- 22 vitest cases cover: aria-label default + override,
+  icon-only Copy glyph render, icon+label body text default +
+  custom children, data-section + data-variant + data-size,
+  click fires the copy flow via `onCopy`, data-copied flips on
+  success, glyph swap during pulse, aria-label flip during
+  pulse, revert after timeout, `onCopy` callback with the
+  value, `showToast` success message, disabled no-fire, size
+  tokens (sm + md), icon+label data-variant + body text flip,
+  className merge, data-testid forwarding, ref forwarding,
+  unmount during pulse window does not throw.
+- Failure-path coverage documented as a deliberate gap: lib/
+  clipboard.ts's own unit tests own the
+  `navigator.clipboard` + `document.execCommand` fallback
+  matrix. The CopyButton just relays the result.
+
+### Changed (4 adoption sites)
+
+- `web/src/pages/Health.tsx` -- the daemon `configPath`
+  display gains a `<CopyButton>` neighbour so operators can
+  paste the path into a `c4 config validate <path>`
+  invocation without selecting the truncated text. label="config
+  path"; `data-testid="health-config-path-copy"`.
+- `web/src/pages/Profiles.tsx` -- per-profile row title gains
+  a `<CopyButton>` neighbour to the name span so the
+  `--profile <name>` CLI argument is one click away.
+  label="id" (deliberately omits the profile name from the
+  aria-label so existing
+  `getByRole('button', { name: /<name>/ })` test selectors
+  continue to resolve to the row toggle, not this nested
+  copy chip). `data-testid="profiles-name-copy-<name>"`.
+- `web/src/pages/TokenUsage.tsx` -- per-task table's "task"
+  column render now wraps the task text + a `<CopyButton>` so
+  operators can paste the task identifier into a `c4 history`
+  lookup or a bug report. icon-only at size="sm" so the row
+  height stays unchanged.
+  `data-testid="token-usage-task-copy-<worker>"`.
+- `web/src/pages/FeatureFlags.tsx` -- per-flag metadata line
+  (`key={flag.key} default={...}`) gains a `<CopyButton>` for
+  the flag key so operators can paste it into an
+  `setFlag('<key>', ...)` console line or a config patch
+  without retyping. `data-testid="feature-flag-key-copy-<key>"`.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/pages/Health.test.tsx > does NOT render the loading
+  skeleton when data is already present` -- pre-existing
+  failure carried from prior CHANGELOG entries.
+
 ## [1.11.284] - 2026-05-16 -- UI: Toolbar primitive (TODO 11.266)
 
 Component-scope-only addition. No daemon-side change and no `c4`

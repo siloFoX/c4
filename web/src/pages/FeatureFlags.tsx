@@ -1,6 +1,6 @@
 import { RotateCcw, Sparkles } from 'lucide-react';
 import PageFrame from './PageFrame';
-import { AlertBanner, Button, Panel, RichText, Switch } from '../components/ui';
+import { AlertBanner, Button, CopyButton, Panel, RichText, Switch } from '../components/ui';
 import HelpTip from '../components/HelpTip';
 import { t, useLocale } from '../lib/i18n';
 import {
@@ -103,8 +103,21 @@ export default function FeatureFlags() {
                         data-testid={`feature-flag-description-${flag.key}`}
                       />
                     </div>
-                    <p className="mt-1 font-mono text-[11px] text-muted-foreground/80">
-                      key={flag.key} default={String(flag.defaultValue)}
+                    {/* (v1.11.285, TODO 11.267) The flag key
+                        IS the localStorage / config rule id;
+                        copy button lets operators paste it into
+                        an `setFlag('<key>', ...)` console line
+                        or a config patch without retyping. */}
+                    <p className="mt-1 flex items-center gap-1 font-mono text-[11px] text-muted-foreground/80">
+                      <span>
+                        key={flag.key} default={String(flag.defaultValue)}
+                      </span>
+                      <CopyButton
+                        value={flag.key}
+                        label={`feature-flag key ${flag.key}`}
+                        size="sm"
+                        data-testid={`feature-flag-key-copy-${flag.key}`}
+                      />
                     </p>
                   </div>
                   <div className="shrink-0">

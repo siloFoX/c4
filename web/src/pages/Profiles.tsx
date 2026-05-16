@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, EmptyState, ExportButton, FieldGroup, HeroCard, ListItem, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, HeroCard, ListItem, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -138,6 +138,23 @@ export default function Profiles() {
                     title={
                       <span className="flex flex-wrap items-center gap-2">
                         <span className={cn(text.mono, 'text-foreground')}>{p.name}</span>
+                        {/* (v1.11.285, TODO 11.267) Profile name
+                            doubles as the `--profile <name>` CLI
+                            argument; copy button lets operators
+                            paste it into their `c4 task ...`
+                            invocation without retyping. */}
+                        {/* aria-label deliberately omits the
+                            profile name itself so existing
+                            `getByRole('button', { name: /web/ })`
+                            test selectors continue to resolve
+                            to the row toggle, not this nested
+                            copy chip. */}
+                        <CopyButton
+                          value={p.name}
+                          label="id"
+                          size="sm"
+                          data-testid={`profiles-name-copy-${p.name}`}
+                        />
                         {p.source && <Badge variant="outline">{p.source}</Badge>}
                         <Badge variant="outline">{allow.length} allow</Badge>
                         <Badge variant="outline">{deny.length} deny</Badge>

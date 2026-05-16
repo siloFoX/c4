@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, ColumnPicker, ExportButton, Pagination, Panel, ProgressBar, SegmentedControl, Sparkline, Switch, Table, Tooltip } from '../components/ui';
+import { Badge, Button, ColumnPicker, CopyButton, ExportButton, Pagination, Panel, ProgressBar, SegmentedControl, Sparkline, Switch, Table, Tooltip } from '../components/ui';
 import type { TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
@@ -329,7 +329,27 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
       key: 'task',
       label: t('tokenUsagePage.tableHeader.task'),
       className: 'max-w-xs truncate text-muted-foreground',
-      render: (e) => e.task || '',
+      /* (v1.11.285, TODO 11.267) Per-task cell now carries a
+         CopyButton next to the task identifier so operators can
+         paste it into a `c4 history` lookup or a bug report
+         without selecting the truncated cell. The copy button
+         is icon-only at size="sm" so it does not push the cell
+         text out of the row's vertical rhythm. */
+      render: (e) => {
+        const taskValue = e.task || '';
+        if (!taskValue) return '';
+        return (
+          <span className="inline-flex items-center gap-1">
+            <span className="truncate">{taskValue}</span>
+            <CopyButton
+              value={taskValue}
+              label="task"
+              size="sm"
+              data-testid={`token-usage-task-copy-${e.worker ?? e.name ?? 'row'}`}
+            />
+          </span>
+        );
+      },
     },
     {
       key: 'total',
