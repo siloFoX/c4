@@ -3,7 +3,7 @@ import { Info } from 'lucide-react';
 import ConversationView from './ConversationView';
 import SessionsComparisonCard from './SessionsComparisonCard';
 import SessionsEmptyPanel from './SessionsEmptyPanel';
-import { Button, DetailPanel } from './ui';
+import { Button, DataList, DetailPanel } from './ui';
 import { useLocale } from '../lib/i18n';
 import type { Selection } from './SessionsView';
 
@@ -140,20 +140,27 @@ function SessionInfoPanel({
         </div>
       }
     >
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
-        <dt className="text-muted-foreground">Kind</dt>
-        <dd className="font-mono text-foreground">{selection.kind}</dd>
-        <dt className="text-muted-foreground">
-          {selection.kind === 'session' ? 'Session id' : 'Worker name'}
-        </dt>
-        <dd className="font-mono text-foreground">
-          {selection.kind === 'session' ? selection.id : selection.name}
-        </dd>
-        <dt className="text-muted-foreground">Live</dt>
-        <dd className="font-mono text-foreground">
-          {selection.kind === 'attached' ? 'yes' : 'no'}
-        </dd>
-      </dl>
+      {/* (v1.11.277, TODO 11.259) Raw <dl> migrated to DataList
+          (density-aware). Only one group here so the scrubber +
+          sticky headers stay off; the win is consistent rhythm +
+          copy buttons on the identity rows. */}
+      <DataList
+        data-testid="sessions-right-info-list"
+        items={[
+          { id: 'kind', label: 'Kind', value: selection.kind },
+          {
+            id: 'idOrName',
+            label: selection.kind === 'session' ? 'Session id' : 'Worker name',
+            value: selection.kind === 'session' ? selection.id : selection.name,
+            copyValue: selection.kind === 'session' ? selection.id : selection.name,
+          },
+          {
+            id: 'live',
+            label: 'Live',
+            value: selection.kind === 'attached' ? 'yes' : 'no',
+          },
+        ]}
+      />
     </DetailPanel>
   );
 }
