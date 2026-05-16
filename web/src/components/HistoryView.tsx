@@ -25,6 +25,7 @@ import {
   ExportButton,
   Input,
   Select,
+  Skeleton,
   StickyFilterBar,
   Tooltip,
   UndoToast,
@@ -500,7 +501,16 @@ export default function HistoryView() {
             </CardHeader>
             <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 pt-0 md:p-5 md:pt-0">
               {loadingScribe ? (
-                <div className="text-sm text-muted-foreground">{t('common.loading')}</div>
+                // (v1.11.273, TODO 11.255) Replaces the plain
+                // "Loading..." text with a Skeleton.List that
+                // mocks the scribe-context line layout (no
+                // avatar, 2 lines per row). The shimmer respects
+                // useReducedMotion via the shared loading-motion
+                // contract.
+                <Skeleton.List
+                  rows={4}
+                  data-testid="history-scribe-loading"
+                />
               ) : !scribe ? (
                 <div className="text-sm text-muted-foreground">
                   {t('history.scribe.openHint')}

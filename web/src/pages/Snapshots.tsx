@@ -205,16 +205,15 @@ export default function Snapshots() {
       ) : null}
 
       {loading && !items ? (
-        <div
-          role="status"
+        // (v1.11.273, TODO 11.255) Replaces the inline
+        // Array.from({length:4}).map(<Skeleton variant="row" />)
+        // with the new Skeleton.List primitive. Rows mirror the
+        // snapshot table layout (avatar-less, 2 lines per row).
+        <Skeleton.List
+          rows={4}
           aria-live="polite"
           data-testid="snapshots-loading"
-          className="flex flex-col gap-2"
-        >
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} variant="row" />
-          ))}
-        </div>
+        />
       ) : null}
 
       {!loading && error ? (

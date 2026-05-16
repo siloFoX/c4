@@ -132,9 +132,16 @@ describe('<Templates>', () => {
   });
 
   it('renders the loading skeleton when loading with no items yet', () => {
+    // (v1.11.273, TODO 11.255) Loading state migrated from
+    // LoadingSkeleton (role=status, aria-live=polite) to
+    // Skeleton.List (role=status, aria-hidden=true -- consistent
+    // with the rest of the Skeleton family). aria-hidden hides
+    // the node from getByRole's accessibility-tree query, so
+    // the assertion now goes through the data-testid that the
+    // page wires onto the loading wrapper.
     hookState = { ...hookState, loading: true, items: [] };
     render(<Templates />);
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByTestId('templates-loading')).toBeInTheDocument();
   });
 
   it('renders the empty-templates hint when not loading and items empty', () => {

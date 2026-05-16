@@ -292,10 +292,17 @@ describe('<HistoryView>', () => {
     expect(screen.getByText('Scribe session-context.md')).toBeInTheDocument();
   });
 
-  it('renders the scribe loading message while the scribe is loading', () => {
+  it('renders the scribe loading skeleton while the scribe is loading', () => {
+    // (v1.11.273, TODO 11.255) Migrated the plain "Loading..."
+    // text to a Skeleton.List so the placeholder mocks the
+    // scribe-context line layout while loading. The
+    // data-testid="history-scribe-loading" hook replaces the
+    // prior getByText('Loading...') assertion.
     scribeState = { ...scribeState, showScribe: true, loadingScribe: true };
     render(<HistoryView />);
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('history-scribe-loading'),
+    ).toBeInTheDocument();
   });
 
   it('renders the scribe open-hint when the scribe is open but no payload yet', () => {

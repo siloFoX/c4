@@ -557,12 +557,98 @@ function SkeletonTable({
   );
 }
 
+// (v1.11.273, TODO 11.255) Skeleton.List -- stacked row shapes
+// for list / row-style loading states. Each row optionally
+// renders an avatar circle on the left next to two text lines.
+// Defaults: 5 rows, no avatar, 2 lines per row. Spacing between
+// rows tracks the `gap` prop (Tailwind gap-* scale, default 3).
+// Shimmer routes through the same loading-motion contract so the
+// pulse rhythm matches the rest of the Skeleton family and stops
+// entirely when `prefers-reduced-motion: reduce` is active.
+
+export interface SkeletonListProps extends HTMLAttributes<HTMLDivElement> {
+  rows?: number;
+  showAvatar?: boolean;
+  // Lines of "text" per row beside / below the avatar. Defaults
+  // to 2; clamped to >= 1.
+  linesPerRow?: number;
+  // Tailwind gap scale value between rows. Defaults to 3 (gap-3).
+  gap?: number;
+  className?: string;
+}
+
+function SkeletonList({
+  rows = 5,
+  showAvatar = false,
+  linesPerRow = 2,
+  gap = 3,
+  className,
+  ...rest
+}: SkeletonListProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
+  const safeRows = Math.max(0, Math.floor(rows));
+  const safeLines = Math.max(1, Math.floor(linesPerRow));
+  const gapClass = `gap-${gap}`;
+  return (
+    <div
+      role="status"
+      aria-hidden="true"
+      data-skeleton-sub="list"
+      data-skeleton-rows={safeRows}
+      data-motion-reduced={reduced ? '' : undefined}
+      className={cn('flex flex-col', gapClass, className)}
+      {...rest}
+    >
+      {Array.from({ length: safeRows }).map((_, r) => (
+        <div
+          key={r}
+          data-skeleton-list-row={r}
+          className="flex items-center gap-3"
+        >
+          {showAvatar ? (
+            <div
+              data-skeleton-list-avatar
+              className={cn(
+                animationClass,
+                SHAPE_BASE,
+                'h-8 w-8 shrink-0 rounded-full',
+              )}
+              style={animationStyle}
+            />
+          ) : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            {Array.from({ length: safeLines }).map((_, l) => (
+              <div
+                key={l}
+                data-skeleton-line={l}
+                className={cn(
+                  animationClass,
+                  SHAPE_BASE,
+                  'h-3 rounded',
+                  // First line full-width, subsequent lines
+                  // taper for a more natural mock paragraph
+                  // shape. The last line on each row is shortest.
+                  l === 0 ? 'w-full' : l === safeLines - 1 ? 'w-3/5' : 'w-4/5',
+                )}
+                style={animationStyle}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 SkeletonText.displayName = 'Skeleton.Text';
 SkeletonAvatar.displayName = 'Skeleton.Avatar';
 SkeletonCard.displayName = 'Skeleton.Card';
 SkeletonTable.displayName = 'Skeleton.Table';
+SkeletonList.displayName = 'Skeleton.List';
 
-export { SkeletonText, SkeletonAvatar, SkeletonCard, SkeletonTable };
+export { SkeletonText, SkeletonAvatar, SkeletonCard, SkeletonTable, SkeletonList };
 
 // Declaration-merge the sub-components onto the Skeleton function
 // value so `Skeleton.Text`, `Skeleton.Avatar`, etc. are visible to
@@ -573,4 +659,5 @@ export namespace Skeleton {
   export const Avatar = SkeletonAvatar;
   export const Card = SkeletonCard;
   export const Table = SkeletonTable;
+  export const List = SkeletonList;
 }
