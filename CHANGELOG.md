@@ -4,6 +4,89 @@
 
 (no entries -- next release window)
 
+## [1.11.283] - 2026-05-16 -- UI: RichText primitive (TODO 11.265)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/rich-text.tsx` -- read-only
+  Markdown-lite renderer for operator-authored notes. Built as
+  a safer cousin of the existing `lib/markdown.tsx::renderMarkdown()`:
+  - Block grammar: paragraphs (blank-line separated) and
+    bullet / numbered lists ONLY. Headings, fenced code blocks,
+    blockquotes, and horizontal rules are NOT recognised --
+    operator notes should not synthesise page-level structure.
+  - Inline grammar: `**bold**`, `*italic*`, `` `code` ``,
+    `[label](url)`. Nothing else.
+  - NO HTML pass-through: `<`, `>`, `&` render as literal text
+    through React's default escaping. There is no
+    `dangerouslySetInnerHTML` escape hatch anywhere in the
+    primitive.
+  - URL safety: only `http:` / `https:` / `mailto:` schemes
+    are honoured for links. In-page hash anchors (`#section`)
+    and root-relative paths (`/foo`) pass through. Everything
+    else (`javascript:`, `data:`, `vbscript:`, `file:`, ...)
+    renders as a plain `<span data-rich-text-unsafe-link="true">`
+    with the label preserved but the dangerous URL dropped.
+  - Empty / null / whitespace-only content renders nothing
+    (wrapper div omitted entirely so layout collapses).
+- Exported helpers: `renderRichInline(text)` for callers that
+  need the inline parse without the block wrapper (tooltip
+  bodies, badge labels), `isRichTextSafeUrl(url)` for the URL
+  acceptance contract.
+- `data-section="rich-text"` on the wrapper div; per-block
+  `data-rich-text-block="p|ul|ol"` so adoption tests can
+  address structure without text matching.
+- 38 vitest cases cover: URL acceptance (http / https /
+  mailto / hash / root-relative all allowed; javascript / data
+  / vbscript / file / empty / case-insensitive scheme rejected);
+  null / undefined / empty / whitespace-only content;
+  paragraph + multi-paragraph + bullet + numbered + interleaved
+  block rendering; bold + italic + code + link inline grammar;
+  mailto link without `target=_blank`; unsafe link drops the
+  anchor but preserves the label via the flagged span; no HTML
+  pass-through; no headings / fenced code / blockquotes; inline
+  combination; className merge; HTML attr forwarding; ref
+  forwarding; `renderRichInline` helper.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Notifications.tsx` -- per-notification body
+  (`description`) now flows through `<RichText>` so feed
+  entries can carry markdown-lite formatting (bullets,
+  emphasis, code snippets, ADR links) without leaking through
+  to HTML. Per-row `data-testid="notification-body-<id>"`.
+- `web/src/pages/Templates.tsx` -- template `description` rows
+  in the per-template `ListItem` now render through
+  `<RichText>` (when present). The operator can write a
+  template description with `**bold**` for the headline,
+  `*italic*` for context, `` `code` `` for env var names, and
+  `[link](https://...)` for ADR or runbook references --
+  rendered safely under the URL allowlist. Per-row
+  `data-testid="templates-row-description-<name>"`.
+- `web/src/pages/FeatureFlags.tsx` -- each flag's `description`
+  paragraph migrated from a raw `<p>{flag.description}</p>` to
+  a `<RichText>` wrapper. Many flags use markdown-lite syntax
+  in their description (` `code` ` for env var names, `**bold**`
+  for warning prefixes, `[link](url)` for ADR references) and
+  rendering them via the safe primitive preserves the
+  formatting while enforcing the URL allowlist + no-HTML
+  contract. Per-row `data-testid="feature-flag-description-<key>"`.
+
+### Drive-by
+
+- `web/src/pages/FeatureFlags.tsx` -- removed unused `Alert`
+  import (referenced only in a comment after the v1.11.275
+  AlertBanner migration).
+
+### Pre-existing test failures (out of scope)
+
+- `web/src/pages/Templates.test.tsx > renders all rows in a
+  single <ul> wrapper` -- pre-existing failure carried over
+  from prior CHANGELOG entries.
+
 ## [1.11.282] - 2026-05-16 -- UI: Pagination enhancements (TODO 11.264)
 
 Component-scope-only enhancement of the existing Pagination
