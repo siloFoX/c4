@@ -4,6 +4,101 @@
 
 (no entries -- next release window)
 
+## [1.11.280] - 2026-05-16 -- UI: ListActionMenu primitive (TODO 11.262)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/list-action-menu.tsx` -- canonical
+  "row overflow" affordance: a three-dot vertical-ellipsis
+  `IconButton` (lucide `MoreVertical`) that opens a
+  `DropdownMenu` of action rows. Built as a thin composition
+  over the existing `DropdownMenu` primitive so it inherits the
+  full keyboard contract (ArrowUp/Down navigation, type-ahead,
+  Escape close, Enter / Space select), the WAI-ARIA
+  `role="menu"` + `aria-expanded` plumbing, and the
+  focus-return-to-trigger behaviour. The thin wrapper trims the
+  cost-per-adoption from "wire IconButton + MoreVertical icon +
+  DropdownMenu + items map every time" to a one-prop call:
+  `<ListActionMenu actions={...} />`.
+- Action shape: `{ id, label, icon?, hint?, variant?, disabled?,
+  onSelect, onPrefetch? }`. The `variant: 'danger'` token
+  forwards through DropdownMenu so destructive rows pick up the
+  red palette automatically.
+- Sizes `sm` (h-6 trigger / h-3 glyph) and `md` (h-7 / h-3.5).
+  The trigger button is its own `<button>` so the component is
+  safe to embed inside another button via positioning (e.g. the
+  absolute-top-right pattern used in HistoryView).
+- `triggerAriaLabel?: string` -- override the trigger's
+  accessible name independently from `ariaLabel` (which names
+  the menu surface). Defaults to "Row actions".
+- `triggerTestId?: string` -- per-row e2e selector so adopters
+  can address a specific row's menu by ID.
+- `data-section="list-action-menu"` on the root + `data-section
+  ="list-action-menu-trigger"` on the trigger button for e2e
+  selectors. `data-size` mirrors the size prop on both.
+- Exported pure helper `toDropdownItem(action)` adapts the
+  public `ListActionMenuAction` shape to `DropdownMenuItem`,
+  preserving the `exactOptionalPropertyTypes: true` contract
+  (optional fields are spread conditionally rather than passed
+  as `undefined`).
+- 21 vitest cases cover: pure adapter (required fields,
+  optional-field forwarding, omitted-field behaviour), trigger
+  default aria-label, ariaLabel override, triggerAriaLabel
+  independent override, root data-section + data-size, trigger
+  data-section, size scale (sm + default md), triggerTestId
+  forwarding, open + render all action rows, fire onSelect,
+  destructive variant pass-through, Escape close + focus
+  return, ArrowDown focus first row, Enter on focused row,
+  disabled action does NOT fire onSelect, className merge,
+  placement="top" wiring, empty actions array.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Templates.tsx` -- per-row Edit / Remove buttons
+  in the `ListItem` trailing slot consolidated into a
+  `ListActionMenu`. Frees the row width for the Chip strip and
+  gives the menu room to grow (Duplicate / Archive land once
+  the daemon endpoints exist). `triggerTestId=
+  "templates-row-actions-<name>"`.
+- `web/src/components/SessionsListSection.tsx` -- trailing slot
+  now adds a `ListActionMenu` next to the StatusPill +
+  turn-count Badge. The existing right-click `ContextMenu` on
+  the row is kept as-is for power users; the new 3-dot menu
+  surfaces the same Open / Select / Rename / Delete actions for
+  mouse-only and touch operators. `triggerTestId=
+  "sessions-row-actions-<sessionId>"`.
+- `web/src/components/HistoryView.tsx` -- per-row sidebar menu
+  pinned at the top-right of each worker row via
+  `className="absolute right-1 top-1 z-10"`. The trigger sits
+  OUTSIDE the row button so the DOM stays valid (no nested
+  buttons); the row click + bulk-toggle behaviour stays
+  untouched. Aria-label deliberately keeps the worker name OUT
+  of the trigger's accessible name (uses a generic "Worker row
+  actions" string) so existing `getByRole('button', { name:
+  /worker-name/ })` test selectors continue to resolve to the
+  row button alone, not the menu trigger.
+
+### Test updates
+
+- `web/src/pages/Templates.test.tsx` -- three cases migrated
+  from `getByRole('button', { name: 'Edit' | 'Remove' })` to
+  open-menu-then-click via `getByTestId('templates-row-
+  actions-<name>')` + `getByText('Edit' | 'Remove')`. The
+  renamed test reads as the new contract:
+  `renders the per-row ListActionMenu with Edit + Remove
+  actions inside`.
+
+### Pre-existing test failures (out of scope)
+
+- `web/src/components/SessionsListSection.test.tsx` -- 12 cases
+  fail on baseline (confirmed via stash test in prior CHANGELOG
+  entries). Unrelated to this change.
+- `web/src/pages/Templates.test.tsx > renders all rows in a
+  single <ul> wrapper` -- pre-existing failure.
+
 ## [1.11.279] - 2026-05-16 -- UI: Sparkline primitive (TODO 11.261)
 
 Component-scope-only addition. No daemon-side change and no `c4`

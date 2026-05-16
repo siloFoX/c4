@@ -5,6 +5,7 @@ import {
   BulkActionToolbar,
   ContextMenu,
   EmptyState,
+  ListActionMenu,
   ListItem,
   Skeleton,
   StatusDot,
@@ -234,12 +235,16 @@ export default function SessionsListSection({
                       }
                       trailing={
                         /* (v1.11.278, TODO 11.260) Trailing
-                           "status column" now combines the
-                           StatusPill freshness chip with the
-                           turn-count Badge. Pill uses size="sm"
-                           and an icon-only render (label suppressed
-                           via aria-label) to keep the trailing
-                           slot compact. */
+                           "status column" combines the StatusPill
+                           freshness chip with the turn-count
+                           Badge.
+                           (v1.11.280, TODO 11.262) Now augmented
+                           with a ListActionMenu (3-dot ellipsis)
+                           that surfaces the same Open / Select /
+                           Rename / Delete actions as the existing
+                           right-click ContextMenu, so mouse-only
+                           and touch operators do not have to
+                           discover the right-click affordance. */
                         <span
                           className="inline-flex items-center gap-1"
                           data-testid={`sessions-row-status-${session.sessionId}`}
@@ -252,6 +257,34 @@ export default function SessionsListSection({
                             aria-label={`Session status: ${pillStatus}`}
                           />
                           <Badge variant="secondary">{session.turnCount}</Badge>
+                          <ListActionMenu
+                            size="sm"
+                            ariaLabel={`Actions for session ${shortId(session.sessionId)}`}
+                            triggerTestId={`sessions-row-actions-${session.sessionId}`}
+                            actions={[
+                              {
+                                id: 'open',
+                                label: 'Open',
+                                onSelect: () => onSelect(session.sessionId),
+                              },
+                              {
+                                id: 'select',
+                                label: isBulkSelected ? 'Deselect' : 'Select',
+                                onSelect: () => toggleSelected(session.sessionId),
+                              },
+                              {
+                                id: 'rename',
+                                label: 'Rename',
+                                onSelect: () => {},
+                              },
+                              {
+                                id: 'delete',
+                                label: 'Delete',
+                                variant: 'danger',
+                                onSelect: () => {},
+                              },
+                            ]}
+                          />
                         </span>
                       }
                     />

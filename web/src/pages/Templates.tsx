@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FileInput, Label, ListItem, PageHeader, Pagination, Panel, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FileInput, Label, ListActionMenu, ListItem, PageHeader, Pagination, Panel, SearchBar, Skeleton, TagInput, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -136,14 +136,39 @@ export default function Templates() {
                   }
                   description={tpl.description || undefined}
                   trailing={
-                    <>
-                      <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                        {t('common.edit')}
-                      </Button>
-                      <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
-                        {t('common.remove')}
-                      </Button>
-                    </>
+                    /* (v1.11.280, TODO 11.262) Per-row Edit / Remove
+                       buttons consolidated into the canonical
+                       ListActionMenu (3-dot ellipsis). Frees the
+                       row width for the Chip strip and gives the
+                       menu room to grow (Duplicate / Archive land
+                       once the daemon endpoints exist). */
+                    <ListActionMenu
+                      ariaLabel={`Actions for template ${tpl.name}`}
+                      triggerTestId={`templates-row-actions-${tpl.name}`}
+                      actions={[
+                        {
+                          id: 'edit',
+                          label: t('common.edit'),
+                          onSelect: notImplemented,
+                        },
+                        {
+                          id: 'duplicate',
+                          label: 'Duplicate',
+                          onSelect: notImplemented,
+                        },
+                        {
+                          id: 'archive',
+                          label: 'Archive',
+                          onSelect: notImplemented,
+                        },
+                        {
+                          id: 'remove',
+                          label: t('common.remove'),
+                          variant: 'danger',
+                          onSelect: notImplemented,
+                        },
+                      ]}
+                    />
                   }
                 />
               </Panel>

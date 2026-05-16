@@ -23,6 +23,7 @@ import {
   EmptyState,
   ExportButton,
   Input,
+  ListActionMenu,
   SegmentedControl,
   Select,
   Skeleton,
@@ -679,7 +680,46 @@ function SidebarVirtualizedList({
                 key={w.name}
                 role="listitem"
                 style={{ height: SIDEBAR_ITEM_HEIGHT }}
+                className="relative"
               >
+                {/* (v1.11.280, TODO 11.262) ListActionMenu pinned
+                    to the top-right of the row. Sits OUTSIDE the
+                    row button so the trigger is its own button
+                    (no nested-button invalid HTML). z-index lifts
+                    it above the row hover state; an onMouseDown
+                    stopPropagation guard keeps the row click
+                    handler from firing when the operator opens
+                    the menu. */}
+                <ListActionMenu
+                  size="sm"
+                  ariaLabel="Worker row actions"
+                  triggerAriaLabel="Worker row actions"
+                  triggerTestId={`history-row-actions-${w.name}`}
+                  className="absolute right-1 top-1 z-10"
+                  actions={[
+                    {
+                      id: 'open',
+                      label: 'Open',
+                      onSelect: () => selectWorker(w.name),
+                    },
+                    {
+                      id: 'select',
+                      label: isBulkSelected ? 'Deselect' : 'Select',
+                      onSelect: () => toggleBulk(w.name),
+                    },
+                    {
+                      id: 'rename',
+                      label: 'Rename',
+                      onSelect: () => {},
+                    },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      variant: 'danger',
+                      onSelect: () => {},
+                    },
+                  ]}
+                />
                 <button
                   type="button"
                   onClick={(e) => {
@@ -695,7 +735,7 @@ function SidebarVirtualizedList({
                   }}
                   aria-pressed={isSelected}
                   className={cn(
-                    'w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm transition-colors',
+                    'w-full rounded-md border border-transparent px-2 py-1.5 pr-8 text-left text-sm transition-colors',
                     isSelected
                       ? 'bg-accent text-accent-foreground ring-1 ring-ring'
                       : 'bg-muted/30 text-foreground hover:bg-muted',
