@@ -3,11 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import {
   AvatarShape,
+  AvatarSkeleton,
+  ChipSkeleton,
   Circle,
   Rect,
   Skeleton,
   StatCardShape,
   TableRowShape,
+  TableRowSkeleton,
   TextLine,
 } from './skeleton';
 
@@ -557,5 +560,98 @@ describe('Skeleton.* compound sub-components', () => {
     const root = container.firstChild as HTMLElement;
     expect(root.className).toContain('custom-list');
     expect(root.className).toContain('flex-col');
+  });
+});
+
+// (v1.11.312, TODO 11.294) New ChipSkeleton variant + dispatch
+// aliases (AvatarSkeleton + TableRowSkeleton).
+
+describe('<ChipSkeleton>', () => {
+  it('renders a rounded-full pill with role=status + aria-hidden', () => {
+    const { container } = render(<ChipSkeleton />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.getAttribute('role')).toBe('status');
+    expect(node.getAttribute('aria-hidden')).toBe('true');
+    expect(node.className).toContain('rounded-full');
+  });
+
+  it('exposes data-section="chip-skeleton" + data-skeleton-shape="chip"', () => {
+    const { container } = render(<ChipSkeleton />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.getAttribute('data-section')).toBe('chip-skeleton');
+    expect(node.getAttribute('data-skeleton-shape')).toBe('chip');
+  });
+
+  it('default size="md" applies the matching height + width', () => {
+    const { container } = render(<ChipSkeleton />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.height).toBe('1.125rem');
+    expect(node.style.width).toBe('4rem');
+    expect(node.getAttribute('data-chip-skeleton-size')).toBe('md');
+  });
+
+  it('size="sm" applies the smaller height + width', () => {
+    const { container } = render(<ChipSkeleton size="sm" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.height).toBe('0.875rem');
+    expect(node.style.width).toBe('3rem');
+    expect(node.getAttribute('data-chip-skeleton-size')).toBe('sm');
+  });
+
+  it('size="lg" applies the larger height + width', () => {
+    const { container } = render(<ChipSkeleton size="lg" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.height).toBe('1.5rem');
+    expect(node.style.width).toBe('5rem');
+  });
+
+  it('custom width prop overrides the size default', () => {
+    const { container } = render(<ChipSkeleton width="8rem" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('8rem');
+  });
+
+  it('numeric width coerces to px', () => {
+    const { container } = render(<ChipSkeleton width={120} />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.style.width).toBe('120px');
+  });
+
+  it('merges caller className onto the surface', () => {
+    const { container } = render(
+      <ChipSkeleton className="my-chip" />,
+    );
+    expect((container.firstChild as HTMLElement).className).toContain(
+      'my-chip',
+    );
+  });
+
+  it('exposes a stable displayName for devtools', () => {
+    expect(ChipSkeleton.displayName).toBe('ChipSkeleton');
+  });
+});
+
+describe('AvatarSkeleton + TableRowSkeleton aliases', () => {
+  it('AvatarSkeleton is the same component as AvatarShape', () => {
+    expect(AvatarSkeleton).toBe(AvatarShape);
+  });
+
+  it('AvatarSkeleton renders the avatar shape', () => {
+    const { container } = render(<AvatarSkeleton size="md" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.getAttribute('data-skeleton-shape')).toBe('avatar');
+    expect(node.getAttribute('data-avatar-size')).toBe('md');
+  });
+
+  it('TableRowSkeleton is the same component as TableRowShape', () => {
+    expect(TableRowSkeleton).toBe(TableRowShape);
+  });
+
+  it('TableRowSkeleton renders the table-row shape', () => {
+    const { container } = render(<TableRowSkeleton columns={3} />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.getAttribute('data-skeleton-shape')).toBe('table-row');
+    const cells = node.querySelectorAll('[data-table-row-cell]');
+    expect(cells).toHaveLength(3);
   });
 });

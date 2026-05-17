@@ -557,6 +557,80 @@ function SkeletonTable({
   );
 }
 
+// (v1.11.312, TODO 11.294) ChipSkeleton -- pill placeholder for
+// chip / tag / badge rows during loading. Matches the visual
+// silhouette of the Chip primitive (small rounded-full bar) so
+// the loading state does not jump when the real content lands.
+export type ChipSkeletonSize = 'sm' | 'md' | 'lg';
+
+const CHIP_SKELETON_SIZE: Record<ChipSkeletonSize, {
+  height: string;
+  width: string;
+}> = {
+  sm: { height: '0.875rem', width: '3rem' },
+  md: { height: '1.125rem', width: '4rem' },
+  lg: { height: '1.5rem', width: '5rem' },
+};
+
+export interface ChipSkeletonProps extends HTMLAttributes<HTMLDivElement> {
+  size?: ChipSkeletonSize;
+  width?: string | number;
+  className?: string;
+}
+
+export function ChipSkeleton({
+  size = 'md',
+  width,
+  className,
+  style,
+  ...rest
+}: ChipSkeletonProps) {
+  const reduced = useReducedMotion();
+  const animationClass = getLoadingMotionClass('skeleton', reduced);
+  const animationStyle = getLoadingMotionStyle('skeleton', reduced);
+  const dim = CHIP_SKELETON_SIZE[size];
+  const resolvedWidth =
+    width === undefined
+      ? dim.width
+      : typeof width === 'number'
+        ? `${width}px`
+        : width;
+  return (
+    <div
+      role="status"
+      aria-hidden="true"
+      data-section="chip-skeleton"
+      data-skeleton-shape="chip"
+      data-chip-skeleton-size={size}
+      data-motion-reduced={reduced ? '' : undefined}
+      className={cn(
+        animationClass,
+        SHAPE_BASE,
+        'rounded-full',
+        className,
+      )}
+      style={{
+        ...animationStyle,
+        width: resolvedWidth,
+        height: dim.height,
+        ...style,
+      }}
+      {...rest}
+    />
+  );
+}
+
+ChipSkeleton.displayName = 'ChipSkeleton';
+
+// (v1.11.312, TODO 11.294) Convenience aliases. The dispatch
+// asked for `AvatarSkeleton` + `TableRowSkeleton` names; we
+// re-export the existing AvatarShape + TableRowShape under the
+// new names so callers can reach for the consistent
+// `*Skeleton` vocabulary without breaking the existing
+// AvatarShape / TableRowShape consumers.
+export const AvatarSkeleton = AvatarShape;
+export const TableRowSkeleton = TableRowShape;
+
 // (v1.11.273, TODO 11.255) Skeleton.List -- stacked row shapes
 // for list / row-style loading states. Each row optionally
 // renders an avatar circle on the left next to two text lines.
