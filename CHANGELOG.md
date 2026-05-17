@@ -4,6 +4,103 @@
 
 (no entries -- next release window)
 
+## [1.11.311] - 2026-05-17 -- UI: Card link mode + disabled state + data selectors (TODO 11.293)
+
+Component-scope-only enhancement of the existing `Card`
+primitive. The default surface (no href, no disabled, no
+interactive) is preserved byte-for-byte modulo the new
+data-section attribute set; the existing snapshot baselines
+were rebuilt to include the new attrs.
+
+### Added (Card primitive)
+
+- `href?: string` -- link mode. When set, the Card renders as
+  an `<a>` element (the canonical Linkable-Card pattern).
+  Interactive affordances (hover-lift, focus-visible ring,
+  active press) apply automatically; callers do not also need
+  to set `interactive`.
+- `target?` + `rel?` -- standard anchor attributes pass
+  through when `href` is set (useful for external link
+  cards: `target="_blank" rel="noreferrer"`).
+- `disabled?: boolean` -- when true:
+  - Drops the interactive hover-lift / active-press / cursor-
+    pointer affordances.
+  - Adds `cursor-not-allowed opacity-60` styling.
+  - Suppresses the `onClick` handler at the wrapper level so
+    disabled cards do not fire dispatched actions.
+  - Sets `aria-disabled="true"` for SR users.
+  - Link mode (href set) drops the href so the browser does
+    not navigate on click, AND sets the anchor's `tabIndex` to
+    `-1` so keyboard users skip it.
+- Hoisted shared `INTERACTIVE_CLASS` + new `DISABLED_CLASS`
+  constants so the link-mode anchor branch can reach for the
+  same affordance set as the div branch.
+- Data-attribute selectors:
+  - `data-section="card"` on every Card render.
+  - `data-interactive="true|false"` reflects the resolved
+    interactive state (link mode + interactive prop +
+    disabled = false).
+  - `data-disabled="true|false"` reflects the disabled prop.
+  - `data-mode="link"` only on the link-mode render path so
+    e2e + theming can target the anchor branch
+    specifically.
+
+### Adopted
+
+- Primitive enhancement only this commit. The dispatch sites
+  (Workers cards / Sessions cards / Templates cards) can now
+  thread `href` or `interactive + disabled` per-row without
+  reimplementing the surface vocabulary; the adoption is a
+  per-page follow-up so each Card row migration can land with
+  its own test refresh.
+
+### Deferred (dispatch follow-ups)
+
+- Workers cards (open detail): thread `href` or
+  `interactive + onClick` onto the per-row Card so the
+  primitive handles hover-lift + focus ring uniformly.
+- Sessions cards (attach): same story -- the row-level Card
+  can opt into the disabled state for already-attached
+  sessions.
+- Templates cards (open editor): the per-template card row
+  is the canonical adoption site once the editor surface
+  lands.
+
+### Tests
+
+- `web/src/components/ui/card.test.tsx` -- 10 new vitest
+  cases:
+  - Link mode renders `<a>` with the href attribute.
+  - Link-mode card is interactive by default (no explicit
+    interactive prop needed).
+  - Link mode + target + rel pass through onto the anchor.
+  - Link mode + disabled drops the href + sets
+    aria-disabled.
+  - Disabled drops the interactive affordances + adds
+    cursor-not-allowed + opacity-60.
+  - Disabled suppresses the onClick handler.
+  - Disabled sets aria-disabled on the wrapper.
+  - Disabled + non-interactive card still shows the
+    disabled chrome.
+  - data-section="card" present on every render.
+  - data-interactive reflects the prop.
+  All 40 (30 original + 10 new) green.
+- `web/src/components/ui/card.snapshot.test.tsx` --
+  rebuilt all 4 inline snapshots to include the new
+  `data-section` / `data-interactive` / `data-disabled`
+  attrs. The class strings on the bare Card branch are
+  preserved byte-for-byte. All 4 green.
+
+### Notes
+
+- exactOptionalPropertyTypes-safe conditional spreads for the
+  anchor's `target`, `rel`, `role`, `tabIndex` props so a
+  caller passing `undefined` does not violate the
+  AnchorHTMLAttributes shape.
+- The `INTERACTIVE_CLASS` constant is hoisted to module
+  scope (rather than declared inside `forwardRef`) so the
+  div + anchor render paths share one source of truth.
+
 ## [1.11.310] - 2026-05-17 -- UI: Spinner primitive (TODO 11.292)
 
 New `Spinner` primitive at `web/src/components/ui/spinner.tsx`.
