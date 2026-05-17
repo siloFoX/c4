@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, FileDrop, FormField, HeroCard, ListItem, NumberInput, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, FileDrop, FormField, HeroCard, ListItem, NumberInput, PageHeader, Panel, SearchBar, TagInput, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -247,11 +247,18 @@ export default function Profiles() {
 // profile. NumberInput primitive with min/max + $ prefix + tokens
 // unit. Stored as page-local state for now -- the daemon's profile
 // schema doesn't have a budget field yet.
+//
+// (v1.11.291, TODO 11.273) Adds a per-profile TagInput "Labels"
+// row. Operator-local until the daemon's profile schema accepts
+// labels. Replaces the prior ad-hoc taggability with the canonical
+// primitive (chip rendering + Backspace removal + comma/Enter add
+// + dedupe + 8-tag cap).
 function ProfileBudgetRow({ name }: { name: string }) {
   const [budget, setBudget] = useState<number | undefined>(undefined);
+  const [labels, setLabels] = useState<string[]>([]);
   return (
     <div
-      className="mt-3 flex flex-wrap items-end gap-3"
+      className="mt-3 flex flex-col gap-3"
       data-testid={`profiles-budget-${name}`}
     >
       <FormField
@@ -269,6 +276,20 @@ function ProfileBudgetRow({ name }: { name: string }) {
           ariaLabel={`Budget cap for profile ${name}`}
           placeholder="0"
           size="sm"
+        />
+      </FormField>
+      <FormField
+        label="Labels"
+        helperText="Free-form tags for filtering. Press Enter or comma to add; Backspace removes."
+      >
+        <TagInput
+          value={labels}
+          onChange={setLabels}
+          maxTags={8}
+          ariaLabel={`Labels for profile ${name}`}
+          placeholder="Add label..."
+          data-testid={`profiles-labels-${name}`}
+          normalize={(raw) => raw.trim().toLowerCase()}
         />
       </FormField>
     </div>

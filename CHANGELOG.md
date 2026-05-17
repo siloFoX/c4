@@ -4,6 +4,64 @@
 
 (no entries -- next release window)
 
+## [1.11.291] - 2026-05-17 -- UI: TagInput data-* + adoption (TODO 11.273)
+
+Component-scope-only enhancement of the existing TagInput
+primitive (chip-style multi-tag input + Backspace removal +
+comma/Enter to add + max tags already shipped in v1.10.x). No
+daemon-side change and no `c4` CLI surface change.
+
+### Added (TagInput primitive)
+
+- `data-section="tag-input"` on the wrapper root, plus
+  `data-tag-input-count=<n>` (current tag count) +
+  `data-tag-input-at-cap="true|false"` (whether `maxTags` is
+  reached) for e2e selector contracts.
+- Per-chip `data-tag-input-chip=<index>` +
+  `data-tag-input-tag=<value>` so adoption sites can address a
+  specific chip without scraping the text content.
+- The add-input is tagged `data-tag-input-add="true"` so e2e
+  can find the add slot vs the edit-mode swap input.
+- 5 new vitest cases (21/21 total) cover: data-section +
+  data-tag-input-count, data-tag-input-at-cap flip when
+  `maxTags` is hit, per-chip data-* matrix, add-input
+  data-tag-input-add presence, add-input disappearance when at
+  cap.
+- Drive-by: the `disabled ? undefined : () => removeAt(idx)`
+  spread on the Chip's `onDismiss` prop now uses the
+  conditional spread idiom
+  (`{...(disabled ? {} : { onDismiss: ... })}`) to satisfy the
+  `exactOptionalPropertyTypes: true` contract that the Chip
+  type declares.
+
+### Changed (2 adoption sites)
+
+- `web/src/pages/Profiles.tsx` -- per-profile expanded panel
+  now renders a `Labels` `<TagInput>` row beneath the
+  `Budget cap` `<NumberInput>` (both under the existing
+  `ProfileBudgetRow` helper). 8-tag cap, lowercase-trim
+  normalizer, operator-local state until the daemon's
+  profile schema accepts labels. Per-row
+  `data-testid="profiles-labels-<name>"`.
+- `web/src/pages/FeatureFlags.tsx` -- new "filter chips"
+  `<TagInput>` slot above the flag list. Each chip is an
+  OR-substring against the flag's `key` + `label`. 6-tag cap,
+  lowercase-trim normalizer. Empty chip list disables the
+  filter (the full FLAGS array renders).
+  `data-testid="feature-flags-filter-chips"`. The flag list
+  render now iterates over the filtered `visibleFlags` array
+  instead of the raw `FLAGS` constant.
+
+### Test note
+
+- The 3rd dispatch-listed site ("Settings filter chips")
+  does not have a natural surface today (Settings is a Tabs
+  layout with toggle-only panels). FeatureFlags was
+  substituted as the third real adoption site -- the
+  FeatureFlags page is reachable from
+  Settings -> Feature Flags tab, so the chip-filter UX still
+  lives "under Settings" from the operator's mental model.
+
 ## [1.11.290] - 2026-05-17 -- UI: Accordion primitive (TODO 11.272)
 
 Component-scope-only addition. No daemon-side change and no `c4`
