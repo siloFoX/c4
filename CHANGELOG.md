@@ -4,6 +4,117 @@
 
 (no entries -- next release window)
 
+## [1.11.310] - 2026-05-17 -- UI: Spinner primitive (TODO 11.292)
+
+New `Spinner` primitive at `web/src/components/ui/spinner.tsx`.
+Component-scope only, no daemon or CLI surface change. Fresh
+companion to the existing `web/src/components/Spinner.tsx`
+(which keeps driving the loading-motion-integration suite).
+
+### Added
+
+- `web/src/components/ui/spinner.tsx` -- CSS-only animated
+  ring loading indicator built on a Tailwind `animate-spin`
+  bordered circle. Inherits the wrapper's `color: currentColor`
+  for tone propagation. Props:
+  - `size: 'xs' | 'sm' | 'md' | 'lg'` (default `'md'`).
+    Footprints: 12px / 16px / 20px / 24px. Border width
+    scales 1.5px -> 2px -> 2px -> 3px.
+  - `tone: 'neutral' | 'accent'` (default `'neutral'`).
+    Neutral uses `muted-foreground/40` ring + label.
+    Accent uses `primary` ring + label.
+  - `label?: string` (default `"Loading"`) -- aria-label on
+    the wrapper. Also rendered as the visible text fallback
+    under reduced motion or `textOnly`.
+  - `textOnly?: boolean` -- hides the ring AND surfaces the
+    label as the visible affordance. Use for fully-text
+    loaders ("Saving...").
+  Accessibility:
+  - `role="status"` + `aria-live="polite"` on the wrapper
+    so screen readers announce the loading state without
+    the caller wrapping in a separate live region.
+  - Spin animation is gated by `useReducedMotion()`. When
+    reduced-motion is set, the ring drops AND the surface
+    falls back to the text label so motion-sensitive
+    operators see "Loading..." instead of a static ring
+    that could be mistaken for a focus indicator.
+  - `aria-hidden` on the inner ring so SR users hear only
+    the wrapper's `aria-label` (no doubled announcement).
+- Data-attribute selectors:
+  - `data-section="spinner"` on the wrapper.
+  - `data-section="spinner-ring"` on the animated ring.
+  - `data-section="spinner-text"` on the text fallback.
+  - `data-size="xs|sm|md|lg"` on the wrapper.
+  - `data-tone="neutral|accent"` on the wrapper.
+  - `data-reduced-motion="true|false"` on the wrapper.
+  - `data-render="ring|text"` so e2e can target the active
+    render mode without inspecting the children.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Adopted
+
+- Primitive only this commit. The dispatch's adoption sites
+  (Button loading state, page transition loader, modal save
+  in-progress) currently use the existing legacy
+  `components/Spinner.tsx` OR the `Loader2` lucide glyph
+  directly. Migrating them to the new primitive is a
+  per-site follow-up so the test surfaces can land with
+  their own refresh.
+
+### Deferred (dispatch follow-ups)
+
+- Button loading state: the Button primitive carries its
+  own ad-hoc `<Loader2 className="animate-spin">` mount. A
+  follow-up will swap to `<Spinner size="sm" />` so the
+  reduced-motion text fallback flows through.
+- Page transition loader: the RouteProgressBar primitive
+  is a different visual (a thin top-of-page bar). A
+  separate evaluation is needed before any swap.
+- Modal save in-progress: the dispatch sites (Snapshots
+  delete, AttachModal busy state) currently render an
+  inline `Loader2` glyph. Adoption is straightforward
+  per-page once the buttons opt into the new primitive.
+
+### Tests
+
+- `web/src/components/ui/spinner.test.tsx` -- 20 vitest
+  cases:
+  - role=status + default aria-label "Loading".
+  - Default render is the ring with animate-spin.
+  - textOnly=true renders the text fallback.
+  - Reduced motion renders the text fallback.
+  - data-reduced-motion attr flips per matchMedia.
+  - data-render="ring|text" per active mode.
+  - Default size="md" applies h-5 w-5.
+  - size="xs" applies the matching xs text size.
+  - size="lg" applies h-6 w-6.
+  - data-size attr present.
+  - Default tone="neutral" applies muted-foreground/40 ring.
+  - tone="accent" applies primary ring.
+  - data-tone attr present.
+  - data-section="spinner" on the wrapper.
+  - Custom label flows to aria-label.
+  - className merge.
+  - Extra HTML attrs forwarded.
+  - Stable displayName.
+  - No throw on first render.
+  All 20 green.
+
+### Notes
+
+- The two Spinner components (`components/Spinner.tsx` and
+  `components/ui/spinner.tsx`) coexist on purpose. The
+  legacy module is tied into the cross-primitive
+  loading-motion-integration tests; the new module is the
+  canonical ui/ primitive for fresh adopters. A future
+  consolidation can route both behind one
+  `getLoadingMotionClass()` call without touching call
+  sites.
+- The ring uses a CSS border trick (top transparent, sides
+  toned) rotated via `animate-spin` rather than an SVG
+  arc, so the primitive ships with zero per-frame DOM and
+  the GPU can composite the animation off the main thread.
+
 ## [1.11.309] - 2026-05-17 -- UI: Textarea variant + char count + data selectors (TODO 11.291)
 
 Component-scope-only enhancement of the existing `Textarea`
