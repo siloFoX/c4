@@ -207,4 +207,160 @@ describe('<EmptyState>', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('empty-state-secondary-link')).toBeInTheDocument();
   });
+
+  // (v1.11.313, TODO 11.295) helpLink + data-section selectors +
+  // displayName.
+
+  describe('helpLink', () => {
+    it('renders a help link with text + relative href', () => {
+      render(
+        <EmptyState
+          title="Empty"
+          helpLink={{ label: 'Learn more', href: '/docs/workers' }}
+        />,
+      );
+      const link = screen.getByRole('link', { name: 'Learn more' });
+      expect(link).toBeInTheDocument();
+      expect(link.getAttribute('href')).toBe('/docs/workers');
+    });
+
+    it('external help link gets target=_blank + rel=noreferrer noopener', () => {
+      render(
+        <EmptyState
+          title="Empty"
+          helpLink={{
+            label: 'Docs',
+            href: 'https://example.com/docs',
+          }}
+        />,
+      );
+      const link = screen.getByRole('link', { name: 'Docs' });
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noreferrer noopener');
+    });
+
+    it('relative help link does not get target/rel external attrs', () => {
+      render(
+        <EmptyState
+          title="Empty"
+          helpLink={{ label: 'Docs', href: '/docs' }}
+        />,
+      );
+      const link = screen.getByRole('link', { name: 'Docs' });
+      expect(link.getAttribute('target')).toBeNull();
+      expect(link.getAttribute('rel')).toBeNull();
+    });
+
+    it('helpLink is hidden when omitted', () => {
+      render(<EmptyState title="Empty" />);
+      expect(
+        document.querySelector('[data-section="empty-state-help-link"]'),
+      ).toBeNull();
+    });
+
+    it('helpLink coexists with action + secondaryAction', () => {
+      render(
+        <EmptyState
+          title="Empty"
+          action={{ label: 'Spawn', onClick: () => {} }}
+          secondaryAction={{
+            label: 'Import',
+            onClick: () => {},
+          }}
+          helpLink={{ label: 'Docs', href: '/docs' }}
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Spawn' })).toBeInTheDocument();
+      expect(
+        screen.getByTestId('empty-state-secondary-link'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Docs' })).toBeInTheDocument();
+    });
+  });
+
+  describe('data-section selectors', () => {
+    it('exposes data-section="empty-state" on the root', () => {
+      render(<EmptyState title="Empty" />);
+      expect(
+        document.querySelector('[data-section="empty-state"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="empty-state-text" on the title/description wrapper', () => {
+      render(<EmptyState title="Empty" description="desc" />);
+      expect(
+        document.querySelector('[data-section="empty-state-text"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="empty-state-title" + "empty-state-description"', () => {
+      render(<EmptyState title="The title" description="A description." />);
+      const title = document.querySelector(
+        '[data-section="empty-state-title"]',
+      );
+      expect(title?.textContent).toBe('The title');
+      const desc = document.querySelector(
+        '[data-section="empty-state-description"]',
+      );
+      expect(desc?.textContent).toBe('A description.');
+    });
+
+    it('exposes data-section="empty-state-illustration" when icon/illustration is set', () => {
+      const { rerender } = render(<EmptyState title="t" />);
+      expect(
+        document.querySelector('[data-section="empty-state-illustration"]'),
+      ).toBeNull();
+      rerender(
+        <EmptyState
+          title="t"
+          icon={<span data-testid="my-icon">i</span>}
+        />,
+      );
+      expect(
+        document.querySelector('[data-section="empty-state-illustration"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="empty-state-action" on the primary action wrapper', () => {
+      render(
+        <EmptyState
+          title="t"
+          action={{ label: 'Go', onClick: () => {} }}
+        />,
+      );
+      expect(
+        document.querySelector('[data-section="empty-state-action"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="empty-state-secondary" on the secondary affordance', () => {
+      render(
+        <EmptyState
+          title="t"
+          secondaryAction={{ label: 's', onClick: () => {} }}
+        />,
+      );
+      expect(
+        document.querySelector('[data-section="empty-state-secondary"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="empty-state-help-link" on the help link', () => {
+      render(
+        <EmptyState
+          title="t"
+          helpLink={{ label: 'Docs', href: '/docs' }}
+        />,
+      );
+      expect(
+        document.querySelector('[data-section="empty-state-help-link"]'),
+      ).not.toBeNull();
+    });
+  });
+
+  describe('displayName', () => {
+    it('exposes a stable displayName for devtools', () => {
+      expect(EmptyState.displayName).toBe('EmptyState');
+    });
+  });
 });
