@@ -4,6 +4,91 @@
 
 (no entries -- next release window)
 
+## [1.11.315] - 2026-05-17 -- UI: ScrollArea shadow indicators (TODO 11.297)
+
+Component-scope-only enhancement of the existing `ScrollArea`
+primitive. The default surface (no shadows) is preserved
+byte-for-byte modulo the new `data-section="scroll-area"`
+attribute; the new affordance opts in via `shadows`.
+
+### Added (ScrollArea primitive)
+
+- `shadows?: boolean` (default false) -- when true, wraps the
+  scrollable surface in a relative-positioned shadow-root
+  container with `<div aria-hidden>` overlays pinned to the
+  top and bottom edges. The overlays use a vertical gradient
+  (`bg-gradient-to-b from-background/80 to-transparent` for
+  the top edge, mirrored for the bottom) so the shadow fades
+  the upcoming content rather than masking it.
+- Scroll tracking: a scroll listener on the inner surface
+  plus a ResizeObserver on the same node (and a window
+  resize listener for browsers without RO) keep two boolean
+  flags fresh:
+  - `atTop` -- whether the surface is scrolled to the top.
+  - `atBottom` -- whether the bottom of the content is
+    visible.
+  Non-overflowing content keeps both flags `true` so the
+  overlay stays invisible.
+- Data-attribute selectors for e2e + theming:
+  - `data-section="scroll-area"` on the scrollable surface.
+  - `data-shadows="true|false"` on the scrollable surface.
+  - `data-at-top="true|false"` + `data-at-bottom="true|false"`
+    on BOTH the surface AND the shadow-root container so
+    callers can target the state either way.
+  - `data-section="scroll-area-shadow-root"` on the
+    relative-positioned wrapper.
+  - `data-section="scroll-area-shadow-top"` on the top
+    overlay.
+  - `data-section="scroll-area-shadow-bottom"` on the bottom
+    overlay.
+
+### Adopted
+
+- Primitive enhancement only this commit. The existing
+  ScrollArea call sites (Settings panels, HistoryView
+  sidebar, Workers panel, Templates list, Queue editor) all
+  inherit the new `data-section="scroll-area"` attribute
+  without any caller change. Threading `shadows` into the
+  dispatch sites (History sidebar, Workers panel, Templates
+  list) is a per-page follow-up.
+
+### Deferred (dispatch follow-ups)
+
+- History sidebar: thread `shadows` so the
+  scroll-through-long-history flow gets fade indicators.
+- Workers panel: same story.
+- Templates list: same story.
+
+### Tests
+
+- `web/src/components/ui/scroll-area.test.tsx` -- 8 new
+  vitest cases:
+  - shadows=false renders the same single div.
+  - shadows=true wraps the surface in a shadow-root
+    container.
+  - shadows=true mounts the top + bottom overlays.
+  - Non-overflowing content keeps data-at-top +
+    data-at-bottom both true.
+  - Top shadow has opacity-0 when at top (default state).
+  - Bottom shadow has opacity-0 when at bottom (default).
+  - Overlays carry pointer-events-none + aria-hidden.
+  - data-section="scroll-area" on the surface.
+  All 28 (20 original + 8 new) green.
+
+### Notes
+
+- The `useImperativeHandle` hop preserves the forwardRef
+  contract (callers passing a ref still get the scroller
+  HTMLDivElement) while letting the primitive's internal
+  effect read the same node.
+- ResizeObserver is feature-detected -- under jsdom the
+  observer is absent and the fallback is the window resize
+  listener; the surface still works (the initial recompute
+  on mount populates the flags correctly).
+- The overlays use `bg-gradient-to-b from-background/80
+  to-transparent` so the colour follows the active theme
+  token rather than hard-coding a hue.
+
 ## [1.11.314] - 2026-05-17 -- UI: ErrorState icon + reportLink + details (TODO 11.296)
 
 Component-scope-only enhancement of the existing `ErrorState`

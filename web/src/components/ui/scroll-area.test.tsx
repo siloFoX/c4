@@ -160,4 +160,98 @@ describe('<ScrollArea>', () => {
     expect(wrapper.className).toContain('c4-scroll-safe-area');
     expect(wrapper.className).toContain('my-scroll');
   });
+
+  // (v1.11.315, TODO 11.297) New shadow indicator prop +
+  // data-section selectors.
+
+  describe('shadows', () => {
+    it('shadows=false (default) renders the same single div', () => {
+      const { container } = render(<ScrollArea>body</ScrollArea>);
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper.classList.contains('c4-scroll')).toBe(true);
+      expect(wrapper.getAttribute('data-shadows')).toBe('false');
+      expect(
+        container.querySelector('[data-section="scroll-area-shadow-root"]'),
+      ).toBeNull();
+    });
+
+    it('shadows=true wraps the scrollable surface in a shadow-root container', () => {
+      const { container } = render(
+        <ScrollArea shadows>body</ScrollArea>,
+      );
+      expect(
+        container.querySelector('[data-section="scroll-area-shadow-root"]'),
+      ).not.toBeNull();
+      const scroller = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(scroller.getAttribute('data-shadows')).toBe('true');
+    });
+
+    it('shadows=true mounts the top + bottom shadow overlays', () => {
+      const { container } = render(
+        <ScrollArea shadows>body</ScrollArea>,
+      );
+      expect(
+        container.querySelector('[data-section="scroll-area-shadow-top"]'),
+      ).not.toBeNull();
+      expect(
+        container.querySelector('[data-section="scroll-area-shadow-bottom"]'),
+      ).not.toBeNull();
+    });
+
+    it('non-overflowing content keeps data-at-top + data-at-bottom both true', () => {
+      const { container } = render(
+        <ScrollArea shadows>body</ScrollArea>,
+      );
+      const root = container.querySelector(
+        '[data-section="scroll-area-shadow-root"]',
+      ) as HTMLElement;
+      // jsdom has scrollHeight == clientHeight by default for
+      // empty content; the surface is treated as non-overflowing
+      // so both flags read as true.
+      expect(root.getAttribute('data-at-top')).toBe('true');
+      expect(root.getAttribute('data-at-bottom')).toBe('true');
+    });
+
+    it('top shadow overlay is hidden via opacity-0 when at top', () => {
+      const { container } = render(
+        <ScrollArea shadows>body</ScrollArea>,
+      );
+      const topShadow = container.querySelector(
+        '[data-section="scroll-area-shadow-top"]',
+      ) as HTMLElement;
+      expect(topShadow.className).toContain('opacity-0');
+    });
+
+    it('bottom shadow overlay is hidden via opacity-0 when at bottom', () => {
+      const { container } = render(
+        <ScrollArea shadows>body</ScrollArea>,
+      );
+      const bottomShadow = container.querySelector(
+        '[data-section="scroll-area-shadow-bottom"]',
+      ) as HTMLElement;
+      expect(bottomShadow.className).toContain('opacity-0');
+    });
+
+    it('overlay shadows have pointer-events-none + aria-hidden', () => {
+      const { container } = render(
+        <ScrollArea shadows>body</ScrollArea>,
+      );
+      const topShadow = container.querySelector(
+        '[data-section="scroll-area-shadow-top"]',
+      ) as HTMLElement;
+      expect(topShadow.className).toContain('pointer-events-none');
+      expect(topShadow.getAttribute('aria-hidden')).toBe('true');
+    });
+  });
+
+  describe('data-section selector', () => {
+    it('exposes data-section="scroll-area" on the scrollable surface', () => {
+      const { container } = render(<ScrollArea>body</ScrollArea>);
+      expect(
+        container.querySelector('[data-section="scroll-area"]'),
+      ).not.toBeNull();
+    });
+  });
 });
