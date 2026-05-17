@@ -28,6 +28,7 @@ import {
   Skeleton,
   StatusPill,
   StickyFilterBar,
+  TimeAgo,
   Toolbar,
   Tooltip,
   UndoToast,
@@ -799,9 +800,29 @@ function SidebarVirtualizedList({
                     </div>
                   )}
                   {(visibleColSet.has('taskCount') || visibleColSet.has('lastTaskAt')) && (
-                    <div className="mt-0.5 text-[11px] text-muted-foreground">
-                      {visibleColSet.has('taskCount') && tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
-                      {visibleColSet.has('lastTaskAt') && w.lastTaskAt ? ` - ${w.lastTaskAt.slice(0, 10)}` : ''}
+                    /* (v1.11.289, TODO 11.271) lastTaskAt cell
+                       migrated from the prior ISO-date slice
+                       ("2026-05-17") to the TimeAgo primitive
+                       (variant="short") so the operator sees
+                       relative cadence ("2h ago", "3d ago") at
+                       a glance. Hover surfaces the absolute
+                       timestamp via the title attribute. */
+                    <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                      {visibleColSet.has('taskCount') && (
+                        <span>
+                          {tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
+                        </span>
+                      )}
+                      {visibleColSet.has('lastTaskAt') && w.lastTaskAt ? (
+                        <>
+                          <span>-</span>
+                          <TimeAgo
+                            value={w.lastTaskAt}
+                            variant="short"
+                            data-testid={`history-row-last-task-${w.name}`}
+                          />
+                        </>
+                      ) : null}
                     </div>
                   )}
                 </button>

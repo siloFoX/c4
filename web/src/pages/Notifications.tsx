@@ -17,6 +17,7 @@ import {
   EmptyState,
   Panel,
   RichText,
+  TimeAgo,
   Timeline,
   UndoToast,
 } from '../components/ui';
@@ -228,12 +229,24 @@ export default function Notifications() {
            descriptions can carry markdown-lite formatting
            (paragraphs, bullets, **bold**, `code`, [links]) -- with
            the safe URL allowlist enforced and no HTML
-           pass-through. */
+           pass-through.
+           (v1.11.289, TODO 11.271) Compact TimeAgo chip leads the
+           body so the operator sees lifecycle cadence ("2m ago",
+           "3h ago") next to the message even when the Timeline's
+           absolute timestamp row is scrolled off the top. */
         description: (
-          <RichText
-            content={n.description}
-            data-testid={`notification-body-${n.id}`}
-          />
+          <div className="flex flex-col gap-1">
+            <TimeAgo
+              value={n.timestamp}
+              variant="short"
+              className="text-[10px] uppercase tracking-wide text-muted-foreground"
+              data-testid={`notification-time-ago-${n.id}`}
+            />
+            <RichText
+              content={n.description}
+              data-testid={`notification-body-${n.id}`}
+            />
+          </div>
         ),
         icon: <IconForType type={n.type} />,
         tone: TONE_BY_TYPE[n.type],

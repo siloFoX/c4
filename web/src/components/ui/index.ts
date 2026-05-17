@@ -77,3 +77,4 @@ export * from './rich-text';
 export * from './toolbar';
 export * from './copy-button';
 export * from './file-drop';
+export * from './time-ago';

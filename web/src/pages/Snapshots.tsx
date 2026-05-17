@@ -12,6 +12,7 @@ import {
   Input,
   Pagination,
   Skeleton,
+  TimeAgo,
   Toolbar,
   Tooltip,
   UndoToast,
@@ -19,7 +20,6 @@ import {
 } from '../components/ui';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { useLocale } from '../lib/i18n';
-import RelativeTime from '../components/RelativeTime';
 import { cn } from '../lib/cn';
 import { text } from '../lib/typography';
 import { copyTextToClipboard } from '../hooks/use-copy';
@@ -299,7 +299,18 @@ export default function Snapshots() {
                       {s.id}
                     </td>
                     <td className={cn('px-3 py-2 align-top', text.caption, 'text-muted-foreground')}>
-                      {s.createdAt ? <RelativeTime value={s.createdAt} /> : '-'}
+                      {/* (v1.11.289, TODO 11.271) Migrated from the
+                          legacy RelativeTime component to the
+                          canonical ui/time-ago primitive. */}
+                      {s.createdAt ? (
+                        <TimeAgo
+                          value={s.createdAt}
+                          variant="short"
+                          data-testid={`snapshots-created-${s.id}`}
+                        />
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className={cn('px-3 py-2 align-top', text.caption, 'text-muted-foreground')}>
                       {formatBytes(totalBytes)}

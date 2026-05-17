@@ -4,6 +4,89 @@
 
 (no entries -- next release window)
 
+## [1.11.289] - 2026-05-17 -- UI: TimeAgo primitive (TODO 11.271)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/time-ago.tsx` -- canonical relative
+  timestamp primitive. Re-renders on a delta-driven tick so a
+  row that says "2m ago" updates to "3m ago" without a parent
+  re-render. SSR-safe: the initial render uses a deterministic
+  `now` (the prop value, or `new Date()` at mount); the effect
+  installs the wall-clock tick once the component is in the
+  browser.
+- Two variants:
+  - `'long'` (default): "2 minutes ago" / "in 3 hours" / "just
+    now" copy. Matches the legacy `components/RelativeTime`
+    output so call sites that migrate keep the same wording.
+  - `'short'`: "2m ago" / "in 3h" / "now" compact copy for
+    tight row cells where width matters (HistoryView lastTaskAt,
+    Notifications timestamp chip, Snapshots Created column).
+- Pure `formatTimeAgo(target, now, variant?)` helper exported so
+  callers can format without rendering (CSV exports,
+  copy-to-clipboard strings, sort-comparator labels).
+- Tick scheduler picks an interval matched to the delta size
+  (1s under a minute, 1min under an hour, 1h under a day, 1d
+  otherwise) so a row that updates every minute does not
+  spin a 1s timer.
+- When the caller pins an explicit `now` (test fixtures /
+  storybook freeze-frame) the wall-clock tick is suppressed.
+- ARIA: renders an HTML5 `<time>` element with `dateTime=<ISO>`
+  + `title=<locale string>` (suppressible via
+  `absoluteOnHover={false}`). Invalid input renders as
+  `<time data-time-ago="invalid">{rawValue}</time>` so the
+  operator's bad data is visible rather than swallowed.
+- `data-section="time-ago"` + `data-time-ago-variant` on the
+  root for e2e selectors.
+- 24 vitest cases cover: long + short variant text matrix
+  (just-now, seconds, singular + plural minutes / hours /
+  days / months / years, future "in N" forms), render +
+  variant prop, dateTime attr, title-on-hover toggle,
+  data-section + data-time-ago-variant attrs, invalid value
+  wrapper, number (epoch ms) + ISO string inputs, no-tick
+  when explicit `now` is supplied, className merge, HTML attr
+  forwarding, ref forwarding.
+- Live-tick re-render coverage is documented as a gap (lives
+  in the back-compat `RelativeTime` test file -- the same
+  scheduling logic). Skipping the brittle real-timer test
+  here.
+
+### Changed (4 adoption sites)
+
+- `web/src/components/HistoryView.tsx` -- `lastTaskAt` cell
+  migrated from the prior ISO-date slice (`"2026-05-17"`) to
+  a `<TimeAgo variant="short">` chip. Operator sees relative
+  cadence ("2h ago", "3d ago") at a glance; hover surfaces
+  the absolute timestamp via the title attribute. Per-row
+  `data-testid="history-row-last-task-<name>"`.
+- `web/src/pages/Notifications.tsx` -- per-notification
+  description now leads with a compact `<TimeAgo variant=
+  "short">` chip above the RichText body. The Timeline's
+  absolute timestamp row stays at the top of the timeline
+  group, but the chip travels with each notification's body
+  so the operator sees lifecycle cadence even when the
+  group header is scrolled off the top.
+- `web/src/pages/Health.tsx` -- "Started" row in the hero
+  metrics DataList migrated from `formatRelativeTime` (string
+  helper) to a live `<TimeAgo variant="short">` so the cell
+  stays accurate without depending on the Widget's outer
+  refresh callback. The unused `formatRelativeTime` import
+  was removed in the same change.
+- `web/src/pages/Snapshots.tsx` -- per-row "Created" column
+  migrated from the legacy `components/RelativeTime` wrapper
+  to the canonical `ui/time-ago` primitive (variant=short).
+  Per-row `data-testid="snapshots-created-<id>"`. The
+  `RelativeTime` import was dropped.
+
+### Pre-existing failures (out of scope)
+
+- `web/src/pages/Health.test.tsx > does NOT render the loading
+  skeleton when data is already present` -- pre-existing
+  failure carried over.
+
 ## [1.11.288] - 2026-05-17 -- UI: FileDrop primitive (TODO 11.270)
 
 Component-scope-only addition. No daemon-side change and no `c4`

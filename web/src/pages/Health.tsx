@@ -22,6 +22,7 @@ import {
   SegmentedControl,
   Sparkline,
   StatusDot,
+  TimeAgo,
   Tooltip,
   VisuallyHidden,
   Widget,
@@ -30,7 +31,7 @@ import type { DataListItem } from '../components/ui';
 import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
 import { StatCard } from '../components/ui/stat-card';
 import { cn } from '../lib/cn';
-import { formatDuration, formatNumber, formatRelativeTime } from '../lib/format';
+import { formatDuration, formatNumber } from '../lib/format';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { text } from '../lib/typography';
 import { useHealth } from '../lib/use-health';
@@ -449,7 +450,24 @@ export default function Health() {
                           </span>
                         ),
                       },
-                      { id: 'started', label: t('healthPage.stat.started'), value: formatRelativeTime(data.startedAt) },
+                      {
+                        id: 'started',
+                        label: t('healthPage.stat.started'),
+                        /* (v1.11.289, TODO 11.271) Daemon start-time
+                           cell uses the TimeAgo primitive so the
+                           "updated-at" row stays live (re-renders
+                           on a delta-driven tick) without depending
+                           on the Widget's outer refresh callback. */
+                        value: data.startedAt ? (
+                          <TimeAgo
+                            value={data.startedAt}
+                            variant="short"
+                            data-testid="health-started-time-ago"
+                          />
+                        ) : (
+                          '-'
+                        ),
+                      },
                     ],
                   },
                   {
