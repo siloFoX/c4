@@ -4,6 +4,98 @@
 
 (no entries -- next release window)
 
+## [1.11.317] - 2026-05-17 -- UI: AspectRatio primitive (TODO 11.299)
+
+New `AspectRatio` primitive at
+`web/src/components/ui/aspect-ratio.tsx`. Component-scope only,
+no daemon or CLI surface change.
+
+### Added
+
+- `web/src/components/ui/aspect-ratio.tsx` -- enforces a
+  width:height ratio on its wrapper div so embedded content
+  (images, charts, videos, iframes) reserves its own space
+  during load. Eliminates CLS (Cumulative Layout Shift) on
+  Health metric charts, Snapshots image previews, and any
+  future media surfaces. Props:
+  - `ratio?: AspectRatioPreset | number` -- preset string
+    (`'16:9'`, `'9:16'`, `'4:3'`, `'3:4'`, `'21:9'`, `'1:1'`)
+    or a custom numeric value (width / height). Default
+    `'16:9'`. Invalid numeric values (NaN, negative, zero)
+    fall back to the default.
+  - `children: ReactNode` -- single child positioned
+    absolutely inside the ratio box (the content fills the
+    container via `absolute inset-0`).
+  - All standard `HTMLDivElement` attrs pass through.
+- Uses the modern CSS `aspect-ratio` property (no padding-
+  bottom percentage trick) so the wrapper itself stays in
+  the document flow with its computed height derived from
+  the available width.
+- Data-attribute selectors:
+  - `data-section="aspect-ratio"` on the wrapper.
+  - `data-section="aspect-ratio-content"` on the absolutely-
+    positioned content slot.
+  - `data-ratio="<preset|number>"` on the wrapper carrying
+    the raw input so e2e tests can target a specific ratio
+    without parsing the inline style.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Adopted
+
+- Primitive only this commit. The dispatch's adoption sites
+  (chart containers in Health metrics + image previews in
+  Snapshots) inherit the new primitive. Threading
+  `<AspectRatio ratio="16:9">` into those mount points is a
+  per-page follow-up so each adoption can land with its own
+  test refresh.
+
+### Deferred (dispatch follow-ups)
+
+- Health metrics chart containers: wrap the per-chart
+  surface in `<AspectRatio ratio="16:9">` so the chart
+  library reads `width: 100%; height: 100%` against the
+  ratio box.
+- Snapshots image previews: wrap the per-snapshot preview
+  in `<AspectRatio ratio="4:3">` so the placeholder space
+  is reserved before the bitmap decodes.
+
+### Tests
+
+- `web/src/components/ui/aspect-ratio.test.tsx` -- 16
+  vitest cases:
+  - Renders wrapper div + relative-positioned content slot.
+  - Default ratio (no prop) renders `16:9`.
+  - Preset `"4:3"` renders `4 / 3` CSS value.
+  - Preset `"1:1"` renders `1 / 1` CSS value.
+  - Preset `"9:16"` renders the vertical `9 / 16` value.
+  - Preset `"21:9"` renders the ultrawide `21 / 9` value.
+  - Numeric ratio (3) passes through (jsdom normalises to
+    `"3 / 1"`; data-ratio keeps the bare number).
+  - NaN ratio falls back to 16:9.
+  - Non-positive numeric ratio (0) falls back to 16:9.
+  - `data-section="aspect-ratio"` on the wrapper.
+  - `data-section="aspect-ratio-content"` on the inner slot
+    + `absolute inset-0` positioning.
+  - `className` merge on the wrapper.
+  - Caller `style` merges with the aspect-ratio inline
+    style.
+  - Extra HTML attributes (id, data-testid) forwarded.
+  - `forwardRef` exposes the wrapper HTMLDivElement.
+  - Stable displayName.
+  All 16 green.
+
+### Notes
+
+- Modern browsers (Chromium 88+, Firefox 89+, Safari 15+)
+  support `aspect-ratio` natively. The C4 web bundle's
+  Tailwind config already declares the property as a
+  utility helper; this primitive uses inline-style to keep
+  the per-call ratio dynamic without recompiling the CSS.
+- The absolute-positioned content slot is what lets a
+  chart library (e.g., a future Recharts adoption) size
+  itself against the wrapper without re-implementing the
+  CLS-safe contract.
+
 ## [1.11.316] - 2026-05-17 -- UI: VisuallyHidden polymorphic + focusable (TODO 11.298)
 
 Component-scope-only enhancement of the existing
