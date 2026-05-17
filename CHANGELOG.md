@@ -4,6 +4,102 @@
 
 (no entries -- next release window)
 
+## [1.11.314] - 2026-05-17 -- UI: ErrorState icon + reportLink + details (TODO 11.296)
+
+Component-scope-only enhancement of the existing `ErrorState`
+primitive. The default surface (no icon override, no
+reportLink, no showDetails) is preserved byte-for-byte modulo
+the new data-section attribute set.
+
+### Added (ErrorState primitive)
+
+- `icon?: ReactNode` -- replaces the default `AlertTriangle`
+  glyph with a caller-supplied illustration. Useful for
+  per-domain error illustrations (e.g., a network-down SVG
+  for fetch errors, a permission-denied glyph for 403 flows).
+  When omitted, the canonical AlertTriangle stays put.
+- `reportLink?: { label, href }` -- secondary "Report this"
+  affordance rendered below the retry button. Mirrors the
+  EmptyState helpLink styling (muted-foreground text link,
+  external hrefs open in a new tab with rel=noreferrer
+  noopener). Use for issue-tracker deep-links or feedback
+  forms.
+- `showDetails?: boolean` (default false) -- when true AND
+  `error` is an Error instance with a `.stack` string, the
+  surface mounts a `<details>` disclosure with the formatted
+  stack trace under a "Stack trace" summary. The inline
+  `error.message` rendering is suppressed in this mode so the
+  surface does not double-print the same content. Strings or
+  Error instances without `.stack` fall back to the inline
+  rendering.
+- Data-attribute selectors:
+  - `data-section="error-state"` on the root.
+  - `data-section="error-state-icon"` on the icon wrapper.
+  - `data-section="error-state-text"` on the
+    title+description+message block.
+  - `data-section="error-state-title"` on the title span.
+  - `data-section="error-state-description"` on the
+    description span.
+  - `data-section="error-state-message"` on the inline error
+    message (when shown).
+  - `data-section="error-state-details"` on the `<details>`
+    disclosure.
+  - `data-section="error-state-details-summary"` on the
+    summary button.
+  - `data-section="error-state-stack"` on the `<pre>` stack
+    trace.
+  - `data-section="error-state-retry"` on the retry button.
+  - `data-section="error-state-report-link"` on the report
+    anchor.
+- `ErrorState.displayName = 'ErrorState'` for devtools.
+
+### Adopted
+
+- Primitive enhancement only this commit. The existing
+  ErrorState call sites (HistoryView error, Workers error,
+  Sessions error, etc.) inherit the new data-section attrs
+  without any caller change.
+
+### Deferred (dispatch follow-ups)
+
+- Thread `reportLink` into HistoryView / Workers / Sessions
+  error states pointing at the canonical issue tracker URL.
+- Thread `showDetails` into developer-facing error surfaces
+  (Debug page, Risk page) where the stack trace aids
+  triage.
+
+### Tests
+
+- `web/src/components/ui/error-state.test.tsx` -- 16 new
+  vitest cases:
+  - Default AlertTriangle glyph in the icon slot.
+  - Icon prop replaces the default glyph.
+  - reportLink renders with label + relative href.
+  - External reportLink gets target=_blank + rel=noreferrer
+    noopener.
+  - Relative reportLink does NOT get external attrs.
+  - reportLink hidden when omitted.
+  - <details> hidden when showDetails=false.
+  - <details> + <pre> stack when showDetails + error.stack.
+  - Inline message suppressed under details rendering.
+  - Falls back to inline message when error is a string.
+  - Summary label is "Stack trace".
+  - data-section="error-state" on the wrapper.
+  - data-section="error-state-text" on the text block.
+  - data-section="error-state-title" + "description" content.
+  - data-section="error-state-retry" on the retry button.
+  - Stable displayName.
+  All 27 (11 original + 16 new) green.
+
+### Notes
+
+- The `<details>` disclosure starts collapsed by default
+  (browser-native behaviour). Callers can pass `open` via
+  the standard HTML attribute if a flow needs the trace
+  pre-expanded.
+- External-link detection on `reportLink.href` matches the
+  EmptyState helpLink convention (`startsWith('http')`).
+
 ## [1.11.313] - 2026-05-17 -- UI: EmptyState helpLink + data selectors (TODO 11.295)
 
 Component-scope-only enhancement of the existing `EmptyState`
