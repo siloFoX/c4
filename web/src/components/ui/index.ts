@@ -80,3 +80,4 @@ export * from './file-drop';
 export * from './time-ago';
 export * from './accordion';
 export * from './split-pane';
+export * from './combobox';
