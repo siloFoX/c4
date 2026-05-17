@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { Chip, Dialog, IconButton, Kbd, SearchBar, SectionDivider } from './ui';
+import { Accordion, Chip, Dialog, IconButton, Kbd, SearchBar } from './ui';
+import type { AccordionItem } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 
@@ -137,50 +138,51 @@ export function KeyboardShortcutsModal({
             {t('shortcuts.search.empty')}
           </p>
         ) : (
-          <div className="space-y-3">
-            {SECTION_ORDER.map((cat, idx) => {
-              const rows = grouped[cat];
-              if (rows.length === 0) return null;
-              return (
-                <section key={cat} data-shortcuts-section={cat}>
-                  {/* (v1.11.269, TODO 11.251) Labeled section
-                      divider replaces the prior Separator + h3
-                      pair. label-left variant keeps the section
-                      name flush against the start so the table
-                      below reads as the body of the labeled break.
-                      The first section drops the leading rule
-                      entirely (no idx>0 gate -- SectionDivider
-                      with variant="label-left" already has no
-                      leading rule). */}
-                  <SectionDivider
-                    label={t(SECTION_KEYS[cat])}
-                    variant="label-left"
-                    spacing={idx === 0 ? 'sm' : 'md'}
-                    data-shortcuts-section-divider={cat}
-                  />
-                  <table className="w-full text-left text-sm">
-                    <tbody>
-                      {rows.map((row) => (
-                        <tr
-                          key={`${row.keys}-${row.descriptionKey}`}
-                          className="align-middle"
-                        >
-                          <td className="w-32 py-1 pr-2">
-                            <Kbd className={cn('border-border py-0.5 text-foreground')}>
-                              {row.keys}
-                            </Kbd>
-                          </td>
-                          <td className="py-1 text-muted-foreground">
-                            {t(row.descriptionKey)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </section>
-              );
-            })}
-          </div>
+          /* (v1.11.290, TODO 11.272) Shortcut categories migrated
+             from inline <section> + SectionDivider to the Accordion
+             primitive (multi mode + all categories default-open so
+             the byte-identical first-load surface is preserved).
+             Operator can now collapse a category to focus on the
+             others, and the role=region / aria-labelledby /
+             ArrowDown / Home keyboard contract comes for free. */
+          <Accordion
+            mode="multi"
+            ariaLabel="Keyboard shortcut categories"
+            data-shortcuts-accordion="true"
+            defaultOpenIds={SECTION_ORDER.filter(
+              (cat) => grouped[cat].length > 0,
+            )}
+            items={SECTION_ORDER.filter(
+              (cat) => grouped[cat].length > 0,
+            ).map<AccordionItem>((cat) => ({
+              id: cat,
+              title: t(SECTION_KEYS[cat]),
+              content: (
+                <table
+                  className="w-full text-left text-sm"
+                  data-shortcuts-section={cat}
+                >
+                  <tbody>
+                    {grouped[cat].map((row) => (
+                      <tr
+                        key={`${row.keys}-${row.descriptionKey}`}
+                        className="align-middle"
+                      >
+                        <td className="w-32 py-1 pr-2">
+                          <Kbd className={cn('border-border py-0.5 text-foreground')}>
+                            {row.keys}
+                          </Kbd>
+                        </td>
+                        <td className="py-1 text-muted-foreground">
+                          {t(row.descriptionKey)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ),
+            }))}
+          />
         )}
       </div>
     </Dialog>

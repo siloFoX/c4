@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
-  Alert,
+  Accordion,
   AlertBanner,
   PageHeader,
   Panel,
@@ -335,7 +335,51 @@ export default function Settings() {
         ariaLabel="Settings sections"
       >
         <TabsPanel value="general" className="mt-3">
-          <GeneralPanel />
+          {/* (v1.11.290, TODO 11.272) "General" tab body is now
+              an Accordion of related setting groups so the
+              operator can collapse the ones that don't apply
+              today and focus on the ones they're editing. The
+              first group (Live config link) stays open so the
+              tab's primary affordance is visible on first
+              render; the second group (Quick references)
+              defaults closed to reduce noise. */}
+          <Accordion
+            mode="multi"
+            ariaLabel="General settings groups"
+            defaultOpenIds={['live-config']}
+            data-testid="settings-general-accordion"
+            items={[
+              {
+                id: 'live-config',
+                title: 'Live config',
+                description:
+                  'Read-only view of the daemon config without secrets.',
+                content: <GeneralPanel />,
+              },
+              {
+                id: 'shortcuts',
+                title: 'Quick references',
+                description:
+                  'Links into the Config + Decisions surfaces for full editing.',
+                content: (
+                  <ul className="space-y-1 text-xs text-muted-foreground">
+                    <li>
+                      <code className="font-mono">GET /api/config</code> --
+                      live daemon config snapshot.
+                    </li>
+                    <li>
+                      <code className="font-mono">POST /api/config/reload</code>
+                      {' '}-- confirm-guarded reload trigger (see Config page).
+                    </li>
+                    <li>
+                      Decision log -- the rationale behind every config
+                      surface lives in the Decisions panel.
+                    </li>
+                  </ul>
+                ),
+              },
+            ]}
+          />
         </TabsPanel>
         <TabsPanel value="theme" className="mt-3">
           <ThemePanel />

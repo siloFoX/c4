@@ -4,6 +4,96 @@
 
 (no entries -- next release window)
 
+## [1.11.290] - 2026-05-17 -- UI: Accordion primitive (TODO 11.272)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/accordion.tsx` -- canonical
+  collapsible item group with the full WAI-ARIA accordion
+  keyboard contract.
+- Differences from the lower-level
+  `<Collapsible>` + `<CollapsibleGroup>` pair (v1.11.177):
+  - Declarative API: `items={[{ id, title, content, ... }]}`
+    instead of nested JSX children.
+  - Roving tabindex on item triggers; only the focused trigger
+    is `tabindex=0`, the rest are `tabindex=-1`.
+  - Keyboard nav: `ArrowDown` / `ArrowUp` move focus between
+    enabled triggers with wrap; `Home` / `End` jump to
+    first / last enabled trigger; `Enter` / `Space` toggle
+    via native button behaviour.
+  - Open / close animation respects `useReducedMotion()` --
+    the panel `max-height` transition + chevron rotation
+    classes are suppressed when the operator has
+    `prefers-reduced-motion` set.
+- `mode: 'single' | 'multi'` -- single keeps at most one item
+  open; multi lets several stay open simultaneously. Defaults
+  to `single`.
+- `openIds` (controlled) + `defaultOpenIds` (uncontrolled
+  initial state) + per-item `defaultOpen` flags. `defaultOpenIds`
+  is clamped to 1 entry in single mode.
+- Per-item `disabled` flag suppresses click + skips the item in
+  keyboard nav. Disabled items still render but read as muted.
+- `data-section="accordion"` + `data-mode` on the root.
+  Per-item `data-accordion-item=<id>` +
+  `data-accordion-item-open` + `data-accordion-item-disabled`.
+  Per-trigger `data-accordion-trigger=<id>`. Per-panel
+  `data-accordion-panel=<id>`. Panels render with
+  `role="region"` + `aria-labelledby=<header-id>` +
+  `aria-hidden` toggling with the open state.
+- 31 vitest cases cover: section-per-item render, role=region
+  + ariaLabel default + override, data-section + data-mode,
+  default-closed render, per-item defaultOpen, defaultOpenIds
+  seed, single-mode clamp from multi-seed, click open + close
+  + second-click close + single-mode collapse-the-other,
+  multi-mode coexistence, roving tabindex, all 4 keyboard
+  shortcuts with wrap, disabled-skip in nav + no-fire on
+  click + data-disabled attr, panel role + aria-hidden + flip
+  on open, controlled openIds + onOpenIdsChange, data-* attrs
+  matrix, item description render, className merge, HTML attr
+  forwarding, reduced-motion chevron suppression.
+
+### Changed (3 adoption sites)
+
+- `web/src/components/KeyboardShortcutsModal.tsx` -- shortcut
+  categories migrated from inline `<section>` +
+  `<SectionDivider>` rows to `<Accordion mode="multi">` with
+  all visible categories default-open. First-load surface is
+  byte-identical; operator can now collapse a category to
+  focus on the others. The `SectionDivider` import was
+  dropped.
+- `web/src/pages/Health.tsx` -- the single "Modules loaded"
+  `<Collapsible>` migrated to a 2-item `<Accordion mode="multi">`
+  -- Modules (default-open, preserves prior surface) +
+  Build (version + configPath, default-closed). The
+  `Collapsible` import was dropped.
+  `data-testid="health-detail-accordion"`.
+- `web/src/pages/Settings.tsx` -- the General tab body is now
+  a 2-item `<Accordion mode="multi">` -- Live config
+  (`GeneralPanel`, default-open) + Quick references (links +
+  decision-log hint, default-closed).
+  `data-testid="settings-general-accordion"`. The unused
+  `Alert` import was dropped at the same time.
+
+### Test updates
+
+- `web/src/components/KeyboardShortcutsModal.test.tsx` --
+  "renders exactly one button (Close X)" assertion migrated
+  to "renders Close X + one trigger per accordion category"
+  (the Accordion legitimately adds 3 category triggers).
+- `web/src/pages/Health.test.tsx` -- "keeps the modules ul
+  accessible" assertion now scopes the `ul > li` count to the
+  modules accordion panel since the new Build panel renders
+  its own `<ul>`.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/pages/Health.test.tsx > does NOT render the loading
+  skeleton when data is already present` -- pre-existing
+  failure carried over.
+
 ## [1.11.289] - 2026-05-17 -- UI: TimeAgo primitive (TODO 11.271)
 
 Component-scope-only addition. No daemon-side change and no `c4`

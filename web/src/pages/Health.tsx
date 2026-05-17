@@ -4,10 +4,10 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import {
+  Accordion,
   AlertBanner,
   Badge,
   Button,
-  Collapsible,
   CopyButton,
   DashboardGrid,
   DataList,
@@ -566,17 +566,63 @@ export default function Health() {
           </div>
 
           {Array.isArray(data.modules) && data.modules.length > 0 ? (
-            <Collapsible
-              title={tFormat('healthPage.modules.loaded', { n: String(data.modules.length) })}
-              description="Modules currently registered in the daemon's runtime - sub-systems reporting health back to /api/health."
+            /* (v1.11.290, TODO 11.272) Single Collapsible migrated
+               to the Accordion primitive with a "Modules" item
+               (default-open) plus a "Build" item that surfaces
+               the daemon version + config path together. The
+               accordion's keyboard contract (ArrowDown / Home /
+               End + roving tabindex) replaces the bespoke
+               Collapsible chevron toggle. */
+            <Accordion
+              mode="multi"
+              ariaLabel="Diagnostics details"
+              defaultOpenIds={['modules']}
+              data-testid="health-detail-accordion"
               className="text-xs"
-            >
-              <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
-                {data.modules.map((m) => (
-                  <li key={m} className="truncate text-muted-foreground">{m}</li>
-                ))}
-              </ul>
-            </Collapsible>
+              items={[
+                {
+                  id: 'modules',
+                  title: tFormat('healthPage.modules.loaded', { n: String(data.modules.length) }),
+                  description:
+                    "Sub-systems reporting health back to /api/health.",
+                  content: (
+                    <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
+                      {(data.modules ?? []).map((m) => (
+                        <li
+                          key={m}
+                          className="truncate text-muted-foreground"
+                        >
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  ),
+                },
+                {
+                  id: 'build',
+                  title: 'Build',
+                  description: 'Daemon version + config source.',
+                  content: (
+                    <ul className="space-y-1 font-mono text-[11px] text-muted-foreground">
+                      <li>
+                        version:{' '}
+                        <span className="text-foreground">
+                          {data.version ? `v${String(data.version)}` : '-'}
+                        </span>
+                      </li>
+                      <li>
+                        config:{' '}
+                        <span className="text-foreground">
+                          {data.configPath
+                            ? String(data.configPath)
+                            : '-'}
+                        </span>
+                      </li>
+                    </ul>
+                  ),
+                },
+              ]}
+            />
           ) : (
             <div className={text.caption}>
               {t('healthPage.modules.empty')}

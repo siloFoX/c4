@@ -341,12 +341,21 @@ describe('<Health>', () => {
   });
 
   it('keeps the modules ul accessible by listing every module name', () => {
+    // (v1.11.290, TODO 11.272) The diagnostics surface migrated
+    // from a single Collapsible to an Accordion with two items
+    // (Modules + Build). Both sections render their own <ul>, so
+    // scope the assertion to the Modules section panel rather
+    // than counting <li> globally.
     hookState = {
       ...hookState,
       data: makeHealth({ modules: ['m1', 'm2', 'm3'] }),
     };
     const { container } = render(<Health />);
-    const lis = container.querySelectorAll('ul > li');
+    const modulesPanel = container.querySelector(
+      '[data-accordion-panel="modules"]',
+    );
+    expect(modulesPanel).not.toBeNull();
+    const lis = modulesPanel!.querySelectorAll('ul > li');
     expect(lis).toHaveLength(3);
   });
 

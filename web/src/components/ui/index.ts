@@ -78,3 +78,4 @@ export * from './toolbar';
 export * from './copy-button';
 export * from './file-drop';
 export * from './time-ago';
+export * from './accordion';
