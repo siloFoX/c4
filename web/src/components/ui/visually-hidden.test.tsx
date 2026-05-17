@@ -74,4 +74,68 @@ describe('<VisuallyHidden>', () => {
     expect(found).not.toBeNull();
     expect(found?.textContent).toBe('Loading workers');
   });
+
+  // (v1.11.316, TODO 11.298) New as + focusable props + data-section
+  // selectors.
+
+  it('default `as` prop renders a <span> element', () => {
+    const { container } = render(<VisuallyHidden>label</VisuallyHidden>);
+    expect((container.firstChild as HTMLElement).tagName).toBe('SPAN');
+  });
+
+  it('`as="div"` renders a <div> element', () => {
+    const { container } = render(
+      <VisuallyHidden as="div">block label</VisuallyHidden>,
+    );
+    expect((container.firstChild as HTMLElement).tagName).toBe('DIV');
+  });
+
+  it('`as="div"` still carries the sr-only class', () => {
+    const { container } = render(
+      <VisuallyHidden as="div">label</VisuallyHidden>,
+    );
+    expect((container.firstChild as HTMLElement).className).toContain(
+      'sr-only',
+    );
+  });
+
+  it('focusable=false (default) does NOT add the focus:not-sr-only modifier', () => {
+    const { container } = render(<VisuallyHidden>label</VisuallyHidden>);
+    expect((container.firstChild as HTMLElement).className).not.toContain(
+      'focus:not-sr-only',
+    );
+  });
+
+  it('focusable=true adds the focus:not-sr-only + skip-link visible-on-focus chrome', () => {
+    const { container } = render(
+      <VisuallyHidden focusable>Skip to main</VisuallyHidden>,
+    );
+    const node = container.firstChild as HTMLElement;
+    expect(node.className).toContain('focus:not-sr-only');
+    expect(node.className).toContain('focus:absolute');
+    expect(node.className).toContain('focus:bg-background');
+    expect(node.className).toContain('focus:ring-2');
+  });
+
+  it('exposes data-section="visually-hidden" + data-focusable selectors', () => {
+    const { container, rerender } = render(
+      <VisuallyHidden>label</VisuallyHidden>,
+    );
+    const get = () => container.firstChild as HTMLElement;
+    expect(get().getAttribute('data-section')).toBe('visually-hidden');
+    expect(get().getAttribute('data-focusable')).toBe('false');
+    rerender(<VisuallyHidden focusable>Skip</VisuallyHidden>);
+    expect(get().getAttribute('data-focusable')).toBe('true');
+  });
+
+  it('forwards extra HTML attributes (id, role) onto the element', () => {
+    const { container } = render(
+      <VisuallyHidden id="my-label" role="status">
+        Loading
+      </VisuallyHidden>,
+    );
+    const node = container.firstChild as HTMLElement;
+    expect(node.getAttribute('id')).toBe('my-label');
+    expect(node.getAttribute('role')).toBe('status');
+  });
 });
