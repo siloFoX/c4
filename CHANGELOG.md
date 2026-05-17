@@ -4,6 +4,97 @@
 
 (no entries -- next release window)
 
+## [1.11.309] - 2026-05-17 -- UI: Textarea variant + char count + data selectors (TODO 11.291)
+
+Component-scope-only enhancement of the existing `Textarea`
+primitive. The default surface is preserved byte-for-byte; new
+affordances opt in via the new `variant`, `showCharCount`, and
+`maxLength` props.
+
+### Added (Textarea primitive)
+
+- `variant: 'default' | 'mono'` -- font swap. `default` keeps
+  the existing sans-serif text byte-for-byte. `mono` swaps the
+  font to the system monospace stack for code-style editing
+  (Templates body editor, Snapshot note, diff comments).
+- `showCharCount?: boolean` -- when true, renders a
+  `<current>/<maxLength>` counter under the textarea. Falls
+  back to just `<current>` when `maxLength` is unset. The slot
+  ships with its own data-section selector + data-overflow
+  attribute so e2e + theming can target the over-limit state.
+- `maxLength` (standard HTML attr) -- now also drives the
+  char-count denominator AND the `data-overflow` flag when
+  the controlled value (or defaultValue) exceeds it. The
+  textarea itself still honours the native maxLength input
+  guard.
+- Data-attribute selectors:
+  - `data-section="textarea"` on the `<textarea>` element +
+    `data-variant="default|mono"` + `data-error="true|false"`.
+  - `data-section="textarea-row"` on the slot-wrapper div.
+  - `data-section="textarea-hint"` on the helper text.
+  - `data-section="textarea-error"` on the error message.
+  - `data-section="textarea-char-count"` on the char-count
+    paragraph + `data-overflow="true|false"`.
+
+### Adopted
+
+- Primitive enhancement only this commit. The existing
+  Textarea call sites (Plan, Queue editor, ChatComposer,
+  Templates editor, etc.) inherit the new defaults + data
+  attributes without any caller change. A follow-up will
+  thread `variant="mono"` into the Templates body editor +
+  Snapshot note where the monospace surface improves the
+  code-review experience.
+
+### Deferred (dispatch follow-ups)
+
+- Templates body editor monospace adoption: the editor
+  currently uses the default sans-serif Textarea. The
+  primitive's new `variant="mono"` is the canonical path;
+  threading is a per-page follow-up.
+- Snapshot note: same story -- the surface exists, the
+  primitive supports `variant="mono"`, the adoption is a
+  follow-up.
+- Profiles description editor: depends on the planned
+  Profiles editor surface that does not exist today.
+
+### Tests
+
+- `web/src/components/ui/textarea.test.tsx` -- 13 new vitest
+  cases:
+  - Default variant does NOT apply `font-mono`.
+  - `variant="mono"` applies `font-mono`.
+  - `data-variant` attr present.
+  - Char-count slot hidden by default.
+  - `showCharCount + maxLength` renders `"<len>/<max>"`.
+  - `showCharCount` without `maxLength` renders just
+    `"<len>"`.
+  - Overflow class + `data-overflow="true"` flip when len
+    exceeds max.
+  - No overflow flag when at or below max.
+  - Char count falls back to `defaultValue` when
+    uncontrolled.
+  - `data-section="textarea"` on the element.
+  - `data-section="textarea-row"` on the slot wrapper.
+  - `data-section="textarea-hint"` + `"textarea-error"` per
+    state.
+  - `data-error="true|false"` on the textarea per error
+    prop.
+  All 36 (23 original + 13 new) green.
+
+### Notes
+
+- `maxLength` is forwarded twice on purpose: once as the
+  native HTML `maxlength` attribute (caps input at the
+  browser level), and once into the char-count slot math
+  (so the slot reads `"5/20"`). Callers passing a controlled
+  value longer than `maxLength` see the destructive overflow
+  state even though the browser would have stopped further
+  typing.
+- The mono variant uses Tailwind's `font-mono` token rather
+  than hard-coding a font stack so a future theme migration
+  follows the design tokens.
+
 ## [1.11.308] - 2026-05-17 -- UI: NativeSelect primitive (TODO 11.290)
 
 New `NativeSelect` primitive co-located with the existing

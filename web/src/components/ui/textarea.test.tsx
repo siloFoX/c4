@@ -195,4 +195,157 @@ describe('<Textarea>', () => {
       expect(ref.current!.getAttribute('rows')).toBe('4');
     });
   });
+
+  // (v1.11.309, TODO 11.291) New variant + char count + data-section
+  // selectors.
+
+  describe('variant', () => {
+    it('default variant does NOT apply the font-mono class', () => {
+      render(<Textarea data-testid="ta" />);
+      expect(screen.getByTestId('ta')).not.toHaveClass('font-mono');
+    });
+
+    it('variant="mono" applies the font-mono class', () => {
+      render(<Textarea data-testid="ta" variant="mono" />);
+      expect(screen.getByTestId('ta')).toHaveClass('font-mono');
+    });
+
+    it('exposes data-variant attr on the textarea', () => {
+      render(<Textarea data-testid="ta" variant="mono" />);
+      expect(screen.getByTestId('ta').getAttribute('data-variant')).toBe(
+        'mono',
+      );
+    });
+  });
+
+  describe('showCharCount', () => {
+    it('does NOT render the char count slot by default', () => {
+      render(<Textarea data-testid="ta" />);
+      expect(
+        document.querySelector('[data-section="textarea-char-count"]'),
+      ).toBeNull();
+    });
+
+    it('renders "<len>/<max>" when showCharCount + maxLength are set', () => {
+      render(
+        <Textarea
+          data-testid="ta"
+          value="hello"
+          onChange={() => {}}
+          maxLength={20}
+          showCharCount
+        />,
+      );
+      const slot = document.querySelector(
+        '[data-section="textarea-char-count"]',
+      );
+      expect(slot).not.toBeNull();
+      expect(slot!.textContent).toBe('5/20');
+    });
+
+    it('renders just "<len>" when showCharCount=true but maxLength is unset', () => {
+      render(
+        <Textarea
+          data-testid="ta"
+          value="hello"
+          onChange={() => {}}
+          showCharCount
+        />,
+      );
+      const slot = document.querySelector(
+        '[data-section="textarea-char-count"]',
+      );
+      expect(slot).not.toBeNull();
+      expect(slot!.textContent).toBe('5');
+    });
+
+    it('overflow class + data-overflow flip when length exceeds maxLength', () => {
+      render(
+        <Textarea
+          data-testid="ta"
+          value="abcdefghij"
+          onChange={() => {}}
+          maxLength={5}
+          showCharCount
+        />,
+      );
+      const slot = document.querySelector(
+        '[data-section="textarea-char-count"]',
+      ) as HTMLElement;
+      expect(slot.getAttribute('data-overflow')).toBe('true');
+      expect(slot).toHaveClass('text-destructive');
+    });
+
+    it('does NOT flag overflow when at or below maxLength', () => {
+      render(
+        <Textarea
+          data-testid="ta"
+          value="hello"
+          onChange={() => {}}
+          maxLength={10}
+          showCharCount
+        />,
+      );
+      const slot = document.querySelector(
+        '[data-section="textarea-char-count"]',
+      ) as HTMLElement;
+      expect(slot.getAttribute('data-overflow')).toBe('false');
+      expect(slot).not.toHaveClass('text-destructive');
+    });
+
+    it('falls back to defaultValue when value is uncontrolled', () => {
+      render(
+        <Textarea
+          data-testid="ta"
+          defaultValue="hi"
+          maxLength={5}
+          showCharCount
+        />,
+      );
+      const slot = document.querySelector(
+        '[data-section="textarea-char-count"]',
+      );
+      expect(slot!.textContent).toBe('2/5');
+    });
+  });
+
+  describe('data-section selectors', () => {
+    it('exposes data-section="textarea" on the textarea element', () => {
+      render(<Textarea data-testid="ta" />);
+      expect(screen.getByTestId('ta').getAttribute('data-section')).toBe(
+        'textarea',
+      );
+    });
+
+    it('exposes data-section="textarea-row" on the slot-wrapper div', () => {
+      const { container } = render(
+        <Textarea data-testid="ta" label="Body" />,
+      );
+      expect(
+        container.querySelector('[data-section="textarea-row"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="textarea-hint" + "textarea-error" per state', () => {
+      const { rerender } = render(<Textarea hint="hint copy" />);
+      expect(
+        document.querySelector('[data-section="textarea-hint"]'),
+      ).not.toBeNull();
+      rerender(<Textarea error="err copy" />);
+      expect(
+        document.querySelector('[data-section="textarea-error"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-error="true|false" on the textarea per error prop', () => {
+      const { rerender } = render(
+        <Textarea data-testid="ta" hint="ok" />,
+      );
+      expect(screen.getByTestId('ta').getAttribute('data-error')).toBe(
+        'false',
+      );
+      rerender(<Textarea data-testid="ta" error="nope" />);
+      expect(screen.getByTestId('ta').getAttribute('data-error')).toBe('true');
+    });
+  });
 });
