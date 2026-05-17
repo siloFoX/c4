@@ -23,6 +23,8 @@ import {
   Dialog,
   Drawer,
   DropdownMenu,
+  ToastProvider,
+  useToast,
   EmptyState,
   FileTree,
   HScroll,
@@ -541,6 +543,85 @@ function DrawerDemo() {
   );
 }
 
+// (v1.11.298, TODO 11.280) Toast demo. Wraps a small inner
+// trigger in a ToastProvider so pushToast is scoped to this
+// demo and does not collide with the legacy toast portal used
+// by Profiles / Templates / Settings. Shows the three kinds +
+// an action-button toast.
+function ToastDemoInner() {
+  const { pushToast } = useToast();
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() =>
+          pushToast({ kind: 'success', message: 'Profile saved.' })
+        }
+      >
+        Success
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() =>
+          pushToast({
+            kind: 'error',
+            message: 'Save failed: network timeout.',
+            durationMs: 8000,
+          })
+        }
+      >
+        Error
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() =>
+          pushToast({ kind: 'info', message: 'Background job started.' })
+        }
+      >
+        Info
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() =>
+          pushToast({
+            kind: 'success',
+            message: 'Snapshot deleted.',
+            action: {
+              label: 'Undo',
+              onClick: () =>
+                pushToast({ kind: 'info', message: 'Snapshot restored.' }),
+            },
+          })
+        }
+      >
+        With action
+      </Button>
+    </div>
+  );
+}
+
+function ToastDemo() {
+  return (
+    <Demo
+      name="Toast"
+      description="Top-right stack with auto-dismiss, action button slot, and Esc-to-dismiss. Press Esc to close the most recent toast."
+      code={`<ToastProvider>{...children that call useToast().pushToast(...)}</ToastProvider>`}
+    >
+      <ToastProvider defaultDurationMs={4000} visibleLimit={3}>
+        <ToastDemoInner />
+      </ToastProvider>
+    </Demo>
+  );
+}
+
 function DropdownMenuDemo() {
   return (
     <Demo
@@ -964,6 +1045,7 @@ const CATEGORIES: { label: string; demos: ReactNode }[] = [
         <PopoverDemo />
         <DialogDemo />
         <DrawerDemo />
+        <ToastDemo />
         <DropdownMenuDemo />
         <FileTreeDemo />
       </>
