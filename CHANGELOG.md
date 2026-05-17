@@ -4,6 +4,89 @@
 
 (no entries -- next release window)
 
+## [1.11.303] - 2026-05-17 -- UI: FormField warning state + data selectors (TODO 11.285)
+
+Component-scope-only enhancement of the existing `FormField`
+primitive. The existing label / control / hint / error contract
+is preserved byte-for-byte; the new affordances opt in via the
+new `warning` prop and the new `data-section` attribute set.
+
+### Added (FormField primitive)
+
+- `warning?: string` -- soft warning state. Styled less
+  severely than `error` (warning palette instead of
+  destructive) AND does NOT flip `aria-invalid` on the child
+  control. Use for "you can submit but heads-up" messaging
+  (e.g., "Using the default value will overwrite previous
+  saves"). State precedence: `error` > `warning` > `ok`.
+  When both `error` and `warning` are set, `error` wins.
+- The warning message renders with `role="status"` (polite
+  live region) so screen-reader users hear the heads-up
+  without the form being marked invalid. The error message
+  continues to use `role="alert"` (assertive).
+- `aria-describedby` plumbing follows the active state: in
+  the warning state the input's `aria-describedby` references
+  the warning message id (`<id>-warning`), so SR users hear
+  the warning copy when they refocus the field.
+- Data-attribute selectors:
+  - `data-section="form-field"` on the wrapper plus
+    `data-state="ok|warning|error"`.
+  - `data-section="form-field-label"` on the `<label>`.
+  - `data-section="form-field-required"` on the asterisk.
+  - `data-section="form-field-error"` on the error paragraph.
+  - `data-section="form-field-warning"` on the warning
+    paragraph.
+  - `data-section="form-field-helper"` on the helper text
+    paragraph.
+  Selectors let e2e tests target the active state without
+  parsing class names.
+
+### Adopted
+
+- Primitive enhancement only this commit. The existing
+  adopters (Login, Plan, Profiles, Templates editor inputs)
+  already mount `FormField` and inherit the new attributes +
+  the warning state when callers opt in. A follow-up will
+  wire `warning` into the Templates save flow (e.g.,
+  "Saving as the active template will overwrite the previous
+  effort tier") and the Profiles editor where soft warnings
+  improve operator confidence.
+
+### Deferred (dispatch follow-ups)
+
+- Settings forms warning rollout: Settings uses bespoke
+  ChoiceGroup panels rather than FormField rows, so the new
+  warning state needs a separate adoption path there.
+- Profile editor + Template editor warning copy: the warning
+  semantics are now available on the primitive, but the
+  per-page copy strings need product input. Tracked as
+  follow-up.
+
+### Tests
+
+- `web/src/components/ui/form-field.test.tsx` -- 8 new
+  vitest cases: warning message renders with role=status
+  and warning palette, warning does NOT flip aria-invalid,
+  error wins over warning when both set, warning suppresses
+  helper text, warning plumbs aria-describedby with the
+  warning id, data-state="ok"/"warning"/"error" per state,
+  data-section selectors on wrapper / label / required,
+  data-section selectors on error / warning / helper
+  per state. 20 / 20 (12 original + 8 new) green.
+- Dependent suites (FieldGroup + Profiles + Templates +
+  Login) re-run clean apart from one pre-existing Templates
+  failure unrelated to this commit. 147 / 148 across the
+  five touched files.
+
+### Notes
+
+- The warning palette uses `text-warning` from the design
+  tokens; if a future theme migration changes the warning
+  hue, the FormField warning copy follows automatically.
+- The warning message id is suffixed `-warning` so a future
+  test can disambiguate it from the helper / error message
+  ids without re-mounting the field.
+
 ## [1.11.302] - 2026-05-17 -- UI: Dialog variants + body scroll lock (TODO 11.284)
 
 Component-scope-only enhancement of the existing `Dialog`
