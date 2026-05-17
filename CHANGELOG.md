@@ -4,6 +4,86 @@
 
 (no entries -- next release window)
 
+## [1.11.304] - 2026-05-17 -- UI: DropdownMenu separators + data selectors (TODO 11.286)
+
+Component-scope-only enhancement of the existing
+`DropdownMenu` primitive. The current item shape + keyboard
+nav + type-ahead + danger-variant + prefetch contract are
+preserved byte-for-byte; new affordances opt in via the new
+separator entry type and the new `data-section` selectors.
+
+### Added (DropdownMenu primitive)
+
+- New exported type `DropdownMenuSeparator`:
+  `{ key: string; kind: 'separator' }`. Renders as a
+  non-interactive horizontal divider `<li role="separator"
+  aria-orientation="horizontal">` between two item groups so
+  related rows (Edit / Duplicate) can be visually grouped
+  apart from destructive rows (Delete).
+- New exported union `DropdownMenuEntry = DropdownMenuItem |
+  DropdownMenuSeparator`. `DropdownMenu.items` now accepts
+  the union so callers can interleave separators with action
+  rows. Existing `DropdownMenuItem[]` call sites narrow to the
+  union without a cast.
+- Separators are skipped by:
+  - The `useFocusCycle` selector
+    `[role=menuitem]:not([aria-disabled=true])`.
+  - The single-letter type-ahead matcher.
+  - The `aria-activedescendant` resolver on the menu container.
+- Data-attribute selectors for e2e:
+  - `data-section="dropdown-menu"` on the menu container.
+  - `data-section="dropdown-menu-item"` per action row.
+  - `data-variant="default|danger"` on each action row.
+  - `data-section="dropdown-menu-separator"` on each
+    divider `<li>`.
+
+### Adopted
+
+- Primitive enhancement only this commit. Existing
+  DropdownMenu adopters (AccountMenu in the sidebar /
+  AppHeader, ListActionMenu wrapper) inherit the new
+  `data-section` attributes without any caller change. A
+  follow-up will thread separator entries into the
+  ListActionMenu item list so destructive rows (Delete) sit
+  visually apart from edit rows (Rename / Duplicate /
+  Archive).
+
+### Deferred (dispatch follow-ups)
+
+- Submenu / nested menu support: the dispatch asks for
+  "optional submenu". Building nested menus requires a
+  second portal + focus-trap + click-outside scope that does
+  not map cleanly onto the existing single-portal pattern.
+  Tracked as a follow-up so the submenu primitive can land
+  with its own jsdom-friendly test contract.
+- Workers / Sessions / History row-actions adoption: those
+  rows already use `ListActionMenu` (which wraps
+  DropdownMenu). The separator-aware item shape is now
+  available; threading separators into the per-page action
+  arrays is a follow-up.
+
+### Tests
+
+- `web/src/components/ui/dropdown-menu.test.tsx` -- 6 new
+  vitest cases: separator entry renders as `role="separator"
+  <li>`, separator does NOT appear in the menuitem list,
+  arrow nav skips the separator, type-ahead skips the
+  separator, data-section selectors on menu / item /
+  variant, data-section selectors on each separator. All 37
+  (31 original + 6 new) green.
+- Dependent suites (ListActionMenu + AccountMenu) re-run
+  clean. 93 / 93 across the three touched files.
+
+### Notes
+
+- The exactOptionalPropertyTypes-safe `close(opts?)` call
+  was tightened to spread the `restoreFocus` argument only
+  when truthy so a future caller passing `undefined`
+  explicitly does not violate the option shape.
+- The separator's CSS class `my-1 h-px bg-border` sits
+  flush with the surrounding menuitem rows so the divider
+  reads as a 1-pixel rule rather than a chunky band.
+
 ## [1.11.303] - 2026-05-17 -- UI: FormField warning state + data selectors (TODO 11.285)
 
 Component-scope-only enhancement of the existing `FormField`

@@ -51,11 +51,34 @@ export interface DropdownMenuItem {
   onPrefetch?: () => void;
 }
 
+// (v1.11.304, TODO 11.286) Separator entry. Renders a non-
+// interactive horizontal divider between two item groups so
+// related rows (Edit / Duplicate) can be visually grouped
+// apart from destructive rows (Delete). The separator is
+// skipped by keyboard nav AND by the type-ahead matcher.
+export interface DropdownMenuSeparator {
+  key: string;
+  kind: 'separator';
+}
+
+export type DropdownMenuEntry = DropdownMenuItem | DropdownMenuSeparator;
+
+function isSeparator(
+  entry: DropdownMenuEntry,
+): entry is DropdownMenuSeparator {
+  return (entry as DropdownMenuSeparator).kind === 'separator';
+}
+
 interface DropdownMenuProps {
   // The trigger element (a Button, IconButton, etc). The menu mirrors
   // its open state to aria-expanded.
   trigger: ReactElement;
-  items: DropdownMenuItem[];
+  // (v1.11.304, TODO 11.286) `items` now accepts the wider
+  // `DropdownMenuEntry` union so callers can interleave action
+  // rows with separators. Existing array-of-DropdownMenuItem
+  // call sites are still valid -- a plain item shape narrows
+  // to the union without a cast.
+  items: DropdownMenuEntry[];
   placement?: DropdownPlacement;
   // Aria label for the menu container -- defaults to 'Menu'.
   ariaLabel?: string;
@@ -187,12 +210,14 @@ export function DropdownMenu({
       const startFrom = highlight >= 0 ? highlight : -1;
       // Cycle through items starting from the one after the current
       // highlight so repeated presses of the same key advance through
-      // matches.
+      // matches. Separators are non-interactive entries and are
+      // skipped by both the disabled-check AND the role=menuitem
+      // selector that drives the focus-cycle hook.
       for (let step = 1; step <= len; step++) {
         const idx = (startFrom + step + len) % len;
-        const item = items[idx];
-        if (!item || item.disabled) continue;
-        const text = labelString(item.label).toLowerCase();
+        const entry = items[idx];
+        if (!entry || isSeparator(entry) || entry.disabled) continue;
+        const text = labelString(entry.label).toLowerCase();
         if (text.startsWith(buf)) {
           setHighlight(idx);
           focusItem(idx);
@@ -268,7 +293,7 @@ export function DropdownMenu({
       try {
         item.onSelect();
       } finally {
-        close({ restoreFocus: opts?.restoreFocus });
+        close(opts?.restoreFocus ? { restoreFocus: true } : undefined);
       }
     },
     [close],
@@ -292,8 +317,10 @@ export function DropdownMenu({
   const placementClass =
     placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2';
 
+  const highlightedEntry =
+    highlight >= 0 && highlight < items.length ? items[highlight] : null;
   const activeItemId =
-    highlight >= 0 && highlight < items.length && !items[highlight]?.disabled
+    highlightedEntry && !isSeparator(highlightedEntry) && !highlightedEntry.disabled
       ? `${itemIdPrefix}${highlight}`
       : undefined;
 
@@ -308,6 +335,7 @@ export function DropdownMenu({
           aria-label={resolvedAriaLabel}
           aria-orientation="vertical"
           aria-activedescendant={activeItemId}
+          data-section="dropdown-menu"
           className={cn(
             'absolute left-0 z-50 min-w-[12rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md focus:outline-none',
             placementClass,
@@ -317,60 +345,76 @@ export function DropdownMenu({
             <div className="border-b border-border px-3 py-2">{header}</div>
           ) : null}
           <ul className="flex flex-col py-1">
-            {items.map((item, idx) => (
-              <li key={item.key}>
-                <button
-                  id={`${itemIdPrefix}${idx}`}
-                  ref={(el) => {
-                    itemsRef.current[idx] = el;
-                  }}
-                  type="button"
-                  role="menuitem"
-                  disabled={item.disabled}
-                  onMouseEnter={() => {
-                    setHighlight(idx);
-                    if (!item.disabled) item.onPrefetch?.();
-                  }}
-                  onFocus={() => {
-                    if (!item.disabled) item.onPrefetch?.();
-                  }}
-                  onClick={() => handleItemActivate(item)}
-                  onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleItemActivate(item, { restoreFocus: true });
-                    }
-                  }}
-                  className={cn(
-                    'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
-                    'focus:outline-none focus:bg-accent focus:text-accent-foreground',
-                    item.disabled
-                      ? 'cursor-not-allowed opacity-50'
-                      : 'hover:bg-accent hover:text-accent-foreground',
-                    item.variant === 'danger'
-                      ? 'text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive'
-                      : '',
-                    highlight === idx && !item.disabled
-                      ? item.variant === 'danger'
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-accent text-accent-foreground'
-                      : '',
-                  )}
-                >
-                  {item.icon ? (
-                    <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center">
-                      {item.icon}
-                    </span>
-                  ) : null}
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {item.hint ? (
-                    <span className="text-[11px] text-muted-foreground">
-                      {item.hint}
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
+            {items.map((entry, idx) => {
+              if (isSeparator(entry)) {
+                return (
+                  <li
+                    key={entry.key}
+                    role="separator"
+                    aria-orientation="horizontal"
+                    data-section="dropdown-menu-separator"
+                    className="my-1 h-px bg-border"
+                  />
+                );
+              }
+              const item = entry;
+              return (
+                <li key={item.key}>
+                  <button
+                    id={`${itemIdPrefix}${idx}`}
+                    ref={(el) => {
+                      itemsRef.current[idx] = el;
+                    }}
+                    type="button"
+                    role="menuitem"
+                    data-section="dropdown-menu-item"
+                    data-variant={item.variant ?? 'default'}
+                    disabled={item.disabled}
+                    onMouseEnter={() => {
+                      setHighlight(idx);
+                      if (!item.disabled) item.onPrefetch?.();
+                    }}
+                    onFocus={() => {
+                      if (!item.disabled) item.onPrefetch?.();
+                    }}
+                    onClick={() => handleItemActivate(item)}
+                    onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleItemActivate(item, { restoreFocus: true });
+                      }
+                    }}
+                    className={cn(
+                      'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                      'focus:outline-none focus:bg-accent focus:text-accent-foreground',
+                      item.disabled
+                        ? 'cursor-not-allowed opacity-50'
+                        : 'hover:bg-accent hover:text-accent-foreground',
+                      item.variant === 'danger'
+                        ? 'text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive'
+                        : '',
+                      highlight === idx && !item.disabled
+                        ? item.variant === 'danger'
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-accent text-accent-foreground'
+                        : '',
+                    )}
+                  >
+                    {item.icon ? (
+                      <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center">
+                        {item.icon}
+                      </span>
+                    ) : null}
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.hint ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        {item.hint}
+                      </span>
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
