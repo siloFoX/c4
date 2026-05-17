@@ -4,6 +4,90 @@
 
 (no entries -- next release window)
 
+## [1.11.316] - 2026-05-17 -- UI: VisuallyHidden polymorphic + focusable (TODO 11.298)
+
+Component-scope-only enhancement of the existing
+`VisuallyHidden` primitive. The default `<span>` + `.sr-only`
+class output is preserved byte-for-byte modulo the new
+`data-section` + `data-focusable` attribute set.
+
+### Added (VisuallyHidden primitive)
+
+- `as?: 'span' | 'div'` polymorphic tag prop. Defaults to
+  `'span'` (inline phrasing) so existing call sites stay
+  byte-for-byte identical. `'div'` mounts a block-level
+  wrapper for cases where a phrase-level child would not fit
+  (e.g., a wrapper around multiple SR-only siblings, or a
+  skip-link target inside the header layout).
+- `focusable?: boolean` -- when true the component swaps in
+  the Tailwind `focus:not-sr-only` modifier plus a small set
+  of visible-on-focus chrome classes (`focus:absolute
+  focus:left-2 focus:top-2 focus:z-50 focus:rounded
+  focus:bg-background focus:px-2 focus:py-1 focus:text-foreground
+  focus:ring-2 focus:ring-primary
+  focus:ring-offset-2 focus:ring-offset-background`). The
+  element stays SR-only at rest but becomes visible the
+  moment a keyboard user tabs to it. Canonical use case:
+  skip-links like "Skip to main content".
+- Data-attribute selectors:
+  - `data-section="visually-hidden"` on the rendered
+    element.
+  - `data-focusable="true|false"` on the rendered element.
+
+### Adopted
+
+- Primitive enhancement only this commit. The existing
+  VisuallyHidden call sites (Spinner, NumberInput's
+  decrement/increment buttons, Queue refresh button,
+  TopTabs hidden-label sm-and-down branch, etc.) inherit
+  the new data-section attribute without any caller
+  change. Threading `focusable` into a future skip-link
+  surface (e.g., AppHeader "Skip to main content") is a
+  separate UX pass.
+
+### Deferred (dispatch follow-ups)
+
+- Icon-only button SR-label audit: many IconButton call
+  sites across the app already rely on `aria-label` rather
+  than VisuallyHidden text. A consolidation sweep (replace
+  `aria-label` with a `<VisuallyHidden>` child) is a
+  follow-up; both shapes are accessibility-equivalent but
+  the latter exposes the label as visible text content for
+  copy/paste + search.
+- Skip-link adoption: AppHeader currently has no
+  skip-to-main-content link. `<VisuallyHidden focusable as="a"
+  href="#main">` is a one-line add but needs the corresponding
+  `id="main"` anchor on the routed content surface.
+
+### Tests
+
+- `web/src/components/ui/visually-hidden.test.tsx` -- 7
+  new vitest cases:
+  - Default `as` renders `<span>`.
+  - `as="div"` renders `<div>`.
+  - `as="div"` still carries the `sr-only` class.
+  - `focusable=false` (default) does NOT add the
+    `focus:not-sr-only` modifier.
+  - `focusable=true` adds the `focus:not-sr-only` +
+    skip-link visible-on-focus chrome.
+  - data-section + data-focusable selectors present.
+  - Extra HTML attributes (id, role) forwarded onto the
+    element.
+  All 15 (8 original + 7 new) green.
+
+### Notes
+
+- The focusable chrome (`focus:bg-background focus:ring-2`)
+  uses theme tokens so a future palette migration follows
+  automatically.
+- The skip-link's `focus:left-2 focus:top-2 focus:z-50`
+  positioning targets the top-left corner of the viewport
+  on focus -- the standard browser convention.
+- Casting `ref` per-branch (`React.Ref<HTMLDivElement>` vs
+  `React.Ref<HTMLSpanElement>`) preserves the forwardRef
+  contract while letting callers choose either element
+  shape.
+
 ## [1.11.315] - 2026-05-17 -- UI: ScrollArea shadow indicators (TODO 11.297)
 
 Component-scope-only enhancement of the existing `ScrollArea`
