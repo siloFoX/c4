@@ -377,7 +377,12 @@ export default function HistoryView() {
                 ]}
                 className="flex-1"
               />
-              <Tooltip label={sidebarSortDir === 'asc' ? 'Ascending' : 'Descending'}>
+              <Tooltip
+                label={sidebarSortDir === 'asc' ? 'Ascending' : 'Descending'}
+                arrow
+                showDelay={120}
+                hideDelay={80}
+              >
                 <Button
                   type="button"
                   variant="ghost"

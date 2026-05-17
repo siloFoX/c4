@@ -16,30 +16,59 @@ type Placement = 'top' | 'bottom' | 'left' | 'right';
 interface TooltipProps {
   label: ReactNode;
   placement?: Placement;
+  // (v1.11.294, TODO 11.276) Separate show + hide delays.
+  // Backward compatible: when only `delayMs` is set the same
+  // value applies to both. When `showDelay` / `hideDelay` are
+  // set they override `delayMs` for that direction.
   delayMs?: number;
+  showDelay?: number;
+  hideDelay?: number;
   children: ReactElement;
   // When set, forces the tooltip to stay open (for testing / onboarding).
   open?: boolean;
+  // (v1.11.294, TODO 11.276) Render a small triangle arrow
+  // pointing from the tooltip body toward the trigger. Default
+  // false to keep prior visual rhythm byte-identical.
+  arrow?: boolean;
   className?: string;
 }
 
-// Minimal accessible tooltip. Fires on hover + focus, dismisses on blur
-// + mouseleave + Escape. Uses aria-describedby so screen readers announce
-// the label. No portal; the tooltip is rendered as a sibling absolutely
-// positioned around the trigger, so callers must ensure the wrapper span
-// sits inside a relative / non-static ancestor when using left/right.
+// Accessible tooltip. Fires on hover + focus, dismisses on blur
+// + mouseleave + Escape. Uses aria-describedby so screen readers
+// announce the label.
+//
+// (v1.11.294, TODO 11.276) Enhancements:
+//   - Independent showDelay / hideDelay (so the operator gets a
+//     long enough hover-out window when chaining hops between
+//     tooltipped icons).
+//   - Optional `arrow` chevron pointing from the tooltip body
+//     toward the trigger (rendered as a CSS-only triangle so
+//     reduced-motion / SSR are fine).
+//   - data-section="tooltip" on the wrapper + data-placement
+//     + data-arrow attrs for e2e selectors.
+//
+// Smart positioning (flip when there's no room) is out of scope
+// here; it requires viewport measurements that jsdom does not
+// reliably implement. A floating-ui-style follow-up can land
+// that without breaking this contract.
 
 export function Tooltip({
   label,
   placement = 'top',
   delayMs = 120,
+  showDelay,
+  hideDelay,
   children,
   open,
+  arrow = false,
   className,
 }: TooltipProps) {
   const [visible, setVisible] = useState<boolean>(Boolean(open));
   const timer = useRef<number | null>(null);
   const id = useId();
+
+  const effectiveShowDelay = showDelay ?? delayMs;
+  const effectiveHideDelay = hideDelay ?? 0;
 
   useEffect(() => {
     if (open !== undefined) setVisible(open);
@@ -47,13 +76,24 @@ export function Tooltip({
 
   const show = useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setVisible(true), delayMs);
-  }, [delayMs]);
+    if (effectiveShowDelay <= 0) {
+      setVisible(true);
+      return;
+    }
+    timer.current = window.setTimeout(() => setVisible(true), effectiveShowDelay);
+  }, [effectiveShowDelay]);
 
   const hide = useCallback(() => {
     if (timer.current) window.clearTimeout(timer.current);
-    setVisible(false);
-  }, []);
+    if (effectiveHideDelay <= 0) {
+      setVisible(false);
+      return;
+    }
+    timer.current = window.setTimeout(
+      () => setVisible(false),
+      effectiveHideDelay,
+    );
+  }, [effectiveHideDelay]);
 
   useEffect(() => {
     if (!visible) return;
@@ -63,6 +103,15 @@ export function Tooltip({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [visible, hide]);
+
+  // (v1.11.294) Clean up any pending timer on unmount so a
+  // delayed show/hide doesn't fire against an unmounted
+  // component.
+  useEffect(() => {
+    return () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    };
+  }, []);
 
   const pos = useMemo(() => {
     switch (placement) {
@@ -75,6 +124,25 @@ export function Tooltip({
       case 'top':
       default:
         return 'bottom-full left-1/2 -translate-x-1/2 mb-1.5';
+    }
+  }, [placement]);
+
+  // (v1.11.294, TODO 11.276) Arrow positioning. The arrow is a
+  // 6x6 rotated square half-tucked behind the popover so the
+  // visible edge reads as a triangle pointing toward the
+  // trigger. The exact corner-class set mirrors the popover's
+  // pos calculation above.
+  const arrowPos = useMemo(() => {
+    switch (placement) {
+      case 'bottom':
+        return 'top-[-3px] left-1/2 -translate-x-1/2';
+      case 'left':
+        return 'right-[-3px] top-1/2 -translate-y-1/2';
+      case 'right':
+        return 'left-[-3px] top-1/2 -translate-y-1/2';
+      case 'top':
+      default:
+        return 'bottom-[-3px] left-1/2 -translate-x-1/2';
     }
   }, [placement]);
 
@@ -107,7 +175,14 @@ export function Tooltip({
     : children;
 
   return (
-    <span className="relative inline-flex" data-tooltip-root>
+    <span
+      className="relative inline-flex"
+      data-tooltip-root
+      data-section="tooltip"
+      data-placement={placement}
+      data-arrow={arrow ? 'true' : 'false'}
+      data-visible={visible ? 'true' : 'false'}
+    >
       {trigger}
       <span
         role="tooltip"
@@ -121,6 +196,16 @@ export function Tooltip({
         )}
       >
         {label}
+        {arrow ? (
+          <span
+            aria-hidden="true"
+            data-tooltip-arrow="true"
+            className={cn(
+              'absolute h-1.5 w-1.5 rotate-45 border border-border bg-popover',
+              arrowPos,
+            )}
+          />
+        ) : null}
       </span>
     </span>
   );

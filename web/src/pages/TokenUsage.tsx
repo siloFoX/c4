@@ -58,7 +58,16 @@ export default function TokenUsage() {
               is exactly the "3-5 short choices" pill-control shape.
               Replaces 4x Button + Tooltip wrappers with a single
               tablist that handles arrow-key nav + roving tabindex. */}
-          <Tooltip label={t('tokenUsage.tooltip.days')}>
+          {/* (v1.11.294, TODO 11.276) Workers metric chip
+              tooltip now opts into the new arrow + separate
+              hide-delay so quick toggle scans across the four
+              range chips do not flicker. */}
+          <Tooltip
+            label={t('tokenUsage.tooltip.days')}
+            arrow
+            showDelay={150}
+            hideDelay={80}
+          >
             <SegmentedControl
               data-testid="token-usage-range"
               ariaLabel={t('tokenUsage.range.label')}
