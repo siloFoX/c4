@@ -20,6 +20,9 @@ describe('<Card> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
         class="rounded-xl border border-border bg-card text-card-foreground shadow-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+        data-disabled="false"
+        data-interactive="false"
+        data-section="card"
       >
         body
       </div>
@@ -39,6 +42,9 @@ describe('<Card> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
         class="rounded-xl border border-border bg-card text-card-foreground shadow-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+        data-disabled="false"
+        data-interactive="false"
+        data-section="card"
       >
         <div
           class="flex flex-col gap-1.5 p-6"
@@ -77,6 +83,9 @@ describe('<Card> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
         class="rounded-xl border border-border bg-card text-card-foreground shadow-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+        data-disabled="false"
+        data-interactive="false"
+        data-section="card"
       >
         <div
           class="flex flex-col gap-1.5 p-6"
@@ -116,6 +125,9 @@ describe('<Card> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <div
         class="rounded-xl border border-border bg-card text-card-foreground shadow-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+        data-disabled="false"
+        data-interactive="false"
+        data-section="card"
       >
         <div
           class="p-6 pt-0"

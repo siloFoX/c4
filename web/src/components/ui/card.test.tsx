@@ -279,3 +279,115 @@ describe('<CardFooter>', () => {
     expect(node).toHaveClass('pt-0');
   });
 });
+
+// (v1.11.311, TODO 11.293) Link-mode + disabled state + data
+// selectors.
+
+describe('<Card> link mode', () => {
+  it('renders as <a> when href is set', () => {
+    const { container } = render(
+      <Card href="/workers/auto-w1" data-testid="c">
+        body
+      </Card>,
+    );
+    const anchor = container.querySelector('a');
+    expect(anchor).not.toBeNull();
+    expect(anchor!.getAttribute('href')).toBe('/workers/auto-w1');
+  });
+
+  it('link-mode card is interactive by default (no explicit interactive)', () => {
+    const { container } = render(
+      <Card href="/x" data-testid="c">
+        body
+      </Card>,
+    );
+    const anchor = container.querySelector('a') as HTMLElement;
+    expect(anchor.className).toMatch(/cursor-pointer/);
+    expect(anchor.getAttribute('data-interactive')).toBe('true');
+    expect(anchor.getAttribute('data-mode')).toBe('link');
+  });
+
+  it('link-mode + target + rel pass through onto the anchor', () => {
+    const { container } = render(
+      <Card href="https://example.com" target="_blank" rel="noreferrer">
+        body
+      </Card>,
+    );
+    const anchor = container.querySelector('a') as HTMLAnchorElement;
+    expect(anchor.target).toBe('_blank');
+    expect(anchor.rel).toBe('noreferrer');
+  });
+
+  it('link-mode + disabled drops the href + sets aria-disabled', () => {
+    const { container } = render(
+      <Card href="/x" disabled>
+        body
+      </Card>,
+    );
+    const anchor = container.querySelector('a') as HTMLAnchorElement;
+    expect(anchor.hasAttribute('href')).toBe(false);
+    expect(anchor.getAttribute('aria-disabled')).toBe('true');
+  });
+});
+
+describe('<Card> disabled state', () => {
+  it('disabled drops the interactive affordances', () => {
+    const { container } = render(
+      <Card interactive disabled data-testid="c">
+        body
+      </Card>,
+    );
+    const card = container.querySelector('[data-section="card"]') as HTMLElement;
+    expect(card.className).toMatch(/cursor-not-allowed/);
+    expect(card.className).toMatch(/opacity-60/);
+    expect(card.className).not.toMatch(/cursor-pointer/);
+    expect(card.getAttribute('data-disabled')).toBe('true');
+    expect(card.getAttribute('data-interactive')).toBe('false');
+  });
+
+  it('disabled suppresses the onClick handler', () => {
+    const onClick = vi.fn();
+    const { container } = render(
+      <Card interactive disabled onClick={onClick}>
+        body
+      </Card>,
+    );
+    const card = container.querySelector('[data-section="card"]') as HTMLElement;
+    card.click();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('disabled sets aria-disabled="true" on the wrapper', () => {
+    const { container } = render(
+      <Card interactive disabled>
+        body
+      </Card>,
+    );
+    const card = container.querySelector('[data-section="card"]') as HTMLElement;
+    expect(card.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('disabled + non-interactive card still shows the disabled chrome', () => {
+    const { container } = render(<Card disabled>body</Card>);
+    const card = container.querySelector('[data-section="card"]') as HTMLElement;
+    expect(card.className).toMatch(/opacity-60/);
+  });
+});
+
+describe('<Card> data-section selectors', () => {
+  it('exposes data-section="card" on every render', () => {
+    const { container } = render(<Card>body</Card>);
+    expect(
+      container.querySelector('[data-section="card"]'),
+    ).not.toBeNull();
+  });
+
+  it('data-interactive reflects the interactive prop (no link, no disabled)', () => {
+    const { container, rerender } = render(<Card>body</Card>);
+    const get = () =>
+      container.querySelector('[data-section="card"]') as HTMLElement;
+    expect(get().getAttribute('data-interactive')).toBe('false');
+    rerender(<Card interactive>body</Card>);
+    expect(get().getAttribute('data-interactive')).toBe('true');
+  });
+});
