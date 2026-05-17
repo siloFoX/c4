@@ -4,14 +4,31 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { useReducedMotion } from '../../hooks/use-reduced-motion';
 
-export type DrawerSide = 'left' | 'right';
+// (v1.11.297, TODO 11.279) Side-anchored Drawer primitive.
+// Supports four anchor edges (left / right / top / bottom),
+// each with its own size axis (width for left+right, height
+// for top+bottom). Focus trap + Esc + backdrop-click close +
+// portal mount are unchanged from the earlier left/right
+// version. The slide animation is now gated by
+// `useReducedMotion` so an operator with
+// `prefers-reduced-motion: reduce` sees an instant open/close
+// instead of the 200ms slide.
+
+export type DrawerSide = 'left' | 'right' | 'top' | 'bottom';
 
 export interface DrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   side?: DrawerSide;
+  // For left/right drawers. Accepts a number (px) or any CSS
+  // length string. Ignored for top/bottom.
   width?: number | string;
+  // For top/bottom drawers. Accepts a number (px) or any CSS
+  // length string. Ignored for left/right. Defaults to a
+  // sensible value when omitted (`50%` for top/bottom).
+  height?: number | string;
   title?: ReactNode;
   description?: ReactNode;
   showCloseButton?: boolean;
@@ -21,12 +38,33 @@ export interface DrawerProps {
   children: ReactNode;
 }
 
+// Per-side anchor classes -- where the panel docks, plus the
+// matching border so the divider sits on the canvas side.
+const SIDE_ANCHOR_CLASS: Record<DrawerSide, string> = {
+  left: 'left-0 top-0 bottom-0 border-r border-border',
+  right: 'right-0 top-0 bottom-0 border-l border-border',
+  top: 'left-0 right-0 top-0 border-b border-border',
+  bottom: 'left-0 right-0 bottom-0 border-t border-border',
+};
+
+// Per-side flex direction. Left/right drawers run their body
+// + footer column-wise; top/bottom drawers do the same so the
+// title bar sits flush along the docking edge. Kept verbose to
+// stay future-proof against per-side overrides.
+const SIDE_FLEX_CLASS: Record<DrawerSide, string> = {
+  left: 'flex-col',
+  right: 'flex-col',
+  top: 'flex-col',
+  bottom: 'flex-col',
+};
+
 export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(function Drawer(
   {
     open,
     onOpenChange,
     side = 'right',
     width = '320px',
+    height,
     title,
     description,
     showCloseButton = true,
@@ -42,11 +80,12 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(function Drawer(
 
   const titleId = useId();
   const descriptionId = useId();
+  const reducedMotion = useReducedMotion();
 
   useFocusTrap(panelRef, {
     active: open,
     restoreFocusOnUnmount: true,
-    onEscape: closeOnEsc ? () => onOpenChange(false) : undefined,
+    ...(closeOnEsc ? { onEscape: () => onOpenChange(false) } : {}),
   });
 
   const handleBackdropClick = useCallback(() => {
@@ -56,19 +95,36 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(function Drawer(
   if (!open) return null;
   if (typeof document === 'undefined') return null;
 
-  const widthStyle: CSSProperties = {
-    width: typeof width === 'number' ? `${width}px` : width,
-  };
-
-  const sideClasses =
-    side === 'left'
-      ? 'left-0 border-r border-border'
-      : 'right-0 border-l border-border';
+  // Side-aware sizing. For left/right drawers we set `width`;
+  // for top/bottom we set `height`. `maxWidth: 100%` /
+  // `maxHeight: 100%` clamps the panel so a number/length
+  // larger than the viewport still fits.
+  const sizeStyle: CSSProperties =
+    side === 'left' || side === 'right'
+      ? {
+          width: typeof width === 'number' ? `${width}px` : width,
+          maxWidth: '100%',
+        }
+      : {
+          height:
+            height === undefined
+              ? '50%'
+              : typeof height === 'number'
+                ? `${height}px`
+                : height,
+          maxHeight: '100%',
+        };
 
   const node = (
     <div
       data-drawer-backdrop
-      className="fixed inset-0 z-[100] bg-black/40 animate-in fade-in"
+      data-section="drawer-backdrop"
+      className={cn(
+        'fixed inset-0 z-[100] bg-black/40',
+        // Backdrop fade only when motion is allowed; reduced-
+        // motion users get an instant overlay.
+        !reducedMotion && 'animate-in fade-in',
+      )}
       onClick={handleBackdropClick}
     >
       <div
@@ -79,16 +135,18 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(function Drawer(
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         data-drawer-side={side}
-        style={widthStyle}
+        data-section="drawer"
+        data-reduced-motion={reducedMotion ? 'true' : 'false'}
+        style={sizeStyle}
         className={cn(
-          // (v1.11.253, TODO 11.235) `motion-duration-normal` +
-          // `motion-ease-standard` route Drawer transform through
-          // the central scale (`styles/motion.css`) instead of
-          // Tailwind's default 150ms/ease-in-out. Standard easing
-          // matches Dialog / Popover / Toast so a Drawer that
-          // opens beside a Dialog reads on the same curve.
-          'fixed top-0 bottom-0 flex max-w-full flex-col bg-background text-foreground shadow-xl outline-none transition-transform motion-duration-normal motion-ease-standard',
-          sideClasses,
+          'fixed flex max-w-full max-h-full bg-background text-foreground shadow-xl outline-none',
+          SIDE_FLEX_CLASS[side],
+          SIDE_ANCHOR_CLASS[side],
+          // (v1.11.297) Slide transition only when the
+          // operator allows motion. Otherwise the panel
+          // appears in place with no transform animation.
+          !reducedMotion &&
+            'transition-transform motion-duration-normal motion-ease-standard',
           className,
         )}
         onClick={(e) => e.stopPropagation()}

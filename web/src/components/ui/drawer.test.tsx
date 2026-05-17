@@ -216,4 +216,164 @@ describe('<Drawer>', () => {
   it('exposes a stable displayName for devtools', () => {
     expect(Drawer.displayName).toBe('Drawer');
   });
+
+  // (v1.11.297, TODO 11.279) New top / bottom sides + height
+  // prop + reduced-motion gate + data-section selectors.
+
+  it('side="top" anchors to the top edge with the matching border', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()} side="top">
+        <button>x</button>
+      </Drawer>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute('data-drawer-side', 'top');
+    expect(dialog.className).toMatch(/top-0/);
+    expect(dialog.className).toMatch(/border-b/);
+  });
+
+  it('side="bottom" anchors to the bottom edge with the matching border', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()} side="bottom">
+        <button>x</button>
+      </Drawer>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute('data-drawer-side', 'bottom');
+    expect(dialog.className).toMatch(/bottom-0/);
+    expect(dialog.className).toMatch(/border-t/);
+  });
+
+  it('top/bottom drawers use the height prop (number => px)', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()} side="top" height={240}>
+        <button>x</button>
+      </Drawer>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.style.height).toBe('240px');
+  });
+
+  it('top/bottom drawers use the height prop (string passes through)', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()} side="bottom" height="40vh">
+        <button>x</button>
+      </Drawer>,
+    );
+    expect(screen.getByRole('dialog').style.height).toBe('40vh');
+  });
+
+  it('top/bottom drawers default to height 50% when height is omitted', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()} side="top">
+        <button>x</button>
+      </Drawer>,
+    );
+    expect(screen.getByRole('dialog').style.height).toBe('50%');
+  });
+
+  it('left/right drawers ignore the height prop entirely', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()} side="left" height={500} width={300}>
+        <button>x</button>
+      </Drawer>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.style.height).toBe('');
+    expect(dialog.style.width).toBe('300px');
+  });
+
+  it('exposes data-section="drawer" + data-section="drawer-backdrop"', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()}>
+        <button>x</button>
+      </Drawer>,
+    );
+    expect(
+      document.querySelector('[data-section="drawer-backdrop"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('[data-section="drawer"]'),
+    ).not.toBeNull();
+  });
+
+  it('data-reduced-motion is "false" when prefers-reduced-motion is allowed', () => {
+    render(
+      <Drawer open onOpenChange={vi.fn()}>
+        <button>x</button>
+      </Drawer>,
+    );
+    expect(
+      screen.getByRole('dialog').getAttribute('data-reduced-motion'),
+    ).toBe('false');
+  });
+
+  it('drops the transition-transform class when reduced motion is set', () => {
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation((q: string) => ({
+        matches: true,
+        media: q,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        onchange: null,
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    try {
+      render(
+        <Drawer open onOpenChange={vi.fn()}>
+          <button>x</button>
+        </Drawer>,
+      );
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).not.toHaveClass('transition-transform');
+      expect(dialog.getAttribute('data-reduced-motion')).toBe('true');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: originalMatchMedia,
+      });
+    }
+  });
+
+  it('drops the backdrop fade-in class when reduced motion is set', () => {
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation((q: string) => ({
+        matches: true,
+        media: q,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        onchange: null,
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    try {
+      render(
+        <Drawer open onOpenChange={vi.fn()}>
+          <button>x</button>
+        </Drawer>,
+      );
+      const backdrop = document.querySelector(
+        '[data-section="drawer-backdrop"]',
+      ) as HTMLElement;
+      expect(backdrop).not.toHaveClass('animate-in');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: originalMatchMedia,
+      });
+    }
+  });
 });

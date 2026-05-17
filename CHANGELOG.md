@@ -4,6 +4,81 @@
 
 (no entries -- next release window)
 
+## [1.11.297] - 2026-05-17 -- UI: Drawer top/bottom + motion-safe (TODO 11.279)
+
+Component-scope-only enhancement of the existing `Drawer`
+primitive. No daemon-side change and no `c4` CLI surface
+change.
+
+### Added (Drawer primitive)
+
+- `side="top" | "bottom"` -- the side axis now supports all
+  four anchor edges. The existing `left` / `right` behaviour
+  is preserved byte-for-byte; the new variants dock the panel
+  along the top or bottom edge of the viewport with the
+  matching divider border.
+- `height?: number | string` -- size knob for `top` / `bottom`
+  drawers (analogous to the existing `width` for `left` /
+  `right`). Number coerces to px; string passes through any
+  CSS length (`"40%"`, `"30vh"`, etc). Defaults to `"50%"` when
+  omitted. Ignored on `left` / `right` drawers so a single
+  callsite can flip sides without rewiring its size props.
+- Reduced-motion gate -- the slide transition + backdrop
+  fade-in animations are now only applied when the operator's
+  `prefers-reduced-motion` setting is `no-preference`.
+  Reduced-motion users see an instant open / close (no
+  `transition-transform`, no `animate-in fade-in` on the
+  backdrop), exposed via `data-reduced-motion="true|false"`
+  on the panel.
+- `data-section="drawer"` on the panel + `data-section="drawer-backdrop"`
+  on the backdrop scrim for e2e selectors.
+- `maxWidth: 100%` / `maxHeight: 100%` clamping so an
+  oversized number/length still fits the viewport.
+
+### Adopted
+
+- `web/src/pages/DesignSystem.tsx` -- new "Drawer" demo
+  section renders four trigger buttons (left / right / top /
+  bottom) so designers can scan the motion + size shape per
+  side. The demo passes `height="40%"` for the top/bottom
+  variants to show the height-prop affordance.
+
+### Deferred (dispatch follow-ups)
+
+- HistoryView filter drawer: the existing `<aside>` filter
+  sidebar is always-visible (full-width band on mobile,
+  fixed 320px column on desktop) and spans ~270 lines of
+  stateful filters. A clean mobile-drawer adoption would
+  require duplicating the filter-content rendering or
+  refactoring the aside into a reusable component first.
+  Tracked as a follow-up.
+- Sessions detail drawer: `SessionsRightPane` already adopts
+  `DetailPanel` (which is a `Drawer` wrapper) on desktop. A
+  bottom-anchored mobile drawer for the detail pane is the
+  next iteration -- left for a focused mobile-UX pass.
+
+### Tests
+
+- `web/src/components/ui/drawer.test.tsx` -- 13 new vitest
+  cases: side="top" anchor + border, side="bottom" anchor +
+  border, top/bottom height prop (number -> px), height as
+  string passes through, default `50%` height when omitted,
+  height ignored on left/right, `data-section="drawer"` +
+  `data-section="drawer-backdrop"` selectors,
+  `data-reduced-motion="false"` baseline, `transition-transform`
+  dropped under reduced motion, backdrop `animate-in` dropped
+  under reduced motion. All 29 (16 original + 13 new) green.
+- Dependent suites (detail-panel + HelpDrawer + DesignSystem)
+  re-run clean -- 99 / 99 across the four touched files.
+
+### Notes
+
+- The reduced-motion gate uses `useReducedMotion()` (the
+  same hook Tooltip / Dialog / Toast already use), so the
+  setting is honoured on first paint AND on live media-query
+  changes (the operator flipping the OS toggle while the
+  drawer is open).
+
 ## [1.11.296] - 2026-05-17 -- UI: BadgeCounter primitive (TODO 11.278)
 
 New `BadgeCounter` primitive that supersedes the inline count
