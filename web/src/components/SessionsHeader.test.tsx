@@ -61,7 +61,7 @@ describe('<SessionsHeader>', () => {
   it('renders the search input with its i18n aria-label', () => {
     renderHeader();
     expect(
-      screen.getByRole('textbox', { name: 'Search sessions' }),
+      screen.getByRole('searchbox', { name: 'Search sessions' }),
     ).toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe('<SessionsHeader>', () => {
 
   it('reflects the controlled query value on the input element', () => {
     renderHeader({ query: 'abc' });
-    const input = screen.getByRole('textbox', {
+    const input = screen.getByRole('searchbox', {
       name: 'Search sessions',
     }) as HTMLInputElement;
     expect(input.value).toBe('abc');
@@ -82,7 +82,7 @@ describe('<SessionsHeader>', () => {
 
   it('renders an empty controlled query value as empty string on the input', () => {
     renderHeader({ query: '' });
-    const input = screen.getByRole('textbox', {
+    const input = screen.getByRole('searchbox', {
       name: 'Search sessions',
     }) as HTMLInputElement;
     expect(input.value).toBe('');
@@ -98,7 +98,7 @@ describe('<SessionsHeader>', () => {
 
   it('fires onQuery with the new value when the search input receives a keystroke', async () => {
     const { user, onQuery } = renderHeader({ query: '' });
-    const input = screen.getByRole('textbox', { name: 'Search sessions' });
+    const input = screen.getByRole('searchbox', { name: 'Search sessions' });
     await user.type(input, 'x');
     expect(onQuery).toHaveBeenCalledTimes(1);
     expect(onQuery).toHaveBeenCalledWith('x');
@@ -106,14 +106,14 @@ describe('<SessionsHeader>', () => {
 
   it('fires onQuery once per character typed (no internal buffering)', async () => {
     const { user, onQuery } = renderHeader({ query: '' });
-    const input = screen.getByRole('textbox', { name: 'Search sessions' });
+    const input = screen.getByRole('searchbox', { name: 'Search sessions' });
     await user.type(input, 'abc');
     expect(onQuery).toHaveBeenCalledTimes(3);
   });
 
   it('does NOT mutate the controlled value internally (parent owns the state)', async () => {
     const { user } = renderHeader({ query: 'pinned' });
-    const input = screen.getByRole('textbox', {
+    const input = screen.getByRole('searchbox', {
       name: 'Search sessions',
     }) as HTMLInputElement;
     await user.type(input, 'X');
@@ -285,7 +285,7 @@ describe('<SessionsHeader>', () => {
 
   it('rerendering with a new query value updates the input element', () => {
     const { rerender, props } = renderHeader({ query: 'one' });
-    const input = screen.getByRole('textbox', {
+    const input = screen.getByRole('searchbox', {
       name: 'Search sessions',
     }) as HTMLInputElement;
     expect(input.value).toBe('one');
@@ -333,13 +333,13 @@ describe('<SessionsHeader>', () => {
   it('re-renders the search-input aria-label in Korean when the locale flips', () => {
     renderHeader();
     expect(
-      screen.getByRole('textbox', { name: 'Search sessions' }),
+      screen.getByRole('searchbox', { name: 'Search sessions' }),
     ).toBeInTheDocument();
     act(() => {
       setLocale('ko');
     });
     expect(
-      screen.queryByRole('textbox', { name: 'Search sessions' }),
+      screen.queryByRole('searchbox', { name: 'Search sessions' }),
     ).not.toBeInTheDocument();
   });
 
