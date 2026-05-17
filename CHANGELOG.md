@@ -4,6 +4,72 @@
 
 (no entries -- next release window)
 
+## [1.11.307] - 2026-05-17 -- UI: Checkbox size + error state + data selectors (TODO 11.289)
+
+Component-scope-only enhancement of the existing `Checkbox`
+primitive. The default surface (md size, no error) is preserved
+byte-for-byte; new affordances opt in via the new `size` and
+`error` props.
+
+### Added (Checkbox primitive)
+
+- `size: 'sm' | 'md'` -- two visual sizes. `md` (default)
+  keeps the existing h-4 w-4 footprint byte-for-byte. `sm`
+  lands at h-3.5 w-3.5 for dense filter rows (e.g., the
+  Templates filter sidebar where the 16-px md was too tall
+  next to the chip text).
+- `error: boolean` (default false) -- flips `aria-invalid`
+  on the input AND swaps the border palette from
+  `border-input` to `border-destructive` so the surface
+  signals validation failure without the caller wrapping the
+  checkbox in a separate error chrome.
+- Data-attribute selectors for e2e:
+  - `data-section="checkbox"` on the input.
+  - `data-section="checkbox-row"` on the label-mode wrapper.
+  - `data-section="checkbox-label"` on the label text span.
+  - `data-size="sm|md"` on the input.
+  - `data-error="true|false"` on the input.
+  - `data-indeterminate="true|false"` on the input so e2e
+    can target the mixed state without inspecting the
+    DOM-only `indeterminate` property.
+
+### Adopted
+
+- Primitive enhancement only this commit. Existing Checkbox
+  call sites (ColumnPicker + every page that mounts a
+  bulk-select header) inherit the new defaults + data
+  attributes without any caller change. A follow-up will
+  thread `size="sm"` into the Templates filter chip rows
+  where the dense layout calls for the smaller footprint.
+
+### Deferred (dispatch follow-ups)
+
+- Workers bulk-select header + Sessions multi-select +
+  Templates filter rows size + error rollout: the size +
+  error props are now available; threading them through the
+  per-page mount points is a follow-up.
+
+### Tests
+
+- `web/src/components/ui/checkbox.test.tsx` -- 6 new vitest
+  cases: default md size dimensions + data-size, sm size
+  dimensions + data-size, error flips aria-invalid + swaps
+  border-destructive, error=false leaves border-input,
+  data-section + data-indeterminate selectors, label slot
+  wraps in data-section="checkbox-row" + label-text span.
+  All 15 (9 original + 6 new) green.
+- Dependent ColumnPicker suite re-runs clean. 25 / 25
+  across the two touched files.
+
+### Notes
+
+- `aria-invalid` is set conditionally via `error || undefined`
+  so the attribute is absent (not `"false"`) when there is
+  no error -- avoids cluttering the accessibility tree.
+- `data-error` is always emitted as `"true"` or `"false"`
+  so a CSS attribute-selector can drive theming without the
+  null-check the `aria-invalid` attribute would require.
+
 ## [1.11.306] - 2026-05-17 -- UI: RadioGroup primitive (TODO 11.288)
 
 New `RadioGroup` primitive at `web/src/components/ui/radio-group.tsx`.
