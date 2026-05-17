@@ -18,7 +18,11 @@ describe('<Tooltip> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
         class="relative inline-flex"
+        data-arrow="false"
+        data-placement="top"
+        data-section="tooltip"
         data-tooltip-root="true"
+        data-visible="false"
       >
         <button
           type="button"
@@ -46,7 +50,11 @@ describe('<Tooltip> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
         class="relative inline-flex"
+        data-arrow="false"
+        data-placement="top"
+        data-section="tooltip"
         data-tooltip-root="true"
+        data-visible="true"
       >
         <button
           aria-describedby=":r1:"
@@ -75,7 +83,11 @@ describe('<Tooltip> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
         class="relative inline-flex"
+        data-arrow="false"
+        data-placement="bottom"
+        data-section="tooltip"
         data-tooltip-root="true"
+        data-visible="true"
       >
         <button
           aria-describedby=":r2:"
@@ -104,7 +116,11 @@ describe('<Tooltip> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
         class="relative inline-flex"
+        data-arrow="false"
+        data-placement="left"
+        data-section="tooltip"
         data-tooltip-root="true"
+        data-visible="true"
       >
         <button
           aria-describedby=":r3:"
@@ -133,7 +149,11 @@ describe('<Tooltip> snapshot baselines', () => {
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
         class="relative inline-flex"
+        data-arrow="false"
+        data-placement="right"
+        data-section="tooltip"
         data-tooltip-root="true"
+        data-visible="true"
       >
         <button
           aria-describedby=":r4:"

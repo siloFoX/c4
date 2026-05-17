@@ -1,8 +1,13 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import Login from './components/Login';
 import { LoadingSkeleton } from './pages/PageFrame';
 import { useToggle } from './lib/use-toggle';
 import { useViewportSize } from './hooks/use-viewport-size';
+import {
+  CommandPalette,
+  useCommandPaletteShortcut,
+} from './components/ui/command-palette';
+import type { Command } from './components/ui/command-palette';
 // (v1.10.509) Top-level views are lazy-loaded so the main bundle
 // only carries Login + AppHeader + Sidebar + the default
 // WorkerDetail / ChatView / ControlPanel triple. The rest pull
@@ -81,6 +86,127 @@ export default function App() {
     onToggleOpen: toggleSidebarOpen,
   });
 
+  // (v1.11.295, TODO 11.277) Command palette open state +
+  // Cmd+K / Ctrl+K shortcut. Commands are defined inline below
+  // so they close over the current setTopView / setSelectedWorker
+  // / dispatch helpers.
+  const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
+  const togglePalette = useCallback(
+    () => setPaletteOpen((v) => !v),
+    [],
+  );
+  useCommandPaletteShortcut(togglePalette);
+
+  const paletteCommands = useMemo<Command[]>(
+    () => [
+      {
+        id: 'go.workers',
+        label: 'Go to Workers',
+        group: 'Navigate',
+        shortcut: 'g w',
+        keywords: ['home', 'list'],
+        action: () => {
+          setTopView('workers');
+          setSelectedWorker(null);
+        },
+      },
+      {
+        id: 'go.history',
+        label: 'Go to History',
+        group: 'Navigate',
+        action: () => setTopView('history'),
+      },
+      {
+        id: 'go.sessions',
+        label: 'Go to Sessions',
+        group: 'Navigate',
+        action: () => setTopView('sessions'),
+      },
+      {
+        id: 'go.meetings',
+        label: 'Go to Meetings',
+        group: 'Navigate',
+        action: () => setTopView('meetings'),
+      },
+      {
+        id: 'go.specialists',
+        label: 'Go to Specialists',
+        group: 'Navigate',
+        action: () => setTopView('specialists'),
+      },
+      {
+        id: 'go.wiki',
+        label: 'Go to Wiki',
+        group: 'Navigate',
+        action: () => setTopView('wiki'),
+      },
+      {
+        id: 'go.chat',
+        label: 'Go to Chat',
+        group: 'Navigate',
+        action: () => setTopView('chat'),
+      },
+      {
+        id: 'go.workflows',
+        label: 'Go to Workflows',
+        group: 'Navigate',
+        action: () => setTopView('workflows'),
+      },
+      {
+        id: 'go.autonomous',
+        label: 'Go to Autonomous',
+        group: 'Navigate',
+        action: () => setTopView('autonomous'),
+      },
+      {
+        id: 'go.features',
+        label: 'Go to Features',
+        group: 'Navigate',
+        action: () => setTopView('features'),
+      },
+      {
+        id: 'app.settings',
+        label: 'Open Settings',
+        group: 'App',
+        keywords: ['preferences', 'config', 'theme'],
+        action: () => setTopView('settings'),
+      },
+      {
+        id: 'app.toggle-sidebar',
+        label: 'Toggle Sidebar',
+        group: 'App',
+        shortcut: 'Ctrl+B',
+        keywords: ['hide', 'show'],
+        action: toggleSidebarCollapsed,
+      },
+      {
+        id: 'app.focus-search',
+        label: 'Focus Search',
+        group: 'App',
+        keywords: ['find', 'filter'],
+        action: () => {
+          if (typeof document === 'undefined') return;
+          const search =
+            document.querySelector<HTMLElement>(
+              '[data-section="search-bar"] input',
+            ) ??
+            document.querySelector<HTMLElement>('input[type="search"]');
+          if (search) search.focus();
+        },
+      },
+      {
+        id: 'app.logout',
+        label: 'Logout',
+        group: 'App',
+        keywords: ['sign out'],
+        action: () => {
+          void logout().then(() => setAnon());
+        },
+      },
+    ],
+    [setTopView, setSelectedWorker, toggleSidebarCollapsed, setAnon],
+  );
+
   // (v1.11.250, TODO 11.232) Multi-key chord shortcuts.
   //   gg  -> scroll the current view to the top
   //   gh  -> "home" = workers tab + clear the selected worker
@@ -136,6 +262,14 @@ export default function App() {
     <AnnounceRegion>
     <div className="flex h-screen flex-col bg-background text-foreground">
       <HelpUIRoot onNavigateTopView={setTopView} />
+      {/* (v1.11.295, TODO 11.277) Cmd+K command palette. The
+          shortcut hook is registered above; this mount renders
+          the modal portal when paletteOpen flips true. */}
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        commands={paletteCommands}
+      />
       {/* (v1.11.134) Subtle gradient backdrop behind the header.
           Stops sourced from the ARPS design system tokens.css:
           --surface-canvas (220 18% 8%) -> --surface-panel (220 15% 12%).
