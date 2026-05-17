@@ -296,4 +296,126 @@ describe('<Tabs>', () => {
     await user.hover(screen.getByRole('tab', { name: 'Two' }));
     expect(onPrefetch).not.toHaveBeenCalled();
   });
+
+  // (v1.11.299, TODO 11.281) Variant + overflow + scroll-on-focus
+  // + data-attribute selectors.
+
+  it('default variant is "pill" and applies the rounded border tablist', () => {
+    render(<Tabs value="one" onChange={() => {}} items={ITEMS} />);
+    const tablist = screen.getByRole('tablist');
+    expect(tablist.getAttribute('data-variant')).toBe('pill');
+    expect(tablist.className).toMatch(/rounded-md/);
+    expect(tablist.className).toMatch(/border-border/);
+  });
+
+  it('variant="line" replaces the rounded border with the bottom-border tablist', () => {
+    render(
+      <Tabs value="one" onChange={() => {}} items={ITEMS} variant="line" />,
+    );
+    const tablist = screen.getByRole('tablist');
+    expect(tablist.getAttribute('data-variant')).toBe('line');
+    expect(tablist.className).toMatch(/border-b/);
+    expect(tablist.className).not.toMatch(/rounded-md/);
+  });
+
+  it('variant="line" renders an underline indicator only under the active tab', () => {
+    const { container } = render(
+      <Tabs value="two" onChange={() => {}} items={ITEMS} variant="line" />,
+    );
+    const underlines = container.querySelectorAll(
+      '[data-section="tab-underline"]',
+    );
+    expect(underlines).toHaveLength(1);
+    const activeTab = screen.getByRole('tab', { name: 'Two' });
+    expect(activeTab.contains(underlines[0]!)).toBe(true);
+  });
+
+  it('variant="pill" does NOT render the underline indicator', () => {
+    const { container } = render(
+      <Tabs value="one" onChange={() => {}} items={ITEMS} variant="pill" />,
+    );
+    expect(
+      container.querySelector('[data-section="tab-underline"]'),
+    ).toBeNull();
+  });
+
+  it('default overflow is "scroll" with the horizontal scroll classes', () => {
+    render(<Tabs value="one" onChange={() => {}} items={ITEMS} />);
+    const tablist = screen.getByRole('tablist');
+    expect(tablist.getAttribute('data-overflow')).toBe('scroll');
+    expect(tablist.className).toMatch(/overflow-x-auto/);
+  });
+
+  it('overflow="wrap" drops the scroll classes and adds flex-wrap', () => {
+    render(
+      <Tabs value="one" onChange={() => {}} items={ITEMS} overflow="wrap" />,
+    );
+    const tablist = screen.getByRole('tablist');
+    expect(tablist.getAttribute('data-overflow')).toBe('wrap');
+    expect(tablist.className).toMatch(/flex-wrap/);
+    expect(tablist.className).not.toMatch(/overflow-x-auto/);
+  });
+
+  it('data-tab-active="true" flips on the active tab and false on the others', () => {
+    render(<Tabs value="two" onChange={() => {}} items={ITEMS} />);
+    expect(
+      screen.getByRole('tab', { name: 'Two' }).getAttribute('data-tab-active'),
+    ).toBe('true');
+    expect(
+      screen.getByRole('tab', { name: 'One' }).getAttribute('data-tab-active'),
+    ).toBe('false');
+  });
+
+  it('exposes data-section="tabs" on the tablist for e2e selectors', () => {
+    render(<Tabs value="one" onChange={() => {}} items={ITEMS} />);
+    expect(
+      screen.getByRole('tablist').getAttribute('data-section'),
+    ).toBe('tabs');
+  });
+
+  it('scrolls the active tab into view when value changes', () => {
+    const scrollSpy = vi.fn();
+    // Stub scrollIntoView on every <button> mounted in this run.
+    const origScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollSpy as never;
+    try {
+      const { rerender } = render(
+        <Tabs value="one" onChange={() => {}} items={ITEMS} />,
+      );
+      // Initial mount fires once (effect runs on first paint).
+      scrollSpy.mockClear();
+      rerender(<Tabs value="two" onChange={() => {}} items={ITEMS} />);
+      expect(scrollSpy).toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = origScrollIntoView;
+    }
+  });
+
+  it('scrollOnFocus=false skips the scrollIntoView call', () => {
+    const scrollSpy = vi.fn();
+    const origScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollSpy as never;
+    try {
+      const { rerender } = render(
+        <Tabs
+          value="one"
+          onChange={() => {}}
+          items={ITEMS}
+          scrollOnFocus={false}
+        />,
+      );
+      scrollSpy.mockClear();
+      rerender(
+        <Tabs
+          value="two"
+          onChange={() => {}}
+          items={ITEMS}
+          scrollOnFocus={false}
+        />,
+      );
+      expect(scrollSpy).not.toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = origScrollIntoView;
+    }
+  });
 });

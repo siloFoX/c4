@@ -4,6 +4,101 @@
 
 (no entries -- next release window)
 
+## [1.11.299] - 2026-05-17 -- UI: Tabs variants + scroll-into-view (TODO 11.281)
+
+Component-scope-only enhancement of the existing `Tabs`
+primitive. The existing `pill` look is preserved byte-for-byte
+(via the default variant) and the existing TopTabs adapter
+continues to work unchanged.
+
+### Added (Tabs primitive)
+
+- `variant?: 'pill' | 'line'` -- two visual flavours.
+  - `pill` (default) keeps the current rounded-border
+    tablist + filled-background active tab look. Existing
+    call sites (TopTabs / DetailTabs) inherit this byte for
+    byte.
+  - `line` swaps in a transparent tablist with a thin
+    bottom-border divider plus a 2px primary-color underline
+    drawn beneath the active tab (Material / iOS section-tab
+    convention). The underline is a `<span aria-hidden>` so
+    SR users still hear the active tab's `aria-selected`
+    state; sighted users get the visual indicator.
+- `overflow?: 'scroll' | 'wrap'` -- overflow handling for
+  long strips.
+  - `scroll` (default) keeps the existing horizontal scroll
+    + invisible scrollbar.
+  - `wrap` drops the scroll classes and adds `flex-wrap` so
+    long strips break to a second row instead. Useful in
+    narrow sidebar panels with vertical room but no
+    horizontal room.
+- `scrollOnFocus?: boolean` (default true) -- when `value`
+  changes the new active tab is brought into view via
+  `scrollIntoView({ block: 'nearest', inline: 'nearest' })`.
+  Guarded against jsdom (the function is undefined there) so
+  unit tests do not need to stub it.
+- `data-section="tabs"` on the tablist + `data-variant` +
+  `data-overflow` attrs + per-tab `data-tab-active="true|false"`
+  so e2e selectors match the variant / active row without
+  parsing class strings.
+- `data-section="tab-underline"` on the line-variant
+  underline so the active indicator can be visual-regression
+  tested.
+
+### Adopted
+
+- `web/src/pages/DesignSystem.tsx` -- new "Tabs" demo
+  section renders the pill + line variants side by side
+  with a 5-item TABS_ITEMS array so designers can scan the
+  visual difference and the active-tab keyboard nav at the
+  same time.
+
+### Deferred (dispatch follow-ups)
+
+- Settings sections: the page is currently structured as a
+  stack of `<Panel>` components (Appearance / Layout) with
+  inline ChoiceGroup widgets. Converting it to a Tabs
+  layout would either fold the panels into a single
+  tab-switch surface or duplicate the panel chrome inside
+  tab panels. Both are larger restructures than this TODO's
+  primitive-enhancement scope. Tracked as a follow-up.
+- Health categories: the page already adopted Accordion for
+  category groupings (TODO 11.272). A Tabs-vs-Accordion
+  swap would need a dedicated UX pass to decide which one
+  matches the page's "scan all categories at once" reading
+  mode. Tracked as a follow-up.
+- Profiles flat groupings: the Profiles page renders a
+  flat searchable list, not grouped tabs. Adding Tabs would
+  need new grouping logic on the data shape (managers vs
+  workers? safe vs elevated?). Tracked as a follow-up.
+
+### Tests
+
+- `web/src/components/ui/tabs.test.tsx` -- 11 new vitest
+  cases: default variant="pill" + rounded border classes,
+  variant="line" + border-b classes + no rounded border,
+  line variant renders the underline only under the active
+  tab, pill variant has no underline, default
+  overflow="scroll" + overflow-x-auto, overflow="wrap" +
+  flex-wrap (and the scroll classes drop), data-tab-active
+  flips per row, data-section="tabs" selector, scrollIntoView
+  fires on value change, scrollOnFocus=false skips the call.
+  All 35 (24 original + 11 new) green.
+- Dependent suites (TopTabs + DesignSystem) re-run clean --
+  63 / 63 across the three touched files.
+
+### Notes
+
+- The `useEffect` that drives the scroll-into-view call
+  uses `CSS.escape(value)` when available so a tab value
+  with reserved selector characters (e.g.,
+  `'workflow:run'`) still resolves to a unique
+  `[data-tab-value="..."]` selector.
+- The line-variant underline is drawn with `-bottom-px` so
+  it sits flush with the tablist's `border-b`; matching the
+  border width keeps the active indicator visually anchored
+  to the divider line beneath the strip.
+
 ## [1.11.298] - 2026-05-17 -- UI: Toast notification system (TODO 11.280)
 
 New `Toast` primitive + `ToastProvider` context-based API

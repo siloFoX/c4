@@ -23,6 +23,7 @@ import {
   Dialog,
   Drawer,
   DropdownMenu,
+  Tabs,
   ToastProvider,
   useToast,
   EmptyState,
@@ -622,6 +623,47 @@ function ToastDemo() {
   );
 }
 
+// (v1.11.299, TODO 11.281) Tabs demo. Renders all four
+// variant x overflow permutations so designers can scan the
+// pill vs line shape and the scroll vs wrap behaviour before
+// adopting the primitive on a settings / health / detail page.
+const TABS_ITEMS = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'limits', label: 'Limits' },
+  { value: 'audit', label: 'Audit log' },
+  { value: 'webhooks', label: 'Webhooks' },
+  { value: 'experiments', label: 'Experiments' },
+];
+
+function TabsDemo() {
+  const [pillValue, setPillValue] = useState('overview');
+  const [lineValue, setLineValue] = useState('overview');
+  return (
+    <Demo
+      name="Tabs"
+      description='Two visual variants ("pill" / "line") + overflow modes ("scroll" / "wrap"). Keyboard ArrowLeft/Right cycles with wrap; the active tab auto-scrolls into view.'
+      code={`<Tabs value={...} onChange={...} items={...} variant="line" />`}
+    >
+      <div className="flex flex-col gap-3">
+        <Tabs
+          ariaLabel="pill variant"
+          value={pillValue}
+          onChange={setPillValue}
+          items={TABS_ITEMS}
+          variant="pill"
+        />
+        <Tabs
+          ariaLabel="line variant"
+          value={lineValue}
+          onChange={setLineValue}
+          items={TABS_ITEMS}
+          variant="line"
+        />
+      </div>
+    </Demo>
+  );
+}
+
 function DropdownMenuDemo() {
   return (
     <Demo
@@ -1046,6 +1088,7 @@ const CATEGORIES: { label: string; demos: ReactNode }[] = [
         <DialogDemo />
         <DrawerDemo />
         <ToastDemo />
+        <TabsDemo />
         <DropdownMenuDemo />
         <FileTreeDemo />
       </>
