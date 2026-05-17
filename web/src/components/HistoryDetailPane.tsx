@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Clock, GitBranch, Hash } from 'lucide-react';
 import {
+  Avatar,
   Badge,
   Card,
   CardContent,
@@ -61,7 +62,22 @@ export default function HistoryDetailPane({ detail }: Props) {
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
       <CardHeader className="p-4 md:p-5">
-        <CardTitle>{detail.name}</CardTitle>
+        {/* (v1.11.300, TODO 11.282) Worker identity header now
+            leads with the Avatar tile + status overlay. Alive
+            workers wear an `online` dot; closed/exited workers
+            wear `offline`. The CardTitle stays alongside so SR
+            users still hear the worker name as the primary
+            label. */}
+        <div className="flex items-center gap-2">
+          <Avatar
+            name={detail.name}
+            size="md"
+            status={detail.alive ? 'online' : 'offline'}
+          />
+          <CardTitle className="flex-1 min-w-0 truncate">
+            {detail.name}
+          </CardTitle>
+        </div>
         <CardDescription>
           <DataList
             className="mt-1"

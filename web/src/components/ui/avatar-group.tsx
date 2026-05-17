@@ -38,12 +38,14 @@ export interface AvatarGroupProps extends HTMLAttributes<HTMLDivElement> {
 // produces the "stacked card" look. Larger sizes need more pull
 // so the visible part of each adjacent avatar stays consistent.
 const OVERLAP: Record<AvatarSize, string> = {
+  xs: '-ml-1.5',
   sm: '-ml-2',
   md: '-ml-3',
   lg: '-ml-4',
 };
 
 const CHIP_SIZE: Record<AvatarSize, string> = {
+  xs: 'h-5 w-5 text-[9px]',
   sm: 'h-6 w-6 text-[10px]',
   md: 'h-8 w-8 text-xs',
   lg: 'h-10 w-10 text-sm',
@@ -86,7 +88,12 @@ export function AvatarGroup({
             idx > 0 && overlapClass,
           )}
         >
-          <Avatar name={item.name} src={item.src} alt={item.alt} size={size} />
+          <Avatar
+            {...(item.name !== undefined ? { name: item.name } : {})}
+            {...(item.src !== undefined ? { src: item.src } : {})}
+            {...(item.alt !== undefined ? { alt: item.alt } : {})}
+            size={size}
+          />
         </span>
       ))}
       {overflow > 0 ? (

@@ -99,7 +99,14 @@ export default function SessionsAttachedSection({
                       className="flex-1 text-left"
                     >
                       <div className="flex items-center gap-2">
-                        <Avatar name={a.name} size="sm" />
+                        {/* (v1.11.300, TODO 11.282) Attached
+                            sessions are by definition online --
+                            the daemon is actively driving the
+                            JSONL file. The overlay surfaces that
+                            presence so the operator does not
+                            need to read the "attached" badge to
+                            confirm the row is live. */}
+                        <Avatar name={a.name} size="sm" status="online" />
                         <span className="font-mono text-xs">
                           {a.name}
                         </span>
