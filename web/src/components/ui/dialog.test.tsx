@@ -197,4 +197,175 @@ describe('<Dialog>', () => {
   it('exposes a stable displayName for devtools', () => {
     expect(Dialog.displayName).toBe('Dialog');
   });
+
+  // (v1.11.302, TODO 11.284) Variant + description + body
+  // scroll lock + backdrop opt-out + data-section selectors.
+
+  it('default variant uses the border-border class', () => {
+    render(
+      <Dialog open onClose={vi.fn()} title="t">
+        <button>x</button>
+      </Dialog>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('border-border');
+    expect(dialog.getAttribute('data-variant')).toBe('default');
+  });
+
+  it('variant="destructive" swaps in the destructive border + alert icon', () => {
+    render(
+      <Dialog open onClose={vi.fn()} title="Delete" variant="destructive">
+        <button>x</button>
+      </Dialog>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('border-destructive/40');
+    expect(dialog.getAttribute('data-variant')).toBe('destructive');
+    // AlertTriangle icon should be rendered (lucide-react svg).
+    expect(dialog.querySelector('svg')).not.toBeNull();
+  });
+
+  it('variant="confirmation" swaps in the warning border + helpcircle icon', () => {
+    render(
+      <Dialog open onClose={vi.fn()} title="Confirm" variant="confirmation">
+        <button>x</button>
+      </Dialog>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('border-warning/40');
+    expect(dialog.getAttribute('data-variant')).toBe('confirmation');
+  });
+
+  it('icon=false suppresses the auto-icon on destructive variant', () => {
+    render(
+      <Dialog
+        open
+        onClose={vi.fn()}
+        title="Delete"
+        variant="destructive"
+        icon={false}
+      >
+        <button>x</button>
+      </Dialog>,
+    );
+    expect(screen.getByRole('dialog').querySelector('svg')).toBeNull();
+  });
+
+  it('description prop renders as aria-describedby paragraph', () => {
+    render(
+      <Dialog
+        open
+        onClose={vi.fn()}
+        title="Title"
+        description="Body context paragraph."
+      >
+        <button>x</button>
+      </Dialog>,
+    );
+    const dialog = screen.getByRole('dialog');
+    const describedBy = dialog.getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    const descEl = document.getElementById(describedBy as string);
+    expect(descEl).not.toBeNull();
+    expect(descEl).toHaveTextContent('Body context paragraph.');
+  });
+
+  it('body scroll lock toggles document.body.style.overflow', () => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = ''; // baseline
+    const { rerender } = render(
+      <Dialog open onClose={vi.fn()} title="t">
+        <button>x</button>
+      </Dialog>,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+    rerender(
+      <Dialog open={false} onClose={vi.fn()} title="t">
+        <button>x</button>
+      </Dialog>,
+    );
+    expect(document.body.style.overflow).toBe('');
+    document.body.style.overflow = prev;
+  });
+
+  it('lockBodyScroll=false leaves body overflow untouched', () => {
+    const before = document.body.style.overflow;
+    render(
+      <Dialog
+        open
+        onClose={vi.fn()}
+        title="t"
+        lockBodyScroll={false}
+      >
+        <button>x</button>
+      </Dialog>,
+    );
+    expect(document.body.style.overflow).toBe(before);
+  });
+
+  it('closeOnBackdropClick=false ignores backdrop clicks', () => {
+    const onClose = vi.fn();
+    render(
+      <Dialog
+        open
+        onClose={onClose}
+        title="t"
+        closeOnBackdropClick={false}
+      >
+        <button>x</button>
+      </Dialog>,
+    );
+    const backdrop = document.querySelector(
+      '[data-section="dialog-backdrop"]',
+    ) as HTMLElement;
+    backdrop.click();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closeOnBackdropClick (default true) dismisses on backdrop click', () => {
+    const onClose = vi.fn();
+    render(
+      <Dialog open onClose={onClose} title="t">
+        <button>x</button>
+      </Dialog>,
+    );
+    const backdrop = document.querySelector(
+      '[data-section="dialog-backdrop"]',
+    ) as HTMLElement;
+    backdrop.click();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes data-section="dialog" on the panel + "dialog-backdrop" on the scrim', () => {
+    render(
+      <Dialog open onClose={vi.fn()} title="t">
+        <button>x</button>
+      </Dialog>,
+    );
+    expect(
+      document.querySelector('[data-section="dialog"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('[data-section="dialog-backdrop"]'),
+    ).not.toBeNull();
+  });
+
+  it('exposes data-section="dialog-body" on the children wrapper + "dialog-footer" on the footer', () => {
+    render(
+      <Dialog
+        open
+        onClose={vi.fn()}
+        title="t"
+        footer={<button>OK</button>}
+      >
+        <span>body</span>
+      </Dialog>,
+    );
+    expect(
+      document.querySelector('[data-section="dialog-body"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('[data-section="dialog-footer"]'),
+    ).not.toBeNull();
+  });
 });
