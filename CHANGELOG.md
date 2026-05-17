@@ -4,6 +4,89 @@
 
 (no entries -- next release window)
 
+## [1.11.302] - 2026-05-17 -- UI: Dialog variants + body scroll lock (TODO 11.284)
+
+Component-scope-only enhancement of the existing `Dialog`
+primitive. The default surface is preserved byte-for-byte; new
+affordances opt in via props.
+
+### Added (Dialog primitive)
+
+- `variant: 'default' | 'destructive' | 'confirmation'` --
+  visual treatment for the panel border plus an automatic
+  leading icon in the header.
+  - `default` keeps `border-border` (byte-identical).
+  - `destructive` swaps in `border-destructive/40` + an
+    `AlertTriangle` glyph in destructive palette.
+  - `confirmation` uses `border-warning/40` + a `HelpCircle`
+    glyph in warning palette.
+- `icon?: ReactNode | false` -- override the per-variant
+  auto-icon. `false` suppresses; any ReactNode replaces
+  verbatim. `undefined` falls back to the variant default.
+- `description?: ReactNode` -- header subtitle slot wired
+  through `aria-describedby` so screen readers hear the body
+  context after the title. When supplied without a `title`,
+  the description still mounts standalone with its own id.
+- `lockBodyScroll?: boolean` (default true) -- toggles
+  `document.body.style.overflow="hidden"` while open. The
+  previous overflow value is saved and restored on cleanup so
+  a host page with its own overflow lock is left untouched.
+- `closeOnBackdropClick?: boolean` (default true) -- opt out
+  so destructive flows require the explicit Cancel button.
+- `closeOnEsc?: boolean` (default true) -- pairs with the
+  existing useFocusTrap onEscape hook.
+- Data-attribute selectors: `data-section="dialog-backdrop"`,
+  `data-section="dialog"` + `data-variant`,
+  `data-section="dialog-body"` on the children wrapper,
+  `data-section="dialog-footer"` on the footer row.
+
+### Adopted
+
+- Primitive enhancement only this commit. Adopters
+  (AttachModal, KeyboardShortcutsModal, ConfirmDialog,
+  NewChatModal) already use the `Dialog` primitive and inherit
+  the new defaults (body scroll lock + the additional data
+  selectors) without any caller change. A follow-up will
+  migrate `ConfirmDialog` from its bespoke
+  backdrop/panel/focus-trap implementation to the new
+  `variant="destructive"` + `description` slot so the
+  destructive-confirmation pattern lives in the primitive.
+
+### Deferred (dispatch follow-ups)
+
+- ConfirmDialog migration: the existing component owns its
+  own preview block + per-button refs + initial-focus
+  selector that do not map cleanly to the Dialog slots
+  today. Tracked as a follow-up so the migration can land
+  with its own test refresh.
+
+### Tests
+
+- `web/src/components/ui/dialog.test.tsx` -- 11 new vitest
+  cases: default variant border, destructive variant border
+  + alert icon, confirmation variant border + helpcircle
+  icon, icon=false suppresses the auto-icon, description
+  renders + aria-describedby plumbing, body scroll lock
+  toggles + restores document.body overflow,
+  lockBodyScroll=false leaves overflow untouched,
+  closeOnBackdropClick=false ignores backdrop clicks,
+  closeOnBackdropClick default true closes, data-section
+  selectors on backdrop + panel, data-section selectors on
+  body + footer. 27 / 27 (16 original + 11 new) green.
+- Dependent suites: AttachModal + KeyboardShortcutsModal
+  unchanged (the new defaults inherit cleanly). NewChatModal
+  carries one pre-existing focus failure unrelated to this
+  commit.
+
+### Notes
+
+- Body scroll lock cleanup runs synchronously on close /
+  unmount so a host page can react to the `overflow`
+  restore in the same paint cycle.
+- The destructive icon + warning icon are sized identically
+  (h-4 w-4) so a future variant swap does not reflow the
+  header.
+
 ## [1.11.301] - 2026-05-17 -- UI: Breadcrumbs truncate-middle + onClick (TODO 11.283)
 
 Component-scope-only enhancement of the existing
