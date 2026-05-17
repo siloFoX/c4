@@ -4,6 +4,102 @@
 
 (no entries -- next release window)
 
+## [1.11.295] - 2026-05-17 -- UI: Command palette primitive (TODO 11.277)
+
+New `CommandPalette` primitive plus an app-level Cmd+K / Ctrl+K
+launcher wired into `App.tsx`. Component-scope only, no daemon
+or CLI surface change.
+
+### Added
+
+- `web/src/components/ui/command-palette.tsx` -- modal command
+  launcher. Props:
+  - `open` / `onOpenChange(next)` -- controlled visibility.
+  - `commands: Command[]` -- caller-supplied list of
+    `{ id, label, group?, shortcut?, keywords?, disabled?, action }`
+    entries. Groups are auto-rendered as section headings;
+    commands without a group fall into "Other".
+  - `searchPlaceholder?` / `emptyContent?` -- localizable
+    surface copy.
+  - `recentsKey?` (default `c4:command-palette:recents`) +
+    `recentsCap?` (default 5) -- localStorage persistence of
+    invoked command ids, surfaced as a "Recent" group when the
+    query is empty. Cross-tab `storage` listener keeps recents
+    in sync across windows.
+  - `recentsLabel?` (default `Recent`) -- group heading copy.
+  - `className?` + `data-testid?` for downstream styling +
+    e2e selectors.
+  Accessibility: portaled into the `dialog-root` node with
+  `role="dialog"`, `aria-modal="true"`, ARIA combobox +
+  listbox / option markup, full focus trap (Escape closes,
+  Tab cycles inside the modal), `aria-selected` flips on the
+  active row, disabled rows excluded from arrow nav.
+  Keyboard: ArrowDown / ArrowUp / Home / End / Enter / Esc.
+  Mouse: hover updates the active row (so the highlighted row
+  always matches the cursor), click runs the command, backdrop
+  click closes.
+  Includes a tiny no-dependency fuzzy scorer that ranks
+  results across the label, keywords, and group fields so
+  "settings" -> "Open Settings", "preferences" -> same row.
+- `useCommandPaletteShortcut(onToggle, opts?)` -- companion
+  hook that wires a Cmd+K (macOS) / Ctrl+K (others) global
+  listener and calls `onToggle()` when the chord fires. By
+  default the chord is gated while focus sits inside an
+  input / textarea / contenteditable surface so chat
+  composers and form fields keep their own Cmd+K bindings;
+  pass `{ interceptInInputs: true }` to opt out of the gate.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Adopted
+
+- `web/src/App.tsx`:
+  - Cmd+K / Ctrl+K mounts the CommandPalette via the new
+    hook + state pair, with commands for:
+    - Navigate: Workers / History / Sessions / Meetings /
+      Specialists / Wiki / Chat / Workflows / Autonomous /
+      Features.
+    - App: Open Settings, Toggle Sidebar (with Ctrl+B
+      shortcut hint), Focus Search (targets
+      `[data-section="search-bar"] input` or the first
+      `input[type="search"]`), Logout.
+  - The "Go to Workers" command also clears `selectedWorker`
+    so it behaves like the existing `gh` chord (= "home").
+  - The palette is rendered alongside `HelpUIRoot` inside the
+    `AnnounceRegion` shell, so it stacks above the metrics
+    bar and route progress bar but below the AccountMenu
+    drop-down.
+
+### Tests
+
+- `web/src/components/ui/command-palette.test.tsx` -- 22
+  cases covering open/close, group rendering, fuzzy filter,
+  keyword match, empty state, Enter / click / arrow nav /
+  Home / End / disabled-skip, Escape close, backdrop close,
+  localStorage recents persistence + cross-render display,
+  recent-group suppression while filtering, shortcut hint
+  display, aria-selected on the active row, stable
+  `displayName`, plus 4 hook cases (Cmd+K, Ctrl+K, input
+  gate, `interceptInInputs` override). All 22 green.
+- `web/src/components/ui/tooltip.snapshot.test.tsx` --
+  rebuilt the 5 inline snapshots so they include the new
+  `data-arrow` / `data-placement` / `data-section` /
+  `data-visible` wrapper attributes shipped in v1.11.294
+  (the snapshot baselines pre-dated those attrs and were
+  silently broken until the palette work re-ran the suite).
+  All 5 green.
+
+### Notes
+
+- The palette uses the existing `dialog-root` portal and the
+  shared `useFocusTrap` + `useReducedMotion` hooks so the
+  open / close animation respects the operator's reduced-
+  motion preference for free.
+- `queueMicrotask`-deferred action invocation means the
+  modal closes (and focus is restored) BEFORE the command
+  fires, so navigation actions that themselves grab focus
+  (e.g. `setTopView('settings')`) don't fight the focus-trap
+  restore.
+
 ## [1.11.294] - 2026-05-17 -- UI: Tooltip enhancements (TODO 11.276)
 
 Component-scope-only enhancement of the existing Tooltip
