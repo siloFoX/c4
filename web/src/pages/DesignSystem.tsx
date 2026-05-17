@@ -21,6 +21,7 @@ import {
   DatePicker,
   DateRangePicker,
   Dialog,
+  Drawer,
   DropdownMenu,
   EmptyState,
   FileTree,
@@ -495,6 +496,51 @@ function DialogDemo() {
   );
 }
 
+// (v1.11.297, TODO 11.279) Drawer demo. Shows all four
+// anchor sides + the new height prop so designers can scan the
+// motion + size shape per side before adopting in a page.
+function DrawerDemo() {
+  const [open, setOpen] = useState<null | 'left' | 'right' | 'top' | 'bottom'>(
+    null,
+  );
+  return (
+    <Demo
+      name="Drawer"
+      description="Side-anchored panel with focus trap, slide animation (motion-safe), and four anchor sides."
+      code={`<Drawer open={open} onOpenChange={setOpen} side="left">body</Drawer>`}
+    >
+      <div className="flex flex-wrap gap-2">
+        {(['left', 'right', 'top', 'bottom'] as const).map((s) => (
+          <Button
+            key={s}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setOpen(s)}
+          >
+            Open {s}
+          </Button>
+        ))}
+      </div>
+      <Drawer
+        open={open !== null}
+        onOpenChange={(next) => {
+          if (!next) setOpen(null);
+        }}
+        side={open ?? 'right'}
+        title={`${open ?? 'right'} drawer`}
+        description="Focus trap is active. Press Escape, click the X, or click the backdrop to close."
+        {...(open === 'top' || open === 'bottom' ? { height: '40%' } : {})}
+      >
+        <p className="text-sm text-muted-foreground">
+          The slide animation respects the operator's
+          prefers-reduced-motion setting.
+        </p>
+      </Drawer>
+    </Demo>
+  );
+}
+
 function DropdownMenuDemo() {
   return (
     <Demo
@@ -917,6 +963,7 @@ const CATEGORIES: { label: string; demos: ReactNode }[] = [
         <TooltipDemo />
         <PopoverDemo />
         <DialogDemo />
+        <DrawerDemo />
         <DropdownMenuDemo />
         <FileTreeDemo />
       </>
