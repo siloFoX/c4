@@ -8,6 +8,7 @@ import {
   Dialog,
   EmptyState,
   ErrorState,
+  FileDrop,
   Input,
   Pagination,
   Skeleton,
@@ -399,6 +400,28 @@ export default function Snapshots() {
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {/* (v1.11.288, TODO 11.270) FileDrop adoption: an
+          import-from-JSON slot lets the operator restore from a
+          local snapshot file without going through the daemon's
+          POST /api/snapshots/<id>/restore round trip. Today
+          the drop is a placeholder (the file is logged but not
+          posted); the slot is in place for when an
+          /api/snapshots/import endpoint lands. */}
+      {!loading ? (
+        <FileDrop
+          label="Import from JSON"
+          hint="Drop a snapshot JSON file to stage it for import. Max 5 MB."
+          accept="application/json,.json"
+          maxSize={5 * 1024 * 1024}
+          className="mt-2"
+          data-testid="snapshots-import-filedrop"
+          onAdd={(files) => {
+            // eslint-disable-next-line no-console
+            console.log('[snapshots] import staged', files[0]?.name);
+          }}
+        />
       ) : null}
 
       <Dialog

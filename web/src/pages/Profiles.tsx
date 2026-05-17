@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, FormField, HeroCard, ListItem, NumberInput, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, FileDrop, FormField, HeroCard, ListItem, NumberInput, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -109,6 +109,23 @@ export default function Profiles() {
         exampleKey="profiles.example"
         useCasesKey="profiles.useCases"
         onOpenHelp={openHelpDrawer}
+      />
+      {/* (v1.11.288, TODO 11.270) Profile import FileDrop:
+          operator can drop a JSON / YAML profile definition to
+          stage it for import. The daemon's profile add endpoint
+          doesn't exist yet (notImplemented toast in the row
+          actions), so the drop currently just logs; the slot is
+          in place for when the endpoint lands. */}
+      <FileDrop
+        label="Import profile"
+        hint="Drop a JSON or YAML profile definition. Max 256 KB."
+        accept="application/json,application/yaml,.json,.yaml,.yml"
+        maxSize={256 * 1024}
+        data-testid="profiles-import-filedrop"
+        onAdd={(files) => {
+          // eslint-disable-next-line no-console
+          console.log('[profiles] import staged', files[0]?.name);
+        }}
       />
       {error && <ErrorPanel message={error} />}
       {loading && items.length === 0 ? <LoadingSkeleton rows={3} /> : null}

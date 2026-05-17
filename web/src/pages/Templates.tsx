@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, NumberInput, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Toolbar, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FieldGroup, FileDrop, FormField, ListActionMenu, ListItem, NumberInput, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Toolbar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -246,13 +246,19 @@ function ImportTemplateForm() {
       className="mt-4"
       data-testid="templates-import-form"
     >
-      <FileInput
+      {/* (v1.11.288, TODO 11.270) FileInput migrated to the
+          richer FileDrop primitive. Same accept + maxSize +
+          error wiring; FileDrop adds the staged-file list +
+          progress-bar slot for when the daemon import endpoint
+          comes online and the operator can see the upload
+          progress without a separate Toast / Alert. */}
+      <FileDrop
         label="Template file"
         hint="JSON or YAML, max 1 MB."
         accept="application/json,application/yaml,.json,.yaml,.yml"
         maxSize={1024 * 1024}
         error={error ?? undefined}
-        onFiles={(files) => {
+        onAdd={(files) => {
           setError(null);
           // eslint-disable-next-line no-console
           console.log('[templates] import file', files[0]?.name, files[0]?.size);
