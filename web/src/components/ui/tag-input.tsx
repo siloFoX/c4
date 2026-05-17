@@ -176,6 +176,9 @@ export const TagInput = forwardRef<HTMLDivElement, TagInputProps>(
         role="group"
         aria-label={ariaLabel}
         aria-disabled={disabled || undefined}
+        data-section="tag-input"
+        data-tag-input-count={value.length}
+        data-tag-input-at-cap={atCap ? 'true' : 'false'}
         className={cn(
           'flex w-full flex-wrap items-center gap-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-background',
           disabled && 'cursor-not-allowed opacity-50',
@@ -203,7 +206,7 @@ export const TagInput = forwardRef<HTMLDivElement, TagInputProps>(
             <Chip
               key={`${tag}-${idx}`}
               tone="primary"
-              onDismiss={disabled ? undefined : () => removeAt(idx)}
+              {...(disabled ? {} : { onDismiss: () => removeAt(idx) })}
               dismissLabel={`Remove ${tag}`}
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest('button')) return;
@@ -212,6 +215,8 @@ export const TagInput = forwardRef<HTMLDivElement, TagInputProps>(
               className={cn(!disabled && 'cursor-text')}
               role="button"
               tabIndex={disabled ? -1 : 0}
+              data-tag-input-chip={idx}
+              data-tag-input-tag={tag}
             >
               {tag}
             </Chip>
@@ -226,6 +231,7 @@ export const TagInput = forwardRef<HTMLDivElement, TagInputProps>(
             onPaste={handlePaste}
             placeholder={placeholder}
             aria-label="Add tag"
+            data-tag-input-add="true"
             className={cn(
               'flex-1 min-w-[80px] bg-transparent text-sm outline-none placeholder:text-muted-foreground',
               inputClassName,

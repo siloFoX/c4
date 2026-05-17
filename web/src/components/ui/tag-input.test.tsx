@@ -177,4 +177,58 @@ describe('<TagInput>', () => {
     await user.keyboard('hello{Enter}');
     expect(spy).toHaveBeenLastCalledWith(['hello']);
   });
+
+  // (v1.11.291, TODO 11.273) data-* selector contract.
+
+  it('exposes data-section="tag-input" + data-tag-input-count on the root', () => {
+    const { container } = render(
+      <Controlled initial={['a', 'b']} ariaLabel="tags" />,
+    );
+    const root = container.querySelector('[data-section="tag-input"]');
+    expect(root).not.toBeNull();
+    expect(root!.getAttribute('data-tag-input-count')).toBe('2');
+  });
+
+  it('exposes data-tag-input-at-cap="true" when maxTags is reached', () => {
+    const { container } = render(
+      <Controlled
+        initial={['a', 'b']}
+        maxTags={2}
+        ariaLabel="tags"
+      />,
+    );
+    const root = container.querySelector('[data-section="tag-input"]');
+    expect(root!.getAttribute('data-tag-input-at-cap')).toBe('true');
+  });
+
+  it('exposes data-tag-input-chip=<index> + data-tag-input-tag=<value> per chip', () => {
+    const { container } = render(
+      <Controlled initial={['alpha', 'beta']} ariaLabel="tags" />,
+    );
+    const chip0 = container.querySelector('[data-tag-input-chip="0"]');
+    const chip1 = container.querySelector('[data-tag-input-chip="1"]');
+    expect(chip0).not.toBeNull();
+    expect(chip0!.getAttribute('data-tag-input-tag')).toBe('alpha');
+    expect(chip1!.getAttribute('data-tag-input-tag')).toBe('beta');
+  });
+
+  it('tags the add-input with data-tag-input-add="true"', () => {
+    const { container } = render(<Controlled ariaLabel="tags" />);
+    expect(
+      container.querySelector('[data-tag-input-add="true"]'),
+    ).not.toBeNull();
+  });
+
+  it('hides the add-input (data-tag-input-add) when at-cap', () => {
+    const { container } = render(
+      <Controlled
+        initial={['a']}
+        maxTags={1}
+        ariaLabel="tags"
+      />,
+    );
+    expect(
+      container.querySelector('[data-tag-input-add="true"]'),
+    ).toBeNull();
+  });
 });

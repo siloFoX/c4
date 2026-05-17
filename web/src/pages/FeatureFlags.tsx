@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { RotateCcw, Sparkles } from 'lucide-react';
 import PageFrame from './PageFrame';
-import { AlertBanner, Button, CopyButton, Panel, RichText, Switch } from '../components/ui';
+import { AlertBanner, Button, CopyButton, Panel, RichText, Switch, TagInput } from '../components/ui';
 import HelpTip from '../components/HelpTip';
 import { t, useLocale } from '../lib/i18n';
 import {
@@ -21,6 +22,20 @@ export default function FeatureFlags() {
   useLocale();
   const values = useAllFlags();
   const customized = FLAGS.some((f) => values[f.key] !== f.defaultValue);
+  // (v1.11.291, TODO 11.273) Operator-local "key filter chips" --
+  // free-form substrings to filter the visible flag list. Multiple
+  // chips read as OR (any chip-substring match keeps the flag in
+  // the list). Empty list = no filter. Stored only in component
+  // state since this is a transient sieve.
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  const visibleFlags = filterTags.length === 0
+    ? FLAGS
+    : FLAGS.filter((f) =>
+        filterTags.some((tag) =>
+          f.key.toLowerCase().includes(tag.toLowerCase()) ||
+          f.label.toLowerCase().includes(tag.toLowerCase()),
+        ),
+      );
 
   return (
     <PageFrame
@@ -56,8 +71,28 @@ export default function FeatureFlags() {
         <code className="font-mono">c4:feature-flags</code> and never round-trip
         to the daemon.
       </AlertBanner>
+      {/* (v1.11.291, TODO 11.273) TagInput as filter chips above
+          the flag list. Each chip is an OR-substring against the
+          flag's key + label. Backspace removes the last chip;
+          Enter / comma adds a new one. */}
+      <div
+        className="flex flex-col gap-1"
+        data-testid="feature-flags-filter-chips"
+      >
+        <span className="text-xs font-medium text-muted-foreground">
+          Filter (substring match against key + label)
+        </span>
+        <TagInput
+          value={filterTags}
+          onChange={setFilterTags}
+          maxTags={6}
+          ariaLabel="Feature-flag filter chips"
+          placeholder="Add chip..."
+          normalize={(raw) => raw.trim().toLowerCase()}
+        />
+      </div>
       <ul className="flex flex-col gap-2">
-        {FLAGS.map((flag) => {
+        {visibleFlags.map((flag) => {
           const checked = values[flag.key];
           const overridden = checked !== flag.defaultValue;
           return (
