@@ -4,6 +4,99 @@
 
 (no entries -- next release window)
 
+## [1.11.296] - 2026-05-17 -- UI: BadgeCounter primitive (TODO 11.278)
+
+New `BadgeCounter` primitive that supersedes the inline count
+chips that several nav surfaces had reimplemented. Component-
+scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/components/ui/badge-counter.tsx` -- compact
+  numeric / dot badge for nav-item counts. Props:
+  - `count?: number` -- the value. Required for numeric
+    variant; used to drive aria-label for the dot variant.
+  - `max?: number` (default 99) -- overflow ceiling. When
+    `count > max` the text reads `<max>+` (so 250 -> "99+").
+    Boundary: `count === max` renders verbatim, no plus sign.
+  - `showZero?: boolean` -- numeric variant renders nothing
+    at count=0 by default so nav rows stay clean; flip on
+    to keep the surface visible (e.g., a "0 errors" steady-
+    state chip).
+  - `variant: 'numeric' | 'dot'` -- numeric (default) shows
+    the count; dot is a coloured pip with no text but still
+    carries an aria-label.
+  - `tone: 'neutral' | 'accent' | 'danger' | 'success' | 'primary'`
+    -- canonical signal palette. Neutral = muted, accent =
+    warning/amber, danger = destructive, success = emerald,
+    primary = brand color (for manager/agent groupings).
+  - `size: 'sm' | 'md' | 'lg'` -- 14 / 16 / 20 px tall.
+  - `pulse?: boolean` -- soft pulse animation for new
+    arrivals. Auto-muted when the operator has
+    `prefers-reduced-motion: reduce` set.
+  - `srLabel?: string` -- screen-reader sentence override;
+    defaults to the rendered count.
+  Accessibility: `role="status"` on the surface so SR
+  announces count changes without the caller wrapping it
+  in an `aria-live` region.
+  Data-attribute selectors: `data-section="badge-counter"`,
+  `data-variant`, `data-tone`, `data-pulse`, `data-count`,
+  `data-overflow`.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Adopted
+
+- `web/src/components/layout/TopTabs.tsx` -- the inline
+  per-tab count chip was reimplementing the BadgeCounter
+  contract. Swapped to `BadgeCounter`, mapping the legacy
+  tone names (`amber` -> `accent`, `destructive` ->
+  `danger`, `muted` -> `neutral`). srLabel now reads
+  "<count> <tab name>" so SR announces "3 Meetings" when
+  the stuck-meetings badge fires. cn import removed.
+- `web/src/pages/Queue.tsx` -- new accent BadgeCounter in
+  the page actions slot that shows the remaining todo
+  count (rows with status === 'todo'). Wrapped in a Tooltip
+  with "<n> todo entries remaining". Hidden when todoCount
+  is 0 so the actions row stays compact at steady state.
+- `web/src/components/WorkerListGroupHeader.tsx` --
+  - Group total count migrated from an inline rounded-full
+    span to BadgeCounter (tone=primary for managers,
+    tone=neutral for workers).
+  - New optional `busyCount` prop renders a second
+    BadgeCounter (tone=accent, size=sm, pulse=true) when
+    any worker in the group is in the busy state. The
+    pulse signals active work to the operator at a glance.
+- `web/src/components/WorkerList.tsx` -- the group split
+  also tallies `managersBusy` and `regularBusy` from the
+  same `workers` array (single pass, no extra subscription)
+  and threads each into the matching header.
+
+### Tests
+
+- `web/src/components/ui/badge-counter.test.tsx` -- 24
+  vitest cases: count=0 hidden by default, count=0 shown
+  with showZero, overflow at default max, custom max
+  ceiling, max boundary preserves the literal number,
+  data-overflow flips correctly, data-section /
+  data-variant / data-tone selectors, dot variant renders
+  no text but keeps aria-label, dot variant ALWAYS
+  renders even at count=0, role="status", aria-label
+  defaults to displayed count, aria-label override via
+  srLabel, overflow aria-label, pulse class + data-pulse
+  toggle, reduced-motion mutes the pulse animation, sm /
+  lg size class, danger / success tone class, className
+  pass-through, stable displayName, undefined count
+  renders null, forwarded HTML attributes. All 24 green.
+- WorkerListGroupHeader + TopTabs + Queue suites still
+  green (98 total across the four targeted suites).
+
+### Notes
+
+- `BadgeCounter` is intentionally non-clickable. Counts
+  with click affordances belong on the surrounding nav
+  row (the tab button, the group header button); the
+  badge is decorative on top of that interactive surface.
+
 ## [1.11.295] - 2026-05-17 -- UI: Command palette primitive (TODO 11.277)
 
 New `CommandPalette` primitive plus an app-level Cmd+K / Ctrl+K

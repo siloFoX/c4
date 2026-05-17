@@ -11,6 +11,7 @@ import PageFrame from './PageFrame';
 import {
   Alert,
   Badge,
+  BadgeCounter,
   Button,
   EmptyState,
   ErrorState,
@@ -285,25 +286,47 @@ export default function Queue() {
     return rows.find((r) => r.id === editingId) ?? null;
   }, [editingId, rows]);
 
+  // (v1.11.296, TODO 11.278) Count of remaining todo rows.
+  // Surfaced as a BadgeCounter chip next to the page title so
+  // the operator can scan the queue depth without expanding
+  // every row's status dropdown.
+  const todoCount = useMemo(() => {
+    if (!rows) return 0;
+    return rows.filter((r) => r.status === 'todo').length;
+  }, [rows]);
+
   return (
     <PageFrame
       title="Queue editor"
       description="View and edit docs/autonomous-queue-v10.md. Drag rows to reorder, flip the status dropdown, or click Edit to update a row's detail."
       actions={
-        <Tooltip label="Reload queue from disk">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              void refresh();
-            }}
-            disabled={loading || busy}
-          >
-            <RefreshCw className={cn('h-3.5 w-3.5', (loading || busy) && 'animate-spin')} />
-            <VisuallyHidden>Refresh</VisuallyHidden>
-          </Button>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          {todoCount > 0 ? (
+            <Tooltip label={`${todoCount} todo entries remaining`}>
+              <BadgeCounter
+                count={todoCount}
+                tone="accent"
+                size="md"
+                srLabel={`${todoCount} todo entries remaining`}
+                data-testid="queue-todo-counter"
+              />
+            </Tooltip>
+          ) : null}
+          <Tooltip label="Reload queue from disk">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                void refresh();
+              }}
+              disabled={loading || busy}
+            >
+              <RefreshCw className={cn('h-3.5 w-3.5', (loading || busy) && 'animate-spin')} />
+              <VisuallyHidden>Refresh</VisuallyHidden>
+            </Button>
+          </Tooltip>
+        </div>
       }
     >
       {saveError ? (
