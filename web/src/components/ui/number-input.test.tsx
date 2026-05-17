@@ -10,6 +10,7 @@ interface ControlledProps {
   max?: number;
   step?: number;
   unit?: string;
+  prefix?: string;
   precision?: number;
   placeholder?: string;
   disabled?: boolean;
@@ -33,6 +34,7 @@ function Controlled(props: ControlledProps) {
       max={props.max}
       step={props.step}
       unit={props.unit}
+      prefix={props.prefix}
       precision={props.precision}
       placeholder={props.placeholder}
       disabled={props.disabled}
@@ -203,5 +205,76 @@ describe('<NumberInput>', () => {
     render(<Controlled initial={undefined} min={10} max={20} ariaLabel="qty" onChange={onChange} />);
     await user.click(screen.getByLabelText('Increment'));
     expect(onChange).toHaveBeenLastCalledWith(11);
+  });
+
+  // (v1.11.287, TODO 11.269) prefix slot + data-* attribute + decimal inputMode.
+
+  it('renders the prefix when provided', () => {
+    const { container } = render(
+      <Controlled initial={50} prefix="$" ariaLabel="amount" />,
+    );
+    const prefix = container.querySelector('[data-number-input-prefix="true"]');
+    expect(prefix).not.toBeNull();
+    expect(prefix!.textContent).toBe('$');
+  });
+
+  it('omits the prefix when not provided', () => {
+    const { container } = render(
+      <Controlled initial={50} ariaLabel="amount" />,
+    );
+    expect(
+      container.querySelector('[data-number-input-prefix="true"]'),
+    ).toBeNull();
+  });
+
+  it('prefix and unit can coexist (currency + thousands)', () => {
+    const { container } = render(
+      <Controlled
+        initial={1500}
+        prefix="$"
+        unit="k"
+        ariaLabel="amount"
+      />,
+    );
+    expect(
+      container.querySelector('[data-number-input-prefix="true"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-number-input-unit="true"]'),
+    ).not.toBeNull();
+  });
+
+  it('inputMode flips to "decimal" when precision > 0', () => {
+    render(<Controlled initial={1.5} precision={2} ariaLabel="x" />);
+    expect(screen.getByLabelText('x')).toHaveAttribute('inputmode', 'decimal');
+  });
+
+  it('inputMode stays "numeric" when precision is undefined', () => {
+    render(<Controlled initial={5} ariaLabel="x" />);
+    expect(screen.getByLabelText('x')).toHaveAttribute('inputmode', 'numeric');
+  });
+
+  it('inputMode stays "numeric" when precision is 0 (integer-only)', () => {
+    render(<Controlled initial={5} precision={0} ariaLabel="x" />);
+    expect(screen.getByLabelText('x')).toHaveAttribute('inputmode', 'numeric');
+  });
+
+  it('exposes data-section + data-size on the root', () => {
+    const { container } = render(
+      <Controlled initial={5} ariaLabel="x" size="sm" />,
+    );
+    const root = container.querySelector('[data-section="number-input"]');
+    expect(root).not.toBeNull();
+    expect(root!.getAttribute('data-size')).toBe('sm');
+  });
+
+  it('exposes data-number-input-action on the increment + decrement buttons', () => {
+    const { container } = render(<Controlled initial={5} ariaLabel="x" />);
+    expect(
+      container.querySelector('[data-number-input-action="increment"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-number-input-action="decrement"]'),
+    ).not.toBeNull();
   });
 });

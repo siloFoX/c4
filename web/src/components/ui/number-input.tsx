@@ -14,6 +14,12 @@ export interface NumberInputProps {
   max?: number;
   step?: number;
   unit?: string;
+  // (v1.11.287, TODO 11.269) Optional leading prefix for the
+  // input -- mirrors `unit` but sits on the left of the
+  // input. Use for currency symbols ("$", "K", "T"), unit
+  // names that read better as a prefix ("max"), or short
+  // labels ("MB " before a megabyte number).
+  prefix?: string;
   precision?: number;
   placeholder?: string;
   disabled?: boolean;
@@ -46,6 +52,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       max,
       step = 1,
       unit,
+      prefix,
       precision,
       placeholder,
       disabled,
@@ -103,6 +110,8 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
 
     return (
       <div
+        data-section="number-input"
+        data-size={size}
         className={cn(
           'inline-flex items-stretch rounded-md border border-input bg-background',
           'focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-background',
@@ -113,6 +122,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         <button
           type="button"
           aria-label="Decrement"
+          data-number-input-action="decrement"
           onClick={() => stepBy(-step)}
           disabled={disabled || atMin}
           className={cn(
@@ -122,10 +132,22 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         >
           <Minus className={iconSize} aria-hidden />
         </button>
+        {prefix ? (
+          <span
+            data-number-input-prefix="true"
+            className={cn(
+              'flex select-none items-center pl-2 text-muted-foreground',
+              size === 'sm' ? 'text-[11px]' : 'text-xs',
+            )}
+            aria-hidden
+          >
+            {prefix}
+          </span>
+        ) : null}
         <input
           ref={ref}
           type="text"
-          inputMode="numeric"
+          inputMode={precision != null && precision > 0 ? 'decimal' : 'numeric'}
           value={displayValue}
           onChange={handleChange}
           onBlur={handleBlur}
@@ -141,6 +163,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         />
         {unit ? (
           <span
+            data-number-input-unit="true"
             className={cn(
               'flex select-none items-center pr-2 text-muted-foreground',
               size === 'sm' ? 'text-[11px]' : 'text-xs',
@@ -153,6 +176,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         <button
           type="button"
           aria-label="Increment"
+          data-number-input-action="increment"
           onClick={() => stepBy(step)}
           disabled={disabled || atMax}
           className={cn(

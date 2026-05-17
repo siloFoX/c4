@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Input, Label, Panel, Progress, Switch, Textarea, Tooltip } from '../components/ui';
+import { Button, Input, Label, NumberInput, Panel, Progress, Switch, Textarea, Tooltip } from '../components/ui';
 import { t, useLocale } from '../lib/i18n';
 import { useBatchSubmit } from '../lib/use-batch-submit';
 import { useToast } from '../lib/use-toast';
@@ -116,14 +116,21 @@ export default function Batch() {
             />
           </div>
           <div>
-            <Input
-              id="batch-count"
-              label={t('batchPage.count')}
-              type="number"
+            {/* (v1.11.287, TODO 11.269) Raw <Input type="number">
+                migrated to the canonical NumberInput primitive
+                (stepper + bounded clamping + decimal-mode
+                input). The label + bounds + value contract is
+                preserved; the +/- steppers are a UX upgrade for
+                the operator. */}
+            <Label htmlFor="batch-count">{t('batchPage.count')}</Label>
+            <NumberInput
+              ariaLabel={t('batchPage.count')}
               min={1}
               max={50}
               value={count}
-              onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
+              onChange={(next) => setCount(next ?? 1)}
+              size="md"
+              className="mt-1.5 w-full"
             />
           </div>
           <div>

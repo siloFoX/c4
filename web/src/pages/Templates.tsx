@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Toolbar, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FieldGroup, FileInput, FormField, ListActionMenu, ListItem, NumberInput, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Toolbar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -227,6 +227,12 @@ export default function Templates() {
 function ImportTemplateForm() {
   const [error, setError] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
+  // (v1.11.287, TODO 11.269) Operator-local max-tokens ceiling
+  // for the imported template. Placeholder field -- the daemon
+  // import endpoint doesn't read this yet, but the slot is in
+  // place for when it does. Defaults to undefined ("no cap") so
+  // the field reads as empty.
+  const [maxTokens, setMaxTokens] = useState<number | undefined>(undefined);
   return (
     /* (v1.11.281, TODO 11.263) FieldGroup adoption: the import
        form now lives inside a labeled FieldGroup so the section
@@ -263,6 +269,25 @@ function ImportTemplateForm() {
             normalize={(raw) => raw.trim().toLowerCase()}
           />
         </div>
+      </FormField>
+      {/* (v1.11.287, TODO 11.269) Operator-local max-tokens
+          ceiling. NumberInput primitive with +/- steppers, 1..
+          200,000 clamping, and a "tokens" suffix label. */}
+      <FormField
+        label="Max tokens"
+        helperText="Upper bound for the imported template's prompt window. Leave empty for no cap."
+      >
+        <NumberInput
+          value={maxTokens}
+          onChange={setMaxTokens}
+          min={1}
+          max={200000}
+          step={1000}
+          unit="tokens"
+          ariaLabel="Max tokens"
+          placeholder="No cap"
+          size="md"
+        />
       </FormField>
     </FieldGroup>
   );
