@@ -4,6 +4,90 @@
 
 (no entries -- next release window)
 
+## [1.11.288] - 2026-05-17 -- UI: FileDrop primitive (TODO 11.270)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/file-drop.tsx` -- canonical
+  drag-and-drop upload zone. Distinct from the existing
+  `<FileInput>` primitive (lightweight "pick a file, hand to a
+  callback" shape) -- `<FileDrop>` adds two upload-workflow
+  affordances on top:
+  - Staged-files list -- each picked / dropped file renders as
+    a row beneath the dropzone with filename + formatted size
+    (B / KB / MB / GB) + a Remove `<button>` (lucide X glyph)
+    with `aria-label="Remove <filename>"`. Controlled +
+    uncontrolled list management.
+  - Progress bar slot -- when `progress` is set (number) OR
+    `showProgress` is true, a `<ProgressBar>` renders below
+    the dropzone with optional `progressLabel`,
+    `progressVariant`, and `progressMax`. Lets the host page
+    surface upload progress without owning a separate
+    ProgressBar.
+- Click-to-browse fallback + Enter/Space keyboard shortcut
+  open the hidden `<input type="file">`. Drop-zone drag
+  feedback flips `data-active` on the wrapper +
+  `data-section="file-drop-zone"` inner div.
+- Accept filter + maxSize gate run client-side; rejected
+  drops fire `onError(message, file)` and never reach
+  `onAdd`. Single-file mode rejects 2+ file drops with a
+  matching error.
+- Controlled vs uncontrolled list state: pass
+  `selectedFiles` to own the staged array (and receive
+  `onAdd` / `onRemove` callbacks); omit it to let the
+  primitive manage its own internal list.
+- Custom `bodyContent` slot replaces the default "Drop files
+  here or click to browse" copy when the host wants its own
+  illustration / message.
+- `data-section="file-drop"` on the wrapper +
+  `data-section="file-drop-zone"` on the dropzone div +
+  `data-section="file-drop-staged"` on the staged list +
+  `data-section="file-drop-staged-row"` on each row +
+  `data-section="file-drop-progress"` on the bottom bar slot.
+  Per-row `data-file-name=<name>` + per-remove
+  `data-file-drop-remove=<index>` for e2e selectors.
+- 30 vitest cases cover: dropzone render + body copy, label /
+  hint / error wiring, data-section attrs, click-to-browse,
+  Enter / Space keyboard fallback, disabled state, drag-enter
+  / drag-leave data-active toggle, drop fires onAdd, accept
+  rejection + onError, maxSize rejection + onError,
+  multi-file vs single-file behaviour, single-file replaces on
+  re-drop, single-file rejects 2+ drop, controlled
+  selectedFiles list render, per-row filename + formatted size,
+  Remove button fires onRemove with index + file, no staged
+  list when empty, no ProgressBar when progress unset,
+  ProgressBar visible with progress + with showProgress flag,
+  progressVariant + progressMax forward, custom bodyContent
+  slot, className merge, ref forwarding, accept / multiple
+  attr passthrough on the hidden input.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Templates.tsx` (ImportTemplateForm) --
+  existing `<FileInput>` migrated to `<FileDrop>`. Same accept
+  + maxSize + error wiring; FileDrop adds the staged-file row
+  + progress-bar slot for when the daemon import endpoint
+  comes online.
+- `web/src/pages/Snapshots.tsx` -- new "Import from JSON"
+  `<FileDrop>` slot rendered below the snapshots table. JSON
+  filter + 5 MB cap. Operator-local for now (the daemon's
+  POST /api/snapshots/import endpoint does not exist yet).
+  `data-testid="snapshots-import-filedrop"`.
+- `web/src/pages/Profiles.tsx` -- new "Import profile"
+  `<FileDrop>` slot rendered above the profiles list. JSON /
+  YAML filter + 256 KB cap. Operator-local until the daemon's
+  profile add endpoint lands (currently `notImplemented`
+  toast in the per-row Edit / Remove actions).
+  `data-testid="profiles-import-filedrop"`.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/pages/Templates.test.tsx > renders all rows in a
+  single <ul> wrapper` -- pre-existing failure carried over.
+
 ## [1.11.287] - 2026-05-17 -- UI: NumberInput prefix + adoption (TODO 11.269)
 
 Component-scope-only enhancement of the existing NumberInput
