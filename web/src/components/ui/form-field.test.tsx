@@ -166,4 +166,140 @@ describe('<FormField>', () => {
     const wrapper = screen.getByTestId('ctl').closest('[data-layout]');
     expect(wrapper).toHaveClass('my-row');
   });
+
+  // (v1.11.303, TODO 11.285) New warning state + data-section
+  // selectors.
+
+  it('renders the warning message in warning palette with role=status', () => {
+    render(
+      <FormField id="x" label="Name" warning="Heads up.">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    const msg = screen.getByRole('status');
+    expect(msg).toHaveTextContent('Heads up.');
+    expect(msg).toHaveClass('text-warning');
+  });
+
+  it('warning state does NOT flip aria-invalid on the control', () => {
+    render(
+      <FormField id="x" label="Name" warning="Heads up.">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    const ctl = screen.getByTestId('ctl');
+    expect(ctl).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('error wins over warning when both are set', () => {
+    render(
+      <FormField
+        id="x"
+        label="Name"
+        warning="Heads up."
+        error="Required."
+      >
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Required.');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByTestId('ctl')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('warning suppresses the helperText slot', () => {
+    render(
+      <FormField
+        id="x"
+        label="Name"
+        helperText="Plain hint."
+        warning="Heads up."
+      >
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    expect(screen.queryByText('Plain hint.')).toBeNull();
+    expect(screen.getByText('Heads up.')).toBeInTheDocument();
+  });
+
+  it('warning plumbs aria-describedby with the warning id', () => {
+    render(
+      <FormField id="my-input" label="Name" warning="Heads up.">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    const ctl = screen.getByTestId('ctl');
+    const describedBy = ctl.getAttribute('aria-describedby');
+    expect(describedBy).toBe('my-input-warning');
+  });
+
+  it('data-state="ok" by default, "error" on error, "warning" on warning', () => {
+    const { rerender } = render(
+      <FormField id="x" label="Name">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    const wrapper = () =>
+      screen.getByTestId('ctl').closest(
+        '[data-section="form-field"]',
+      ) as HTMLElement;
+    expect(wrapper().getAttribute('data-state')).toBe('ok');
+    rerender(
+      <FormField id="x" label="Name" warning="warn">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    expect(wrapper().getAttribute('data-state')).toBe('warning');
+    rerender(
+      <FormField id="x" label="Name" error="err">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    expect(wrapper().getAttribute('data-state')).toBe('error');
+  });
+
+  it('exposes data-section selectors on wrapper / label / required', () => {
+    render(
+      <FormField id="x" label="Name" required>
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    const wrapper = screen.getByTestId('ctl').closest(
+      '[data-section="form-field"]',
+    );
+    expect(wrapper).not.toBeNull();
+    expect(
+      wrapper!.querySelector('[data-section="form-field-label"]'),
+    ).not.toBeNull();
+    expect(
+      wrapper!.querySelector('[data-section="form-field-required"]'),
+    ).not.toBeNull();
+  });
+
+  it('exposes data-section="form-field-error" + "form-field-warning" + "form-field-helper" per state', () => {
+    const { rerender } = render(
+      <FormField id="x" label="Name" helperText="hint">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    expect(
+      document.querySelector('[data-section="form-field-helper"]'),
+    ).not.toBeNull();
+    rerender(
+      <FormField id="x" label="Name" warning="warn">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    expect(
+      document.querySelector('[data-section="form-field-warning"]'),
+    ).not.toBeNull();
+    rerender(
+      <FormField id="x" label="Name" error="err">
+        <input data-testid="ctl" />
+      </FormField>,
+    );
+    expect(
+      document.querySelector('[data-section="form-field-error"]'),
+    ).not.toBeNull();
+  });
 });
