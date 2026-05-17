@@ -138,7 +138,14 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
       >
         <CardHeader className="flex-row items-center justify-between gap-2 p-4">
           <div className="flex min-w-0 items-center gap-2">
-            <Avatar name={w.name} size="sm" />
+            {/* (v1.11.300, TODO 11.282) Avatar now carries the
+                status overlay (small coloured dot in the bottom-
+                right corner of the tile). The adjacent StatusDot
+                stays so busy workers still get the pulse motion
+                signal -- the Avatar overlay is a static
+                indicator while StatusDot's pulse animation
+                surfaces real-time activity. */}
+            <Avatar name={w.name} size="sm" status={dotVariant} />
             <StatusDot
               variant={dotVariant}
               size="sm"

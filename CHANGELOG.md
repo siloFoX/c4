@@ -4,6 +4,87 @@
 
 (no entries -- next release window)
 
+## [1.11.300] - 2026-05-17 -- UI: Avatar xs size + status overlay (TODO 11.282)
+
+Component-scope-only enhancement of the existing `Avatar`
+primitive. The current sm / md / lg sizes are preserved
+byte-for-byte; the previous shape (initials inside a coloured
+circle, or `<img>` inside a circle) is preserved when callers
+do not opt into the new `status` prop.
+
+### Added (Avatar primitive)
+
+- `size="xs"` -- new 20x20 px (h-5 w-5) tile with 10px text.
+  Slots into nav rows / dense list rows where the existing
+  `sm` (24px) is too tall.
+- `status?: StatusDotVariant` -- optional activity / presence
+  dot rendered in the bottom-right corner of the tile. Maps
+  to the StatusDot palette (online / busy / away / offline /
+  unknown) so a future hue migration in one primitive does
+  not desynchronise the other. The overlay is ringed with
+  `bg-background` so it reads cleanly against any
+  per-name fill colour beneath, and scales with the size
+  class (h-1.5 for xs through h-3 for lg).
+- SR label composition -- when `status` is set, the avatar's
+  `aria-label` reads `<name>, <variant>` (`"Alice, busy"`)
+  so screen-reader users hear both in one announcement
+  without the caller wrapping the avatar in a separate
+  status region.
+- `data-section="avatar-root"` on the wrapper when the
+  status overlay mounts, `data-section="avatar-status"` on
+  the dot itself + `data-status` selector, plus
+  `data-section="avatar-initials"` on the initials fallback
+  for e2e selectors.
+
+### Adopted
+
+- `web/src/components/WorkerList.tsx` -- the per-row Avatar
+  now carries `status={dotVariant}`, surfacing the worker's
+  online / busy / away / offline state directly on the tile.
+  The adjacent `<StatusDot>` is preserved so busy workers
+  still get the pulse motion signal (the dot pulses, the
+  avatar overlay is static) -- the overlay is the at-rest
+  presence indicator and the StatusDot pulse is the
+  real-time activity signal.
+- `web/src/components/SessionsAttachedSection.tsx` --
+  attached session rows wear an `online` overlay so the
+  operator can confirm the row is live without reading the
+  "attached" badge text.
+- `web/src/components/HistoryDetailPane.tsx` -- the worker
+  identity header now leads with a md-size Avatar tile
+  (online when `detail.alive`, offline otherwise) followed
+  by the `CardTitle`. The DataList row underneath still
+  carries the verbose `status` badge so closed / exited
+  states stay readable.
+
+### Tests
+
+- `web/src/components/ui/avatar.test.tsx` -- 8 new vitest
+  cases: size="xs" tile classes, no overlay when status is
+  omitted, overlay renders for initials variant + image
+  variant, palette mapping (busy -> warning, online ->
+  success, offline -> muted-foreground), overlay scales
+  per size class, SR label folds the status variant in for
+  both initials AND image variants. All 29 (21 original +
+  8 new) green.
+- AvatarGroup updated for the new `xs` size: OVERLAP and
+  CHIP_SIZE entries now include the xs token. Existing
+  group cases re-run clean.
+
+### Notes
+
+- The `xs` size opens the door to nav-row + activity-feed
+  rows where a 24px tile was too tall. Callers can mix
+  sizes within the same column (e.g., `<Avatar size="xs">`
+  in a list item, `<Avatar size="md">` in the page header)
+  without separate primitives.
+- The status overlay is intentionally a thin presentation
+  layer over the existing StatusDot palette. A future
+  consolidation could expose a single `useStatusPalette`
+  hook for both primitives, but the current Record-by-
+  Record mapping keeps both surfaces independently
+  refactorable today.
+
 ## [1.11.299] - 2026-05-17 -- UI: Tabs variants + scroll-into-view (TODO 11.281)
 
 Component-scope-only enhancement of the existing `Tabs`

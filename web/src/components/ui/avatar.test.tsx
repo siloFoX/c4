@@ -143,4 +143,80 @@ describe('<Avatar>', () => {
     expect(img.getAttribute('srcset')).toBe('/u@1x.png 1x, /u@2x.png 2x');
     expect(img.getAttribute('sizes')).toBe('32px');
   });
+
+  // (v1.11.300, TODO 11.282) New xs size + status overlay.
+
+  it('size="xs" applies the new 20px tile classes', () => {
+    render(<Avatar name="Eve" size="xs" />);
+    expect(screen.getByRole('img', { name: 'Eve' })).toHaveClass('h-5');
+  });
+
+  it('does NOT render the status overlay when status is omitted', () => {
+    const { container } = render(<Avatar name="Eve" />);
+    expect(container.querySelector('[data-section="avatar-status"]')).toBeNull();
+  });
+
+  it('renders the status overlay when status is set (initials variant)', () => {
+    const { container } = render(<Avatar name="Eve" status="online" />);
+    const dot = container.querySelector('[data-section="avatar-status"]');
+    expect(dot).not.toBeNull();
+    expect(dot!.getAttribute('data-status')).toBe('online');
+  });
+
+  it('renders the status overlay around the image variant too', () => {
+    const { container } = render(
+      <Avatar src="/u.png" alt="user" status="busy" />,
+    );
+    const root = container.querySelector('[data-section="avatar-root"]');
+    expect(root).not.toBeNull();
+    const dot = container.querySelector('[data-section="avatar-status"]');
+    expect(dot).not.toBeNull();
+    expect(dot!.getAttribute('data-status')).toBe('busy');
+  });
+
+  it('status overlay uses the matching palette colour class per variant', () => {
+    const { container, rerender } = render(
+      <Avatar name="Eve" status="busy" />,
+    );
+    expect(
+      container.querySelector('[data-section="avatar-status"]')!.className,
+    ).toMatch(/bg-warning/);
+    rerender(<Avatar name="Eve" status="online" />);
+    expect(
+      container.querySelector('[data-section="avatar-status"]')!.className,
+    ).toMatch(/bg-success/);
+    rerender(<Avatar name="Eve" status="offline" />);
+    expect(
+      container.querySelector('[data-section="avatar-status"]')!.className,
+    ).toMatch(/bg-muted-foreground/);
+  });
+
+  it('status overlay scales with the avatar size class', () => {
+    const { container, rerender } = render(
+      <Avatar name="Eve" size="xs" status="online" />,
+    );
+    expect(
+      container.querySelector('[data-section="avatar-status"]')!.className,
+    ).toMatch(/h-1\.5/);
+    rerender(<Avatar name="Eve" size="lg" status="online" />);
+    expect(
+      container.querySelector('[data-section="avatar-status"]')!.className,
+    ).toMatch(/h-3/);
+  });
+
+  it('SR label folds the status variant into the announced name (initials)', () => {
+    render(<Avatar name="Alice" status="busy" />);
+    const node = screen.getByRole('img', { name: /Alice/ });
+    expect(node.getAttribute('aria-label')).toBe('Alice, busy');
+  });
+
+  it('aria-label on the wrapper carries name + status when src is set', () => {
+    const { container } = render(
+      <Avatar src="/u.png" alt="Bob" status="away" />,
+    );
+    const wrapper = container.querySelector(
+      '[data-section="avatar-root"]',
+    ) as HTMLElement;
+    expect(wrapper.getAttribute('aria-label')).toBe('Bob, away');
+  });
 });
