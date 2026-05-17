@@ -66,6 +66,15 @@ const ILLUSTRATION_REGISTRY: Record<
   welcome: WelcomeOnboardingIllustration,
 };
 
+// (v1.11.313, TODO 11.295) Dedicated help-link affordance.
+// Renders below the action + secondaryAction stack as a small
+// "Learn more" anchor. Use this for documentation deep-links
+// that should NOT be confused with the call-to-action buttons.
+export interface EmptyStateHelpLink {
+  label: string;
+  href: string;
+}
+
 export interface EmptyStateProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   icon?: ReactNode;
@@ -87,6 +96,15 @@ export interface EmptyStateProps
    * subtle text link so it visually defers to the primary CTA.
    */
   secondaryAction?: EmptyStateSecondaryAction;
+  /**
+   * (v1.11.313, TODO 11.295) Optional dedicated help-link
+   * affordance. Renders below the action stack as a small
+   * "Learn more"-style anchor with an external-link suffix
+   * when the href is absolute. Use this for doc deep-links
+   * that should NOT be confused with the call-to-action
+   * buttons.
+   */
+  helpLink?: EmptyStateHelpLink;
   /**
    * Size preset. `md` (default) matches the prior implicit
    * layout. `sm` tightens the padding for inline empty rows;
@@ -122,6 +140,7 @@ export function EmptyState({
   description,
   action,
   secondaryAction,
+  helpLink,
   size = 'md',
   className,
   ...rest
@@ -141,6 +160,7 @@ export function EmptyState({
   const sizing = SIZE_CLASSES[size];
   return (
     <div
+      data-section="empty-state"
       data-empty-state-size={size}
       className={cn(
         'flex flex-col items-center justify-center rounded-md border border-border bg-card text-center',
@@ -151,27 +171,45 @@ export function EmptyState({
       {...rest}
     >
       {resolvedIcon !== null ? (
-        <div className="text-muted-foreground" aria-hidden="true">
+        <div
+          data-section="empty-state-illustration"
+          className="text-muted-foreground"
+          aria-hidden="true"
+        >
           {resolvedIcon}
         </div>
       ) : null}
-      <div className="flex flex-col gap-1">
+      <div
+        data-section="empty-state-text"
+        className="flex flex-col gap-1"
+      >
         <span
+          data-section="empty-state-title"
           className={cn('font-semibold text-foreground', sizing.title)}
         >
           {title}
         </span>
         {description ? (
-          <span className="text-sm text-muted-foreground">{description}</span>
+          <span
+            data-section="empty-state-description"
+            className="text-sm text-muted-foreground"
+          >
+            {description}
+          </span>
         ) : null}
       </div>
       {action ? (
         isEmptyStateAction(action) ? (
-          <Button type="button" size="sm" onClick={action.onClick}>
+          <Button
+            type="button"
+            size="sm"
+            onClick={action.onClick}
+            data-section="empty-state-action"
+          >
             {action.label}
           </Button>
         ) : (
-          action
+          <div data-section="empty-state-action">{action}</div>
         )
       ) : null}
       {secondaryAction ? (
@@ -189,6 +227,7 @@ export function EmptyState({
                 : undefined
             }
             data-testid="empty-state-secondary-link"
+            data-section="empty-state-secondary"
             className="text-xs text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
           >
             {secondaryAction.label}
@@ -198,12 +237,35 @@ export function EmptyState({
             type="button"
             onClick={secondaryAction.onClick}
             data-testid="empty-state-secondary-link"
+            data-section="empty-state-secondary"
             className="text-xs text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
           >
             {secondaryAction.label}
           </button>
         )
       ) : null}
+      {/* (v1.11.313, TODO 11.295) Dedicated help-link
+          affordance below the action stack. Renders as a
+          quieter anchor than the secondary action so it
+          visually defers to both CTAs. External hrefs open in
+          a new tab with rel=noreferrer noopener. */}
+      {helpLink ? (
+        <a
+          href={helpLink.href}
+          target={helpLink.href.startsWith('http') ? '_blank' : undefined}
+          rel={
+            helpLink.href.startsWith('http')
+              ? 'noreferrer noopener'
+              : undefined
+          }
+          data-section="empty-state-help-link"
+          className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
+        >
+          {helpLink.label}
+        </a>
+      ) : null}
     </div>
   );
 }
+
+EmptyState.displayName = 'EmptyState';

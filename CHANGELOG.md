@@ -4,6 +4,90 @@
 
 (no entries -- next release window)
 
+## [1.11.313] - 2026-05-17 -- UI: EmptyState helpLink + data selectors (TODO 11.295)
+
+Component-scope-only enhancement of the existing `EmptyState`
+primitive. The default surface (no helpLink) is preserved
+byte-for-byte modulo the new data-section attribute set.
+
+### Added (EmptyState primitive)
+
+- `helpLink?: { label: string; href: string }` -- dedicated
+  help-link affordance. Renders below the action +
+  secondaryAction stack as a small "Learn more"-style anchor
+  styled in muted-foreground so it visually defers to both
+  CTAs. External hrefs (starting with `http`) open in a new
+  tab with `rel="noreferrer noopener"`; relative paths render
+  without the new-tab attributes.
+- Data-attribute selectors for e2e:
+  - `data-section="empty-state"` on the root.
+  - `data-section="empty-state-illustration"` on the
+    icon/illustration slot wrapper (only when set).
+  - `data-section="empty-state-text"` on the
+    title+description wrapper.
+  - `data-section="empty-state-title"` on the title span.
+  - `data-section="empty-state-description"` on the
+    description span.
+  - `data-section="empty-state-action"` on the primary
+    action wrapper.
+  - `data-section="empty-state-secondary"` on the secondary
+    affordance.
+  - `data-section="empty-state-help-link"` on the new
+    helpLink anchor.
+- `EmptyState.displayName = 'EmptyState'` for devtools.
+
+### Adopted
+
+- Primitive enhancement only this commit. The existing
+  EmptyState call sites inherit the new data-section
+  attributes without caller changes. Threading `helpLink`
+  into specific dispatch sites (Workers "no workers spawned"
+  -> /docs/workers, etc.) is a per-page follow-up.
+
+### Deferred (dispatch follow-ups)
+
+- Workers empty -> add `helpLink` pointing to the workers
+  docs.
+- Sessions empty -> same for sessions.
+- History empty -> same for history.
+
+### Tests
+
+- `web/src/components/ui/empty-state.test.tsx` -- 13 new
+  vitest cases:
+  - helpLink renders with label + relative href.
+  - External href gets target=_blank + rel=noreferrer
+    noopener.
+  - Relative href does not get the external attrs.
+  - helpLink is hidden when omitted.
+  - helpLink coexists with action + secondaryAction.
+  - data-section="empty-state" on the root.
+  - data-section="empty-state-text" on the title/description
+    wrapper.
+  - data-section="empty-state-title" +
+    "empty-state-description" content.
+  - data-section="empty-state-illustration" only when
+    icon/illustration is set.
+  - data-section="empty-state-action" on the primary action
+    wrapper.
+  - data-section="empty-state-secondary" on the secondary
+    affordance.
+  - data-section="empty-state-help-link" on the help link.
+  - Stable displayName.
+  All 34 (21 original + 13 new) green.
+
+### Notes
+
+- The helpLink is intentionally a quieter visual treatment
+  than `secondaryAction` (text-muted-foreground vs
+  text-primary). The hierarchy is: action (button) >
+  secondaryAction (primary-text link) > helpLink
+  (muted-foreground link).
+- External-link detection uses `href.startsWith('http')` so
+  protocol-relative URLs (`//example.com/x`) and mailto:
+  hrefs fall through as relative-style anchors. That matches
+  the secondaryAction behaviour for consistency.
+
 ## [1.11.312] - 2026-05-17 -- UI: ChipSkeleton + dispatch aliases (TODO 11.294)
 
 Component-scope-only enhancement of the existing `Skeleton`
