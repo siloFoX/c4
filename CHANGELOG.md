@@ -4,6 +4,109 @@
 
 (no entries -- next release window)
 
+## [1.11.286] - 2026-05-17 -- UI: SearchBar autocomplete + adoption (TODO 11.268)
+
+Component-scope-only enhancement of the existing SearchBar
+primitive (leading icon + clear button + debounce already
+shipped in v1.11.230). No daemon-side change and no `c4` CLI
+surface change.
+
+### Added (SearchBar primitive)
+
+- New `suggestions?: SearchBarSuggestion[]` prop on
+  `web/src/components/ui/search-bar.tsx`. Item shape
+  `{ id, label, hint?, disabled?, onSelect }`. When the prop is
+  set + the input is focused + the value is non-empty, a
+  listbox dropdown opens beneath the input with one row per
+  suggestion. The `id` doubles as the React key and the
+  `data-search-suggestion=<id>` e2e selector.
+- ARIA-combobox plumbing: when `suggestions` is set the input
+  picks up `role="combobox"`, `aria-autocomplete="list"`,
+  `aria-expanded`, `aria-controls=<listbox-id>`, and
+  `aria-activedescendant=<active-option-id>`. The dropdown
+  itself is `role="listbox"` with one `role="option"` per row
+  and `aria-selected` flipped onto the active row.
+- Keyboard contract:
+  - `ArrowDown` / `ArrowUp` move the active row (wrap at the
+    list ends; disabled suggestions are skipped).
+  - `Enter` commits the active suggestion.
+  - `Escape` closes the dropdown without selecting.
+- `suggestionsOpen?: boolean` -- optional controlled override
+  for when the host page wants to force the dropdown open or
+  closed (e.g. while a remote autocomplete request is
+  in-flight). When unset the primitive computes the open
+  state itself.
+- `onSuggestionsOpenChange?: (open: boolean) => void` -- fires
+  when the computed open state changes; useful for the host to
+  hook into "first open" or "closed" lifecycle.
+- `noSuggestionsContent?: ReactNode` -- when set, the dropdown
+  shell stays open with an empty-state row even when
+  `suggestions` is an empty array. Without this the dropdown
+  collapses on the no-results case (page owns its own empty
+  affordance).
+- Click-outside (`pointerdown`) closes the dropdown.
+- Suggestion rows use `onMouseDown` (not click) so the
+  selection commits before the input's blur fires (which would
+  otherwise unmount the dropdown via the focus state).
+- `data-section="search-bar"` on the root + `data-section
+  ="search-bar-suggestions"` on the listbox + per-row
+  `data-search-suggestion=<id>` + `data-search-suggestion-active`
+  for e2e selectors.
+- 18 new vitest cases (35/35 total) cover: dropdown hidden when
+  suggestions undefined / when input empty; dropdown visible
+  when focused + non-empty + suggestions present; combobox
+  role + aria-* wiring; click-to-select fires `onSelect`;
+  ArrowDown / ArrowUp active-row movement + end-wrap; Enter
+  commits; Escape closes without selecting; disabled
+  suggestion skipped during keyboard nav + no-fire on click;
+  `data-search-suggestion=<id>` + `data-search-suggestion-active`
+  attributes; `noSuggestionsContent` empty-state rendering +
+  omission collapses the dropdown; controlled
+  `suggestionsOpen` overrides; `data-section` root + dropdown
+  attrs.
+
+### Changed (3 adoption sites)
+
+- `web/src/components/SessionsHeader.tsx` -- bespoke
+  `<div>+Search+Input` row migrated to the canonical
+  `<SearchBar>` primitive at `size="sm"`. Existing `query` /
+  `onQuery` props pass straight through; visual rhythm is
+  byte-identical with the prior h-8 inline search. The Search
+  + Input + manual icon-overlay JSX is gone.
+  `data-testid="sessions-header-search"`.
+- `web/src/components/HistoryView.tsx` -- sidebar search
+  migrated from bespoke `<div>+Search+Input` row to
+  `<SearchBar>` with autocomplete suggestions wired. Up to 8
+  worker-name matches surface as the operator types; selecting
+  a row calls `selectWorker(name)` to jump the detail pane.
+  Suggestions list is empty when the query is empty (no
+  dropdown). Per-row `hint` reads "live" or "closed" so the
+  operator can prioritise live workers without selecting them
+  first. `data-testid="history-sidebar-search"`.
+- `web/src/pages/Templates.tsx` -- already used `<SearchBar>`
+  in the page-toolbar slot (v1.11.143). This release leaves
+  the call site unchanged (no suggestions added). The
+  primitive enhancement still benefits Templates because the
+  existing search now picks up the same data-section root +
+  ARIA shape; future autocomplete by template name lands
+  without touching the import.
+
+### Test updates
+
+- `web/src/components/SessionsHeader.test.tsx` -- migrated
+  every `getByRole('textbox', ...)` / `queryByRole('textbox',
+  ...)` to the equivalent `searchbox` role queries. The
+  SearchBar primitive uses `<input type="search">` which
+  resolves to `role="searchbox"` not `role="textbox"`.
+
+### Drive-by
+
+- `web/src/components/SessionsHeader.tsx` -- removed unused
+  `Search` import (replaced by the SearchBar's internal icon)
+  and switched `Input` to `SearchBar` in the barrel import.
+- `web/src/components/HistoryView.tsx` -- removed unused
+  `Search` + `Input` imports.
+
 ## [1.11.285] - 2026-05-16 -- UI: CopyButton primitive (TODO 11.267)
 
 Component-scope-only addition. No daemon-side change and no `c4`

@@ -1,5 +1,5 @@
-import { FolderTree, Plus, Search } from 'lucide-react';
-import { CardHeader, CardTitle, Input, Button, StickyFilterBar } from './ui';
+import { FolderTree, Plus } from 'lucide-react';
+import { CardHeader, CardTitle, SearchBar, Button, StickyFilterBar } from './ui';
 import { t, useLocale } from '../lib/i18n';
 
 // (v1.10.584) Extracted from SessionsView. The card header —
@@ -44,19 +44,19 @@ export default function SessionsHeader({
         <CardTitle className="flex items-center gap-2 text-base">
           <FolderTree className="h-4 w-4" aria-hidden /> {t('sessions.panel.title')}
         </CardTitle>
-        <div className="relative">
-          <Search
-            className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            placeholder={t('sessions.search.placeholder')}
-            aria-label={t('sessions.aria.search')}
-            className="h-8 pl-7 text-sm"
-          />
-        </div>
+        {/* (v1.11.286, TODO 11.268) Bespoke <div>+Search+Input
+            row migrated to the canonical SearchBar primitive
+            (leading icon + clear button + ariaLabel built in).
+            Size=sm matches the prior h-8 height. */}
+        <SearchBar
+          size="sm"
+          value={query}
+          onChange={onQuery}
+          placeholder={t('sessions.search.placeholder')}
+          ariaLabel={t('sessions.aria.search')}
+          data-testid="sessions-header-search"
+        />
+
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>
             {totalFiltered}/{total}

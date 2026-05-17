@@ -1,10 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ArrowDownAZ,
   ArrowUpAZ,
   History as HistoryIcon,
   NotebookText,
-  Search,
   Trash2,
   X,
 } from 'lucide-react';
@@ -22,8 +21,8 @@ import {
   DateRangePicker,
   EmptyState,
   ExportButton,
-  Input,
   ListActionMenu,
+  SearchBar,
   SegmentedControl,
   Select,
   Skeleton,
@@ -177,6 +176,24 @@ export default function HistoryView() {
   ]);
   const visibleColSet = new Set(visibleCols);
 
+  // (v1.11.286, TODO 11.268) Sidebar search-bar suggestions:
+  // up to 8 worker-name matches as the operator types. Empty
+  // when the query is empty so the autocomplete dropdown stays
+  // closed.
+  const searchSuggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return summary
+      .filter((w) => w.name.toLowerCase().includes(q))
+      .slice(0, 8)
+      .map((w) => ({
+        id: w.name,
+        label: w.name,
+        hint: w.alive ? 'live' : 'closed',
+        onSelect: () => selectWorker(w.name),
+      }));
+  }, [query, summary, selectWorker]);
+
   // (v1.11.258, TODO 11.240) Sidebar sort persistence via
   // useTableSort. Default = lastTaskAt desc (most-recent-activity
   // first) so first-load matches the prior server-supplied order.
@@ -312,20 +329,20 @@ export default function HistoryView() {
               data-testid="history-sidebar-sticky"
               className="-mx-4 flex flex-col gap-2 px-4 py-2"
             >
-            <div className="relative">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('history.search.placeholder')}
-                className="h-9 pl-8 text-sm"
-                aria-label={t('history.search.label')}
-              />
-            </div>
+            {/* (v1.11.286, TODO 11.268) Bespoke <div>+Search+Input
+                row migrated to SearchBar. The autocomplete
+                dropdown surfaces up to 8 worker-name matches as
+                the operator types; selecting a row jumps the
+                detail pane to that worker. */}
+            <SearchBar
+              size="sm"
+              value={query}
+              onChange={setQuery}
+              placeholder={t('history.search.placeholder')}
+              ariaLabel={t('history.search.label')}
+              data-testid="history-sidebar-search"
+              suggestions={searchSuggestions}
+            />
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
