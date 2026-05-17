@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, HeroCard, ListItem, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
+import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, FormField, HeroCard, ListItem, NumberInput, PageHeader, Panel, SearchBar, Tooltip } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -187,6 +187,14 @@ export default function Profiles() {
                       <PatternList label={t('profiles.list.deny')} items={deny} tone="danger" />
                     </FieldGroup>
                   )}
+                  {/* (v1.11.287, TODO 11.269) Budget cap row:
+                      operator-local placeholder for a per-profile
+                      token budget cap (the daemon does not yet
+                      consume this value; the slot is in place
+                      for when --budget hooks land). NumberInput
+                      with $ prefix + "tokens" suffix advertises
+                      the unit semantics. */}
+                  {isOpen && <ProfileBudgetRow name={p.name} />}
                   {isOpen && (
                     <div className="mt-3 flex gap-2">
                       <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
@@ -215,6 +223,38 @@ export default function Profiles() {
         )}
       </div>
     </PageFrame>
+  );
+}
+
+// (v1.11.287, TODO 11.269) Operator-local budget cap field for a
+// profile. NumberInput primitive with min/max + $ prefix + tokens
+// unit. Stored as page-local state for now -- the daemon's profile
+// schema doesn't have a budget field yet.
+function ProfileBudgetRow({ name }: { name: string }) {
+  const [budget, setBudget] = useState<number | undefined>(undefined);
+  return (
+    <div
+      className="mt-3 flex flex-wrap items-end gap-3"
+      data-testid={`profiles-budget-${name}`}
+    >
+      <FormField
+        label="Budget cap"
+        helperText="Per-profile token ceiling. Operator-local until the daemon adds a --budget field."
+      >
+        <NumberInput
+          value={budget}
+          onChange={setBudget}
+          min={0}
+          max={1000000}
+          step={10000}
+          prefix="$"
+          unit="tokens"
+          ariaLabel={`Budget cap for profile ${name}`}
+          placeholder="0"
+          size="sm"
+        />
+      </FormField>
+    </div>
   );
 }
 

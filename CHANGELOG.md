@@ -4,6 +4,64 @@
 
 (no entries -- next release window)
 
+## [1.11.287] - 2026-05-17 -- UI: NumberInput prefix + adoption (TODO 11.269)
+
+Component-scope-only enhancement of the existing NumberInput
+primitive. No daemon-side change and no `c4` CLI surface change.
+
+### Added (NumberInput primitive)
+
+- New `prefix?: string` prop on
+  `web/src/components/ui/number-input.tsx` -- mirrors the
+  existing `unit` suffix but sits on the LEFT of the input.
+  Use for currency symbols (`"$"`, `"K"`), unit names that
+  read better as a prefix (`"max"`), or short labels (`"MB "`
+  before a megabyte number). Per-element
+  `data-number-input-prefix="true"` for e2e selectors.
+- `data-section="number-input"` + `data-size` on the root.
+  Per-button `data-number-input-action="increment" | "decrement"`.
+  Per-suffix `data-number-input-unit="true"`. Per-prefix
+  `data-number-input-prefix="true"`.
+- `inputMode` flips from `"numeric"` to `"decimal"` when
+  `precision > 0` so mobile keyboards include the dot key for
+  fractional inputs. Integer-only (`precision` undefined or 0)
+  stays `"numeric"` (no dot key).
+- 9 new vitest cases (27/28 total -- 1 pre-existing
+  ArrowUp/ArrowDown failure carries over unchanged) cover:
+  prefix render + omission, prefix + unit coexistence
+  (currency + thousands suffix), decimal vs numeric inputMode
+  matrix, data-section + data-size root attrs,
+  data-number-input-action button attrs.
+
+### Changed (3 adoption sites)
+
+- `web/src/pages/Batch.tsx` -- the "count" raw
+  `<Input type="number">` (1-50 worker fan-out) migrated to
+  `<NumberInput>` with `min={1} max={50}`. Stepper buttons
+  replace browser-native +/- behaviour; the label + bounds +
+  value contract is preserved.
+- `web/src/pages/Templates.tsx` (ImportTemplateForm) -- new
+  "Max tokens" `FormField` + `NumberInput` (1..200,000, step
+  1,000, `"tokens"` suffix, "No cap" placeholder). Operator-
+  local for now -- the daemon import endpoint doesn't read
+  the value yet, but the slot is in place for when it does.
+- `web/src/pages/Profiles.tsx` -- new `ProfileBudgetRow`
+  helper component rendered inside each expanded profile row.
+  `NumberInput` with `$` prefix + `"tokens"` unit + 0..1M
+  range + 10,000 step. Operator-local until the daemon's
+  profile schema gains a budget field. Per-row
+  `data-testid="profiles-budget-<name>"`.
+
+### Pre-existing test failure (out of scope)
+
+- `web/src/components/ui/number-input.test.tsx > ArrowUp /
+  ArrowDown step via keyboard` -- pre-existing failure on the
+  controlled keyboard-step closure (confirmed via
+  stash-keep-index test against the prior tip). Unrelated to
+  this change; the new tests pass clean.
+- `web/src/pages/Templates.test.tsx > renders all rows in a
+  single <ul> wrapper` -- pre-existing failure carried over.
+
 ## [1.11.286] - 2026-05-17 -- UI: SearchBar autocomplete + adoption (TODO 11.268)
 
 Component-scope-only enhancement of the existing SearchBar
