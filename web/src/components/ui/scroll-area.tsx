@@ -1,4 +1,14 @@
-import { forwardRef, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactNode,
+} from 'react';
 import { cn } from '../../lib/cn';
 
 // (v1.11.164) Scroll-area primitive. Wraps a div in consistent custom
@@ -35,6 +45,17 @@ export interface ScrollAreaProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
   size?: ScrollAreaSize;
   /** Reserve `env(safe-area-inset-*)` padding around the scroll edge. */
   safeArea?: boolean;
+  /**
+   * (v1.11.315, TODO 11.297) When true, render fade-shadow
+   * indicators at the top + bottom edges of the scroll
+   * surface. The shadows fade in / out as the user scrolls:
+   * the top shadow appears when content is scrolled past the
+   * first row; the bottom shadow appears while there is
+   * still content below the viewport. Wrapper carries
+   * `data-at-top="true|false"` and `data-at-bottom="true|false"`
+   * so the shadows can be styled / asserted from CSS.
+   */
+  shadows?: boolean;
 }
 
 const AXIS_CLASSES: Record<ScrollAxis, string> = {
@@ -63,11 +84,58 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
     axis = 'y',
     size = 'auto',
     safeArea = false,
+    shadows = false,
     style,
     ...rest
   },
   ref,
 ) {
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  useImperativeHandle(ref, () => innerRef.current as HTMLDivElement);
+
+  // (v1.11.315, TODO 11.297) Shadow indicator state. Starts
+  // `atTop=true` + `atBottom=true` so a non-overflowing
+  // surface renders no shadow at all. A scroll listener +
+  // resize listener + content-resize observer keep the flags
+  // current as the user scrolls or the content reflows.
+  const [atTop, setAtTop] = useState<boolean>(true);
+  const [atBottom, setAtBottom] = useState<boolean>(true);
+
+  const recompute = useCallback(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const overflows = el.scrollHeight > el.clientHeight + 1;
+    if (!overflows) {
+      setAtTop(true);
+      setAtBottom(true);
+      return;
+    }
+    setAtTop(el.scrollTop <= 0);
+    setAtBottom(
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 1,
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!shadows) return;
+    const el = innerRef.current;
+    if (!el) return;
+    recompute();
+    const onScroll = () => recompute();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => recompute());
+      ro.observe(el);
+    }
+    window.addEventListener('resize', onScroll);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [shadows, recompute]);
+
   const mh = sizeToCss(maxHeight);
   const h = sizeToCss(height);
   const mergedStyle: CSSProperties = {
@@ -76,11 +144,20 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
     ...style,
   };
   const sizeClass = size === 'auto' ? null : SIZE_CLASSES[size];
-  return (
+
+  // When shadows are off the surface is the same single div
+  // it has always been. When shadows are on we mount a
+  // relative-positioned wrapper carrying the shadow overlays
+  // + data-at-top / data-at-bottom flags.
+  const inner = (
     <div
-      ref={ref}
+      ref={innerRef}
       data-scrollarea-size={size}
       data-scrollarea-safe-area={safeArea ? '' : undefined}
+      data-section="scroll-area"
+      data-shadows={shadows ? 'true' : 'false'}
+      data-at-top={shadows ? (atTop ? 'true' : 'false') : undefined}
+      data-at-bottom={shadows ? (atBottom ? 'true' : 'false') : undefined}
       className={cn(
         'c4-scroll',
         AXIS_CLASSES[axis],
@@ -92,6 +169,35 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
       {...rest}
     >
       {children}
+    </div>
+  );
+
+  if (!shadows) return inner;
+
+  return (
+    <div
+      className="relative"
+      data-section="scroll-area-shadow-root"
+      data-at-top={atTop ? 'true' : 'false'}
+      data-at-bottom={atBottom ? 'true' : 'false'}
+    >
+      {inner}
+      <div
+        aria-hidden="true"
+        data-section="scroll-area-shadow-top"
+        className={cn(
+          'pointer-events-none absolute left-0 right-0 top-0 h-4 bg-gradient-to-b from-background/80 to-transparent transition-opacity duration-150',
+          atTop ? 'opacity-0' : 'opacity-100',
+        )}
+      />
+      <div
+        aria-hidden="true"
+        data-section="scroll-area-shadow-bottom"
+        className={cn(
+          'pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background/80 to-transparent transition-opacity duration-150',
+          atBottom ? 'opacity-0' : 'opacity-100',
+        )}
+      />
     </div>
   );
 });
