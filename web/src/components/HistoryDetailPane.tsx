@@ -3,6 +3,7 @@ import { Clock, GitBranch, Hash } from 'lucide-react';
 import {
   Avatar,
   Badge,
+  Breadcrumbs,
   Card,
   CardContent,
   CardDescription,
@@ -62,6 +63,20 @@ export default function HistoryDetailPane({ detail }: Props) {
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
       <CardHeader className="p-4 md:p-5">
+        {/* (v1.11.301, TODO 11.283) Breadcrumb context row.
+            Renders "History / <worker-name>" so the operator
+            can see the page hierarchy without leaving the
+            detail pane. Long worker names truncate-middle at
+            24 chars so the navbar does not push the
+            CardTitle off the right edge. */}
+        <Breadcrumbs
+          className="mb-2"
+          maxLabelLength={24}
+          items={[
+            { id: 'history', label: t('history.sidebar.title') },
+            { id: 'worker', label: detail.name },
+          ]}
+        />
         {/* (v1.11.300, TODO 11.282) Worker identity header now
             leads with the Avatar tile + status overlay. Alive
             workers wear an `online` dot; closed/exited workers
