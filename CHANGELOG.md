@@ -4,6 +4,86 @@
 
 (no entries -- next release window)
 
+## [1.11.293] - 2026-05-17 -- UI: Combobox primitive (TODO 11.275)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/combobox.tsx` -- searchable select
+  primitive built on the WAI-ARIA `role="combobox"` +
+  `role="listbox"` + `role="option"` contract. Operator can
+  type to filter, navigate with arrow keys, commit with
+  Enter, and (optionally) commit a free-text value that does
+  not match any option.
+- Props:
+  - `options: { value, label, hint?, disabled? }[]`
+  - `value`, `onChange` -- controlled selection (single value
+    or null).
+  - `placeholder`, `ariaLabel`, `disabled`, `clearable`
+    (default true).
+  - `allowFreeText` (default false) -- when true, Enter on an
+    unmatched query commits the typed string as the value.
+  - `onQueryChange?: (q) => void` -- async loader hook. When
+    set, the primitive stops doing its own substring filter
+    and trusts the parent's `options` array as the canonical
+    visible list. Caller debounces.
+  - `loading?: boolean` -- swaps the chevron icon for an
+    animated Loader2 + renders a "Loading..." row at the top
+    of the listbox.
+  - `noOptionsContent?: ReactNode` -- override the default
+    "No matches." copy.
+  - `size: 'sm' | 'md'` (default `md`).
+- Keyboard contract:
+  - `ArrowDown` / `ArrowUp` move the active row (wrap at the
+    ends; disabled options are skipped).
+  - `Enter` commits the active row, or the typed query when
+    `allowFreeText` is on.
+  - `Escape` closes without committing.
+- Click-outside (`pointerdown`) closes the listbox. Options
+  use `onMouseDown` (not click) so the selection commits
+  before the input blur fires.
+- Input display value: while open, shows the operator's draft
+  query; closed + matching option shows the option label;
+  closed + free-text value shows the raw value string;
+  closed + null shows the placeholder.
+- ARIA: `role="combobox"` + `aria-autocomplete="list"` +
+  `aria-expanded` + `aria-controls` + `aria-activedescendant`
+  on the input. Per-option `aria-selected` + `aria-disabled`.
+- `data-section="combobox"` + `data-open` + `data-size` on the
+  root. Per-input `data-combobox-input`; per-clear-button
+  `data-combobox-clear`; per-toggle `data-combobox-toggle`;
+  per-loading-row `data-combobox-loading`;
+  `data-combobox-no-options` on the empty-state row; per-
+  option `data-combobox-option=<value>` +
+  `data-combobox-option-active` + `data-combobox-option-selected`.
+- 27 vitest cases cover: role=combobox + aria wiring; root
+  data-* attrs; open via toggle + open via focus; one option
+  per choice; substring filter (case-insensitive); click
+  commits + closes; aria-selected + data-combobox-option-
+  selected on the active option; ArrowDown active flip;
+  ArrowDown skips disabled; Enter commits active; Escape
+  closes without commit; no-options copy; allowFreeText
+  Enter commits typed query; non-free-text Enter is a no-op;
+  onQueryChange fires per keystroke; loading state renders;
+  clearable toggle (with + without); disabled state; disabled
+  option ignored on click; per-option data-* attribute
+  matrix; aria-activedescendant tracks active; click-outside
+  closes; className merge; ref forwarding; hint slot.
+
+### Deferral
+
+- The dispatch named "Sessions worker picker, Templates
+  select, Profiles select" as adoption targets. None of those
+  surfaces currently use a Select primitive -- they're plain
+  text inputs (AttachModal path + alias) or have no select at
+  all (Templates / Profiles list views). Migrating them to
+  Combobox would require adding new picker affordances rather
+  than swapping a primitive. The Combobox itself is the
+  shared deliverable; the adoption sites are documented for
+  a follow-up.
+
 ## [1.11.292] - 2026-05-17 -- UI: SplitPane primitive (TODO 11.274)
 
 Component-scope-only addition. No daemon-side change and no `c4`
