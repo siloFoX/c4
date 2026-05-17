@@ -138,9 +138,18 @@ describe('<KeyboardShortcutsModal>', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders exactly one button (the Close X) inside the modal', () => {
+  it('renders the Close X button + one trigger per accordion category', () => {
+    // (v1.11.290, TODO 11.272) Categories migrated from inline
+    // <section> + SectionDivider rows to an Accordion. The Close
+    // X plus one trigger button per visible category are the
+    // only interactive controls in the modal. There are three
+    // categories in SECTION_ORDER (navigation / actions / view),
+    // so the modal renders 4 buttons in the default state.
     renderModal();
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(4);
+    expect(
+      screen.getByRole('button', { name: 'Close' }),
+    ).toBeInTheDocument();
   });
 
   // ---- close paths ---------------------------------------------
