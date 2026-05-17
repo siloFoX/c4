@@ -4,6 +4,97 @@
 
 (no entries -- next release window)
 
+## [1.11.312] - 2026-05-17 -- UI: ChipSkeleton + dispatch aliases (TODO 11.294)
+
+Component-scope-only enhancement of the existing `Skeleton`
+primitive family. Adds the new `ChipSkeleton` shape requested
+by the dispatch + `AvatarSkeleton` / `TableRowSkeleton` aliases
+so the dispatch's *Skeleton naming convention is reachable
+without breaking existing AvatarShape / TableRowShape
+consumers.
+
+### Added (Skeleton primitive)
+
+- `ChipSkeleton` -- pill-shaped placeholder for chip / tag /
+  badge rows during loading. Matches the visual silhouette of
+  the existing `Chip` primitive so the loading state does not
+  jump when the real content lands.
+  - Props: `size?: 'sm' | 'md' | 'lg'`, `width?: string | number`
+    (override the per-size default), `className?`, plus all
+    standard `HTMLDivElement` attrs.
+  - Default size dimensions:
+    - `sm`: 14px height, 48px width.
+    - `md`: 18px height, 64px width (default).
+    - `lg`: 24px height, 80px width.
+  - Numeric width coerces to px; string passes through any
+    CSS length.
+  - Shimmer animation routed through the shared
+    `loading-motion` contract so the pulse rhythm matches
+    every other Skeleton variant.
+  - Data-attribute selectors: `data-section="chip-skeleton"`,
+    `data-skeleton-shape="chip"`,
+    `data-chip-skeleton-size="sm|md|lg"`.
+  - role="status" + aria-hidden="true" wrapper.
+- `AvatarSkeleton` exported alias for `AvatarShape`. The
+  dispatch asked for the `*Skeleton` naming vocabulary; this
+  preserves the existing `AvatarShape` export for current
+  consumers while adding the canonical alias for new code.
+- `TableRowSkeleton` exported alias for `TableRowShape`.
+  Same story.
+
+### Adopted
+
+- Primitive enhancement only this commit. The dispatch sites
+  (HistoryView loading, Workers loading, Sessions loading)
+  inherit the new shapes; threading `<ChipSkeleton>` into
+  per-page loading states is a per-page follow-up.
+
+### Deferred (dispatch follow-ups)
+
+- HistoryView loading: thread `<ChipSkeleton>` into the
+  status / branch / commit-hash chips that load before the
+  HistoryDetailPane mounts.
+- Workers loading: thread `<AvatarSkeleton>` next to the
+  worker-row skeletons so the loading state previews the
+  Avatar tile.
+- Sessions loading: same story for the SessionsListSection
+  rows.
+
+### Tests
+
+- `web/src/components/ui/skeleton.test.tsx` -- 13 new vitest
+  cases:
+  - `<ChipSkeleton>` renders rounded-full + role=status +
+    aria-hidden.
+  - `data-section="chip-skeleton"` + `data-skeleton-shape="chip"`
+    selectors.
+  - Default `size="md"` height + width.
+  - `size="sm"` height + width.
+  - `size="lg"` height + width.
+  - Custom `width` overrides the size default.
+  - Numeric `width` coerces to px.
+  - `className` merge.
+  - Stable `displayName`.
+  - `AvatarSkeleton === AvatarShape` (alias check).
+  - `AvatarSkeleton` renders the avatar shape data attrs.
+  - `TableRowSkeleton === TableRowShape` (alias check).
+  - `TableRowSkeleton` renders the table-row shape.
+  All 82 (69 original + 13 new) green.
+
+### Notes
+
+- A pre-existing exactOptionalPropertyTypes TS error in
+  `TableRowShape` (the `width={TABLE_ROW_WIDTHS[i % len]}`
+  expression returns `string | undefined` under
+  `noUncheckedIndexedAccess`) is unchanged by this commit.
+  Tracked as a follow-up cleanup; the runtime behaviour is
+  correct (Rect accepts undefined width gracefully).
+- The ChipSkeleton dimensions intentionally differ from the
+  Chip primitive's actual padding -- the silhouette is a
+  rough match, not a pixel-perfect twin, so callers can
+  preview a chip row without specifying the exact label
+  length.
+
 ## [1.11.311] - 2026-05-17 -- UI: Card link mode + disabled state + data selectors (TODO 11.293)
 
 Component-scope-only enhancement of the existing `Card`
