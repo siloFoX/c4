@@ -4,6 +4,104 @@
 
 (no entries -- next release window)
 
+## [1.11.308] - 2026-05-17 -- UI: NativeSelect primitive (TODO 11.290)
+
+New `NativeSelect` primitive co-located with the existing
+`Select` combobox in `web/src/components/ui/select.tsx`. The
+existing `Select` (rich custom combobox) is preserved
+byte-for-byte; the new `NativeSelect` is a thin styled wrapper
+around the platform `<select>` element for surfaces where the
+rich combobox is overkill.
+
+### Added
+
+- `NativeSelect` -- styled native `<select>` with a chevron
+  icon, sm/md sizes, optional leading icon, error state,
+  and an optional placeholder. Use this for simple
+  dropdowns (3-7 fixed options, no fuzzy search, no async
+  loading) where the existing `Select` would be too heavy.
+  Inherits all native-select affordances for free:
+  - Platform-native dropdown chrome on mobile (iOS picker
+    wheel, Android dropdown menu).
+  - Screen-reader announcement free of custom ARIA.
+  - No portal layer, no focus trap, no keyboard nav
+    re-implementation.
+- New exported types `NativeSelectSize = 'sm' | 'md'` +
+  `NativeSelectOption = { value, label, disabled? }`.
+- Props:
+  - `options: NativeSelectOption[]`, `value`, `onChange(next)`.
+  - `size?: 'sm' | 'md'` (default `'md'`). `md` matches the
+    existing `Select` trigger height (h-10 min-h-[44px]
+    touch target). `sm` lands at h-8 for inline rows.
+  - `error?: boolean` (default false) -- flips
+    `aria-invalid` AND swaps the border palette from
+    `border-input` to `border-destructive`.
+  - `icon?: ReactNode` -- optional leading icon. Renders
+    absolutely positioned inside the wrapper span so the
+    select stays pixel-perfect; the select picks up the
+    matching `pl-7` / `pl-9` offset per size.
+  - `placeholder?: string` -- renders as a hidden + disabled
+    first `<option>` since native selects do not show
+    placeholder text natively.
+  - All standard `<select>` HTML attributes pass through
+    (id, className, aria-label, disabled, etc).
+- Data-attribute selectors:
+  - `data-section="native-select-root"` on the wrapper
+    span.
+  - `data-section="native-select"` on the `<select>`.
+  - `data-section="native-select-icon"` on the leading
+    icon span.
+  - `data-section="native-select-chevron"` on the chevron
+    span.
+  - `data-size="sm|md"` + `data-error="true|false"` on both
+    the root + the select for theming + e2e selectors.
+
+### Adopted
+
+- Primitive only this commit. Settings format choice +
+  Profiles role flat selector adoption is deferred so the
+  per-page mount-points can land with their own test
+  refresh.
+
+### Deferred (dispatch follow-ups)
+
+- Settings format choice migration: the current Settings
+  page uses ChoiceGroup buttons rather than a flat
+  selector. If a future "Export format: CSV / JSON / TSV"
+  surface lands, NativeSelect is the canonical adoption
+  site.
+- Profiles role flat selector: depends on the planned
+  Profiles editor surface that does not exist today.
+
+### Tests
+
+- `web/src/components/ui/native-select.test.tsx` -- 18
+  vitest cases: one `<option>` per item + labels, controlled
+  value reflects, onChange fires with picked value,
+  default md size + data-size, sm size + data-size, error
+  flips aria-invalid + border-destructive, error=false
+  leaves border-input, icon slot mounts inside
+  `data-section="native-select-icon"`, icon slot adds the
+  matching pl- padding, chevron renders inside
+  `data-section="native-select-chevron"`, placeholder
+  renders as hidden + disabled first option, disabled
+  disables the select, `data-section="native-select"` on
+  the select, `data-section="native-select-root"` on the
+  wrapper, className merge, id forward, stable displayName,
+  native fireEvent.change works. All 18 green.
+- The existing `Select` combobox suite re-runs clean. 42 /
+  42 across select + native-select.
+
+### Notes
+
+- Co-located with `Select` in the same file because the
+  two primitives share the same conceptual surface ("pick
+  one value from a list"); the export site stays the
+  single point of reach.
+- The chevron uses the same `ChevronDown` glyph as the
+  Tabs / Combobox / Drawer primitives so a future palette
+  migration moves all four together.
+
 ## [1.11.307] - 2026-05-17 -- UI: Checkbox size + error state + data selectors (TODO 11.289)
 
 Component-scope-only enhancement of the existing `Checkbox`

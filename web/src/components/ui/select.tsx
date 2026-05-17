@@ -6,7 +6,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { ChangeEvent, KeyboardEvent, ReactNode, SelectHTMLAttributes } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { Label } from './label';
 import { cn } from '../../lib/cn';
 
@@ -384,3 +385,165 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
   },
 );
 Select.displayName = 'Select';
+
+// (v1.11.308, TODO 11.290) NativeSelect -- styled wrapper
+// around the platform `<select>`. Use this for simple
+// dropdowns (3-7 fixed options, no fuzzy search, no
+// async loading) where the rich `Select` combobox is
+// overkill. Inherits all native-select affordances:
+// platform-native dropdown chrome on mobile, screen-reader
+// announcement free of custom ARIA, no portal layer.
+
+export type NativeSelectSize = 'sm' | 'md';
+
+export interface NativeSelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+export interface NativeSelectProps
+  extends Omit<
+    SelectHTMLAttributes<HTMLSelectElement>,
+    'size' | 'onChange' | 'value' | 'children'
+  > {
+  options: NativeSelectOption[];
+  value: string;
+  onChange: (next: string) => void;
+  size?: NativeSelectSize;
+  // (v1.11.308) Error state -- flips `aria-invalid` AND
+  // swaps in a destructive border palette so the surface
+  // signals validation failure without the caller wrapping
+  // the select in separate error chrome.
+  error?: boolean;
+  // (v1.11.308) Optional leading icon rendered before the
+  // select text. Pure presentation; absolutely positioned
+  // inside the relative wrapper so the native select stays
+  // pixel-perfect.
+  icon?: ReactNode;
+  // Optional placeholder rendered as the first <option>
+  // when the current value does not match any option.
+  // Native selects do not show placeholder text natively, so
+  // the placeholder ships as a disabled <option> in the
+  // list.
+  placeholder?: string;
+}
+
+const NATIVE_SELECT_BASE =
+  'w-full appearance-none rounded-md border bg-background text-sm ring-offset-background transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
+
+const NATIVE_SELECT_SIZE: Record<NativeSelectSize, string> = {
+  sm: 'h-8 px-2 pr-7 text-xs',
+  md: 'h-10 min-h-[44px] sm:min-h-0 px-3 pr-9',
+};
+
+const NATIVE_SELECT_BORDER = 'border-input';
+const NATIVE_SELECT_BORDER_ERROR = 'border-destructive';
+
+const NATIVE_ICON_OFFSET: Record<NativeSelectSize, string> = {
+  sm: 'pl-7',
+  md: 'pl-9',
+};
+
+const ICON_LEADING_POS: Record<NativeSelectSize, string> = {
+  sm: 'left-2',
+  md: 'left-3',
+};
+
+const ICON_CHEVRON_POS: Record<NativeSelectSize, string> = {
+  sm: 'right-2',
+  md: 'right-3',
+};
+
+export const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
+  (
+    {
+      options,
+      value,
+      onChange,
+      size = 'md',
+      error = false,
+      icon,
+      placeholder,
+      className,
+      disabled,
+      ...rest
+    },
+    ref,
+  ) => {
+    const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+      onChange(e.target.value);
+    };
+
+    const hasIcon = icon !== undefined && icon !== null;
+
+    return (
+      <span
+        className="relative inline-flex w-full items-center"
+        data-section="native-select-root"
+        data-size={size}
+        data-error={error ? 'true' : 'false'}
+      >
+        {hasIcon ? (
+          <span
+            aria-hidden="true"
+            data-section="native-select-icon"
+            className={cn(
+              'pointer-events-none absolute inline-flex items-center text-muted-foreground',
+              ICON_LEADING_POS[size],
+            )}
+          >
+            {icon}
+          </span>
+        ) : null}
+        <select
+          ref={ref}
+          value={value}
+          onChange={handleChange}
+          disabled={disabled}
+          aria-invalid={error || undefined}
+          data-section="native-select"
+          data-size={size}
+          data-error={error ? 'true' : 'false'}
+          className={cn(
+            NATIVE_SELECT_BASE,
+            NATIVE_SELECT_SIZE[size],
+            error ? NATIVE_SELECT_BORDER_ERROR : NATIVE_SELECT_BORDER,
+            hasIcon && NATIVE_ICON_OFFSET[size],
+            className,
+          )}
+          {...rest}
+        >
+          {placeholder !== undefined ? (
+            <option value="" disabled hidden>
+              {placeholder}
+            </option>
+          ) : null}
+          {options.map((opt) => (
+            <option
+              key={opt.value}
+              value={opt.value}
+              disabled={opt.disabled}
+            >
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <span
+          aria-hidden="true"
+          data-section="native-select-chevron"
+          className={cn(
+            'pointer-events-none absolute inline-flex items-center text-muted-foreground',
+            ICON_CHEVRON_POS[size],
+          )}
+        >
+          <ChevronDown
+            className={cn(size === 'sm' ? 'h-3 w-3' : 'h-4 w-4')}
+          />
+        </span>
+      </span>
+    );
+  },
+);
+
+NativeSelect.displayName = 'NativeSelect';
