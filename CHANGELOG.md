@@ -4,6 +4,101 @@
 
 (no entries -- next release window)
 
+## [1.11.292] - 2026-05-17 -- UI: SplitPane primitive (TODO 11.274)
+
+Component-scope-only addition. No daemon-side change and no `c4`
+CLI surface change.
+
+### Added
+
+- `web/src/components/ui/split-pane.tsx` -- resizable two-pane
+  container with a draggable divider, persisted ratio,
+  optional collapse / expand snap zones, and full
+  `role="separator"` keyboard contract.
+- Two orientations:
+  - `'horizontal'` (default): start + end side-by-side with a
+    vertical divider. Drag left/right; ArrowLeft / ArrowRight
+    nudge.
+  - `'vertical'`: start + end stacked with a horizontal
+    divider. Drag up/down; ArrowUp / ArrowDown nudge.
+- Persistence: `storageKey?: string` -- when set, ratio
+  writes to `localStorage[<storageKey>]` on every drag /
+  keyboard nudge. Cross-tab `storage` event re-syncs siblings
+  on the same machine. Missing / malformed stored values fall
+  back to `defaultRatio` (0.5).
+- Snap zones (optional): `collapseThreshold` snaps to 0 when
+  the dragged ratio drops below it; `expandThreshold` snaps to
+  1 when it crosses it. Both omitted = no snapping; the
+  ratio just clamps to `[minRatio, maxRatio]` (defaults
+  0.1..0.9).
+- Keyboard contract on the divider:
+  - `ArrowLeft` / `ArrowUp` (orientation-aware): shrink start
+    pane by `step` (default 0.05).
+  - `ArrowRight` / `ArrowDown`: grow start pane by step.
+  - `Home`: jump to `minRatio`.
+  - `End`: jump to `maxRatio`.
+  - `Enter` / `Space`: toggle collapse / default when snap
+    thresholds are configured.
+- ARIA: divider carries `role="separator"`,
+  `aria-orientation="horizontal|vertical"`, `aria-valuenow`,
+  `aria-valuemin`, `aria-valuemax` (all integer percents).
+  Default `aria-label` reflects orientation; caller can
+  override via `dividerAriaLabel`.
+- Per-pane `data-section="split-pane-start"` /
+  `"split-pane-end"` + `data-collapsed="true"` flips when the
+  ratio hits 0 / 1. Per-divider `data-section
+  ="split-pane-divider"` + `data-dragging="true|false"`.
+- Pointer-capture handling on the divider so a drag that
+  leaves the divider's bounding box continues to fire move
+  events.
+- 27 vitest cases cover: start + end render + divider, root
+  data-section + data-orientation (both), divider role +
+  aria-* matrix (orientation + value), default + custom
+  ariaLabel, defaultRatio flex-basis, localStorage read on
+  mount + write on change, malformed stored value fallback,
+  ArrowLeft / ArrowRight nudge, vertical Arrow* swap, Home +
+  End jumps, clamp to minRatio when no snap zone, snap to 0
+  on collapseThreshold, snap to 1 on expandThreshold,
+  data-collapsed flip on both panes, pointer-drag updates
+  (horizontal + vertical), data-dragging flip on
+  pointerDown / pointerUp, cross-tab storage event re-sync,
+  className merge, ref forwarding.
+
+### Added (helper hook)
+
+- `web/src/hooks/use-is-desktop.ts` -- `useIsDesktop()` returns
+  `true` when the viewport is at the Tailwind `md:` breakpoint
+  or wider (`min-width: 768px`). SSR-safe initial read + a
+  change listener installed in the effect (Safari < 14
+  fallback included).
+
+### Changed (1 adoption site)
+
+- `web/src/components/SessionsView.tsx` -- the master / detail
+  layout migrates to `<SplitPane>` on desktop. On mobile
+  (default viewport) the legacy `flex-col` stack is
+  preserved via the `useIsDesktop()` gate. SplitPane settings:
+  `orientation="horizontal"`, `storageKey="c4:sessions:split"`,
+  `defaultRatio=0.35`, `minRatio=0.2`, `maxRatio=0.6`,
+  `dividerAriaLabel="Resize sessions panes"`. The
+  SessionsListCard call + the right-pane wrapper div are
+  extracted into local variables so both branches (SplitPane
+  vs fragment) render identical content.
+
+### Deferral
+
+- The dispatch literal also named "HistoryView main+sidebar
+  split" as an adoption target. HistoryView's
+  `<aside>` + `<main>` structure spans ~370 lines with
+  responsive `md:flex-row` + sidebar `md:w-80` rules and a
+  long list of layout-dependent CSS classes. Migrating it to
+  SplitPane safely requires extracting the aside / main into
+  named variables (same pattern as SessionsView) and re-
+  threading every responsive class. Deferred to a follow-up
+  to keep this commit focused; the primitive itself is the
+  shared deliverable that unblocks the future HistoryView
+  adoption.
+
 ## [1.11.291] - 2026-05-17 -- UI: TagInput data-* + adoption (TODO 11.273)
 
 Component-scope-only enhancement of the existing TagInput
