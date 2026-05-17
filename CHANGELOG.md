@@ -4,6 +4,120 @@
 
 (no entries -- next release window)
 
+## [1.11.298] - 2026-05-17 -- UI: Toast notification system (TODO 11.280)
+
+New `Toast` primitive + `ToastProvider` context-based API
+located at `web/src/components/ui/toast.tsx`. Component-scope
+only, no daemon or CLI surface change.
+
+The new system is a fresh companion to the legacy
+`web/src/components/Toast.tsx` + `lib/use-toast.ts` stack.
+Existing call sites (Profiles / Templates / Settings) keep
+working unchanged; new consumers can opt into the cleaner
+context-based API or migrate later.
+
+### Added
+
+- `ToastProvider` -- React context provider. Mount near the
+  app root (or scoped to a subtree) so any descendant can
+  push toasts via `useToast().pushToast(...)`. Owns the
+  visible queue + portal layer + Esc-to-dismiss listener.
+  Props:
+  - `defaultDurationMs?` (default 5000) -- per-provider
+    auto-dismiss baseline. Each individual push can override
+    via `durationMs`. `Infinity` opts out of auto-dismiss
+    entirely (manual close only).
+  - `visibleLimit?` (default 5) -- maximum stacked toasts;
+    older entries shift out FIFO when the cap is exceeded.
+  - `portalId?` (default `toast-root`) -- portal target id
+    (shared with the legacy stack on purpose so the two can
+    coexist; pass a different id to isolate a modal-scoped
+    toast layer).
+- `useToast()` hook -- returns
+  `{ toasts, pushToast, dismissToast, clearToasts }`.
+  `pushToast` accepts
+  `{ kind?: 'success' | 'error' | 'info'; message: ReactNode; action?: { label, onClick }; durationMs? }`
+  and returns the new toast's id. Calling `useToast()`
+  outside a provider throws a clear error message.
+- Three visual kinds (success / error / info). `error`
+  toasts use `aria-live="assertive"`; the rest are polite.
+- Action button slot -- when `action` is set, the row
+  renders a button between the message and the X. Clicking
+  the action fires `onClick()` AND dismisses the toast,
+  ready for "Undo" / "Retry" / "View" flows.
+- Auto-dismiss progress bar -- thin strip pinned to the
+  bottom of the card that depletes over `durationMs`. Drops
+  out when `durationMs === Infinity`.
+- Keyboard Escape dismisses the most recently pushed toast
+  (window-level listener; skips when there are no live
+  toasts so other Esc-handling surfaces keep firing).
+- `data-section="toast-stack"` on the portal wrapper,
+  `data-section="toast"` on each row,
+  `data-section="toast-dismiss"` on the X button,
+  `data-section="toast-action"` on the optional action
+  button, `data-toast-kind` on the row, plus
+  `role="progressbar"` + aria attrs on the countdown strip.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Adopted
+
+- `web/src/pages/DesignSystem.tsx` -- new "Toast" demo
+  section with four trigger buttons (Success / Error / Info /
+  With action). The demo wraps its inner triggers in a
+  scoped `<ToastProvider defaultDurationMs={4000} visibleLimit={3}>`
+  so the demo's toasts do not bleed into the rest of the
+  page. The "With action" toast pushes a follow-up info
+  toast when the Undo button is clicked, exercising the
+  action button + chained-push pattern.
+
+### Deferred (dispatch follow-ups)
+
+- Settings / Profiles / Templates save flows: these pages
+  already use the legacy
+  `useToast()` from `lib/use-toast.ts` + the
+  `components/Toast.tsx` stack (which has its own
+  priority queue, swipe-to-dismiss, and warning variant).
+  Migrating them to the new context-based API requires
+  hoisting `ToastProvider` into the app shell or wrapping
+  each page subtree, plus rewriting every `showToast(...)`
+  call. Tracked as a follow-up; both stacks coexist today
+  via the shared `toast-root` portal id.
+- Snapshots delete: already uses `useUndoToast` (the
+  bottom-right `<UndoToast>` primitive). The new Toast
+  primitive's action-button slot would enable a similar
+  pattern, but the current undo-with-deferred-commit flow
+  has bespoke optimistic-update plumbing that's outside
+  this TODO's scope.
+
+### Tests
+
+- `web/src/components/ui/toast.test.tsx` -- 22 vitest
+  cases: useToast-without-provider throws, empty-state
+  portal, pushToast renders + role/status/aria,
+  default-kind = info, error -> assertive, success/info ->
+  polite, dismissToast by id, X button dismisses, action
+  button renders + clicking it fires onClick + dismisses,
+  progressbar present by default, durationMs=Infinity
+  drops the progressbar AND skips auto-dismiss, fake-timer
+  auto-dismiss after durationMs, per-entry durationMs
+  override, Escape dismisses the most recent toast,
+  clearToasts removes every row, visibleLimit FIFO
+  eviction, data-section selectors on the stack / row /
+  dismiss / action, Escape no-op when empty (no throw),
+  unique pushToast ids, stable displayName. All 22 green.
+- DesignSystem suite re-run -- 28 / 28 across the two
+  touched files (toast + DesignSystem).
+
+### Notes
+
+- The new system uses `role="status"` on each row + per-
+  kind `aria-live` (`assertive` for errors) so screen
+  readers announce notifications without the caller
+  wrapping them in a separate live region.
+- `pushToast` is stable across re-renders (memo'd via
+  useCallback + functional setState), so callers can drop
+  it into useEffect dep lists without churn.
+
 ## [1.11.297] - 2026-05-17 -- UI: Drawer top/bottom + motion-safe (TODO 11.279)
 
 Component-scope-only enhancement of the existing `Drawer`

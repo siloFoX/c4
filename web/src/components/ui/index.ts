@@ -83,3 +83,4 @@ export * from './split-pane';
 export * from './combobox';
 export * from './command-palette';
 export * from './badge-counter';
+export * from './toast';
