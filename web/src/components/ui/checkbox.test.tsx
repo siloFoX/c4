@@ -94,4 +94,60 @@ describe('<Checkbox>', () => {
   it('exposes a stable displayName', () => {
     expect(Checkbox.displayName).toBe('Checkbox');
   });
+
+  // (v1.11.307, TODO 11.289) New size + error props + data-section
+  // selectors.
+
+  it('default size="md" applies the h-4 w-4 dimensions', () => {
+    render(<Checkbox data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('h-4');
+    expect(node).toHaveClass('w-4');
+    expect(node.getAttribute('data-size')).toBe('md');
+  });
+
+  it('size="sm" applies the h-3.5 w-3.5 dimensions + data-size attr', () => {
+    render(<Checkbox size="sm" data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveClass('h-3.5');
+    expect(node).toHaveClass('w-3.5');
+    expect(node.getAttribute('data-size')).toBe('sm');
+  });
+
+  it('error=true flips aria-invalid + swaps in the destructive border', () => {
+    render(<Checkbox error data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node).toHaveAttribute('aria-invalid', 'true');
+    expect(node).toHaveClass('border-destructive');
+    expect(node).not.toHaveClass('border-input');
+    expect(node.getAttribute('data-error')).toBe('true');
+  });
+
+  it('error=false (default) leaves aria-invalid unset + keeps border-input', () => {
+    render(<Checkbox data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node).not.toHaveAttribute('aria-invalid');
+    expect(node).toHaveClass('border-input');
+    expect(node.getAttribute('data-error')).toBe('false');
+  });
+
+  it('exposes data-section="checkbox" + data-indeterminate selectors', () => {
+    const { rerender } = render(<Checkbox data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node.getAttribute('data-section')).toBe('checkbox');
+    expect(node.getAttribute('data-indeterminate')).toBe('false');
+    rerender(<Checkbox indeterminate data-testid="c" />);
+    expect(node.getAttribute('data-indeterminate')).toBe('true');
+  });
+
+  it('label slot mounts inside data-section="checkbox-row" wrapper', () => {
+    const { container } = render(
+      <Checkbox label="Select all" data-testid="c" />,
+    );
+    const row = container.querySelector('[data-section="checkbox-row"]');
+    expect(row).not.toBeNull();
+    expect(
+      row!.querySelector('[data-section="checkbox-label"]'),
+    ).not.toBeNull();
+  });
 });
