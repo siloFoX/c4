@@ -3,7 +3,7 @@ import { createRef } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DropdownMenu } from './dropdown-menu';
-import type { DropdownMenuItem } from './dropdown-menu';
+import type { DropdownMenuItem, DropdownMenuEntry } from './dropdown-menu';
 
 const baseItems: DropdownMenuItem[] = [
   { key: 'a', label: 'Profile', onSelect: () => {} },
@@ -497,5 +497,114 @@ describe('<DropdownMenu>', () => {
     await waitFor(() => {
       expect(menu.getAttribute('aria-activedescendant')).toBe(firstItem.id);
     });
+  });
+
+  // (v1.11.304, TODO 11.286) Separator entries + data-section
+  // selectors.
+
+  it('renders a separator entry as a role="separator" <li>', async () => {
+    const user = userEvent.setup();
+    const items: DropdownMenuEntry[] = [
+      { key: 'edit', label: 'Edit', onSelect: vi.fn() },
+      { key: 'sep1', kind: 'separator' },
+      {
+        key: 'delete',
+        label: 'Delete',
+        variant: 'danger',
+        onSelect: vi.fn(),
+      },
+    ];
+    render(<DropdownMenu trigger={<button>Open</button>} items={items} />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    const seps = screen.getAllByRole('separator');
+    expect(seps).toHaveLength(1);
+    expect(seps[0]!.tagName).toBe('LI');
+    expect(seps[0]!.getAttribute('aria-orientation')).toBe('horizontal');
+  });
+
+  it('separator does NOT appear in the menuitem list', async () => {
+    const user = userEvent.setup();
+    const items: DropdownMenuEntry[] = [
+      { key: 'a', label: 'Edit', onSelect: vi.fn() },
+      { key: 'sep', kind: 'separator' },
+      { key: 'b', label: 'Delete', onSelect: vi.fn() },
+    ];
+    render(<DropdownMenu trigger={<button>Open</button>} items={items} />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
+  });
+
+  it('arrow nav skips the separator entry', async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    const items: DropdownMenuEntry[] = [
+      { key: 'a', label: 'Edit', onSelect: onEdit },
+      { key: 'sep', kind: 'separator' },
+      { key: 'b', label: 'Delete', onSelect: onDelete },
+    ];
+    render(<DropdownMenu trigger={<button>Open</button>} items={items} />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() =>
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toHaveFocus(),
+    );
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() =>
+      expect(screen.getByRole('menuitem', { name: 'Delete' })).toHaveFocus(),
+    );
+  });
+
+  it('type-ahead skips the separator entry', async () => {
+    const user = userEvent.setup();
+    const items: DropdownMenuEntry[] = [
+      { key: 'a', label: 'Edit', onSelect: vi.fn() },
+      { key: 'sep', kind: 'separator' },
+      { key: 'b', label: 'Delete', onSelect: vi.fn() },
+    ];
+    render(<DropdownMenu trigger={<button>Open</button>} items={items} />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.keyboard('d');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('menuitem', { name: 'Delete' }),
+      ).toHaveFocus();
+    });
+  });
+
+  it('exposes data-section="dropdown-menu" + data-section="dropdown-menu-item" + data-variant', async () => {
+    const user = userEvent.setup();
+    const items: DropdownMenuEntry[] = [
+      { key: 'a', label: 'Edit', onSelect: vi.fn() },
+      { key: 'b', label: 'Delete', variant: 'danger', onSelect: vi.fn() },
+    ];
+    render(<DropdownMenu trigger={<button>Open</button>} items={items} />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(
+      document.querySelector('[data-section="dropdown-menu"]'),
+    ).not.toBeNull();
+    const rows = document.querySelectorAll(
+      '[data-section="dropdown-menu-item"]',
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.getAttribute('data-variant')).toBe('default');
+    expect(rows[1]!.getAttribute('data-variant')).toBe('danger');
+  });
+
+  it('exposes data-section="dropdown-menu-separator" on each separator', async () => {
+    const user = userEvent.setup();
+    const items: DropdownMenuEntry[] = [
+      { key: 'a', label: 'A', onSelect: vi.fn() },
+      { key: 'sep1', kind: 'separator' },
+      { key: 'b', label: 'B', onSelect: vi.fn() },
+      { key: 'sep2', kind: 'separator' },
+      { key: 'c', label: 'C', onSelect: vi.fn() },
+    ];
+    render(<DropdownMenu trigger={<button>Open</button>} items={items} />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    const seps = document.querySelectorAll(
+      '[data-section="dropdown-menu-separator"]',
+    );
+    expect(seps).toHaveLength(2);
   });
 });
