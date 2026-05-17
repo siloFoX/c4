@@ -5,6 +5,8 @@ import NewChatModal from './NewChatModal';
 import AttachModal from './AttachModal';
 import SessionsRightPane from './SessionsRightPane';
 import SessionsListCard from './SessionsListCard';
+import { SplitPane } from './ui';
+import { useIsDesktop } from '../hooks/use-is-desktop';
 import { useSessionsTour } from '../lib/use-sessions-tour';
 import { useSessionsList } from '../lib/use-sessions-list';
 import { useSessionsActions } from '../lib/use-sessions-actions';
@@ -224,16 +226,58 @@ export default function SessionsView() {
 
   const availableSessions = data?.sessions ?? [];
 
-  return (
-    <div className="flex w-full min-h-0 flex-1 flex-col gap-3 p-3 md:flex-row md:p-6">
-      {/* (v1.10.622) Master-pane Card (header + attached section
-          + sessions list) extracted to ./SessionsListCard.tsx. */}
-      <SessionsListCard
-        query={query}
-        onQuery={setQuery}
-        totalFiltered={totalFiltered}
-        total={data?.total ?? 0}
-        loading={loading}
+  // (v1.11.292, TODO 11.274) Desktop-only SplitPane adoption.
+  // On mobile, the legacy flex-col stack is preserved (master
+  // above detail). On md+ viewports, a SplitPane provides a
+  // draggable divider between SessionsListCard and the right
+  // pane with the ratio persisted to localStorage.
+  const isDesktop = useIsDesktop();
+  const masterPane = (
+    /* (v1.10.622) Master-pane Card (header + attached section
+       + sessions list) extracted to ./SessionsListCard.tsx. */
+    <SessionsListCard
+      query={query}
+      onQuery={setQuery}
+      totalFiltered={totalFiltered}
+      total={data?.total ?? 0}
+      loading={loading}
+      onNewChat={() => {
+        setNewChatError(null);
+        setNewChatOpen(true);
+      }}
+      onAttachNew={() => {
+        setModalError(null);
+        setModalOpen(true);
+      }}
+      onRefresh={() => {
+        refreshSessions();
+        refreshAttached();
+      }}
+      attachedCollapsed={attachedCollapsed}
+      onToggleAttachedCollapsed={toggleAttachedCollapsed}
+      filteredAttached={filteredAttached}
+      attachError={attachError}
+      selectedAttachmentName={selectedAttachmentName}
+      onSelectAttached={(name) => setSelection({ kind: 'attached', name })}
+      onAttachClick={() => {
+        setModalError(null);
+        setModalOpen(true);
+      }}
+      onDetach={handleDetach}
+      filteredGroups={filteredGroups}
+      error={error}
+      collapsed={collapsed}
+      onToggleGroup={toggleGroup}
+      selectedSessionId={selectedSessionId}
+      onSelectSession={(id) => setSelection({ kind: 'session', id })}
+    />
+  );
+  const detailPane = (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+      {/* (v1.10.607) Right pane extracted to ./SessionsRightPane.tsx. */}
+      <SessionsRightPane
+        selection={selection}
+        showStartFirstEmptyState={filteredGroups.length === 0 && filteredAttached.length === 0 && !loading}
         onNewChat={() => {
           setNewChatError(null);
           setNewChatOpen(true);
@@ -242,44 +286,30 @@ export default function SessionsView() {
           setModalError(null);
           setModalOpen(true);
         }}
-        onRefresh={() => {
-          refreshSessions();
-          refreshAttached();
-        }}
-        attachedCollapsed={attachedCollapsed}
-        onToggleAttachedCollapsed={toggleAttachedCollapsed}
-        filteredAttached={filteredAttached}
-        attachError={attachError}
-        selectedAttachmentName={selectedAttachmentName}
-        onSelectAttached={(name) => setSelection({ kind: 'attached', name })}
-        onAttachClick={() => {
-          setModalError(null);
-          setModalOpen(true);
-        }}
-        onDetach={handleDetach}
-        filteredGroups={filteredGroups}
-        error={error}
-        collapsed={collapsed}
-        onToggleGroup={toggleGroup}
-        selectedSessionId={selectedSessionId}
-        onSelectSession={(id) => setSelection({ kind: 'session', id })}
       />
+    </div>
+  );
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-        {/* (v1.10.607) Right pane extracted to ./SessionsRightPane.tsx. */}
-        <SessionsRightPane
-          selection={selection}
-          showStartFirstEmptyState={filteredGroups.length === 0 && filteredAttached.length === 0 && !loading}
-          onNewChat={() => {
-            setNewChatError(null);
-            setNewChatOpen(true);
-          }}
-          onAttachNew={() => {
-            setModalError(null);
-            setModalOpen(true);
-          }}
+  return (
+    <div className="flex w-full min-h-0 flex-1 flex-col gap-3 p-3 md:p-6">
+      {isDesktop ? (
+        <SplitPane
+          orientation="horizontal"
+          storageKey="c4:sessions:split"
+          defaultRatio={0.35}
+          minRatio={0.2}
+          maxRatio={0.6}
+          dividerAriaLabel="Resize sessions panes"
+          start={masterPane}
+          end={detailPane}
+          className="min-h-0 flex-1"
         />
-      </div>
+      ) : (
+        <>
+          {masterPane}
+          {detailPane}
+        </>
+      )}
 
       <AttachModal
         open={modalOpen}
