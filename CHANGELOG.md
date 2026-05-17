@@ -4,6 +4,71 @@
 
 (no entries -- next release window)
 
+## [1.11.294] - 2026-05-17 -- UI: Tooltip enhancements (TODO 11.276)
+
+Component-scope-only enhancement of the existing Tooltip
+primitive. No daemon-side change and no `c4` CLI surface
+change.
+
+### Added (Tooltip primitive)
+
+- `showDelay?: number` / `hideDelay?: number` props on
+  `web/src/components/ui/tooltip.tsx` -- separate show + hide
+  delay knobs that override the legacy single `delayMs` value
+  per direction. Operator scans across chained tooltipped
+  icons no longer flicker when the hover-out window is
+  configured longer than the hover-in delay. Back-compat: when
+  only `delayMs` is set, both directions inherit it (and
+  `hideDelay` falls back to 0, matching the prior behaviour).
+- `arrow?: boolean` -- when true, renders a small CSS-only
+  rotated-square triangle docked at the popover edge that
+  points toward the trigger. Per-placement positioning
+  (`top` -> bottom edge, `bottom` -> top edge, etc).
+  `data-tooltip-arrow="true"` selector for e2e.
+- `data-section="tooltip"` + `data-placement=<placement>` +
+  `data-arrow="true|false"` + `data-visible="true|false"` on
+  the wrapper root.
+- Unmount-safe cleanup: any pending `setTimeout` from a
+  delayed show / hide is cleared in a `useEffect` cleanup so
+  the tooltip primitive cannot fire a state setter against an
+  unmounted component.
+- 8 new vitest cases (26/26 total) cover: data-section +
+  data-placement attrs, data-visible flip via `open` prop,
+  arrow off by default, arrow render when `arrow=true`,
+  showDelay overrides delayMs in the hover-in direction,
+  hideDelay defers hover-out close, hideDelay=0 default
+  preserved, unmount-during-pending-show no throw.
+
+### Changed (3 adoption sites)
+
+- `web/src/components/HistoryView.tsx` -- sidebar sort-
+  direction tooltip ("Ascending" / "Descending") now opts
+  into `arrow showDelay={120} hideDelay={80}` so the
+  ArrowUpAZ / ArrowDownAZ icon stays anchored under a
+  predictable label.
+- `web/src/pages/TokenUsage.tsx` -- range-button tooltip
+  (`tokenUsage.tooltip.days`) wrapping the four day-range
+  chips now opts into `arrow showDelay={150} hideDelay={80}`
+  so quick toggle scans across the four chips don't flicker
+  the hint label off and on.
+- `web/src/components/HelpTip.tsx` -- the canonical
+  "Settings field hint" surface (Theme / Density / Locale /
+  feature-flag rows) now opts into `arrow showDelay={150}
+  hideDelay={100}`. Every Settings panel that already used
+  `<HelpTip>` automatically inherits the new arrow + delay
+  rhythm.
+
+### Test note
+
+- "HistoryView truncated task cells" was listed by the
+  dispatch as a third adoption target. The truncated lastTask
+  text doesn't currently render through Tooltip (it uses the
+  native `title=` attribute on the row); migrating it to
+  `<Tooltip>` would require a per-row component wrap that
+  the existing HistoryView render does not yet have. The
+  enhancement is opt-in via the new props, so the primitive
+  is ready for that follow-up without a breaking change.
+
 ## [1.11.293] - 2026-05-17 -- UI: Combobox primitive (TODO 11.275)
 
 Component-scope-only addition. No daemon-side change and no `c4`

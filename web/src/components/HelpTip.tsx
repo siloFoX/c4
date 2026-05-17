@@ -151,7 +151,18 @@ export default function HelpTip({
   if (body === null) return null;
   const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-4 w-4';
   return (
-    <Tooltip label={body} placement={placement}>
+    /* (v1.11.294, TODO 11.276) HelpTip is the canonical
+       "Settings field hint" surface (Theme / Density / Locale /
+       feature-flag rows etc). Opt into the new Tooltip arrow
+       + slightly longer hide-delay so operator scans across
+       multiple hints feel less jumpy. */
+    <Tooltip
+      label={body}
+      placement={placement}
+      arrow
+      showDelay={150}
+      hideDelay={100}
+    >
       <button
         type="button"
         aria-label={ariaLabel ?? 'Help'}

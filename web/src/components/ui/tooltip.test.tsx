@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createRef } from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Tooltip } from './tooltip';
 
@@ -215,5 +215,138 @@ describe('<Tooltip>', () => {
 
   it('exposes a stable displayName for devtools', () => {
     expect(Tooltip.displayName).toBe('Tooltip');
+  });
+
+  // (v1.11.294, TODO 11.276) Enhancements.
+
+  it('exposes data-section="tooltip" + data-placement on the root wrapper', () => {
+    const { container } = render(
+      <Tooltip label="x" placement="right" delayMs={0}>
+        <button>t</button>
+      </Tooltip>,
+    );
+    const wrapper = container.querySelector('[data-section="tooltip"]');
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.getAttribute('data-placement')).toBe('right');
+  });
+
+  it('data-visible flips on the wrapper when the tooltip opens (open prop)', () => {
+    const { container } = render(
+      <Tooltip label="x" open>
+        <button>t</button>
+      </Tooltip>,
+    );
+    const wrapper = container.querySelector('[data-section="tooltip"]');
+    expect(wrapper!.getAttribute('data-visible')).toBe('true');
+  });
+
+  it('does NOT render the arrow by default', () => {
+    const { container } = render(
+      <Tooltip label="x" open>
+        <button>t</button>
+      </Tooltip>,
+    );
+    expect(
+      container.querySelector('[data-tooltip-arrow="true"]'),
+    ).toBeNull();
+  });
+
+  it('renders the arrow chevron when arrow=true', () => {
+    const { container } = render(
+      <Tooltip label="x" arrow open>
+        <button>t</button>
+      </Tooltip>,
+    );
+    expect(
+      container.querySelector('[data-tooltip-arrow="true"]'),
+    ).not.toBeNull();
+    expect(
+      container
+        .querySelector('[data-section="tooltip"]')!
+        .getAttribute('data-arrow'),
+    ).toBe('true');
+  });
+
+  it('showDelay overrides delayMs for the hover-in direction', () => {
+    vi.useFakeTimers();
+    render(
+      <Tooltip label="x" delayMs={500} showDelay={50}>
+        <button>t</button>
+      </Tooltip>,
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 't' }));
+    act(() => {
+      vi.advanceTimersByTime(80);
+    });
+    expect(screen.getByRole('tooltip')).toHaveAttribute(
+      'data-visible',
+      'true',
+    );
+    vi.useRealTimers();
+  });
+
+  it('hideDelay defers the hover-out close by the configured ms', () => {
+    vi.useFakeTimers();
+    render(
+      <Tooltip label="x" showDelay={0} hideDelay={200}>
+        <button>t</button>
+      </Tooltip>,
+    );
+    const btn = screen.getByRole('button', { name: 't' });
+    fireEvent.mouseEnter(btn);
+    expect(screen.getByRole('tooltip')).toHaveAttribute(
+      'data-visible',
+      'true',
+    );
+    fireEvent.mouseLeave(btn);
+    // Still visible -- hideDelay hasn't elapsed.
+    expect(screen.getByRole('tooltip')).toHaveAttribute(
+      'data-visible',
+      'true',
+    );
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(screen.getByRole('tooltip')).toHaveAttribute(
+      'data-visible',
+      'false',
+    );
+    vi.useRealTimers();
+  });
+
+  it('hideDelay=0 (default) closes synchronously on mouseLeave', () => {
+    render(
+      <Tooltip label="x" delayMs={0}>
+        <button>t</button>
+      </Tooltip>,
+    );
+    const btn = screen.getByRole('button', { name: 't' });
+    fireEvent.mouseEnter(btn);
+    expect(screen.getByRole('tooltip')).toHaveAttribute(
+      'data-visible',
+      'true',
+    );
+    fireEvent.mouseLeave(btn);
+    expect(screen.getByRole('tooltip')).toHaveAttribute(
+      'data-visible',
+      'false',
+    );
+  });
+
+  it('unmounting while a delayed show is pending does not throw', () => {
+    vi.useFakeTimers();
+    const { unmount } = render(
+      <Tooltip label="x" showDelay={500}>
+        <button>t</button>
+      </Tooltip>,
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 't' }));
+    unmount();
+    expect(() => {
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+    }).not.toThrow();
+    vi.useRealTimers();
   });
 });
