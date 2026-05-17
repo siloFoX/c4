@@ -56,7 +56,11 @@ beforeEach(() => {
 describe('<HistoryDetailPane>', () => {
   it('renders the worker name as the card title', () => {
     render(<HistoryDetailPane detail={makeDetail({ name: 'alpha-7' })} />);
-    expect(screen.getByText('alpha-7')).toBeInTheDocument();
+    // (v1.11.301, TODO 11.283) The worker name now appears twice:
+    // once in the new Breadcrumbs row and once in the CardTitle.
+    // Assert both echoes are present.
+    const matches = screen.getAllByText('alpha-7');
+    expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
   it('renders the live status badge text from detail.status when alive', () => {

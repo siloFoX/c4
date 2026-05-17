@@ -4,6 +4,90 @@
 
 (no entries -- next release window)
 
+## [1.11.301] - 2026-05-17 -- UI: Breadcrumbs truncate-middle + onClick (TODO 11.283)
+
+Component-scope-only enhancement of the existing
+`Breadcrumbs` primitive. The current item shape +
+ChevronRight separator + maxItems ellipsis collapsing are
+preserved byte-for-byte; the previous test surface continues
+to pass unchanged. The new affordances opt in via props.
+
+### Added (Breadcrumbs primitive)
+
+- `maxLabelLength?: number` -- when a string label exceeds
+  this many characters, the rendered text collapses to
+  `<head>...<tail>` so both ends of the path segment stay
+  visible. Implementation is exported as `truncateMiddle()`
+  so other primitives can reuse the policy. The full label
+  is preserved via `title={...}` on the wrapping span for
+  hover-disclosure.
+- `BreadcrumbItem.onClick?: (e) => void` -- SPA navigation
+  hook. When `onClick` is set, the item renders as a
+  `<button>` instead of `<a>` and the click handler fires
+  instead of the browser-default href navigation. Coexists
+  with `href` -- `onClick` wins (the button takes
+  precedence so SPA routers can call `preventDefault`-free
+  state updates).
+- `data-section="breadcrumbs"` on the nav,
+  `data-section="breadcrumb-item"` per item +
+  `data-breadcrumb-current="true|false"` to mark the
+  current page row, `data-section="breadcrumb-separator"`
+  on each separator `<li>`,
+  `data-section="breadcrumb-ellipsis"` on the collapsed-
+  paths affordance, and `data-section="breadcrumb-truncated"`
+  on the truncate-middle wrapper -- all callers can
+  visual-regression test the breadcrumb path without
+  parsing class names.
+
+### Adopted
+
+- `web/src/components/HistoryDetailPane.tsx` -- worker
+  detail header now leads with a `Breadcrumbs` context row
+  showing "History / <worker-name>" so the operator can see
+  the page hierarchy without leaving the detail pane.
+  `maxLabelLength={24}` so long worker names truncate the
+  middle without pushing the CardTitle off the right edge;
+  the full name is preserved on hover via the `title`
+  attribute.
+
+### Deferred (dispatch follow-ups)
+
+- Profiles edit page: the Profiles route is currently a
+  read-only list (no per-profile detail / edit page
+  exists). Adding breadcrumbs there requires creating that
+  surface first, which is outside this primitive-
+  enhancement TODO's scope.
+
+### Tests
+
+- `web/src/components/ui/breadcrumbs.test.tsx` -- 8 new
+  vitest cases on the primitive (truncate-middle when a
+  label exceeds maxLabelLength, no truncate when shorter,
+  full label when maxLabelLength is omitted, onClick
+  renders a button + fires on activation, onClick + href
+  prefers the button, data-section="breadcrumbs",
+  data-section="breadcrumb-item" + data-breadcrumb-current,
+  data-section="breadcrumb-separator" per separator) plus
+  5 new cases on the `truncateMiddle()` helper (input
+  unchanged when shorter, equal at exactly maxLength,
+  collapses middle of long string, returns just the
+  ellipsis when no room, returns input when maxLength <= 0).
+  All 25 (12 original + 13 new) green.
+- `web/src/components/HistoryDetailPane.test.tsx` --
+  updated the "renders the worker name as the card title"
+  case to expect the doubled echo (Breadcrumbs row + the
+  CardTitle row both render `detail.name`). All other
+  cases unchanged. 45 / 45 green.
+
+### Notes
+
+- Pre-existing TS hygiene: `buildSlots()` referenced
+  `items[0]` under `noUncheckedIndexedAccess`. Added the
+  non-null assertion so the new `maxLabelLength` codepath
+  typechecks cleanly without introducing an extra runtime
+  guard (the `items.length <= maxItems` branch returns
+  before that path runs).
+
 ## [1.11.300] - 2026-05-17 -- UI: Avatar xs size + status overlay (TODO 11.282)
 
 Component-scope-only enhancement of the existing `Avatar`

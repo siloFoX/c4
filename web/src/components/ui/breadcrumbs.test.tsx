@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createRef } from 'react';
-import { render, screen } from '@testing-library/react';
-import { Breadcrumbs } from './breadcrumbs';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Breadcrumbs, truncateMiddle } from './breadcrumbs';
 import type { BreadcrumbItem } from './breadcrumbs';
 
 const baseItems: BreadcrumbItem[] = [
@@ -117,5 +117,135 @@ describe('<Breadcrumbs>', () => {
 
   it('exposes a stable displayName', () => {
     expect(Breadcrumbs.displayName).toBe('Breadcrumbs');
+  });
+
+  // (v1.11.301, TODO 11.283) Truncate-middle + onClick + data
+  // selectors.
+
+  it('renders the truncated middle when label exceeds maxLabelLength', () => {
+    const items: BreadcrumbItem[] = [
+      { id: 'a', label: 'home', href: '/' },
+      {
+        id: 'b',
+        label: 'extremely-long-feature-branch-name-2026',
+      },
+    ];
+    const { container } = render(
+      <Breadcrumbs items={items} maxLabelLength={16} />,
+    );
+    const truncated = container.querySelector(
+      '[data-section="breadcrumb-truncated"]',
+    );
+    expect(truncated).not.toBeNull();
+    expect(truncated!.textContent).toMatch(/\.{3}/);
+    expect(truncated!.getAttribute('title')).toBe(
+      'extremely-long-feature-branch-name-2026',
+    );
+  });
+
+  it('does NOT truncate labels shorter than maxLabelLength', () => {
+    const { container } = render(
+      <Breadcrumbs items={baseItems} maxLabelLength={32} />,
+    );
+    expect(
+      container.querySelector('[data-section="breadcrumb-truncated"]'),
+    ).toBeNull();
+  });
+
+  it('falls back to the full label when maxLabelLength is omitted', () => {
+    const items: BreadcrumbItem[] = [
+      { id: 'a', label: 'home', href: '/' },
+      {
+        id: 'b',
+        label: 'extremely-long-feature-branch-name-2026',
+      },
+    ];
+    const { container } = render(<Breadcrumbs items={items} />);
+    expect(
+      container.querySelector('[data-section="breadcrumb-truncated"]'),
+    ).toBeNull();
+  });
+
+  it('renders a clickable button when item.onClick is set', () => {
+    const onClick = vi.fn();
+    const items: BreadcrumbItem[] = [
+      { id: 'home', label: 'Home', onClick },
+      { id: 'current', label: 'Current' },
+    ];
+    render(<Breadcrumbs items={items} />);
+    const btn = screen.getByRole('button', { name: 'Home' });
+    fireEvent.click(btn);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('item with onClick AND href prefers the onClick button', () => {
+    const onClick = vi.fn();
+    const items: BreadcrumbItem[] = [
+      { id: 'home', label: 'Home', href: '/', onClick },
+      { id: 'current', label: 'Current' },
+    ];
+    render(<Breadcrumbs items={items} />);
+    expect(screen.queryByRole('link', { name: 'Home' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
+  });
+
+  it('exposes data-section="breadcrumbs" on the nav', () => {
+    const { container } = render(<Breadcrumbs items={baseItems} />);
+    expect(
+      container.querySelector('[data-section="breadcrumbs"]'),
+    ).not.toBeNull();
+  });
+
+  it('exposes data-section="breadcrumb-item" per item with data-breadcrumb-current', () => {
+    const { container } = render(<Breadcrumbs items={baseItems} />);
+    const itemNodes = container.querySelectorAll(
+      '[data-section="breadcrumb-item"]',
+    );
+    expect(itemNodes).toHaveLength(3);
+    // The last item is the current page.
+    expect(
+      itemNodes[itemNodes.length - 1]!.getAttribute(
+        'data-breadcrumb-current',
+      ),
+    ).toBe('true');
+    expect(itemNodes[0]!.getAttribute('data-breadcrumb-current')).toBe(
+      'false',
+    );
+  });
+
+  it('exposes data-section="breadcrumb-separator" on each separator <li>', () => {
+    const { container } = render(<Breadcrumbs items={baseItems} />);
+    const separators = container.querySelectorAll(
+      '[data-section="breadcrumb-separator"]',
+    );
+    // baseItems has 3 entries -> 2 separators.
+    expect(separators).toHaveLength(2);
+  });
+});
+
+describe('truncateMiddle (Breadcrumbs helper)', () => {
+  it('returns the input unchanged when shorter than maxLength', () => {
+    expect(truncateMiddle('home', 32)).toBe('home');
+  });
+
+  it('returns the input unchanged at exactly maxLength', () => {
+    expect(truncateMiddle('twelve_chars', 12)).toBe('twelve_chars');
+  });
+
+  it('collapses the middle of a long string', () => {
+    const out = truncateMiddle('extremely-long-feature-branch-name', 20);
+    expect(out.length).toBe(20);
+    expect(out).toMatch(/^extremely/);
+    expect(out).toContain('...');
+    expect(out).toMatch(/name$/);
+  });
+
+  it('returns just the ellipsis if maxLength leaves no room for content', () => {
+    expect(truncateMiddle('whatever', 3)).toBe('...');
+  });
+
+  it('returns the input unchanged when maxLength <= 0', () => {
+    expect(truncateMiddle('whatever', 0)).toBe('whatever');
+    expect(truncateMiddle('whatever', -5)).toBe('whatever');
   });
 });
