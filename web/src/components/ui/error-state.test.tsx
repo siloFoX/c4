@@ -85,4 +85,173 @@ describe('<ErrorState>', () => {
     expect(wrapper).toHaveClass('my-err');
     expect(wrapper).toHaveClass('bg-card');
   });
+
+  // (v1.11.314, TODO 11.296) New icon slot + reportLink +
+  // showDetails + data-section selectors.
+
+  describe('icon slot', () => {
+    it('renders the default AlertTriangle when no icon prop is set', () => {
+      render(<ErrorState title="t" />);
+      const iconSlot = document.querySelector(
+        '[data-section="error-state-icon"]',
+      );
+      expect(iconSlot).not.toBeNull();
+      // lucide-react renders an <svg> for the AlertTriangle.
+      expect(iconSlot!.querySelector('svg')).not.toBeNull();
+    });
+
+    it('replaces the default glyph when icon is provided', () => {
+      render(
+        <ErrorState
+          title="t"
+          icon={<span data-testid="my-icon">!</span>}
+        />,
+      );
+      expect(screen.getByTestId('my-icon')).toBeInTheDocument();
+    });
+  });
+
+  describe('reportLink', () => {
+    it('renders a report anchor with label + relative href', () => {
+      render(
+        <ErrorState
+          title="t"
+          reportLink={{ label: 'Report this', href: '/feedback' }}
+        />,
+      );
+      const link = screen.getByRole('link', { name: 'Report this' });
+      expect(link.getAttribute('href')).toBe('/feedback');
+    });
+
+    it('external report link gets target=_blank + rel=noreferrer noopener', () => {
+      render(
+        <ErrorState
+          title="t"
+          reportLink={{
+            label: 'File issue',
+            href: 'https://github.com/x/y/issues/new',
+          }}
+        />,
+      );
+      const link = screen.getByRole('link', { name: 'File issue' });
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noreferrer noopener');
+    });
+
+    it('relative report link does NOT get external target/rel attrs', () => {
+      render(
+        <ErrorState
+          title="t"
+          reportLink={{ label: 'Report', href: '/feedback' }}
+        />,
+      );
+      const link = screen.getByRole('link', { name: 'Report' });
+      expect(link.getAttribute('target')).toBeNull();
+      expect(link.getAttribute('rel')).toBeNull();
+    });
+
+    it('reportLink is hidden when omitted', () => {
+      render(<ErrorState title="t" />);
+      expect(
+        document.querySelector('[data-section="error-state-report-link"]'),
+      ).toBeNull();
+    });
+  });
+
+  describe('showDetails', () => {
+    it('does NOT render <details> when showDetails is false', () => {
+      const err = new Error('boom');
+      render(<ErrorState title="t" error={err} />);
+      expect(
+        document.querySelector('[data-section="error-state-details"]'),
+      ).toBeNull();
+    });
+
+    it('renders <details> + <pre> stack when showDetails + error.stack set', () => {
+      const err = new Error('boom');
+      err.stack = 'Error: boom\n    at fn (file.ts:1:1)';
+      render(<ErrorState title="t" error={err} showDetails />);
+      expect(
+        document.querySelector('[data-section="error-state-details"]'),
+      ).not.toBeNull();
+      const stack = document.querySelector(
+        '[data-section="error-state-stack"]',
+      );
+      expect(stack?.textContent).toContain('Error: boom');
+      expect(stack?.textContent).toContain('at fn (file.ts:1:1)');
+    });
+
+    it('inline message is suppressed when details is rendered', () => {
+      const err = new Error('boom');
+      err.stack = 'Error: boom\n    at fn (file.ts:1:1)';
+      render(<ErrorState title="t" error={err} showDetails />);
+      // The message would have rendered in the data-section
+      // error-state-message slot. With details on, that slot
+      // drops out.
+      expect(
+        document.querySelector('[data-section="error-state-message"]'),
+      ).toBeNull();
+    });
+
+    it('falls back to inline message when error is a string (no stack)', () => {
+      render(<ErrorState title="t" error="boom" showDetails />);
+      expect(
+        document.querySelector('[data-section="error-state-details"]'),
+      ).toBeNull();
+      expect(
+        document.querySelector('[data-section="error-state-message"]'),
+      ).not.toBeNull();
+    });
+
+    it('summary label is the canonical "Stack trace" string', () => {
+      const err = new Error('boom');
+      err.stack = 'Error: boom\n  at line';
+      render(<ErrorState title="t" error={err} showDetails />);
+      const summary = document.querySelector(
+        '[data-section="error-state-details-summary"]',
+      );
+      expect(summary?.textContent).toBe('Stack trace');
+    });
+  });
+
+  describe('data-section selectors', () => {
+    it('exposes data-section="error-state" on the wrapper', () => {
+      render(<ErrorState title="t" />);
+      expect(
+        document.querySelector('[data-section="error-state"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="error-state-text" on the text block', () => {
+      render(<ErrorState title="t" description="d" />);
+      expect(
+        document.querySelector('[data-section="error-state-text"]'),
+      ).not.toBeNull();
+    });
+
+    it('exposes data-section="error-state-title" + "error-state-description"', () => {
+      render(<ErrorState title="The title" description="A description." />);
+      const title = document.querySelector(
+        '[data-section="error-state-title"]',
+      );
+      expect(title?.textContent).toBe('The title');
+      const desc = document.querySelector(
+        '[data-section="error-state-description"]',
+      );
+      expect(desc?.textContent).toBe('A description.');
+    });
+
+    it('exposes data-section="error-state-retry" on the retry button', () => {
+      render(<ErrorState title="t" onRetry={() => {}} />);
+      expect(
+        document.querySelector('[data-section="error-state-retry"]'),
+      ).not.toBeNull();
+    });
+  });
+
+  describe('displayName', () => {
+    it('exposes a stable displayName for devtools', () => {
+      expect(ErrorState.displayName).toBe('ErrorState');
+    });
+  });
 });
