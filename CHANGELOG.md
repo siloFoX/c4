@@ -4,6 +4,103 @@
 
 (no entries -- next release window)
 
+## [1.11.306] - 2026-05-17 -- UI: RadioGroup primitive (TODO 11.288)
+
+New `RadioGroup` primitive at `web/src/components/ui/radio-group.tsx`.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/components/ui/radio-group.tsx` -- keyboard-navigable
+  single-select radio set built on the ARIA roving-tabindex
+  radiogroup pattern. Props:
+  - `value: V` + `onChange(next)` controlled.
+  - `items: RadioGroupItem<V>[]` -- per-item shape
+    `{ value, label, description?, icon?, disabled? }`.
+  - `ariaLabel?` -- forwarded to the radiogroup container.
+  - `orientation: 'horizontal' | 'vertical'` (default
+    `vertical`).
+  - `showDescription?: boolean` (default true). Suppresses
+    the visible description text in dense rows while still
+    plumbing the content through `aria-describedby` -- the
+    SR user hears the secondary context even if the visual
+    description is hidden.
+  - `className?` + `data-testid?` for downstream styling +
+    e2e selectors.
+  Accessibility:
+  - `role="radiogroup"` on the container with
+    `aria-orientation="horizontal|vertical"`.
+  - `role="radio"` + `aria-checked` per item.
+  - Roving tabindex: exactly one radio is tabbable at any
+    time (the active one; or the first non-disabled item
+    when no item is active yet).
+  - ArrowLeft/Right cycles horizontal groups; ArrowUp/Down
+    cycles vertical groups; Home / End jump to the ends.
+    Wrap-around is on. Disabled items are skipped.
+  - Space / Enter on the focused row commits the value
+    (matches the WAI-ARIA radiogroup contract).
+  - Each item with a `description` slot gets a unique
+    `aria-describedby` id pair so SR users hear the
+    secondary context after the primary label.
+  - `data-section="radio-group"` on the container,
+    `data-section="radio-group-item"` per row,
+    `data-section="radio-group-description"` per description,
+    `data-radio-value`, `data-orientation`,
+    `data-active="true|false"` for e2e.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Adopted
+
+- Primitive only this commit. SettingsView currently mounts
+  a local `ChoiceGroup` component that reimplements the
+  radiogroup pattern inline (without arrow-key cycling).
+  Migrating Settings theme + density pickers + Profiles role
+  picker to the new primitive is tracked as a follow-up so
+  the migration can land with its own SettingsView test
+  refresh.
+
+### Deferred (dispatch follow-ups)
+
+- Settings theme picker migration: SettingsView's
+  `ChoiceGroup` works but does NOT support arrow keys. The
+  new RadioGroup adds keyboard nav -- a follow-up will swap
+  the local component for the primitive.
+- Settings density picker migration: same story as the
+  theme picker. The DensityToggle is the existing surface
+  and a future refactor can use RadioGroup if the density
+  options grow beyond the three-state cycle.
+- Profiles role picker: no per-profile role picker exists
+  today (the page is read-only). When the editor lands, it
+  is the canonical RadioGroup adoption site.
+
+### Tests
+
+- `web/src/components/ui/radio-group.test.tsx` -- 19
+  vitest cases: container role + ariaLabel, one radio per
+  item, aria-checked on active vs inactive, roving
+  tabindex, click commits the value, click on active row is
+  no-op, disabled is unclickable, default orientation +
+  ArrowDown forward, horizontal + ArrowRight forward, Home /
+  End boundary jumps, Space commits the focused row, Enter
+  commits the focused row, description renders + plumbs
+  aria-describedby, items without description have no
+  aria-describedby, showDescription=false hides the
+  description, data-section + data-orientation +
+  data-active selectors, icon slot mounts when provided,
+  stable displayName, uncontrolled empty value gives first
+  enabled item the tab stop. All 19 green.
+
+### Notes
+
+- The primitive ships with no built-in label slot above the
+  radiogroup; callers wrap with `<FormField>` (TODO 11.285)
+  to get a labelled wrapper + helperText / warning / error
+  state.
+- The description plumbing via `aria-describedby` matches
+  the contract `<Tooltip>` + `<Dialog>` use, so SR users
+  hear the same chain regardless of which primitive carries
+  the secondary copy.
+
 ## [1.11.305] - 2026-05-17 -- UI: Switch sm size + motion-safe (TODO 11.287)
 
 Component-scope-only enhancement of the existing `Switch`
