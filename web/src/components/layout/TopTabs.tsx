@@ -13,7 +13,8 @@ import {
   Workflow,
 } from 'lucide-react';
 import { Tabs, type TabsItem } from '../ui/tabs';
-import { cn } from '../../lib/cn';
+import { BadgeCounter } from '../ui/badge-counter';
+import type { BadgeCounterTone } from '../ui/badge-counter';
 import { t, useLocale } from '../../lib/i18n';
 import { prefetch } from '../../lib/route-prefetch';
 import { getTopViewLoader } from '../../lib/route-loaders';
@@ -88,16 +89,22 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
         <>
           <span className="hidden sm:inline">{label}</span>
           {badge && badge.count > 0 ? (
-            <span
-              className={cn(
-                'inline-flex min-w-[1rem] items-center justify-center rounded-full border px-1 text-[9px] leading-tight',
-                badge.tone === 'amber' && 'border-warning/40 bg-warning/10 text-warning',
-                badge.tone === 'destructive' && 'border-destructive/40 bg-destructive/10 text-destructive',
-                badge.tone === 'muted' && 'border-border bg-muted/40 text-muted-foreground',
-              )}
-            >
-              {badge.count > 99 ? '99+' : badge.count}
-            </span>
+            // (v1.11.296, TODO 11.278) Inline badge swapped for the
+            // BadgeCounter primitive. Tone map: legacy 'amber' ->
+            // 'accent' (warning palette), 'destructive' -> 'danger'
+            // (escalation palette), 'muted' -> 'neutral'.
+            <BadgeCounter
+              count={badge.count}
+              tone={
+                (badge.tone === 'amber'
+                  ? 'accent'
+                  : badge.tone === 'destructive'
+                    ? 'danger'
+                    : 'neutral') as BadgeCounterTone
+              }
+              size="sm"
+              srLabel={`${badge.count > 99 ? '99+' : badge.count} ${label}`}
+            />
           ) : null}
         </>
       ),

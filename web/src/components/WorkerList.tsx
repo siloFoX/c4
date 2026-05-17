@@ -75,16 +75,26 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
   // (TODO 8.37) Partition into manager / worker buckets for the
   // grouped sidebar. Sort each group by name so the order is stable
   // across SSE bumps.
-  const { managers, regular } = useMemo(() => {
+  // (v1.11.296, TODO 11.278) Also tallies busy worker count per
+  // group so the group header can render a BadgeCounter chip.
+  const { managers, regular, managersBusy, regularBusy } = useMemo(() => {
     const m: Worker[] = [];
     const r: Worker[] = [];
+    let mb = 0;
+    let rb = 0;
     for (const w of workers) {
-      if (groupOf(w) === 'manager') m.push(w);
-      else r.push(w);
+      const isBusy = w.status === 'busy';
+      if (groupOf(w) === 'manager') {
+        m.push(w);
+        if (isBusy) mb += 1;
+      } else {
+        r.push(w);
+        if (isBusy) rb += 1;
+      }
     }
     m.sort((a, b) => a.name.localeCompare(b.name));
     r.sort((a, b) => a.name.localeCompare(b.name));
-    return { managers: m, regular: r };
+    return { managers: m, regular: r, managersBusy: mb, regularBusy: rb };
   }, [workers]);
 
   const mapStatusDotVariant = (w: Worker): StatusDotVariant => {
@@ -257,6 +267,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
             onToggle={toggleManagersOpen}
             label={t('workerList.group.managers')}
             count={managers.length}
+            busyCount={managersBusy}
             icon="crown"
             accent="primary"
           />
@@ -296,6 +307,7 @@ export default function WorkerList({ selectedWorker, onSelect }: WorkerListProps
             onToggle={toggleWorkersOpen}
             label={t('workerList.group.workers')}
             count={regular.length}
+            busyCount={regularBusy}
             icon="wrench"
             accent="muted"
           />
