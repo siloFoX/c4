@@ -164,4 +164,114 @@ describe('<Switch>', () => {
   it('exposes a stable displayName', () => {
     expect(Switch.displayName).toBe('Switch');
   });
+
+  // (v1.11.305, TODO 11.287) New sm size + motion-safe thumb +
+  // data-section selectors.
+
+  it('default size="md" applies the h-5 w-9 track dimensions', () => {
+    render(<Switch checked={false} onChange={() => {}} aria-label="s" />);
+    const sw = screen.getByRole('switch');
+    expect(sw).toHaveClass('h-5');
+    expect(sw).toHaveClass('w-9');
+    expect(sw.getAttribute('data-size')).toBe('md');
+  });
+
+  it('size="sm" applies the h-4 w-7 track + h-3 w-3 thumb dimensions', () => {
+    render(
+      <Switch
+        checked={false}
+        onChange={() => {}}
+        aria-label="s"
+        size="sm"
+      />,
+    );
+    const sw = screen.getByRole('switch');
+    expect(sw).toHaveClass('h-4');
+    expect(sw).toHaveClass('w-7');
+    expect(sw.getAttribute('data-size')).toBe('sm');
+    const thumb = sw.querySelector('span');
+    expect(thumb).toHaveClass('h-3');
+    expect(thumb).toHaveClass('w-3');
+  });
+
+  it('size="sm" thumb uses translate-x-3 when checked', () => {
+    render(
+      <Switch checked onChange={() => {}} aria-label="s" size="sm" />,
+    );
+    const thumb = screen.getByRole('switch').querySelector('span');
+    expect(thumb?.className).toContain('translate-x-3');
+  });
+
+  it('exposes data-section="switch" on the button + data-section="switch-thumb" on the thumb', () => {
+    render(<Switch checked={false} onChange={() => {}} aria-label="s" />);
+    const sw = screen.getByRole('switch');
+    expect(sw.getAttribute('data-section')).toBe('switch');
+    expect(
+      sw.querySelector('[data-section="switch-thumb"]'),
+    ).not.toBeNull();
+  });
+
+  it('exposes data-checked="true|false" tracking the prop', () => {
+    const { rerender } = render(
+      <Switch checked={false} onChange={() => {}} aria-label="s" />,
+    );
+    expect(
+      screen.getByRole('switch').getAttribute('data-checked'),
+    ).toBe('false');
+    rerender(<Switch checked onChange={() => {}} aria-label="s" />);
+    expect(
+      screen.getByRole('switch').getAttribute('data-checked'),
+    ).toBe('true');
+  });
+
+  it('label slot mounts inside a data-section="switch-row" wrapper', () => {
+    const { container } = render(
+      <Switch checked={false} onChange={() => {}} label="Pilot" />,
+    );
+    const row = container.querySelector('[data-section="switch-row"]');
+    expect(row).not.toBeNull();
+    expect(
+      row!.querySelector('[data-section="switch-label"]'),
+    ).not.toBeNull();
+  });
+
+  it('data-reduced-motion is "false" when prefers-reduced-motion is allowed', () => {
+    render(<Switch checked={false} onChange={() => {}} aria-label="s" />);
+    expect(
+      screen.getByRole('switch').getAttribute('data-reduced-motion'),
+    ).toBe('false');
+  });
+
+  it('drops the thumb transition class under reduced motion', () => {
+    const origMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: vi.fn().mockImplementation((q: string) => ({
+        matches: true,
+        media: q,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        onchange: null,
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    try {
+      render(
+        <Switch checked={false} onChange={() => {}} aria-label="s" />,
+      );
+      const sw = screen.getByRole('switch');
+      const thumb = sw.querySelector('span');
+      expect(sw.getAttribute('data-reduced-motion')).toBe('true');
+      expect(thumb).not.toHaveClass('transition-transform');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: origMatchMedia,
+      });
+    }
+  });
 });

@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.305] - 2026-05-17 -- UI: Switch sm size + motion-safe (TODO 11.287)
+
+Component-scope-only enhancement of the existing `Switch`
+primitive. The current `md` size (h-5 w-9) is preserved
+byte-for-byte; the new affordances opt in via the `size` prop
+and the new data-attribute selector set.
+
+### Added (Switch primitive)
+
+- `size: 'sm' | 'md'` -- two visual sizes. `md` (default)
+  keeps the 20x36 px track + 16x16 px thumb byte-for-byte.
+  `sm` lands at 16x28 px track + 12x12 px thumb for dense
+  rows like the FeatureFlags override table where the
+  20-pixel md was too tall.
+- Motion-safe thumb -- the `transition-transform` class on
+  the thumb span is applied ONLY when the operator allows
+  motion. Reduced-motion users see the thumb snap between
+  the two states instead of sliding. Exposed via
+  `data-reduced-motion="true|false"` on the button.
+- Data-attribute selectors for e2e:
+  - `data-section="switch"` on the button.
+  - `data-section="switch-thumb"` on the moving span.
+  - `data-section="switch-row"` on the wrapper when a
+    `label` slot is mounted.
+  - `data-section="switch-label"` on the `<label>` element.
+  - `data-size="sm|md"` on the button.
+  - `data-checked="true|false"` on the button so e2e can
+    target the active state without parsing aria-checked.
+
+### Adopted
+
+- Primitive enhancement only this commit. The existing
+  Switch adopters (Batch, TokenUsage, Risk, FeatureFlags,
+  DesignSystem) inherit the new defaults (md size preserved
+  + data-attributes available + motion-safe thumb) without
+  any caller change. A follow-up will thread `size="sm"`
+  into the FeatureFlags override table where the dense
+  toggle row reads cleaner at the smaller footprint.
+
+### Deferred (dispatch follow-ups)
+
+- Settings toggles + FeatureFlags overrides size adoption:
+  the size prop is now available; threading `size="sm"`
+  through the per-page mount points needs a UX pass (the
+  Settings rows currently use ChoiceGroup buttons rather
+  than Switch). Tracked as follow-up.
+
+### Tests
+
+- `web/src/components/ui/switch.test.tsx` -- 8 new vitest
+  cases: default `size="md"` track dimensions, `size="sm"`
+  track + thumb dimensions, `size="sm"` thumb translate-x-3
+  when checked, `data-section="switch"` + `"switch-thumb"`
+  selectors, `data-checked` reflects prop, label slot wraps
+  in `data-section="switch-row"`, `data-reduced-motion`
+  baseline, reduced motion drops the thumb transition
+  class. 23 / 23 (15 original + 8 new) green.
+- Dependent suites (Batch + Risk + FeatureFlags +
+  TokenUsage) re-run clean. 132 / 132 across the five
+  touched files.
+
+### Notes
+
+- The thumb diameter is intentionally smaller than the
+  track height (sm: 12/16 = 75%, md: 16/20 = 80%) so the
+  thumb visually centres with room to breathe on either
+  end -- avoids the "filled track" look that defeats the
+  point of a toggle.
+
 ## [1.11.304] - 2026-05-17 -- UI: DropdownMenu separators + data selectors (TODO 11.286)
 
 Component-scope-only enhancement of the existing
