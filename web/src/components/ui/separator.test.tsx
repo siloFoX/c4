@@ -71,4 +71,83 @@ describe('<Separator>', () => {
       expect(el.className).toContain('flex-1');
     });
   });
+
+  // -- v1.11.399 spacing scale + data attrs (TODO 11.381) --------
+
+  it('default spacing="none" adds no margin classes', () => {
+    const { container } = render(<Separator />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.className).not.toContain('my-1');
+    expect(node.className).not.toContain('my-2');
+    expect(node.className).not.toContain('my-4');
+    expect(node.getAttribute('data-spacing')).toBe('none');
+  });
+
+  it('spacing="sm" horizontal applies my-1', () => {
+    const { container } = render(<Separator spacing="sm" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.className).toContain('my-1');
+    expect(node.getAttribute('data-spacing')).toBe('sm');
+  });
+
+  it('spacing="md" horizontal applies my-2', () => {
+    const { container } = render(<Separator spacing="md" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.className).toContain('my-2');
+  });
+
+  it('spacing="lg" horizontal applies my-4', () => {
+    const { container } = render(<Separator spacing="lg" />);
+    const node = container.firstChild as HTMLElement;
+    expect(node.className).toContain('my-4');
+  });
+
+  it('spacing on vertical orientation applies mx-N', () => {
+    const { container, rerender } = render(
+      <Separator orientation="vertical" spacing="sm" />,
+    );
+    let node = container.firstChild as HTMLElement;
+    expect(node.className).toContain('mx-1');
+    expect(node.className).not.toContain('my-1');
+    rerender(<Separator orientation="vertical" spacing="lg" />);
+    node = container.firstChild as HTMLElement;
+    expect(node.className).toContain('mx-4');
+  });
+
+  it('spacing applies to the label variant container as my-N', () => {
+    const { container } = render(
+      <Separator label="OR" spacing="md" />,
+    );
+    const node = container.firstChild as HTMLElement;
+    expect(node.className).toContain('my-2');
+  });
+
+  it('data-section="separator" + data-orientation + data-weight on the root', () => {
+    const { container } = render(
+      <Separator orientation="vertical" weight="thick" />,
+    );
+    const node = container.firstChild as HTMLElement;
+    expect(node.getAttribute('data-section')).toBe('separator');
+    expect(node.getAttribute('data-orientation')).toBe('vertical');
+    expect(node.getAttribute('data-weight')).toBe('thick');
+  });
+
+  it('label variant exposes data-section="separator-label" on the label span', () => {
+    const { container } = render(<Separator label="OR" />);
+    const label = container.querySelector(
+      '[data-section="separator-label"]',
+    );
+    expect(label).toHaveTextContent('OR');
+  });
+
+  it('data-spacing attr mirrors the spacing prop', () => {
+    const { container, rerender } = render(<Separator />);
+    expect(
+      (container.firstChild as HTMLElement).getAttribute('data-spacing'),
+    ).toBe('none');
+    rerender(<Separator spacing="lg" />);
+    expect(
+      (container.firstChild as HTMLElement).getAttribute('data-spacing'),
+    ).toBe('lg');
+  });
 });

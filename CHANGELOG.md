@@ -4,6 +4,73 @@
 
 (no entries -- next release window)
 
+## [1.11.399] - 2026-05-18 -- UI: separator primitive (TODO 11.381)
+
+`<Separator>` (11.165) already shipped
+horizontal / vertical orientation, optional
+label slot (horizontal only), decorative
+flag (`role="none"` default vs
+`role="separator"`), and a weight scale
+(thin / thick). This patch closes the
+dispatched "spacing variants" bullet plus
+adds ergonomic data hooks.
+
+### Spacing scale
+
+```ts
+type SeparatorSpacing = 'none' | 'sm' | 'md' | 'lg';
+```
+
+| spacing | horizontal | vertical |
+| --- | --- | --- |
+| `none` (default) | no margin (byte-identical) | no margin (byte-identical) |
+| `sm` | `my-1` | `mx-1` |
+| `md` | `my-2` | `mx-2` |
+| `lg` | `my-4` | `mx-4` |
+
+The label variant inherits the same `my-N`
+because the outer container carries the
+rule edges.
+
+### Data attributes
+
+- `data-section="separator"` on every root.
+- `data-orientation` mirrors orientation.
+- `data-weight` mirrors weight.
+- `data-spacing` mirrors spacing.
+- Label variant: `data-section="separator-label"`
+  on the inner `<span data-slot="label">`.
+
+Downstream tests + storyshots can branch
+without parsing class lists.
+
+### Tests + types
+
+- `separator.test.tsx`: +9 new cases (19
+  total). Covers default `spacing="none"`
+  byte-identical, sm/md/lg horizontal
+  applies `my-N`, sm/lg vertical applies
+  `mx-N` (and NOT `my-N`), label variant
+  inherits `my-N`, all data-* attrs,
+  `data-spacing` mirrors prop.
+- 10 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files.
+
+### Out of scope
+
+- Per-page adoption (`sm` / `md` / `lg`
+  rollout). All four spacing values are
+  additive; every existing call site stays
+  byte-identical at `none`.
+- Per-orientation independent spacing
+  (e.g., `mySm-mxLg`). The single scale
+  applies to the cross-axis only.
+- Dashed or dotted rule variants. The
+  current `border-border` solid line stays.
+- Animated transitions. Spacing is a
+  static layout property; no motion.
+
 ## [1.11.398] - 2026-05-18 -- UI: alert primitive (TODO 11.380)
 
 `<Alert>` already shipped info / success /
