@@ -4,6 +4,90 @@
 
 (no entries -- next release window)
 
+## [1.11.336] - 2026-05-18 -- UI: Templates page redesign (TODO 11.318)
+
+Refactors `web/src/pages/Templates.tsx` to use the Tabs
+primitive for source grouping and add an inline Textarea
+body editor inside the ImportTemplateForm.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- Source-grouping Tabs (`all` / `builtin` / `custom`)
+  wrapping the templates list. Each tab label carries
+  a count chip showing how many templates match the
+  active fuzzy filter (`All (3)` / `Built-in (1)` /
+  `Custom (2)`). `all` is default-selected so the
+  first-glance surface stays byte-identical with prior
+  behaviour. Tabs filter the visible rows in addition
+  to the existing fuzzy search filter, so the two
+  compose.
+- Inline `<Textarea>` body editor inside the
+  ImportTemplateForm. Lets the operator paste a quick
+  template body directly instead of (or alongside) the
+  FileDrop upload. The textarea uses
+  `autoResize maxRows={16}` so the field grows with
+  the pasted content up to a cap; `maxLength={20000}`
+  + `showCharCount` advertise the upper bound. The
+  daemon's import endpoint doesn't accept inline body
+  yet -- the field captures the text so a follow-up
+  patch can POST it once the endpoint lands.
+- Data attributes:
+  `data-section="templates-list"` on the row UL,
+  `data-testid="templates-tabs"` on the Tabs strip,
+  `data-testid="templates-import-body"` on the new
+  textarea.
+
+### Changed
+
+- Pagination now reads `tabFiltered.length` (the
+  tab-and-search-filtered list) instead of the raw
+  `filtered.length` so a Tab switch reflows the
+  pagination state correctly.
+- Imports extended with `Tabs`, `TabsPanel`,
+  `Textarea`, and `TabsItem` type from the ui
+  barrel.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed FormField wrappers (already
+  shipped in v1.11.281/v1.11.283), FileDrop for
+  import (v1.11.288), and ActionMenu for row
+  actions (v1.11.280 via ListActionMenu). Those
+  surfaces are preserved here.
+- The inline body editor captures the operator's
+  text locally; threading the value into the
+  daemon's import endpoint is a follow-up patch
+  once the endpoint accepts inline body.
+
+### Tests
+
+- `web/src/pages/Templates.test.tsx` -- 7 new
+  vitest cases on top of the existing 33 (40
+  total).
+  - source-grouping Tabs (5): three tabs render,
+    All default shows everything, Built-in filters
+    to source=builtin, Custom filters to non-
+    builtin, tab labels carry the current count
+    chip.
+  - Inline Textarea body editor (2): body
+    textarea renders inside the import form,
+    typing updates the value.
+  - Existing "renders all rows in a single <ul>
+    wrapper" test updated to scope the query to
+    the new `[data-section="templates-list"]`
+    wrapper and count only direct `<li>` children
+    (the page now contains additional UL siblings
+    from the Tabs primitive + per-row
+    ListActionMenu dropdowns).
+  All 40 green.
+
+### Versions
+
+- 1.11.335 -> 1.11.336 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.336]`.
+
 ## [1.11.335] - 2026-05-18 -- UI: Profiles page redesign (TODO 11.317)
 
 Refactors `web/src/pages/Profiles.tsx` to use the Tabs
