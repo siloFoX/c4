@@ -4,6 +4,93 @@
 
 (no entries -- next release window)
 
+## [1.11.338] - 2026-05-18 -- UI: Queue page redesign (TODO 11.320)
+
+Refactors `web/src/pages/Queue.tsx` so the autonomous queue
+editor exposes the same filter / feedback surface as the
+rest of the page hero set: status-filter Tabs with live
+count chips, debounced SearchBar, drag-and-drop drop-target
+indicator, and a success-path Toast. Component-scope only,
+no daemon or CLI surface change.
+
+### Added
+
+- Status-filter Tabs strip above the table with five
+  options:
+  - `All (<count>)` -- default, every row visible.
+  - `todo (<count>)`, `doing (<count>)`, `done (<count>)`,
+    `partial (<count>)` -- restricts the table to rows
+    whose status matches the active tab.
+  Each option carries a count chip showing how many rows
+  fall in the bucket before clicking.
+- Debounced SearchBar (`size="sm"`, `debounceMs=200`,
+  `aria-label="Search queue rows"`) that filters the
+  visible rows by case-insensitive substring across
+  `id`, `title`, and `detail`. Composes with the active
+  tab -- both filters apply together.
+- Drag-and-drop drop-target indicator. The row currently
+  under the cursor during an HTML5 drag now gets
+  `data-drop-target="true"` plus a `border-t-2 border-primary`
+  highlight so the operator can see exactly where the
+  dragged row will land. Clears on drop, dragEnd, and
+  dragLeave (with a `relatedTarget contains` check to
+  avoid flicker across inner `<td>` boundaries).
+- Success-path Toast (`'Queue saved.'`, `type="success"`)
+  fires after every successful `POST /api/autonomous/queue`.
+  Failure paths still surface through the inline Alert
+  (`saveError`) for higher visibility.
+- "No rows match the current filter" placeholder cell
+  rendered inside `<tbody>` when the composed filter
+  eliminates every row, distinguishing a filter miss
+  from a genuinely empty queue.
+- Data attributes for e2e:
+  - `data-section="queue-toolbar"` on the toolbar wrapper.
+  - `data-testid="queue-status-tabs"` on the Tabs strip.
+  - `data-testid="queue-search"` on the SearchBar input.
+  - `data-testid="queue-tab-count-{all|todo|doing|done|partial}"`
+    on each per-status count chip.
+  - `data-testid="queue-empty-filter"` on the no-match
+    placeholder row.
+  - `data-drop-target` on the row under the cursor during
+    a drag.
+
+### Changed
+
+- Imports: `SearchBar`, `Tabs`, and the `TabsItem` type
+  from the ui barrel; `Toast` from `../components/Toast`;
+  `useToast` from `../lib/use-toast`.
+- `handleDragOver` now takes `(event, targetId)` so it can
+  set the drop-target row. A matching `handleDragLeave`
+  clears the indicator only when the cursor actually
+  leaves the row, not when it crosses a child cell
+  boundary.
+- `handleDrop` and `handleDragEnd` clear `dropTargetId`
+  alongside the existing `dragId` reset.
+
+### Deferred
+
+- ConfirmDialog for delete. The Queue page does not
+  expose a delete action and the daemon side has no
+  `DELETE /api/autonomous/queue` endpoint, so a Confirm
+  destructive dialog has no surface to wire. Will fold
+  in once a delete affordance is introduced.
+
+### Tests
+
+- `web/src/pages/Queue.test.tsx` -- existing 13 cases
+  unchanged. Eight new cases:
+  - status tab narrows the visible rows;
+  - count chips render per-status totals;
+  - debounced SearchBar filters by id/title/detail
+    after a 200ms tick;
+  - composed tab + search filter;
+  - "no rows match" placeholder appears when the filter
+    eliminates everything;
+  - drag-over sets `data-drop-target="true"` on the
+    target row, and drop clears it;
+  - success toast surfaces after a successful save;
+  - success toast does NOT surface when the save fails.
+
 ## [1.11.337] - 2026-05-18 -- UI: Snapshots page polish (TODO 11.319)
 
 Polishes `web/src/pages/Snapshots.tsx` with an age-bucket

@@ -265,4 +265,199 @@ describe('<Queue>', () => {
     expect(preview.textContent || '').toContain('...');
     expect((preview.textContent || '').length).toBeLessThan(longDetail.length);
   });
+
+  // (v1.11.338, TODO 11.320) Status-filter Tabs strip narrows
+  // the table to rows whose status matches the active tab.
+  // The "all" tab keeps every row visible. Count chips next
+  // to each label surface the per-status size of the queue.
+  it('filters table rows by status when a status tab is clicked', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('11.1', { status: 'todo' }),
+      makeRow('11.2', { status: 'doing' }),
+      makeRow('11.3', { status: 'done' }),
+      makeRow('11.4', { status: 'partial' }),
+    ]));
+    const user = userEvent.setup();
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+
+    // All four rows visible under the default "all" tab.
+    expect(screen.getByTestId('queue-row-11.1')).toBeInTheDocument();
+    expect(screen.getByTestId('queue-row-11.4')).toBeInTheDocument();
+
+    const tabs = screen.getByTestId('queue-status-tabs');
+    await user.click(within(tabs).getByRole('tab', { name: /doing/i }));
+
+    // Only the doing row remains.
+    expect(screen.getByTestId('queue-row-11.2')).toBeInTheDocument();
+    expect(screen.queryByTestId('queue-row-11.1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('queue-row-11.3')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('queue-row-11.4')).not.toBeInTheDocument();
+  });
+
+  // (v1.11.338, TODO 11.320) Status-tab count chips render the
+  // per-status totals computed from rows. The "all" chip
+  // doubles as a sanity check on the total row count.
+  it('renders per-status count chips on the Tabs strip', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('11.1', { status: 'todo' }),
+      makeRow('11.2', { status: 'todo' }),
+      makeRow('11.3', { status: 'doing' }),
+      makeRow('11.4', { status: 'done' }),
+    ]));
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+    expect(screen.getByTestId('queue-tab-count-all').textContent).toBe('4');
+    expect(screen.getByTestId('queue-tab-count-todo').textContent).toBe('2');
+    expect(screen.getByTestId('queue-tab-count-doing').textContent).toBe('1');
+    expect(screen.getByTestId('queue-tab-count-done').textContent).toBe('1');
+    expect(screen.getByTestId('queue-tab-count-partial').textContent).toBe('0');
+  });
+
+  // (v1.11.338, TODO 11.320) SearchBar with debounce filters
+  // rows by id/title/detail substring. Use fake timers to
+  // step past the 200ms debounce window without sleeping.
+  it('filters rows by debounced search across id/title/detail', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('11.1', { title: 'apple' }),
+      makeRow('11.2', { title: 'banana' }),
+      makeRow('11.3', { title: 'cherry' }),
+    ]));
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({
+      advanceTimers: (ms: number) => vi.advanceTimersByTime(ms),
+    });
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+
+    const searchInput = screen.getByTestId('queue-search') as HTMLInputElement;
+    await user.type(searchInput, 'banana');
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('queue-row-11.1')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('queue-row-11.2')).toBeInTheDocument();
+    expect(screen.queryByTestId('queue-row-11.3')).not.toBeInTheDocument();
+  });
+
+  // (v1.11.338, TODO 11.320) Combined filter: tab + search
+  // compose. With the doing tab selected and a search for
+  // "cap", only the doing row whose title matches should
+  // remain visible.
+  it('composes the status tab and search filter', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('11.1', { status: 'todo', title: 'cap one' }),
+      makeRow('11.2', { status: 'doing', title: 'cap two' }),
+      makeRow('11.3', { status: 'doing', title: 'something' }),
+    ]));
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({
+      advanceTimers: (ms: number) => vi.advanceTimersByTime(ms),
+    });
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+
+    const tabs = screen.getByTestId('queue-status-tabs');
+    await user.click(within(tabs).getByRole('tab', { name: /doing/i }));
+
+    const searchInput = screen.getByTestId('queue-search') as HTMLInputElement;
+    await user.type(searchInput, 'cap');
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('queue-row-11.1')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('queue-row-11.2')).toBeInTheDocument();
+    expect(screen.queryByTestId('queue-row-11.3')).not.toBeInTheDocument();
+  });
+
+  // (v1.11.338, TODO 11.320) When the active filter eliminates
+  // every row, the body shows a placeholder cell rather than
+  // an empty tbody. Lets the operator know they are looking
+  // at a filter miss, not a zero-row queue.
+  it('shows the "no rows match" placeholder when the filter eliminates everything', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('11.1', { status: 'todo' }),
+    ]));
+    const user = userEvent.setup();
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+
+    const tabs = screen.getByTestId('queue-status-tabs');
+    await user.click(within(tabs).getByRole('tab', { name: /done/i }));
+
+    expect(screen.getByTestId('queue-empty-filter')).toBeInTheDocument();
+    expect(screen.getByText(/No rows match the current filter/)).toBeInTheDocument();
+  });
+
+  // (v1.11.338, TODO 11.320) The drop-target row gets a
+  // border-top highlight via data-drop-target="true" while a
+  // drag hovers over it. Clears on drop / dragEnd / dragLeave.
+  it('marks the row under the cursor with data-drop-target during a drag', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('11.1'),
+      makeRow('11.2'),
+      makeRow('11.3'),
+    ]));
+    apiPostMock.mockResolvedValueOnce({
+      ok: true,
+      rows: [makeRow('11.2'), makeRow('11.1'), makeRow('11.3')],
+      raw: 'updated',
+    });
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+
+    const source = screen.getByTestId('queue-row-11.1');
+    const target = screen.getByTestId('queue-row-11.2');
+    fireEvent.dragStart(source);
+    fireEvent.dragOver(target);
+    expect(target.getAttribute('data-drop-target')).toBe('true');
+
+    fireEvent.drop(target);
+    await waitFor(() => {
+      expect(target.getAttribute('data-drop-target')).toBeNull();
+    });
+  });
+
+  // (v1.11.338, TODO 11.320) A successful POST surfaces a
+  // Toast with the "Queue saved." copy so the operator gets
+  // explicit confirmation of the persist.
+  it('shows a success toast after a successful save', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('1.1', { title: 'First' }),
+    ]));
+    apiPostMock.mockResolvedValueOnce({
+      ok: true,
+      rows: [makeRow('1.1', { title: 'First', status: 'doing' })],
+      raw: 'updated',
+    });
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+    const select = screen.getByTestId('queue-status-1.1') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'doing' } });
+    await screen.findByText(/Queue saved\./);
+  });
+
+  // (v1.11.338, TODO 11.320) A failed POST surfaces the inline
+  // Alert (existing rollback path) and does NOT fire a success
+  // toast. Guards against the toast leaking on the error path.
+  it('does not show a success toast when the save fails', async () => {
+    apiGetMock.mockResolvedValueOnce(makeFetchResponse([
+      makeRow('1.1', { title: 'First' }),
+    ]));
+    apiPostMock.mockRejectedValueOnce(new Error('boom'));
+    render(<Queue />);
+    await screen.findByTestId('queue-table');
+    const select = screen.getByTestId('queue-status-1.1') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'doing' } });
+    await screen.findByText(/Save failed: boom/);
+    expect(screen.queryByText(/Queue saved\./)).not.toBeInTheDocument();
+  });
 });
