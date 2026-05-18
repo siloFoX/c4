@@ -4,6 +4,123 @@
 
 (no entries -- next release window)
 
+## [1.11.356] - 2026-05-18 -- UI: InfiniteScroll primitive (TODO 11.338)
+
+Ships an IntersectionObserver-based infinite-scroll
+primitive that renders the supplied children plus a
+sentinel that fires `onLoadMore()` when it enters the
+viewport. Adopters control `loading` / `error` /
+`hasMore` externally so the same primitive works for
+paginated APIs, cursor feeds, and SSE-buffered
+timelines.
+
+### Added
+
+- `web/src/components/ui/infinite-scroll.tsx` --
+  `InfiniteScroll` component + `InfiniteScrollHandle`
+  imperative-ref interface.
+  - Required props: `children`, `hasMore`, `loading`,
+    `error`, `onLoadMore`.
+  - Optional terminal-state slots:
+    - `loadingContent` (default: dim
+      "Loading more..." line, `role="status"`).
+    - `errorContent` -- `ReactNode` verbatim OR
+      `(retry) => ReactNode` factory. Default:
+      inline retry card with the error message + a
+      `<Button>` wired to `onRetry`.
+    - `endContent` (default: "End of list" marker).
+  - IntersectionObserver options:
+    - `rootMargin` (default `'200px 0px'` -- fires
+      200px before the bottom edge so the next page
+      is pre-fetched before the operator sees the
+      sentinel).
+    - `threshold` (default `0`).
+    - `root` for custom scroll containers.
+  - Imperative `scrollRef` with `triggerLoadMore()`
+    + `getSentinel()` -- no-ops when loading / error
+    / !hasMore, useful for "Load more" buttons that
+    share the same fetch path.
+  - Skips `onLoadMore` while `loading` / `error` /
+    `!hasMore`; the priority order on the rendered
+    sentinel is error -> loading -> end -> idle.
+  - `data-section="infinite-scroll"` +
+    `data-state="idle|loading|error|end"` on the
+    wrapper for e2e selectors. Sentinel:
+    `data-testid="infinite-scroll-sentinel"`. Default
+    retry button:
+    `data-testid="infinite-scroll-retry"`.
+- `web/src/components/ui/infinite-scroll.test.tsx` --
+  22 unit cases with an IntersectionObserver mock
+  that captures the observer callback so tests can
+  simulate intersection without a real browser:
+  - children render verbatim;
+  - sentinel rendered + observed;
+  - onLoadMore fires on intersection;
+  - guards (not intersecting / loading / error /
+    !hasMore) skip the call;
+  - default loading / end / error content (+ error
+    message fallback);
+  - retry button fires `onRetry`;
+  - retry button omitted when `onRetry` is unset;
+  - custom `loadingContent` / `endContent` /
+    `errorContent` (ReactNode + factory);
+  - `data-state` reflects all four states;
+  - `rootMargin` forwarded to IntersectionObserver;
+  - imperative `triggerLoadMore` / `getSentinel`
+    handle works;
+  - `triggerLoadMore` no-ops while loading=true;
+  - observer disconnected on unmount.
+- ui barrel re-exports the new primitive.
+
+### Adoption pattern
+
+```tsx
+const { items, loading, error, hasMore, loadMore, retry } =
+  useCursorFeed('/api/notifications');
+
+<InfiniteScroll
+  hasMore={hasMore}
+  loading={loading}
+  error={error}
+  onLoadMore={loadMore}
+  onRetry={retry}
+  rootMargin="300px 0px"
+>
+  {items.map((it) => <Row key={it.id} item={it} />)}
+</InfiniteScroll>
+```
+
+The caller owns the fetch state (cursor, error,
+buffer). The primitive owns the observer + the
+inline UX for the three terminal states.
+
+### Deferred (adoptions)
+
+The dispatch lists HistoryView task rows (replace
+pagination), Sessions list, and Notifications as
+adoption sites. Each adoption requires:
+
+1. Swap the page's pagination state for a
+   cursor / page-counter that exposes
+   `{ hasMore, loadMore }`.
+2. Wrap the row list in `<InfiniteScroll>` and
+   forward `loading` / `error` / `hasMore`.
+3. Update per-page tests to use the
+   IntersectionObserver mock (or call
+   `triggerLoadMore()` via the ref handle) instead
+   of clicking pagination controls.
+
+The primitive's API is stable. Per-page adoption is
+deferred so each page's test update can land
+alongside the swap (consistent with the established
+11.33x rollout pattern).
+
+### Tests
+
+- `infinite-scroll.test.tsx` -- 22/22 pass against
+  vitest 4.1.5 + jsdom 29.1.1 (with an inline
+  IntersectionObserver mock).
+
 ## [1.11.355] - 2026-05-18 -- UI: Undo/redo system primitive (TODO 11.337)
 
 Ships a generic `useUndoHistory<T>(initial, opts?)` hook
