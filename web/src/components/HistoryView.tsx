@@ -34,6 +34,7 @@ import {
   UndoToast,
 } from './ui';
 import { parseISODate, toISODate } from '../lib/date-format';
+import { useLocalizedFormatters } from '../lib/format-locale';
 import { cn } from '../lib/cn';
 import HistoryDetailPane from './HistoryDetailPane';
 import { useScribeContext } from '../lib/use-scribe-context';
@@ -144,6 +145,13 @@ export interface HistoryWorkerDetail {
 
 export default function HistoryView() {
   useLocale();
+  // (v1.11.364, TODO 11.346) Locale-aware count
+  // formatters. The worker total at the top of the
+  // sidebar and the per-row task count both run
+  // through the integer formatter so big numbers
+  // group correctly (`1,234` vs raw `1234`) under
+  // both en-US and ko-KR.
+  const fmt = useLocalizedFormatters();
   const [selected, setSelected] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -508,7 +516,7 @@ export default function HistoryView() {
                   size="sm"
                 />
                 <span>
-                  {summary.length} {summary.length === 1 ? 'worker' : 'workers'}
+                  {fmt.integer(summary.length)} {summary.length === 1 ? 'worker' : 'workers'}
                 </span>
               </div>
             ) : null}
@@ -681,6 +689,11 @@ function SidebarVirtualizedList({
   selectWorker,
   toggleBulk,
 }: SidebarVirtualizedListProps) {
+  // (v1.11.364, TODO 11.346) Locale-aware integer
+  // formatter for the per-row task count. The hook
+  // lives here so the sidebar respects a locale flip
+  // without a full HistoryView remount.
+  const fmt = useLocalizedFormatters();
   const { items, totalHeight, offsetY, containerProps } = useListVirtualizer({
     itemCount: filtered.length,
     itemHeight: SIDEBAR_ITEM_HEIGHT,
@@ -815,7 +828,7 @@ function SidebarVirtualizedList({
                     <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                       {visibleColSet.has('taskCount') && (
                         <span>
-                          {tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: w.taskCount })}
+                          {tFormat(w.taskCount === 1 ? 'history.taskCount.singular' : 'history.taskCount.plural', { count: fmt.integer(w.taskCount) })}
                         </span>
                       )}
                       {visibleColSet.has('lastTaskAt') && w.lastTaskAt ? (

@@ -4,6 +4,137 @@
 
 (no entries -- next release window)
 
+## [1.11.364] - 2026-05-18 -- UI: locale-aware number/date formatters (TODO 11.346)
+
+Builds `web/src/lib/format-locale.ts` -- a thin
+locale-aware wrapper around `Intl.NumberFormat` /
+`Intl.DateTimeFormat` -- and adopts it at three
+adoption sites: `HistoryView` counts (sidebar
+worker total + per-row task count), `Health` page
+stat values (workers / queue / active / idle /
+lost), `TokenUsage` totals + per-task table
+columns + per-day sparkline.
+
+### `lib/format-locale.ts`
+
+`localeTag(locale)` maps the c4
+`Locale = 'en' | 'ko'` to BCP-47 (`en-US` /
+`ko-KR`). Formatter functions:
+
+- `formatNumberLocale(value, locale?, options?)`
+  -- grouping + fraction digits, returns `'-'`
+  on null/NaN/Infinity.
+- `formatIntegerLocale`, `formatDecimalLocale(value, digits)`,
+  `formatCompactLocale` (uses Intl `notation: 'compact'` so
+  `15_000 -> 15K` / `2.5M`).
+- `formatPercentLocale(value, digits)` -- ratio in
+  0..1 -> `25%` / `12.3%`.
+- `formatCurrencyLocale(value, currency)` --
+  per-locale currency placement.
+- `formatBytesLocale(bytes)` -- picks B / KB / MB
+  / GB / TB then runs through the locale number
+  formatter so the decimal separator is correct.
+- `formatDateLocale(input, preset, locale?)` --
+  presets `'short' | 'medium' | 'long' | 'iso-date'
+  | 'date-time' | 'time'`. ISO is
+  locale-independent on purpose; everything else
+  goes through `Intl.DateTimeFormat`.
+- `formatDateTimeLocale`, `formatTimeLocale`,
+  `formatDateRangeLocale` (uses
+  `Intl.DateTimeFormat.formatRange` when
+  available, falls back to `'a - b'`).
+
+Memo caches (`NUMBER_CACHE` / `DATETIME_CACHE`)
+key by tag + serialised options so constructing
+an `Intl.NumberFormat` per call site (which is
+surprisingly expensive) only happens once per
+unique shape.
+`resetFormatLocaleCachesForTests` clears both for
+unit testing.
+
+React hook `useLocalizedFormatters()` returns a
+memoised bundle bound to the current Settings
+locale, re-renders the caller on locale flip
+(via `useLocale` from `lib/i18n`), and returns
+identity-stable closures while the locale is
+stable.
+
+### Adoption
+
+- `web/src/components/HistoryView.tsx` --
+  worker total in the sidebar header runs
+  through `fmt.integer(summary.length)`; the
+  per-row task count interpolation passes
+  `fmt.integer(w.taskCount)` into `tFormat` so
+  large task counts (a worker with 1,234 tasks)
+  group correctly.
+- `web/src/pages/Health.tsx` -- StatCard values
+  for Workers / Queue trend + the compact +
+  full DataList rows for active / idle /
+  queueDepth / lostWorkers run through
+  `fmt.integer`. The `formatNumber` import from
+  `lib/format` is dropped.
+- `web/src/pages/TokenUsage.tsx` -- every
+  `formatNumber` call (totals, per-period
+  breakdown rows, per-task table render columns,
+  sparkline `lastValueFormatter`) replaced with
+  `fmt.integer`. `formatNumber` import dropped.
+
+### Tests
+
+`web/src/lib/format-locale.test.ts` -- 28 cases:
+
+- `localeTag` mapping (en-US / ko-KR).
+- `formatNumberLocale`: thousand grouping
+  (en + ko), null/undef/NaN/Infinity sentinel,
+  fractionDigits, current-locale fallback.
+- `formatIntegerLocale`, `formatDecimalLocale`
+  (custom digits + default).
+- `formatCompactLocale` (`15K` / `2.5M`).
+- `formatPercentLocale` (0..1 ratio + digit
+  count + null sentinel).
+- `formatCurrencyLocale` (USD in en-US, KRW in
+  ko-KR).
+- `formatBytesLocale` (B / KB / MB / GB,
+  fraction-drop at >=100, null / negative / NaN
+  sentinel).
+- `formatDateLocale` (ISO bypass, invalid
+  sentinel, accepts Date / number / string).
+- `formatDateTimeLocale`, `formatTimeLocale`
+  (positive case + sentinel).
+- `formatDateRangeLocale` (ISO range, null
+  sentinel).
+- `useLocalizedFormatters` (returns bundle,
+  re-renders on locale flip, memoises when
+  locale is stable).
+- Cache reuse sanity (two calls -> one Intl
+  instance).
+
+28/28 pass under vitest 4.1.5. TypeScript clean
+for `format-locale.ts` + all three adoption files.
+
+### Out of scope
+
+- **Migration of the legacy `lib/format.js` helpers.**
+  The legacy module is still used by snapshot
+  tests + several non-adoption call sites that
+  do not need locale awareness today (raw API
+  responses, JSON exports). A follow-up patch
+  can audit + retire the legacy helpers once
+  every consumer is locale-aware.
+- **Date / time call sites in HistoryView /
+  Health.** They route through the existing
+  `TimeAgo` primitive (variant="short") which
+  carries its own absolute-time tooltip. The
+  current contract is "relative on screen,
+  absolute on hover"; a future patch can move
+  the absolute tooltip through
+  `formatDateTimeLocale` if needed.
+- **Locale-aware byte / duration formatting at
+  Snapshots + Health.** Snapshots already has a
+  local `formatBytes` helper (see 11.345
+  out-of-scope); migrating it is a follow-up.
+
 ## [1.11.363] - 2026-05-18 -- UI: print stylesheet sections (TODO 11.345)
 
 Extends the existing 11.196 print stylesheet with

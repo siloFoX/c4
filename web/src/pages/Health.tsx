@@ -34,7 +34,8 @@ import type { AccordionItem, DataListItem } from '../components/ui';
 import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
 import { StatCard } from '../components/ui/stat-card';
 import { cn } from '../lib/cn';
-import { formatDuration, formatNumber } from '../lib/format';
+import { formatDuration } from '../lib/format';
+import { useLocalizedFormatters } from '../lib/format-locale';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { text } from '../lib/typography';
 import { useHealth } from '../lib/use-health';
@@ -94,6 +95,12 @@ const MODULES_SCROLL_THRESHOLD = 12;
 
 export default function Health() {
   useLocale();
+  // (v1.11.364, TODO 11.346) Locale-aware integer
+  // formatter for the worker / queue / lost stat
+  // values. Replaces the locale-agnostic
+  // `formatNumber` from lib/format at the JSX call
+  // sites below.
+  const fmt = useLocalizedFormatters();
   const { data, loading, error, refresh } = useHealth();
   const [filtersOpen, setFiltersOpen] = useState(false);
   // (v1.11.276, TODO 11.258) Health "view mode" toggle. Compact
@@ -168,7 +175,7 @@ export default function Health() {
     workers: () => (
       <StatCard
         label="Workers"
-        value={formatNumber(data?.workers)}
+        value={fmt.integer(data?.workers)}
         tone="primary"
         noAnimation
         trend={{ value: (data?.workers ?? 0) > 0 ? 2 : 0 }}
@@ -178,7 +185,7 @@ export default function Health() {
     queue: () => (
       <StatCard
         label="Queue trend"
-        value={formatNumber(data?.queueDepth)}
+        value={fmt.integer(data?.queueDepth)}
         tone={(data?.queueDepth ?? 0) > 0 ? 'warning' : 'default'}
         noAnimation
         trend={{ value: (data?.queueDepth ?? 0) > 0 ? -8 : 0, label: 'vs last hour' }}
@@ -475,9 +482,9 @@ export default function Health() {
               <DataList
                 items={[
                   { id: 'uptime', label: t('healthPage.stat.uptime'), value: formatDuration((data.uptime ?? 0) * 1000) },
-                  { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
-                  { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: formatNumber(data.queueDepth) },
-                  { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
+                  { id: 'active', label: t('healthPage.stat.active'), value: fmt.integer(data.activeWorkers ?? data.busyWorkers) },
+                  { id: 'queueDepth', label: t('healthPage.stat.queueDepth'), value: fmt.integer(data.queueDepth) },
+                  { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: fmt.integer(data.lostWorkers) },
                 ] satisfies DataListItem[]}
               />
             ) : (
@@ -550,7 +557,7 @@ export default function Health() {
                             data-testid="health-row-workers-trend"
                           >
                             <span className="tabular-nums">
-                              {formatNumber(data.workers)}
+                              {fmt.integer(data.workers)}
                             </span>
                             <Sparkline
                               data={[2, 2, 3, 3, 4, 3, 4, data.workers ?? 0]}
@@ -561,8 +568,8 @@ export default function Health() {
                           </span>
                         ),
                       },
-                      { id: 'active', label: t('healthPage.stat.active'), value: formatNumber(data.activeWorkers ?? data.busyWorkers) },
-                      { id: 'idle', label: t('healthPage.stat.idle'), value: formatNumber(data.idleWorkers) },
+                      { id: 'active', label: t('healthPage.stat.active'), value: fmt.integer(data.activeWorkers ?? data.busyWorkers) },
+                      { id: 'idle', label: t('healthPage.stat.idle'), value: fmt.integer(data.idleWorkers) },
                       {
                         id: 'queueDepth',
                         label: t('healthPage.stat.queueDepth'),
@@ -572,7 +579,7 @@ export default function Health() {
                             data-testid="health-row-queue-trend"
                           >
                             <span className="tabular-nums">
-                              {formatNumber(data.queueDepth)}
+                              {fmt.integer(data.queueDepth)}
                             </span>
                             <Sparkline
                               data={[5, 4, 6, 3, 2, 1, 1, data.queueDepth ?? 0]}
@@ -587,7 +594,7 @@ export default function Health() {
                           </span>
                         ),
                       },
-                      { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: formatNumber(data.lostWorkers) },
+                      { id: 'lostWorkers', label: t('healthPage.stat.lostWorkers'), value: fmt.integer(data.lostWorkers) },
                     ],
                   },
                   {
