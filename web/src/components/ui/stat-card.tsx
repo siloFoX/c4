@@ -24,6 +24,15 @@ export interface StatCardTrend {
   label?: string;
 }
 
+// (v1.11.424, TODO 11.406) Comparison value -- shown beneath the
+// primary metric to anchor the operator on a previous period or a
+// target. `value` accepts number | string for flexibility; `label`
+// defaults to "vs." when omitted.
+export interface StatCardComparison {
+  value: number | string;
+  label?: string;
+}
+
 export interface StatCardProps extends HTMLAttributes<HTMLDivElement> {
   icon?: ReactNode | undefined;
   label: string;
@@ -36,6 +45,28 @@ export interface StatCardProps extends HTMLAttributes<HTMLDivElement> {
   noAnimation?: boolean | undefined;
   trend?: StatCardTrend | undefined;
   sparkline?: number[] | undefined;
+  // (v1.11.424, TODO 11.406) Caller-supplied sparkline body. When
+  // present, replaces the built-in polyline render of `sparkline`.
+  // Useful for plugging in a third-party chart library while
+  // keeping the rest of the card structure.
+  sparklineSlot?: ReactNode | undefined;
+  // (v1.11.424, TODO 11.406) Comparison anchor (previous period,
+  // target, etc.). Hidden when undefined.
+  comparison?: StatCardComparison | undefined;
+}
+
+// (v1.11.424, TODO 11.406) Pure helper exported for tests +
+// alternate hosts -- maps a trend value to a canonical direction
+// label.
+export type StatCardTrendDirection = 'up' | 'down' | 'flat';
+
+export function getStatCardTrendDirection(
+  value: number,
+): StatCardTrendDirection {
+  if (!Number.isFinite(value)) return 'flat';
+  if (value > 0) return 'up';
+  if (value < 0) return 'down';
+  return 'flat';
 }
 
 function useCountUp(target: number, enabled: boolean, durationMs = 700): number {
@@ -141,6 +172,8 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
       noAnimation = false,
       trend,
       sparkline,
+      sparklineSlot,
+      comparison,
       ...props
     },
     ref,
@@ -154,10 +187,17 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
       setMounted(true);
     }, []);
 
+    const trendDirection = trend
+      ? getStatCardTrendDirection(trend.value)
+      : undefined;
+
     return (
       <div
         ref={ref}
+        data-section="stat-card"
         data-stat-card
+        data-tone={tone}
+        data-loading={loading ? 'true' : 'false'}
         className={cn(
           'group relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md',
           mounted ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0',
@@ -174,7 +214,10 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
         />
         <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p
+              data-section="stat-card-label"
+              className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+            >
               {label}
             </p>
             {loading ? (
@@ -187,6 +230,7 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
               />
             ) : (
               <p
+                data-section="stat-card-value"
                 data-stat-value
                 data-stat-final={String(value)}
                 className={cn(
@@ -197,31 +241,75 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
                 {display}
               </p>
             )}
+            {comparison ? (
+              <p
+                data-section="stat-card-comparison"
+                data-stat-comparison-value={String(comparison.value)}
+                className="mt-1 truncate text-xs text-muted-foreground"
+              >
+                <span className="opacity-70">
+                  {comparison.label ?? 'vs.'}
+                </span>{' '}
+                <span className="font-medium text-foreground">
+                  {comparison.value}
+                </span>
+              </p>
+            ) : null}
             {hint ? (
-              <p className="mt-1 truncate text-xs text-muted-foreground">{hint}</p>
+              <p
+                data-section="stat-card-hint"
+                className="mt-1 truncate text-xs text-muted-foreground"
+              >
+                {hint}
+              </p>
             ) : null}
             {trend ? (
               <p
+                data-section="stat-card-trend"
                 data-stat-trend
                 data-stat-trend-value={String(trend.value)}
+                data-stat-trend-direction={trendDirection}
                 className={cn(
                   'mt-1 flex items-center gap-1 text-xs font-medium',
-                  trend.value > 0 && 'text-success',
-                  trend.value < 0 && 'text-destructive',
-                  trend.value === 0 && 'text-muted-foreground',
+                  trendDirection === 'up' && 'text-success',
+                  trendDirection === 'down' && 'text-destructive',
+                  trendDirection === 'flat' && 'text-muted-foreground',
                 )}
               >
-                <span aria-hidden="true" data-stat-trend-arrow>
-                  {trend.value > 0 ? '▲' : trend.value < 0 ? '▼' : '▬'}
+                <span
+                  aria-hidden="true"
+                  data-section="stat-card-trend-arrow"
+                  data-stat-trend-arrow
+                >
+                  {trendDirection === 'up'
+                    ? '▲'
+                    : trendDirection === 'down'
+                    ? '▼'
+                    : '▬'}
                 </span>
-                <span>{Math.abs(trend.value)}%</span>
+                <span data-section="stat-card-trend-value">
+                  {Math.abs(trend.value)}%
+                </span>
                 {trend.label ? (
-                  <span className="text-muted-foreground">{trend.label}</span>
+                  <span
+                    data-section="stat-card-trend-label"
+                    className="text-muted-foreground"
+                  >
+                    {trend.label}
+                  </span>
                 ) : null}
               </p>
             ) : null}
-            {sparkline && sparkline.length > 0 ? (
+            {sparklineSlot !== undefined ? (
+              <div
+                data-section="stat-card-sparkline-slot"
+                className="mt-2 w-full"
+              >
+                {sparklineSlot}
+              </div>
+            ) : sparkline && sparkline.length > 0 ? (
               <svg
+                data-section="stat-card-sparkline"
                 data-stat-sparkline
                 className={cn(
                   'sparkline mt-2 h-8 w-full',
@@ -245,6 +333,7 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(
           {icon ? (
             <span
               aria-hidden="true"
+              data-section="stat-card-icon"
               className={cn(
                 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/70 ring-1 backdrop-blur-sm',
                 TONE_ICON_RING[tone],

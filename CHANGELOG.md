@@ -4,6 +4,185 @@
 
 (no entries -- next release window)
 
+## [1.11.424] - 2026-05-18 -- UI: stat-card comparison + sparkline slot (TODO 11.406)
+
+`<StatCard>` already shipped the
+large numeric metric display, label,
+trend indicator (up/down/flat with
+arrow glyph), and built-in
+sparkline polyline. This patch
+closes the remaining dispatched
+bullets:
+
+### New props
+
+```ts
+comparison?: {
+  value: number | string;
+  label?: string;
+};
+sparklineSlot?: ReactNode;
+```
+
+### Comparison
+
+`comparison` renders a small
+"vs. <value>" line beneath the
+primary metric:
+
+- `value` accepts number | string
+  (number for previous period
+  totals, string for tagged
+  labels like "Q1: 220").
+- `label` overrides the default
+  "vs." prefix; common patterns
+  include `target`, `prev`,
+  `last week`.
+- Hidden when `comparison` is
+  undefined (byte-identical
+  legacy layout).
+- Block carries
+  `data-section="stat-card-comparison"`
+  + `data-stat-comparison-value`
+  attrs.
+
+### Sparkline slot
+
+`sparklineSlot` lets callers
+inject a third-party chart body
+in place of the built-in
+polyline:
+
+- When `sparklineSlot` is
+  provided, the slot renders and
+  the built-in svg is suppressed
+  (even if `sparkline` number[]
+  is also passed).
+- Slot wrapper carries
+  `data-section="stat-card-sparkline-slot"`.
+
+### Trend direction helper
+
+Exported pure helper
+`getStatCardTrendDirection(value)
+-> 'up' | 'down' | 'flat'`:
+
+- positive -> 'up'
+- negative -> 'down'
+- 0 / NaN / +-Infinity -> 'flat'
+
+Used internally to drive the
+class palette + the new
+`data-stat-trend-direction`
+attribute on the trend block.
+
+### Data attributes (new)
+
+Root:
+
+- `data-section="stat-card"`
+  (joins legacy `data-stat-card`)
+- `data-tone` (mirrors prop)
+- `data-loading`
+  ('true' / 'false')
+
+Inner blocks:
+
+- `data-section="stat-card-label"`
+- `data-section="stat-card-value"`
+- `data-section="stat-card-comparison"`
+  + `data-stat-comparison-value`
+- `data-section="stat-card-hint"`
+- `data-section="stat-card-trend"`
+  + `data-stat-trend-direction`
+- `data-section="stat-card-trend-arrow"`
+- `data-section="stat-card-trend-value"`
+- `data-section="stat-card-trend-label"`
+- `data-section="stat-card-sparkline"`
+- `data-section="stat-card-sparkline-slot"`
+- `data-section="stat-card-icon"`
+
+Legacy attrs (`data-stat-card`,
+`data-stat-value`, `data-stat-final`,
+`data-stat-trend`,
+`data-stat-trend-value`,
+`data-stat-trend-arrow`,
+`data-stat-sparkline`) are retained
+byte-identical so no existing
+test breaks.
+
+### Tests
+
+15 new test cases in
+`stat-card.test.tsx` (**35 total
+= 20 legacy + 15 new**):
+
+- root data-section + data-tone +
+  data-loading attrs
+- data-loading flips on loading
+- comparison renders with
+  default "vs."
+- comparison custom label
+- comparison data-stat-
+  comparison-value attr
+- comparison hidden when
+  undefined
+- trend data-stat-trend-
+  direction (up / down / flat)
+- sparklineSlot replaces built-
+  in svg
+- sparklineSlot works without
+  sparkline array
+- data-section on label /
+  value / trend / sparkline
+- data-section on icon block
+- `getStatCardTrendDirection`
+  (4 cases): positive,
+  negative, zero, NaN/Infinity
+
+35/35 pass under vitest 4.1.5;
+TypeScript clean for touched
+files. Legacy 20 tests pass
+byte-identical (no surface
+breakage).
+
+### Pairs with existing primitives
+
+- `<Card>` -- the visual wrapper
+  shape StatCard is built on.
+- `<SkeletonSet>` (11.402) --
+  composes StatCard for the
+  card-grid variant of loading
+  placeholders.
+- `<Sparkline>` /
+  `recharts.Line` -- candidate
+  bodies for the
+  `sparklineSlot` prop.
+- ThemeCustomizer (11.394) --
+  the card reads token-based
+  Tailwind classes so it
+  auto-themes.
+
+### Out of scope (deferred)
+
+- Numeric formatting (commas,
+  currency, units). Callers
+  format the string themselves
+  and pass via `value`.
+- Trend animation (rolling
+  counter for the trend %).
+  Out of scope for v1.
+- Comparison percentage delta
+  computation. Caller computes
+  the value to display.
+- Multi-metric mode (two
+  side-by-side values). Belongs
+  in a different primitive.
+- Per-page adoption sweep. The
+  Auto page hero stats already
+  use StatCard; the new props
+  are opt-in.
+
 ## [1.11.423] - 2026-05-18 -- UI: page-header responsive layout + size variants (TODO 11.405)
 
 `<PageHeader>` (11.249 / v1.11.267)

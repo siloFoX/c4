@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createRef } from 'react';
 import { render, screen } from '@testing-library/react';
-import { StatCard } from './stat-card';
+import { StatCard, getStatCardTrendDirection } from './stat-card';
 
 describe('<StatCard>', () => {
   it('renders the label text', () => {
@@ -175,5 +175,198 @@ describe('<StatCard>', () => {
       <StatCard label="EmptySpark" value={1} noAnimation sparkline={[]} />,
     );
     expect(container.querySelector('svg.sparkline')).toBeNull();
+  });
+
+  // -- v1.11.424 (TODO 11.406) extensions ----------------------
+
+  it('exposes data-section + data-tone + data-loading on the root', () => {
+    const { container } = render(
+      <StatCard
+        label="Active"
+        value={3}
+        noAnimation
+        tone="primary"
+      />,
+    );
+    const root = container.querySelector('[data-section="stat-card"]');
+    expect(root).toBeInTheDocument();
+    expect(root).toHaveAttribute('data-tone', 'primary');
+    expect(root).toHaveAttribute('data-loading', 'false');
+  });
+
+  it('data-loading flips to "true" when loading', () => {
+    const { container } = render(
+      <StatCard label="L" value={3} noAnimation loading />,
+    );
+    expect(
+      container.querySelector('[data-section="stat-card"]'),
+    ).toHaveAttribute('data-loading', 'true');
+  });
+
+  it('comparison renders with default "vs." prefix', () => {
+    render(
+      <StatCard
+        label="Now"
+        value={120}
+        noAnimation
+        comparison={{ value: 100 }}
+      />,
+    );
+    expect(screen.getByText('vs.')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+  });
+
+  it('comparison honors a custom label', () => {
+    render(
+      <StatCard
+        label="Now"
+        value={120}
+        noAnimation
+        comparison={{ value: 100, label: 'target' }}
+      />,
+    );
+    expect(screen.getByText('target')).toBeInTheDocument();
+  });
+
+  it('comparison block carries data-stat-comparison-value attr', () => {
+    const { container } = render(
+      <StatCard
+        label="Now"
+        value={120}
+        noAnimation
+        comparison={{ value: 'prev:100' }}
+      />,
+    );
+    const cmp = container.querySelector(
+      '[data-section="stat-card-comparison"]',
+    );
+    expect(cmp).toHaveAttribute(
+      'data-stat-comparison-value',
+      'prev:100',
+    );
+  });
+
+  it('omits comparison when undefined', () => {
+    const { container } = render(
+      <StatCard label="Now" value={120} noAnimation />,
+    );
+    expect(
+      container.querySelector('[data-section="stat-card-comparison"]'),
+    ).toBeNull();
+  });
+
+  it('trend carries data-stat-trend-direction matching value sign', () => {
+    const { container, rerender } = render(
+      <StatCard label="T" value={1} noAnimation trend={{ value: 5 }} />,
+    );
+    expect(
+      container.querySelector('[data-stat-trend]'),
+    ).toHaveAttribute('data-stat-trend-direction', 'up');
+    rerender(
+      <StatCard label="T" value={1} noAnimation trend={{ value: -3 }} />,
+    );
+    expect(
+      container.querySelector('[data-stat-trend]'),
+    ).toHaveAttribute('data-stat-trend-direction', 'down');
+    rerender(
+      <StatCard label="T" value={1} noAnimation trend={{ value: 0 }} />,
+    );
+    expect(
+      container.querySelector('[data-stat-trend]'),
+    ).toHaveAttribute('data-stat-trend-direction', 'flat');
+  });
+
+  it('sparklineSlot replaces the built-in svg render', () => {
+    const { container } = render(
+      <StatCard
+        label="Custom"
+        value={1}
+        noAnimation
+        sparkline={[1, 2, 3]}
+        sparklineSlot={<div data-testid="custom-spark" />}
+      />,
+    );
+    expect(
+      container.querySelector('[data-testid="custom-spark"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-section="stat-card-sparkline"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-section="stat-card-sparkline-slot"]',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('sparklineSlot is used even when sparkline number[] is absent', () => {
+    const { container } = render(
+      <StatCard
+        label="Only Slot"
+        value={1}
+        noAnimation
+        sparklineSlot={<div data-testid="only-slot" />}
+      />,
+    );
+    expect(
+      container.querySelector('[data-testid="only-slot"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('exposes data-section on label / value / trend / sparkline', () => {
+    const { container } = render(
+      <StatCard
+        label="L"
+        value={1}
+        noAnimation
+        trend={{ value: 5 }}
+        sparkline={[1, 2]}
+      />,
+    );
+    expect(
+      container.querySelector('[data-section="stat-card-label"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-section="stat-card-value"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-section="stat-card-trend"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-section="stat-card-sparkline"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('icon block carries data-section="stat-card-icon"', () => {
+    const { container } = render(
+      <StatCard
+        label="X"
+        value={1}
+        noAnimation
+        icon={<svg />}
+      />,
+    );
+    expect(
+      container.querySelector('[data-section="stat-card-icon"]'),
+    ).toBeInTheDocument();
+  });
+
+  describe('getStatCardTrendDirection helper', () => {
+    it('returns "up" for positive', () => {
+      expect(getStatCardTrendDirection(5)).toBe('up');
+      expect(getStatCardTrendDirection(0.01)).toBe('up');
+    });
+    it('returns "down" for negative', () => {
+      expect(getStatCardTrendDirection(-5)).toBe('down');
+    });
+    it('returns "flat" for zero', () => {
+      expect(getStatCardTrendDirection(0)).toBe('flat');
+    });
+    it('returns "flat" for NaN / Infinity', () => {
+      expect(getStatCardTrendDirection(Number.NaN)).toBe('flat');
+      expect(getStatCardTrendDirection(Number.POSITIVE_INFINITY)).toBe(
+        'flat',
+      );
+    });
   });
 });
