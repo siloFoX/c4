@@ -4,6 +4,158 @@
 
 (no entries -- next release window)
 
+## [1.11.392] - 2026-05-18 -- UI: file upload progress (TODO 11.374)
+
+New `web/src/components/ui/file-upload-progress.tsx`
+renders a per-file upload panel with status
+badges, progress bars, per-row actions
+(cancel / retry / remove), and an aggregate
+summary. Pairs with `<FileDrop>` (11.270)
+and `lib/file-upload` (11.352) -- the
+dropzone collects files, `lib/file-upload`
+drives the XHR, and the host wires per-file
+state into the new `<FileUploadProgress>`
+primitive.
+
+### Render contract
+
+The component is purely render-driven. The
+host owns the `items[]` array; the component
+fires three optional callbacks:
+
+```tsx
+<FileUploadProgress
+  items={uploads}
+  onCancel={(id) => abortController(id).abort()}
+  onRetry={(id) => restartUpload(id)}
+  onRemove={(id) => removeFromList(id)}
+  formatSize={formatBytes}
+  showSummary
+  ariaLabel="Snapshot uploads"
+/>
+```
+
+### UploadItem
+
+```ts
+interface UploadItem {
+  id: string;
+  name: string;
+  size?: number;       // bytes; powers the size cell + aggregate
+  progress: number;    // 0..1; clamped by the underlying ProgressBar
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'cancelled';
+  error?: string;      // surfaced under the row when status='error'
+}
+```
+
+### Per-status affordances
+
+| status | progress variant | badge label | action button |
+| --- | --- | --- | --- |
+| `pending` | `default` | "Queued" | Cancel |
+| `uploading` | `info` | "Uploading" | Cancel |
+| `success` | `success` | "Done" | Remove |
+| `error` | `destructive` | "Failed" | Retry |
+| `cancelled` | `warning` | "Cancelled" | Remove |
+
+Buttons only render when the matching
+callback is supplied; a host that only
+wants cancellation skips `onRetry` and the
+retry button never renders.
+
+### Summary
+
+A pure helper `summarizeUploads(items)` is
+exported alongside the component:
+
+```ts
+function summarizeUploads(items: UploadItem[]): {
+  total, done, failed, cancelled, uploading, pending,
+  overallProgress, // 0..1 average across rows
+  bytesTotal,      // sum of size for rows that supplied one
+  bytesDone,       // sum of size * effective-progress
+}
+```
+
+Success rows are treated as 1 even when the
+host did not flush `progress` to 1 before
+flipping status. Cancelled / error rows
+surface their LAST `progress` (not zero) so
+the operator sees how far the upload got
+before the abort.
+
+`formatBytes` is also exported as a default
+formatter (IEC kibibyte ladder; B / KiB /
+MiB / GiB).
+
+### Data attributes
+
+Wrapper: `data-section="file-upload-progress"`,
+plus `data-count`, `data-done`,
+`data-failed`, `data-uploading` mirrors so
+downstream tests / storyshots can inspect
+the aggregate without parsing children.
+
+Per row: `data-section="file-upload-progress-item"`,
+`data-status`, `data-id`. Inner sections:
+`-summary` / `-summary-text` / `-summary-bytes`
+/ `-list` / `-empty` / `-item` / `-name` /
+`-size` / `-status` / `-bar` / `-error` /
+`-actions` / `-cancel` / `-retry` /
+`-remove` / `-icon-success` / `-icon-error`.
+
+### Tests + types
+
+- `file-upload-progress.test.tsx`: 41 cases.
+  Covers `formatBytes` (5), `summarizeUploads`
+  (7), empty state, per-status badge text,
+  summary text + bytes row, showSummary
+  toggle, cancel / retry / remove button
+  visibility + onClick wiring, callback
+  suppression (no button when no callback),
+  error message rendering, size cell on/off,
+  formatSize override threading,
+  ProgressBar variant per status,
+  per-button aria-label including filename,
+  wrapper data-* counts, region+ariaLabel,
+  className forwarding, stable displayName.
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Pairs with existing primitives
+
+- `<FileDrop>` (11.270 / 11.352) -- file
+  intake surface. Hosts wire `onAdd` ->
+  upload pipeline -> `items[]` ->
+  `<FileUploadProgress>`.
+- `lib/file-upload` (11.352) -- XHR helper
+  with `onProgress` callback. Forward
+  `progress: (loaded/total)` and `signal`
+  (AbortController) into per-row state.
+
+### Out of scope
+
+- **Inline file thumbnails** in the row.
+  `<FileDrop>`'s preview slot (11.352)
+  already covers thumbnails before upload;
+  duplicating inside the row is design
+  duplication.
+- **Auto-removal of completed rows.** The
+  host owns the lifecycle (some surfaces
+  want the success row to stay visible
+  until the operator removes it).
+- **Drag-to-reorder** the upload queue.
+  Queue order is host-driven; reorder UX
+  is a separate primitive.
+- **Network-speed estimate** (KiB/s,
+  ETA). `lib/file-upload`'s
+  `UploadProgressEvent` has the data
+  needed but the smoothing window +
+  display story belongs in a separate
+  patch.
+
 ## [1.11.391] - 2026-05-18 -- UI: slider + range primitive (TODO 11.373)
 
 New `web/src/components/ui/slider.tsx` ships
