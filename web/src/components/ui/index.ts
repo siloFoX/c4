@@ -113,3 +113,4 @@ export * from './tree-view';
 export * from './cmd-history';
 export * from './diff-editor';
 export * from './markdown-renderer';
+export * from './list-virtualizer';

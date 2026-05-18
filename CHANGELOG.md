@@ -4,6 +4,263 @@
 
 (no entries -- next release window)
 
+## [1.11.419] - 2026-05-18 -- UI: list-virtualizer primitive (TODO 11.401)
+
+New `web/src/components/ui/list-virtualizer.tsx`
+ships `<ListVirtualizer>` -- the
+generalised virtual list with dynamic
+per-row heights, smooth scroll, sticky
+headers, and keyboard navigation.
+Distinct from `<VirtualList>`
+(11.197, fixed-height) and
+`<VirtualTable>` (11.375, tabular).
+
+### API
+
+```tsx
+<ListVirtualizer
+  items={items}
+  renderItem={(item, ctx) => <Row item={item} active={ctx.isActive} />}
+  estimatedRowHeight={48}
+  overscan={4}
+  height={600}
+  stickyHeaders
+  activeIndex={focused}
+  onActiveIndexChange={setFocused}
+  scrollBehavior="smooth"
+  onEndReached={() => fetchMore()}
+  endReachedThreshold={64}
+  enableKeyboardNav
+/>
+```
+
+```ts
+interface ListVirtualizerItem<T> {
+  id: string | number;
+  data: T;
+  type?: 'row' | 'header';
+  estimatedHeight?: number;
+  disabled?: boolean;
+}
+
+interface ListVirtualizerHandle {
+  scrollToIndex(idx: number, behavior?: ScrollBehavior): void;
+  scrollToTop(behavior?: ScrollBehavior): void;
+  getScrollTop(): number;
+}
+```
+
+### Behaviour
+
+- **Dynamic heights**: every row's
+  ref-callback measures its
+  `getBoundingClientRect().height` on
+  mount. Measurements feed back into
+  the cumulative offset array; the
+  visible window snaps to the new
+  layout on the next render.
+- **Smooth scroll**: imperative
+  `scrollToIndex(idx, behavior?)` /
+  `scrollToTop(behavior?)` use the
+  prop-level `scrollBehavior`
+  (default `auto`) unless an override
+  is supplied per-call.
+- **Sticky headers**: items with
+  `type: 'header'` render normally
+  in the spacer body; when
+  `stickyHeaders={true}` the LAST
+  header whose top offset is <=
+  scrollTop pins to the top of the
+  viewport via the canonical
+  `findStickyHeaderIndex` helper.
+  The sticky copy carries
+  `data-sticky="true"`; the body
+  copy in that position is omitted
+  to avoid duplicates.
+- **Keyboard navigation**:
+  - ArrowDown / ArrowUp -> +/- 1
+  - PageDown / PageUp -> +/-
+    (viewport / estimatedRowHeight)
+    items (min 1)
+  - Home -> 0, End -> last index
+  - Active row auto-scrolls into
+    view on change.
+  - Disabled when
+    `enableKeyboardNav={false}`.
+- **Active index**: controlled (
+  `activeIndex` + `onActiveIndexChange`
+  ) or uncontrolled (
+  `defaultActiveIndex` + callback).
+  Both modes fire onActiveIndexChange
+  on every change.
+- **End-reached**: fires
+  `onEndReached()` when the user
+  scrolls within
+  `endReachedThreshold` px of the
+  bottom. Use it for cursor-paginated
+  feeds.
+- **ResizeObserver**: viewport height
+  measured via `clientHeight` on
+  mount; a ResizeObserver re-measures
+  on container resize.
+
+### Pure helpers (exported)
+
+```ts
+export function computeItemOffsets<T>(
+  items: ListVirtualizerItem<T>[],
+  measured: Map<number, number>,
+  defaultHeight: number,
+): number[];
+
+export function findVisibleRange(
+  offsets: number[],
+  scrollTop: number,
+  viewportHeight: number,
+  overscan: number,
+): { start: number; end: number };
+
+export function findStickyHeaderIndex<T>(
+  items: ListVirtualizerItem<T>[],
+  offsets: number[],
+  scrollTop: number,
+): number | null;
+```
+
+The cumulative offsets array uses
+estimated height when no measurement
+exists for an index and stable
+measured heights once they arrive.
+`findVisibleRange` runs a binary
+search for the first item below
+`scrollTop`, walks forward to the
+viewport-bottom, then expands by
+`overscan` rows on each side
+(clamped to the array bounds).
+
+### ARIA + data attributes
+
+Root (`role="region"`,
+`tabIndex={0}` (or -1 when nav
+disabled), `aria-label`):
+
+- `data-section="list-virtualizer"`
+- `data-item-count`
+- `data-active-index`
+- `data-sticky-headers` (true/false)
+
+Spacer:
+
+- `data-section="list-virtualizer-spacer"`
+  (full document height)
+
+Each rendered row:
+
+- `data-section="list-virtualizer-item"`
+- `data-item-id`
+- `data-item-index`
+- `data-item-type` (`row` / `header`)
+- `data-active` (true/false)
+- `data-disabled` (true/false)
+
+Sticky header overlay:
+
+- `data-section="list-virtualizer-sticky"`
+- `data-sticky-index`
+- Inner item carries
+  `data-sticky="true"`.
+
+### Tests
+
+42 cases in `list-virtualizer.test.tsx`:
+
+- `computeItemOffsets` (5): empty,
+  default height, per-item estimate,
+  measurements take over, non-finite
+  / non-positive measurements
+  ignored.
+- `findVisibleRange` (6): empty,
+  top window, scroll-advanced
+  window, overscan applied,
+  overscan clamped, past-end
+  scrollTop.
+- `findStickyHeaderIndex` (4): no
+  header, single header above,
+  LAST header above, scrollTop
+  before first header.
+- Component (27): aria-label
+  default + custom, data attrs on
+  root (count / active /
+  stickyHeaders), some rows
+  rendered, windowing (renderItem
+  call count << items.length),
+  spacer height matches total,
+  ArrowDown / ArrowUp / Home /
+  End / PageDown / PageUp
+  navigation, keyboard nav
+  disabled, controlled
+  activeIndex, data-active on
+  active row, data-item-id +
+  data-item-index per row,
+  header rows have data-item-
+  type="header", sticky overlay
+  appears with stickyHeaders,
+  data-sticky-headers root attr
+  mirrors prop, imperative
+  scrollToIndex + scrollToTop +
+  getScrollTop, onEndReached
+  fires near bottom,
+  displayName, ref handle
+  populated, empty items list
+  renders no rows.
+
+42/42 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<VirtualList>` (11.197) --
+  fixed-height variant; lighter
+  when every row is the same
+  height.
+- `<VirtualTable>` (11.375) --
+  tabular variant with column
+  headers + selection.
+- `<TreeView>` (11.397) -- pair
+  with ListVirtualizer to scale
+  to thousands of tree nodes
+  (out of scope for v1; tree
+  virtualization is a follow-on).
+
+### Out of scope (deferred)
+
+- Horizontal virtualization. Single
+  column only.
+- Adaptive overscan based on
+  scroll velocity. Static overscan
+  for v1.
+- Anchored / pinned scroll
+  position when items prepend
+  (chat-window pattern). Belongs
+  to a follow-on.
+- Row recycling pool. React's
+  reconciliation already deals
+  with key-based reuse; explicit
+  pooling deferred.
+- Per-row keyed callbacks
+  (onRowClick / onRowHover at
+  the primitive level). Host can
+  attach via renderItem.
+- ARIA `role="list"` /
+  `listitem` on every row. The
+  primitive uses `role="region"`
+  because the contained content
+  may not always semantically be
+  a list (e.g., grouped rows
+  with headers). Hosts that want
+  a strict list role can add it
+  through renderItem markup.
+
 ## [1.11.418] - 2026-05-18 -- UI: markdown renderer primitive (TODO 11.400)
 
 New `web/src/components/ui/markdown-renderer.tsx`
