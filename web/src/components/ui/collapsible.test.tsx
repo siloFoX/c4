@@ -211,4 +211,123 @@ describe('<Collapsible>', () => {
     expect(ref.current).not.toBeNull();
     expect(ref.current?.tagName.toLowerCase()).toBe('section');
   });
+
+  // -- v1.11.402 trigger slot + data attrs (TODO 11.384) ----------
+
+  it('default render uses the title + description path (legacy byte-identical)', () => {
+    const { container } = render(
+      <Collapsible title="Section" description="Details">
+        <p>body</p>
+      </Collapsible>,
+    );
+    expect(
+      container.querySelector('[data-section="collapsible-title"]'),
+    ).toHaveTextContent('Section');
+    expect(
+      container.querySelector('[data-section="collapsible-description"]'),
+    ).toHaveTextContent('Details');
+  });
+
+  it('trigger prop replaces the title + description content inside the button', () => {
+    const { container } = render(
+      <Collapsible
+        title="Section"
+        trigger={<span data-testid="custom-trigger">CUSTOM</span>}
+      >
+        <p>body</p>
+      </Collapsible>,
+    );
+    expect(
+      container.querySelector('[data-testid="custom-trigger"]'),
+    ).toHaveTextContent('CUSTOM');
+    expect(
+      container.querySelector('[data-section="collapsible-title"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-section="collapsible-description"]'),
+    ).toBeNull();
+  });
+
+  it('trigger prop still toggles via the trigger button (click)', () => {
+    const onOpenChange = vi.fn();
+    const { container } = render(
+      <Collapsible
+        title="ignored"
+        trigger={<span>Open me</span>}
+        onOpenChange={onOpenChange}
+      >
+        <p>body</p>
+      </Collapsible>,
+    );
+    const btn = container.querySelector(
+      '[data-section="collapsible-trigger"]',
+    ) as HTMLButtonElement;
+    btn.click();
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+  });
+
+  it('hideChevron=false (default) renders the chevron glyph', () => {
+    const { container } = render(
+      <Collapsible title="Section">
+        <p>body</p>
+      </Collapsible>,
+    );
+    expect(
+      container.querySelector('[data-section="collapsible-chevron"]'),
+    ).not.toBeNull();
+  });
+
+  it('hideChevron=true omits the chevron glyph', () => {
+    const { container } = render(
+      <Collapsible title="Section" hideChevron>
+        <p>body</p>
+      </Collapsible>,
+    );
+    expect(
+      container.querySelector('[data-section="collapsible-chevron"]'),
+    ).toBeNull();
+  });
+
+  it('data-section attrs on the root + trigger + panel', () => {
+    const { container } = render(
+      <Collapsible title="Section" defaultOpen>
+        <p>body</p>
+      </Collapsible>,
+    );
+    expect(
+      container.querySelector('[data-section="collapsible"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-section="collapsible-trigger"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-section="collapsible-trigger-body"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-section="collapsible-panel"]'),
+    ).not.toBeNull();
+  });
+
+  it('data-open attr mirrors the open state (controlled)', () => {
+    const { container, rerender } = render(
+      <Collapsible title="Section" open={false} onOpenChange={() => {}}>
+        <p>body</p>
+      </Collapsible>,
+    );
+    expect(
+      container
+        .querySelector('[data-section="collapsible"]')!
+        .getAttribute('data-open'),
+    ).toBe('false');
+    rerender(
+      <Collapsible title="Section" open={true} onOpenChange={() => {}}>
+        <p>body</p>
+      </Collapsible>,
+    );
+    expect(
+      container
+        .querySelector('[data-section="collapsible"]')!
+        .getAttribute('data-open'),
+    ).toBe('true');
+  });
 });
