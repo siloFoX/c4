@@ -108,3 +108,4 @@ export * from './split-view';
 export * from './resizable';
 export * from './theme-customizer';
 export * from './command-bar';
+export * from './snapshot-diff';
