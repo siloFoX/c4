@@ -4,6 +4,106 @@
 
 (no entries -- next release window)
 
+## [1.11.402] - 2026-05-18 -- UI: collapsible primitive (TODO 11.384)
+
+`<Collapsible>` (11.177) already shipped
+single open/close panel, smooth animation
+(`transition-all duration-200` + motion-
+reduce gating), controlled (`open` +
+`onOpenChange`) / uncontrolled
+(`defaultOpen`) modes, full ARIA
+disclosure pattern (`aria-expanded` /
+`aria-controls` / `role="region"` /
+`aria-labelledby` / `aria-hidden` /
+`hidden`), and the `<CollapsibleGroup>`
+exclusive vs simultaneous wrapper. This
+patch closes the dispatched "trigger
+slot" bullet plus adds ergonomic
+ChevronRight escape hatch and data
+attributes.
+
+### What changed
+
+- **`trigger?: ReactNode`** prop. When
+  set, replaces the legacy title +
+  description content inside the trigger
+  button. The chevron stays as part of
+  the button (the open/closed visual cue
+  is structural). When unset, the legacy
+  title/description path runs
+  byte-identical.
+- **`hideChevron?: boolean`** prop
+  (default `false`). When `true`, the
+  leading ChevronRight glyph is omitted.
+  Useful for trigger compositions that
+  supply their own open/closed visual.
+- **Data attributes** on every inner
+  block: `data-section="collapsible"`,
+  `-trigger`, `-trigger-body`, `-chevron`,
+  `-title`, `-description`, `-panel`.
+  Plus `data-open="true|false"` (root)
+  mirroring the resolved state.
+  `data-collapsible-open` retained for
+  backward compat with the 11.177 attr.
+
+### API additions
+
+```ts
+interface CollapsibleProps {
+  // ... existing
+  trigger?: ReactNode;
+  hideChevron?: boolean;
+}
+```
+
+### Tests + types
+
+- `collapsible.test.tsx`: +7 new cases
+  (20 total). Covers default
+  title/description path stays
+  byte-identical, `trigger` replaces
+  title/description content, custom
+  trigger still toggles via the button,
+  default chevron renders,
+  `hideChevron=true` omits chevron, all
+  data-section attrs on root + trigger
+  + panel, `data-open` attr mirrors
+  controlled state.
+- 13 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files.
+
+### Pairs with existing primitives
+
+- `<Accordion>` (11.272) -- multi-panel
+  surface that composes Collapsible-
+  shaped rows with its own group state.
+  Reach for that when the surface needs
+  the full WAI-ARIA accordion contract
+  (roving tabindex + ArrowUp/Down
+  navigation); reach for Collapsible
+  when the section is stand-alone or
+  inside `<CollapsibleGroup>`.
+- `<CollapsibleGroup>` (11.177) --
+  unchanged.
+
+### Out of scope
+
+- Per-page adoption of `trigger`. The
+  prop is additive; every existing call
+  site stays byte-identical at the
+  legacy `title` / `description` path.
+- Animated `max-height` with measured
+  scrollHeight. The current
+  `max-h-[1000px]` ceiling stays.
+  Height-measure story belongs in a
+  separate patch with its own perf
+  budget (matches the `<Accordion>`
+  11.369 out-of-scope note).
+- Vertical-axis or RTL layout flip.
+  Disclosure pattern is always vertical
+  by convention.
+
 ## [1.11.401] - 2026-05-18 -- UI: aspect-ratio primitive (TODO 11.383)
 
 `<AspectRatio>` (11.299 / v1.11.317)

@@ -35,6 +35,21 @@ export interface CollapsibleProps {
   description?: ReactNode;
   className?: string;
   children: ReactNode;
+  // (v1.11.402, TODO 11.384) Custom trigger slot. When set,
+  // replaces the legacy title + description content inside
+  // the trigger button. The chevron stays as part of the
+  // button (the open/closed visual cue is structural).
+  // Title + description are still rendered when `trigger`
+  // is omitted, so the legacy contract is byte-identical.
+  // Useful for surfaces that want a richer trigger (icons,
+  // badges, multi-line copy) without writing their own
+  // disclosure shell.
+  trigger?: ReactNode;
+  // (v1.11.402, TODO 11.384) Hide the leading chevron
+  // glyph. Default false (chevron renders). Set true for
+  // trigger compositions that supply their own
+  // open/closed visual.
+  hideChevron?: boolean;
 }
 
 export const Collapsible = forwardRef<HTMLElement, CollapsibleProps>(
@@ -47,6 +62,8 @@ export const Collapsible = forwardRef<HTMLElement, CollapsibleProps>(
       description,
       className,
       children,
+      trigger,
+      hideChevron = false,
     },
     ref,
   ) => {
@@ -99,7 +116,9 @@ export const Collapsible = forwardRef<HTMLElement, CollapsibleProps>(
           'rounded-md border border-border bg-card/50',
           className,
         )}
+        data-section="collapsible"
         data-collapsible-open={isOpen ? 'true' : 'false'}
+        data-open={isOpen ? 'true' : 'false'}
       >
         <button
           type="button"
@@ -107,24 +126,43 @@ export const Collapsible = forwardRef<HTMLElement, CollapsibleProps>(
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={toggle}
+          data-section="collapsible-trigger"
           className="flex w-full items-start gap-2 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <ChevronRight
-            aria-hidden="true"
-            className={cn(
-              'mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none motion-reduce:transform-none',
-              isOpen && 'rotate-90 motion-reduce:rotate-0',
+          {hideChevron ? null : (
+            <ChevronRight
+              aria-hidden="true"
+              data-section="collapsible-chevron"
+              className={cn(
+                'mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none motion-reduce:transform-none',
+                isOpen && 'rotate-90 motion-reduce:rotate-0',
+              )}
+            />
+          )}
+          <span
+            className="flex min-w-0 flex-1 flex-col gap-0.5"
+            data-section="collapsible-trigger-body"
+          >
+            {trigger !== undefined ? (
+              trigger
+            ) : (
+              <>
+                <span
+                  data-section="collapsible-title"
+                  className="truncate text-sm font-medium text-foreground"
+                >
+                  {title}
+                </span>
+                {description != null ? (
+                  <span
+                    data-section="collapsible-description"
+                    className="truncate text-xs text-muted-foreground"
+                  >
+                    {description}
+                  </span>
+                ) : null}
+              </>
             )}
-          />
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="truncate text-sm font-medium text-foreground">
-              {title}
-            </span>
-            {description != null ? (
-              <span className="truncate text-xs text-muted-foreground">
-                {description}
-              </span>
-            ) : null}
           </span>
         </button>
         <div
@@ -133,6 +171,7 @@ export const Collapsible = forwardRef<HTMLElement, CollapsibleProps>(
           aria-labelledby={headerId}
           aria-hidden={!isOpen}
           hidden={!isOpen}
+          data-section="collapsible-panel"
           className={cn(
             'overflow-hidden transition-all duration-200 motion-reduce:transition-none',
             isOpen ? 'max-h-[1000px]' : 'max-h-0',
