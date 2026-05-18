@@ -386,11 +386,20 @@ describe('<Templates>', () => {
       ],
     };
     const { container } = render(<Templates />);
-    const ul = container.querySelector('ul');
+    // (v1.11.336, TODO 11.318) Page now contains additional
+    // UL siblings (the Tabs primitive renders its own
+    // role=tablist UL, etc) and per-row ListActionMenu
+    // dropdowns mount their own nested lists. Count only
+    // the direct child <li> rows of the templates-list UL.
+    const ul = container.querySelector(
+      '[data-section="templates-list"]',
+    ) as HTMLUListElement | null;
     expect(ul).not.toBeNull();
     if (ul) {
-      const lis = within(ul).getAllByRole('listitem');
-      expect(lis).toHaveLength(2);
+      const directChildren = Array.from(ul.children).filter(
+        (el) => el.tagName === 'LI',
+      );
+      expect(directChildren.length).toBe(2);
     }
   });
 
@@ -426,5 +435,112 @@ describe('<Templates>', () => {
       setLocale('ko');
     });
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  // (v1.11.336, TODO 11.318) Redesign polish coverage.
+
+  describe('source-grouping Tabs', () => {
+    it('renders three tabs (All / Built-in / Custom)', () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeTemplate({ name: 'web', source: 'builtin' }),
+          makeTemplate({ name: 'mine', source: 'custom' }),
+        ],
+      };
+      render(<Templates />);
+      expect(
+        screen.getByRole('tab', { name: /All/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Built-in/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Custom/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('All tab is default and shows every template', () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeTemplate({ name: 'tpl-a', source: 'builtin', profile: '' }),
+          makeTemplate({ name: 'tpl-b', source: 'custom', profile: '' }),
+        ],
+      };
+      render(<Templates />);
+      expect(screen.getByText('tpl-a')).toBeInTheDocument();
+      expect(screen.getByText('tpl-b')).toBeInTheDocument();
+    });
+
+    it('Built-in tab filters to source=builtin', async () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeTemplate({ name: 'tpl-a', source: 'builtin', profile: '' }),
+          makeTemplate({ name: 'tpl-b', source: 'custom', profile: '' }),
+        ],
+      };
+      const user = userEvent.setup();
+      render(<Templates />);
+      await user.click(screen.getByRole('tab', { name: /Built-in/i }));
+      expect(screen.getByText('tpl-a')).toBeInTheDocument();
+      expect(screen.queryByText('tpl-b')).not.toBeInTheDocument();
+    });
+
+    it('Custom tab filters to non-builtin sources', async () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeTemplate({ name: 'tpl-a', source: 'builtin', profile: '' }),
+          makeTemplate({ name: 'tpl-b', source: 'custom', profile: '' }),
+        ],
+      };
+      const user = userEvent.setup();
+      render(<Templates />);
+      await user.click(screen.getByRole('tab', { name: /Custom/i }));
+      expect(screen.getByText('tpl-b')).toBeInTheDocument();
+      expect(screen.queryByText('tpl-a')).not.toBeInTheDocument();
+    });
+
+    it('tab labels carry the current count chip', () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeTemplate({ name: 'tpl-a', source: 'builtin', profile: '' }),
+          makeTemplate({ name: 'tpl-b', source: 'custom', profile: '' }),
+          makeTemplate({ name: 'tpl-c', source: 'custom', profile: '' }),
+        ],
+      };
+      render(<Templates />);
+      expect(
+        screen.getByRole('tab', { name: /All \(3\)/ }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Built-in \(1\)/ }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Custom \(2\)/ }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('inline Textarea body editor', () => {
+    it('renders the body textarea inside the import form', () => {
+      render(<Templates />);
+      const body = screen.getByTestId('templates-import-body');
+      expect(body.tagName).toBe('TEXTAREA');
+      expect(body.getAttribute('aria-label')).toBe('Template body');
+    });
+
+    it('typing into the body field updates the value', async () => {
+      const user = userEvent.setup();
+      render(<Templates />);
+      const body = screen.getByTestId(
+        'templates-import-body',
+      ) as HTMLTextAreaElement;
+      await user.type(body, 'Hello world');
+      expect(body.value).toBe('Hello world');
+    });
   });
 });

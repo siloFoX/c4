@@ -4,7 +4,7 @@ import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Button, Chip, EmptyState, FieldGroup, FileDrop, FormField, ListActionMenu, ListItem, NumberInput, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, TagInput, Toolbar, Tooltip } from '../components/ui';
+import { Button, Chip, EmptyState, FieldGroup, FileDrop, FormField, ListActionMenu, ListItem, NumberInput, PageHeader, Pagination, Panel, RichText, SearchBar, Skeleton, Tabs, TabsPanel, TagInput, Textarea, Toolbar, Tooltip, type TabsItem } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -20,11 +20,19 @@ import { useTemplates } from '../lib/use-templates';
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
 // (v1.10.746) Fetch + state machine moved to lib/use-templates.
 
+type TemplatesTabKey = 'all' | 'builtin' | 'custom';
+
 export default function Templates() {
   useLocale();
   const { items, loading, error, refresh } = useTemplates();
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
+  // (v1.11.336, TODO 11.318) Source-based grouping Tabs.
+  // Built-in templates ship with the daemon (source ===
+  // 'builtin'), custom templates are operator-defined.
+  // Same shape as Profiles.tsx so the operator's mental
+  // model carries between the two pages.
+  const [activeTab, setActiveTab] = useState<TemplatesTabKey>('all');
   const { toast, showToast, dismissToast } = useToast();
 
   const filtered = useMemo(
@@ -32,14 +40,38 @@ export default function Templates() {
     [items, filter],
   );
 
+  const isBuiltin = (source: string | undefined | null) =>
+    (source ?? '').toLowerCase() === 'builtin';
+
+  const tabFiltered = useMemo(() => {
+    if (activeTab === 'builtin') return filtered.filter((t) => isBuiltin(t.source));
+    if (activeTab === 'custom') return filtered.filter((t) => !isBuiltin(t.source));
+    return filtered;
+  }, [filtered, activeTab]);
+
+  const tabCounts = useMemo(
+    () => ({
+      all: filtered.length,
+      builtin: filtered.filter((t) => isBuiltin(t.source)).length,
+      custom: filtered.filter((t) => !isBuiltin(t.source)).length,
+    }),
+    [filtered],
+  );
+
+  const tabItems: TabsItem[] = [
+    { value: 'all', label: `All (${tabCounts.all})` },
+    { value: 'builtin', label: `Built-in (${tabCounts.builtin})` },
+    { value: 'custom', label: `Custom (${tabCounts.custom})` },
+  ];
+
   const PAGE_SIZE = 20;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(tabFiltered.length / PAGE_SIZE));
   useEffect(() => {
     if (page > totalPages) setPage(1);
   }, [page, totalPages]);
   const pageItems = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page],
+    () => tabFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [tabFiltered, page],
   );
 
   const notImplemented = () =>
@@ -111,25 +143,37 @@ export default function Templates() {
         // useReducedMotion.
         <Skeleton.List rows={3} data-testid="templates-loading" />
       ) : null}
-      {!loading && filtered.length === 0 ? (
-        <EmptyState
-          size="md"
-          icon={
-            <span data-testid="templates-empty-illustration">
-              <EmptyQueueIllustration size={160} />
-            </span>
-          }
-          title={t('templates.empty')}
-          description="No prompt templates are configured yet. Templates live in config.json and let workers reuse common task scaffolds."
-          secondaryAction={{
-            label: 'Open Config page',
-            href: '#feature=config',
-          }}
-          data-testid="templates-empty-state"
-        />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {pageItems.map((tpl) => (
+      {/* (v1.11.336, TODO 11.318) Source-grouping Tabs.
+          Count chips on each tab label show how many
+          templates live in the bucket after the active
+          fuzzy filter. */}
+      <Tabs
+        value={activeTab}
+        onChange={(v) => setActiveTab(v as TemplatesTabKey)}
+        items={tabItems}
+        ariaLabel="Template groups"
+        data-testid="templates-tabs"
+      >
+        <TabsPanel value={activeTab} className="mt-3">
+          {!loading && tabFiltered.length === 0 ? (
+            <EmptyState
+              size="md"
+              icon={
+                <span data-testid="templates-empty-illustration">
+                  <EmptyQueueIllustration size={160} />
+                </span>
+              }
+              title={t('templates.empty')}
+              description="No prompt templates are configured yet. Templates live in config.json and let workers reuse common task scaffolds."
+              secondaryAction={{
+                label: 'Open Config page',
+                href: '#feature=config',
+              }}
+              data-testid="templates-empty-state"
+            />
+          ) : (
+            <ul className="flex flex-col gap-2" data-section="templates-list">
+              {pageItems.map((tpl) => (
             <li key={tpl.name}>
               <Panel className="p-3">
                 <ListItem
@@ -196,10 +240,12 @@ export default function Templates() {
               </Panel>
             </li>
           ))}
-        </ul>
-      )}
+            </ul>
+          )}
+        </TabsPanel>
+      </Tabs>
       <ImportTemplateForm />
-      {!loading && filtered.length > PAGE_SIZE && (
+      {!loading && tabFiltered.length > PAGE_SIZE && (
         <div className="mt-3 flex justify-center">
           <Pagination
             page={page}
@@ -233,6 +279,13 @@ function ImportTemplateForm() {
   // place for when it does. Defaults to undefined ("no cap") so
   // the field reads as empty.
   const [maxTokens, setMaxTokens] = useState<number | undefined>(undefined);
+  // (v1.11.336, TODO 11.318) Inline template body editor.
+  // Lets the operator paste a quick template body directly
+  // instead of (or alongside) the FileDrop upload. The daemon
+  // import endpoint doesn't accept inline body yet; the field
+  // captures the text so a follow-up patch can POST it once
+  // the endpoint lands.
+  const [body, setBody] = useState('');
   return (
     /* (v1.11.281, TODO 11.263) FieldGroup adoption: the import
        form now lives inside a labeled FieldGroup so the section
@@ -265,6 +318,27 @@ function ImportTemplateForm() {
         }}
         onError={(msg) => setError(msg)}
       />
+      {/* (v1.11.336, TODO 11.318) Inline body editor. Lets the
+          operator paste a quick template body without leaving the
+          page. Textarea is set to auto-resize via the primitive's
+          autoResize prop with a 4-row minimum + 16-row cap. */}
+      <FormField
+        label="Template body (inline)"
+        helperText="Optional. Paste the prompt body directly instead of (or alongside) the file upload."
+      >
+        <Textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="You are a helpful assistant. ..."
+          rows={4}
+          maxLength={20000}
+          autoResize
+          maxRows={16}
+          showCharCount
+          aria-label="Template body"
+          data-testid="templates-import-body"
+        />
+      </FormField>
       <FormField label="Tags" helperText="Comma-separated; press Enter to commit.">
         <div>
           <TagInput
