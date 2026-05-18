@@ -237,4 +237,75 @@ describe('<Popover>', () => {
   it('exposes a stable displayName for devtools', () => {
     expect(Popover.displayName).toBe('Popover');
   });
+
+  // (v1.11.379, TODO 11.361) Arrow + data-testid.
+
+  describe('arrow (v1.11.379)', () => {
+    it('does not render the arrow by default', async () => {
+      const user = userEvent.setup();
+      render(
+        <Popover
+          trigger={<button>open</button>}
+          content={<div>body</div>}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.getAttribute('data-popover-arrow')).toBe('false');
+      expect(dialog.querySelector('[data-popover-arrow="true"]')).toBeNull();
+    });
+
+    it('renders an arrow chevron when arrow=true', async () => {
+      const user = userEvent.setup();
+      render(
+        <Popover
+          trigger={<button>open</button>}
+          content={<div>body</div>}
+          arrow
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.getAttribute('data-popover-arrow')).toBe('true');
+      const arrowEl = dialog.querySelector('[data-popover-arrow="true"]');
+      expect(arrowEl).not.toBeNull();
+      // The arrow span carries aria-hidden so screen
+      // readers do not announce the decorative chevron.
+      expect(arrowEl?.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('positions the arrow against the inverse of the resolved placement', async () => {
+      const user = userEvent.setup();
+      render(
+        <Popover
+          trigger={<button>open</button>}
+          content={<div>body</div>}
+          placement="bottom"
+          arrow
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const dialog = screen.getByRole('dialog');
+      const arrowEl = dialog.querySelector('[data-popover-arrow="true"]');
+      // bottom placement -> arrow sits at top edge of
+      // the body so the visible point hugs the
+      // trigger.
+      expect(arrowEl?.className).toContain('top-[-3px]');
+    });
+  });
+
+  describe('data-testid (v1.11.379)', () => {
+    it('forwards data-testid onto the panel dialog', async () => {
+      const user = userEvent.setup();
+      render(
+        <Popover
+          trigger={<button>open</button>}
+          content={<div>body</div>}
+          data-testid="my-popover-panel"
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      expect(screen.getByTestId('my-popover-panel')).toBeInTheDocument();
+    });
+  });
 });
