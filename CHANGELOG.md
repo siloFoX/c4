@@ -4,6 +4,259 @@
 
 (no entries -- next release window)
 
+## [1.11.422] - 2026-05-18 -- UI: search-input primitive (TODO 11.404)
+
+New `web/src/components/ui/search-input.tsx`
+ships `<SearchInput>` -- input with
+search icon, clear button, debounced
+onChange, optional keyboard shortcut
+display, optional recent-searches
+dropdown.
+
+### API
+
+```tsx
+<SearchInput
+  value={query}
+  onChange={(next) => setQuery(next)}
+  debounceMs={200}
+  placeholder="Search..."
+  shortcut="Cmd+K"
+  recentSearches={['inbox', 'docs']}
+  onSelectRecent={(q) => setQuery(q)}
+  onSubmit={(q) => runSearch(q)}
+  maxRecent={8}
+  clearLabel="Clear search"
+  ariaLabel="Search workspace"
+/>
+```
+
+```ts
+interface SearchInputProps {
+  value?: string;
+  defaultValue?: string;
+  onChange?: (next: string) => void;
+  debounceMs?: number;
+  placeholder?: string;
+  ariaLabel?: string;
+  className?: string;
+  inputClassName?: string;
+  showClearButton?: boolean;
+  clearLabel?: string;
+  shortcut?: string;
+  recentSearches?: string[];
+  onSelectRecent?: (q: string) => void;
+  maxRecent?: number;
+  onSubmit?: (q: string) => void;
+  disabled?: boolean;
+  readOnly?: boolean;
+  autoFocus?: boolean;
+}
+```
+
+### Behaviour
+
+- **Debounced onChange**: typing
+  reflects to the local input value
+  synchronously, but the external
+  `onChange` callback is debounced
+  by `debounceMs` (default 200).
+  `debounceMs <= 0` or non-finite
+  fires immediately.
+- **Clear button**: renders when
+  `showClearButton !== false` AND
+  value is non-empty AND not
+  disabled / readOnly. Click clears
+  the value, cancels any pending
+  debounce, fires
+  `onChange('')` immediately, and
+  refocuses the input.
+- **Shortcut hint**: when
+  `shortcut` is provided AND value
+  is empty AND input is not focused,
+  a `<kbd>` badge appears on the
+  right of the input. Hides on
+  focus / when typing starts.
+- **Recent searches dropdown**:
+  when `recentSearches` is non-
+  empty AND the input is focused
+  AND not disabled / readOnly, the
+  dropdown opens. Entries filter
+  against the current value via
+  the exported pure helper
+  `filterRecentSearches`. The
+  dropdown caps at `maxRecent`
+  (default 8). Keyboard nav:
+  ArrowDown / ArrowUp cycle the
+  highlight (wrap at the ends);
+  Escape closes the dropdown;
+  Enter on a highlighted entry
+  fires `onSelectRecent` + bypasses
+  debounce.
+- **Submit**: Enter without a
+  dropdown highlight fires
+  `onSubmit(query)` AND flushes
+  the debounce (the callback sees
+  the latest typed value, not the
+  pre-debounce snapshot).
+- **Controlled / uncontrolled**:
+  pass `value` for controlled,
+  `defaultValue` for uncontrolled.
+  Both modes fire
+  `onChange(next)` -- the host
+  controls persistence either way.
+- **Disabled + readOnly**: each
+  disables the input; the clear
+  button and dropdown both hide.
+  `data-disabled` /
+  `data-read-only` mirror on the
+  root for downstream styling.
+- **autoFocus**: forwarded to the
+  native input attribute.
+
+### Pure helper
+
+```ts
+export function filterRecentSearches(
+  recents: ReadonlyArray<string>,
+  query: string,
+  max: number,
+): string[];
+```
+
+Behaviour:
+- empty input -> []
+- empty query -> the unique non-
+  empty entries up to `max`
+- non-empty query -> case-
+  insensitive substring match;
+  query trimmed before matching
+- duplicates collapsed (first
+  occurrence kept)
+- empty-string entries dropped
+- result capped at `max`
+
+### ARIA + data attributes
+
+Root (wrapper):
+
+- `data-section="search-input"`
+- `data-has-value` (true/false)
+- `data-focused` (true/false)
+- `data-disabled` (true/false)
+- `data-read-only` (true/false)
+
+Inner:
+
+- `role="searchbox"` on the
+  native input, with
+  `aria-label`, `aria-autocomplete=
+  "list"` (when recents exist),
+  `aria-expanded` (when dropdown
+  open)
+- `data-section="search-input-icon"`
+  (search icon)
+- `data-section="search-input-input"`
+  (the `<input>`)
+- `data-section="search-input-clear"`
+  + `aria-label`
+- `data-section="search-input-shortcut"`
+  (`<kbd>`)
+- `data-section="search-input-recent"`
+  -- `<ul role="listbox"
+  aria-label="Recent searches">`
+- `data-section="search-input-recent-item"`
+  + `role="option"` +
+  `aria-selected` + `data-active`
+  + `data-recent-index` per row
+
+### Tests
+
+41 cases in `search-input.test.tsx`:
+
+- `filterRecentSearches` (7): empty,
+  empty query, case-insensitive
+  substring, max cap, dedupe,
+  drop empty entries, query trim.
+- Component (34): role + aria-label
+  default + custom, search icon
+  rendered, placeholder, defaultValue
+  + controlled value override,
+  typing updates uncontrolled,
+  onChange immediate with
+  debounceMs=0, onChange debounced
+  with debounceMs>0, clear button
+  shown only when value non-empty,
+  clear emits '' immediately +
+  bypasses debounce, clearLabel
+  override, showClearButton=false
+  hides, shortcut renders when
+  value empty + not focused,
+  shortcut hides with value /
+  while focused, recents dropdown
+  opens on focus, recents
+  dropdown hidden when empty,
+  click recent fires
+  onSelectRecent + onChange,
+  ArrowDown / ArrowUp / wrap nav,
+  Enter on highlight selects,
+  Enter without highlight fires
+  onSubmit, Escape closes
+  dropdown, recents filter
+  against typed query, maxRecent
+  cap, disabled blocks input +
+  hides clear, readOnly read-
+  only + hides clear, root data
+  attrs, displayName, ref
+  forwarding, focus returns to
+  input after clear.
+
+41/41 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<Select>` / `<MultiSelect>` --
+  use their internal search inputs
+  for option filtering; SearchInput
+  is the page / panel-level
+  primitive.
+- `<Kbd>` -- the shortcut hint
+  uses a native `<kbd>` element
+  styled with the same token
+  surface; downstream callers can
+  use `<Kbd>` for richer
+  combinations.
+- ThemeCustomizer (11.394) -- the
+  input reads token-based
+  Tailwind classes so it auto-
+  themes.
+
+### Out of scope (deferred)
+
+- Actually binding the `shortcut`
+  string to a global hotkey. The
+  kbd is decorative; the host
+  attaches `useEffect(() => {
+  window.addEventListener(...)})`
+  itself.
+- Async fetched suggestions
+  beyond the static `recentSearches`
+  prop. A follow-on can add
+  `suggestionsLoader: (q) =>
+  Promise<string[]>` for live
+  autocomplete.
+- Selection of arbitrary objects
+  (only string entries are
+  supported for v1).
+- Sticky "trending" / "popular"
+  divider in the dropdown. The
+  list is flat for v1.
+- Inline search-while-typing
+  results (e.g., command palette
+  semantics). That belongs to a
+  command-palette primitive.
+
 ## [1.11.421] - 2026-05-18 -- UI: rich-text editor primitive (TODO 11.403)
 
 New `web/src/components/ui/rich-text-editor.tsx`
