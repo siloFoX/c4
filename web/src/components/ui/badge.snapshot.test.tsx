@@ -11,7 +11,8 @@ describe('<Badge> snapshot baselines', () => {
     const { container } = render(<Badge>idle</Badge>);
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
-        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-primary text-primary-foreground"
+        class="inline-flex items-center rounded-full border font-semibold transition-colors border-transparent bg-primary text-primary-foreground px-2.5 py-0.5 text-xs"
+        data-size="md"
       >
         idle
       </span>
@@ -22,7 +23,8 @@ describe('<Badge> snapshot baselines', () => {
     const { container } = render(<Badge variant="secondary">draft</Badge>);
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
-        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground"
+        class="inline-flex items-center rounded-full border font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground px-2.5 py-0.5 text-xs"
+        data-size="md"
       >
         draft
       </span>
@@ -33,7 +35,8 @@ describe('<Badge> snapshot baselines', () => {
     const { container } = render(<Badge variant="destructive">err</Badge>);
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
-        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-destructive text-destructive-foreground gap-1"
+        class="inline-flex items-center rounded-full border font-semibold transition-colors border-transparent bg-destructive text-destructive-foreground px-2.5 py-0.5 text-xs gap-1"
+        data-size="md"
       >
         <svg
           aria-hidden="true"
@@ -69,7 +72,8 @@ describe('<Badge> snapshot baselines', () => {
     const { container } = render(<Badge variant="outline">outline</Badge>);
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
-        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors text-foreground"
+        class="inline-flex items-center rounded-full border font-semibold transition-colors text-foreground px-2.5 py-0.5 text-xs"
+        data-size="md"
       >
         outline
       </span>
@@ -80,7 +84,8 @@ describe('<Badge> snapshot baselines', () => {
     const { container } = render(<Badge variant="success">ok</Badge>);
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
-        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-success/15 text-success gap-1"
+        class="inline-flex items-center rounded-full border font-semibold transition-colors border-transparent bg-success/15 text-success px-2.5 py-0.5 text-xs gap-1"
+        data-size="md"
       >
         <svg
           aria-hidden="true"
@@ -113,7 +118,8 @@ describe('<Badge> snapshot baselines', () => {
     const { container } = render(<Badge variant="warning">busy</Badge>);
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
-        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-warning/15 text-warning gap-1"
+        class="inline-flex items-center rounded-full border font-semibold transition-colors border-transparent bg-warning/15 text-warning px-2.5 py-0.5 text-xs gap-1"
+        data-size="md"
       >
         <svg
           aria-hidden="true"
@@ -147,7 +153,8 @@ describe('<Badge> snapshot baselines', () => {
     const { container } = render(<Badge variant="info">info</Badge>);
     expect(container.firstChild).toMatchInlineSnapshot(`
       <span
-        class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-info/15 text-info gap-1"
+        class="inline-flex items-center rounded-full border font-semibold transition-colors border-transparent bg-info/15 text-info px-2.5 py-0.5 text-xs gap-1"
+        data-size="md"
       >
         <svg
           aria-hidden="true"

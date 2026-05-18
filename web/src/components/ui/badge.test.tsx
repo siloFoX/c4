@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Badge } from './badge';
+import { Badge, CountBadge } from './badge';
 
 describe('<Badge>', () => {
   it('renders a <span> carrying the children as text', () => {
@@ -131,5 +131,79 @@ describe('<Badge>', () => {
     const node = container.firstChild as HTMLElement;
     expect(node.querySelector('svg')).toBeNull();
     expect(node.className).not.toContain('gap-1');
+  });
+
+  // -- v1.11.384 size scale (TODO 11.366) -------------------------
+
+  it('default size="md" maps to px-2.5 py-0.5 text-xs (legacy byte-identical)', () => {
+    render(<Badge>m</Badge>);
+    const node = screen.getByText('m');
+    expect(node.className).toContain('px-2.5');
+    expect(node.className).toContain('py-0.5');
+    expect(node.className).toContain('text-xs');
+    expect(node.getAttribute('data-size')).toBe('md');
+  });
+
+  it('size="sm" applies the dense inline-row classes', () => {
+    render(<Badge size="sm">s</Badge>);
+    const node = screen.getByText('s');
+    expect(node.className).toContain('px-2');
+    expect(node.className).toContain('py-0.5');
+    expect(node.className).toContain('text-[10px]');
+    expect(node.getAttribute('data-size')).toBe('sm');
+  });
+
+  it('size="lg" applies the hero-strip classes', () => {
+    render(<Badge size="lg">l</Badge>);
+    const node = screen.getByText('l');
+    expect(node.className).toContain('px-3');
+    expect(node.className).toContain('py-1');
+    expect(node.className).toContain('text-sm');
+    expect(node.getAttribute('data-size')).toBe('lg');
+  });
+
+  it('size + variant compose without clobbering each other', () => {
+    render(
+      <Badge variant="success" size="lg">
+        ok
+      </Badge>,
+    );
+    const node = screen.getByText('ok');
+    expect(node.className).toContain('bg-success');
+    expect(node.className).toContain('text-sm');
+  });
+});
+
+// -- v1.11.384 CountBadge alias (TODO 11.366) ---------------------
+
+describe('<CountBadge> alias', () => {
+  it('renders the same DOM as BadgeCounter', () => {
+    render(<CountBadge count={3} data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node.getAttribute('data-section')).toBe('badge-counter');
+    expect(node.textContent).toBe('3');
+  });
+
+  it('respects the numeric overflow contract (count > max -> "<max>+")', () => {
+    render(<CountBadge count={250} max={99} data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node.textContent).toBe('99+');
+  });
+
+  it('omits render when count === 0 by default (numeric variant)', () => {
+    const { container } = render(<CountBadge count={0} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('shows zero when showZero is set', () => {
+    render(<CountBadge count={0} showZero data-testid="c" />);
+    expect(screen.getByTestId('c').textContent).toBe('0');
+  });
+
+  it('exposes data-tone + data-variant from the underlying BadgeCounter', () => {
+    render(<CountBadge count={5} tone="danger" data-testid="c" />);
+    const node = screen.getByTestId('c');
+    expect(node.getAttribute('data-tone')).toBe('danger');
+    expect(node.getAttribute('data-variant')).toBe('numeric');
   });
 });
