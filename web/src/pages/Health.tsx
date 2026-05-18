@@ -1,24 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Filter, GripVertical, HelpCircle, LayoutGrid, List, RefreshCw } from 'lucide-react';
-import PageFrame, { ErrorPanel } from './PageFrame';
+import PageFrame from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
 import {
   Accordion,
   AlertBanner,
   Badge,
+  BadgeCounter,
   Button,
   CopyButton,
   DashboardGrid,
   DataList,
   DatePicker,
   Drawer,
+  ErrorState,
   IconButton,
   NumberInput,
   PageHeader,
   Panel,
   Popover,
   Rating,
+  ScrollArea,
   SegmentedControl,
   Sparkline,
   StatusDot,
@@ -27,7 +30,7 @@ import {
   VisuallyHidden,
   Widget,
 } from '../components/ui';
-import type { DataListItem } from '../components/ui';
+import type { AccordionItem, DataListItem } from '../components/ui';
 import { StatCardShape, TableRowShape } from '../components/ui/skeleton';
 import { StatCard } from '../components/ui/stat-card';
 import { cn } from '../lib/cn';
@@ -59,6 +62,35 @@ function readViewMode(): HealthViewMode {
     return 'full';
   }
 }
+
+// (v1.11.340, TODO 11.322) Module categorisation for the
+// diagnostics Accordion. The daemon returns a flat array of
+// module identifiers; grouping them by the leading path
+// segment (or by file extension when there is no path) lets
+// the page render one Accordion item per category instead of
+// a single 200+ entry blob. Modules that look like bare
+// names without an extension fall back to the "other"
+// bucket. The function is exported for tests + tooling so
+// the rule stays unit-checked.
+export function categorizeModule(name: string): string {
+  const trimmed = name.replace(/^[\\/]+/, '');
+  const segments = trimmed.split(/[\\/]/);
+  if (segments.length > 1 && segments[0]) {
+    return segments[0];
+  }
+  const dot = trimmed.lastIndexOf('.');
+  if (dot > 0 && dot < trimmed.length - 1) {
+    return trimmed.slice(dot);
+  }
+  return 'other';
+}
+
+// (v1.11.340, TODO 11.322) Length cap before the module
+// list is wrapped in a ScrollArea. Below the cap the list
+// renders inline (lighter DOM, fewer scroll wrappers); at
+// or above the cap the ScrollArea kicks in so the
+// accordion item stays one viewport tall.
+const MODULES_SCROLL_THRESHOLD = 12;
 
 export default function Health() {
   useLocale();
@@ -104,6 +136,23 @@ export default function Health() {
   const dragKey = useRef<HealthLayoutKey | null>(null);
 
   const ok = data?.ok !== false && !error;
+
+  // (v1.11.340, TODO 11.322) Per-category module buckets.
+  // Keeps insertion order so the Accordion items render in a
+  // predictable order across renders. Bare module arrays (no
+  // path, no extension) collapse into a single "other"
+  // bucket so the prior visual rhythm survives.
+  const moduleGroups = useMemo<Map<string, string[]>>(() => {
+    const out = new Map<string, string[]>();
+    const list = Array.isArray(data?.modules) ? data!.modules! : [];
+    for (const m of list) {
+      const cat = categorizeModule(m);
+      const arr = out.get(cat) ?? [];
+      arr.push(m);
+      out.set(cat, arr);
+    }
+    return out;
+  }, [data?.modules]);
 
   const heroCardRenderers: Record<HealthLayoutKey, () => JSX.Element> = {
     uptime: () => (
@@ -287,7 +336,25 @@ export default function Health() {
           </div>
         </div>
       ) : null}
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        /* (v1.11.340, TODO 11.322) ErrorState replaces the
+           plain ErrorPanel banner. It surfaces a Retry button
+           wired to the same `refresh` callback the header
+           refresh icon uses, so the operator can recover
+           without flipping to the header. role="alert"
+           contract from the underlying primitive is preserved
+           so the prior `getByRole('alert')` assertion still
+           holds. */
+        <ErrorState
+          title="Could not load /api/health"
+          description="The daemon returned an error. Retry to re-fetch."
+          error={error}
+          onRetry={() => {
+            void refresh();
+          }}
+          data-testid="health-error-state"
+        />
+      )}
       {data && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
@@ -572,32 +639,144 @@ export default function Health() {
                the daemon version + config path together. The
                accordion's keyboard contract (ArrowDown / Home /
                End + roving tabindex) replaces the bespoke
-               Collapsible chevron toggle. */
+               Collapsible chevron toggle.
+
+               (v1.11.340, TODO 11.322) Modules now split into
+               one Accordion item per category (path segment or
+               extension). Each title carries a BadgeCounter
+               chip with the per-category count, and long
+               lists wrap in ScrollArea so the accordion item
+               stays one viewport tall. Single-category
+               results collapse to a single "modules" item so
+               the prior "Loaded modules (n)" title (and the
+               tests that key off it) keep working. */
             <Accordion
               mode="multi"
               ariaLabel="Diagnostics details"
-              defaultOpenIds={['modules']}
+              defaultOpenIds={
+                moduleGroups.size === 1
+                  ? ['modules']
+                  : Array.from(moduleGroups.keys()).map(
+                      (k) => `modules-${k}`,
+                    )
+              }
               data-testid="health-detail-accordion"
               className="text-xs"
               items={[
-                {
-                  id: 'modules',
-                  title: tFormat('healthPage.modules.loaded', { n: String(data.modules.length) }),
-                  description:
-                    "Sub-systems reporting health back to /api/health.",
-                  content: (
-                    <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
-                      {(data.modules ?? []).map((m) => (
-                        <li
-                          key={m}
-                          className="truncate text-muted-foreground"
-                        >
-                          {m}
-                        </li>
-                      ))}
-                    </ul>
-                  ),
-                },
+                ...(moduleGroups.size <= 1
+                  ? [
+                      {
+                        id: 'modules',
+                        title: (
+                          <span
+                            className="inline-flex items-center gap-2"
+                            data-testid="health-modules-title"
+                          >
+                            {tFormat('healthPage.modules.loaded', {
+                              n: String(data.modules.length),
+                            })}
+                            <BadgeCounter
+                              count={data.modules.length}
+                              tone="neutral"
+                              size="sm"
+                              srLabel={`${data.modules.length} loaded modules`}
+                              data-testid="health-modules-count-badge"
+                            />
+                          </span>
+                        ),
+                        description:
+                          'Sub-systems reporting health back to /api/health.',
+                        content: (
+                          /* (v1.11.340, TODO 11.322) ScrollArea
+                             caps the module-list height so a
+                             daemon with hundreds of modules
+                             still renders inside one
+                             viewport. The threshold gates the
+                             wrapper so short lists stay free
+                             of an unnecessary scroll shell. */
+                          data.modules!.length >= MODULES_SCROLL_THRESHOLD ? (
+                            <ScrollArea
+                              axis="y"
+                              data-testid="health-modules-scrollarea"
+                              className="max-h-64"
+                            >
+                              <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
+                                {data.modules!.map((m) => (
+                                  <li
+                                    key={m}
+                                    className="truncate text-muted-foreground"
+                                  >
+                                    {m}
+                                  </li>
+                                ))}
+                              </ul>
+                            </ScrollArea>
+                          ) : (
+                            <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
+                              {data.modules!.map((m) => (
+                                <li
+                                  key={m}
+                                  className="truncate text-muted-foreground"
+                                >
+                                  {m}
+                                </li>
+                              ))}
+                            </ul>
+                          )
+                        ),
+                      } satisfies AccordionItem,
+                    ]
+                  : Array.from(moduleGroups.entries()).map<AccordionItem>(
+                      ([category, mods]) => ({
+                        id: `modules-${category}`,
+                        title: (
+                          <span
+                            className="inline-flex items-center gap-2"
+                            data-testid={`health-modules-title-${category}`}
+                          >
+                            <span className="font-mono">{category}</span>
+                            <BadgeCounter
+                              count={mods.length}
+                              tone="neutral"
+                              size="sm"
+                              srLabel={`${mods.length} ${category} modules`}
+                              data-testid={`health-modules-count-badge-${category}`}
+                            />
+                          </span>
+                        ),
+                        description: `Modules grouped by "${category}".`,
+                        content:
+                          mods.length >= MODULES_SCROLL_THRESHOLD ? (
+                            <ScrollArea
+                              axis="y"
+                              data-testid={`health-modules-scrollarea-${category}`}
+                              className="max-h-64"
+                            >
+                              <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
+                                {mods.map((m) => (
+                                  <li
+                                    key={m}
+                                    className="truncate text-muted-foreground"
+                                  >
+                                    {m}
+                                  </li>
+                                ))}
+                              </ul>
+                            </ScrollArea>
+                          ) : (
+                            <ul className="grid grid-cols-1 gap-0.5 font-mono sm:grid-cols-2 lg:grid-cols-3">
+                              {mods.map((m) => (
+                                <li
+                                  key={m}
+                                  className="truncate text-muted-foreground"
+                                >
+                                  {m}
+                                </li>
+                              ))}
+                            </ul>
+                          ),
+                      }),
+                    )),
                 {
                   id: 'build',
                   title: 'Build',
