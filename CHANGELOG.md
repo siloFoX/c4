@@ -4,6 +4,78 @@
 
 (no entries -- next release window)
 
+## [1.11.319] - 2026-05-18 -- UI: FocusTrap primitive (TODO 11.301)
+
+New `FocusTrap` primitive at `web/src/components/ui/focus-trap.tsx`.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/components/ui/focus-trap.tsx` -- canonical
+  primitive wrapping the pre-existing `useFocusTrap` hook
+  (`web/src/hooks/use-focus-trap.ts`) so any overlay surface
+  (Dialog, Drawer, CommandPalette, etc) can declare its
+  focus-trap as a component instead of wiring the hook + a
+  container ref by hand at every call site.
+- Props (all optional except `children`):
+  - `children: ReactNode` -- the subtree the trap should
+    guard.
+  - `active?: boolean` -- when false the trap goes inert
+    (no key handler, no first-focus, no restore on next
+    deactivation). Default true.
+  - `initialFocusRef?: RefObject<HTMLElement>` -- explicit
+    "first focus" target on activation.
+  - `restoreFocusOnUnmount?: boolean` -- when true (default),
+    focus returns to whatever was focused before the trap
+    mounted, on deactivation / unmount.
+  - `onEscape?: () => void` -- Escape-key handler slot. Fires
+    with `stopPropagation` so outer Escape handlers do not
+    double-fire.
+  - `as?: 'div' | 'section' | 'aside' | 'main'` --
+    polymorphic tag (default `'div'`).
+  - Forwarded ref + all standard `HTMLAttributes<HTMLElement>`
+    pass through onto the container (role, aria-*, className,
+    style, id, etc).
+- Data-attribute selectors: `data-section="focus-trap"` plus
+  `data-active="true|false"` for e2e + theming.
+- `tabIndex={-1}` is the default on the container so it can
+  receive focus when there are zero focusable children (the
+  hook's documented fallback path). Callers can override via
+  the `tabIndex` prop.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Deferred (dispatch follow-ups)
+
+- Dialog, Drawer, and CommandPalette currently call
+  `useFocusTrap` directly. Swapping their inline calls to a
+  `<FocusTrap>` wrapper is a follow-up per-component patch
+  so the per-site test refresh lands with each adoption and
+  the blast radius of this commit stays minimal. Affected
+  files: `web/src/components/ui/dialog.tsx`,
+  `web/src/components/ui/drawer.tsx`,
+  `web/src/components/ui/command-palette.tsx`.
+
+### Tests
+
+- `web/src/components/ui/focus-trap.test.tsx` -- 19 vitest
+  cases covering: default `<div>` + `data-section`/`data-active`
+  attrs, first-focus on first focusable child, explicit
+  `initialFocusRef` target, fallback to container focus when
+  no focusables, Tab wraparound to first, Shift+Tab
+  wraparound to last, `onEscape` handler invocation,
+  no-crash when `onEscape` is undefined, restore focus on
+  unmount (default), no-restore on unmount when opted out,
+  `active=false` inert state, ref forwarding to the
+  underlying DOM node, polymorphic `as="section"|"aside"|"main"`,
+  className + arbitrary HTML attributes pass-through,
+  default `tabIndex=-1`, caller-supplied tabIndex override,
+  stable `displayName="FocusTrap"`. All 19 green.
+
+### Versions
+
+- 1.11.318 -> 1.11.319 across root + web package.json + both
+  lockfiles. CHANGELOG.md entry under `## [1.11.319]`.
+
 ## [1.11.318] - 2026-05-18 -- UI: Portal primitive (TODO 11.300)
 
 New `Portal` primitive at `web/src/components/ui/portal.tsx`.
