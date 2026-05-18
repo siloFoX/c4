@@ -4,6 +4,88 @@
 
 (no entries -- next release window)
 
+## [1.11.323] - 2026-05-18 -- UI: motion utilities bundle (TODO 11.305)
+
+Consolidates the motion utilities into a single canonical
+import surface at `web/src/lib/motion.ts`. Component-scope
+only, no daemon or CLI surface change.
+
+### Added
+
+- `useMotionClass(key, fallback?)` hook in
+  `web/src/lib/motion.ts` -- one-liner that returns the
+  canonical Tailwind class string for the current
+  `prefers-reduced-motion` state. Internally calls
+  `useReducedMotion()` + `motionClass()` so the call
+  site stays a single line:
+  ```tsx
+  const enterClass = useMotionClass('fadeIn');
+  return <div className={enterClass}>...</div>;
+  ```
+- `useReducedMotion` re-exported from `lib/motion` so
+  consumers can import both the hook and the class
+  helpers from a single path:
+  ```ts
+  import { useReducedMotion, useMotionClass, motion } from '../lib/motion';
+  ```
+  The original import location (`hooks/use-reduced-motion`)
+  continues to work for the existing consumers.
+
+### Changed
+
+- `web/src/lib/motion.ts` now has a module-level JSDoc
+  documenting the canonical pattern with three usage
+  shapes: `useMotionClass(key, fallback?)` (preferred for
+  new code), `motionClass(key, reducedMotion, fallback?)`
+  (stateless picker when the bool is already known), and
+  raw `motion[key]` access (for inline class composition).
+- Eight motion presets (`fadeIn`, `fadeOut`, `slideInRight`,
+  `slideOutRight`, `slideInLeft`, `slideOutLeft`,
+  `scaleIn`, `scaleOut`) and their duration alignment with
+  the central scale in `lib/motion-tokens.ts` are
+  documented inline as before; behaviour is byte-for-byte
+  unchanged.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed Toast / Drawer / Dialog / Tooltip /
+  Switch / Spinner / Skeleton as adoption sites. These
+  components currently consume `useReducedMotion` (from
+  `hooks/`) + `motionClass` (from `lib/motion`) via two
+  separate imports. Migrating each to the single
+  `useMotionClass` one-liner is a follow-up per-component
+  patch so each migration lands with its own test refresh
+  and the blast radius of this commit stays minimal.
+
+### Tests
+
+- `web/src/lib/motion.test.ts` -- 7 new vitest cases on
+  top of the existing 8 (15 total). New cases:
+  - `useReducedMotion` re-export returns false when
+    `prefers-reduced-motion` does not match.
+  - `useReducedMotion` re-export returns true when it
+    matches.
+  - `useMotionClass` returns animated class when
+    `prefers-reduced-motion` is OFF.
+  - `useMotionClass` returns `''` when reduced and no
+    fallback.
+  - `useMotionClass` returns fallback when reduced and
+    fallback is provided.
+  - `useMotionClass` ignores fallback when motion is
+    allowed.
+  - `useMotionClass` matches `motionClass()` stateless
+    output for every motion key.
+  All 15 green. 184 downstream consumer tests
+  (Toast.test.tsx + Dialog.test.tsx + Spinner.test.tsx +
+  Skeleton.test.tsx) also pass against the augmented
+  module.
+
+### Versions
+
+- 1.11.322 -> 1.11.323 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.323]`.
+
 ## [1.11.322] - 2026-05-18 -- UI: portal-root helper consolidation (TODO 11.304)
 
 Consolidates the inline "lazy-create + idempotent decoration"
