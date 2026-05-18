@@ -42,6 +42,9 @@ const OVERLAP: Record<AvatarSize, string> = {
   sm: '-ml-2',
   md: '-ml-3',
   lg: '-ml-4',
+  // (v1.11.385, TODO 11.367) `xl` pulls more so the visible
+  // crescent on the next tile reads at the larger tier.
+  xl: '-ml-5',
 };
 
 const CHIP_SIZE: Record<AvatarSize, string> = {
@@ -49,6 +52,9 @@ const CHIP_SIZE: Record<AvatarSize, string> = {
   sm: 'h-6 w-6 text-[10px]',
   md: 'h-8 w-8 text-xs',
   lg: 'h-10 w-10 text-sm',
+  // (v1.11.385, TODO 11.367) `xl` chip matches the avatar
+  // tile (`h-12 w-12 text-base`).
+  xl: 'h-12 w-12 text-base',
 };
 
 export function AvatarGroup({

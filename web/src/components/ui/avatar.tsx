@@ -9,7 +9,13 @@ import type { StatusDotVariant } from './status-dot';
 // WorkerList pattern (Avatar next to a separate StatusDot)
 // is collapsed into one mark when the operator opts in via
 // the new prop.
-export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg';
+//
+// (v1.11.385, TODO 11.367) Added `xl` size for hero /
+// profile-header surfaces. `xl` resolves to a 12x12
+// (48px) tile with `text-lg` so the initials stay
+// readable at the larger tier; the status overlay
+// scales to `h-3.5 w-3.5` in lock-step.
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 export interface AvatarProps
   extends Omit<ImgHTMLAttributes<HTMLElement>, 'src' | 'alt' | 'className' | 'srcSet' | 'sizes'> {
@@ -43,6 +49,7 @@ const SIZE_CLASS: Record<AvatarSize, string> = {
   sm: 'h-6 w-6 text-xs',
   md: 'h-8 w-8 text-sm',
   lg: 'h-10 w-10 text-base',
+  xl: 'h-12 w-12 text-lg',
 };
 
 // (v1.11.300, TODO 11.282) Per-status overlay colours --
@@ -64,6 +71,7 @@ const STATUS_OVERLAY_SIZE: Record<AvatarSize, string> = {
   sm: 'h-2 w-2',
   md: 'h-2.5 w-2.5',
   lg: 'h-3 w-3',
+  xl: 'h-3.5 w-3.5',
 };
 
 const PALETTE = [
