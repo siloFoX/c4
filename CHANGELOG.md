@@ -4,6 +4,98 @@
 
 (no entries -- next release window)
 
+## [1.11.357] - 2026-05-18 -- UI: Keyboard shortcut conflict detector (TODO 11.339)
+
+Adds a pure conflict detector + a dev console reporter
+for keyboard shortcut bindings. The
+`KeyboardShortcutsModal` surfaces detected conflicts as
+an inline warning banner so the operator sees the
+regression before it ships. An integration test against
+the canonical `SHORTCUT_ROWS` list fails CI loudly when
+a new binding collides with an existing one.
+
+### Added
+
+- `web/src/lib/shortcut-conflicts.ts` -- pure detector
+  module:
+  - `normalizeCombo(keys)` -- canonical string for any
+    combo. Lower-cases, orders modifiers in
+    `ctrl/alt/shift/meta` order, collapses synonyms
+    (`Cmd`/`Command`/`Win` -> `meta`,
+    `Control` -> `ctrl`, `Option` -> `alt`). Recognises
+    chord combos (`g g`, `Ctrl+K P`) by splitting on
+    whitespace into ordered steps; strips spaces
+    around `+`.
+  - `detectShortcutConflicts(specs)` -- groups specs
+    by `(scope, normalized combo)`. Returns one
+    `ShortcutConflict` per distinct conflicting
+    group. Distinguishes:
+    - `kind: 'conflict'` -- same combo, different
+      actions (the dangerous case).
+    - `kind: 'duplicate'` -- same combo, same action
+      (copy-paste bug; surfaced separately so
+      callers can deduplicate without alarming the
+      operator).
+    - SYNONYMS (different combos -> same action,
+      e.g. `?` + `Shift+/` -> `shortcuts.openHelp`)
+      are NOT flagged.
+  - `formatShortcutConflicts(conflicts)` --
+    human-readable multi-line summary.
+  - `reportShortcutConflicts(conflicts)` --
+    `console.warn`s once with the summary;
+    returns the count for CI gating. No-ops on empty
+    input so the dev console stays quiet on the
+    happy path.
+  - `ShortcutSpec` / `ShortcutConflict` / `ConflictKind`
+    public interfaces.
+- `web/src/lib/shortcut-conflicts.test.ts` -- 23 unit
+  cases + 1 integration case:
+  - `normalizeCombo`: lower-case, canonical modifier
+    ordering, modifier synonyms, chord shape,
+    empty-input handling, whitespace + `+`
+    normalisation.
+  - `detectShortcutConflicts`: empty input,
+    non-conflicting set, conflict vs duplicate vs
+    synonym discrimination, scope isolation,
+    normalized-combo equivalence
+    (`Shift+Ctrl+B` === `Ctrl+Shift+B`),
+    `Cmd+B` vs `Ctrl+B` distinct, empty-keys skip,
+    three-way grouping.
+  - `formatShortcutConflicts` / `reportShortcutConflicts`
+    happy + plural-vs-singular header.
+  - Integration: SHORTCUT_ROWS has zero conflicts
+    (the canonical list ships clean).
+- `web/src/components/KeyboardShortcutsModal.tsx` --
+  wires `detectShortcutConflicts(SHORTCUT_ROWS)` into
+  a `useMemo` and renders a warning banner above the
+  search-empty state when conflicts exist. Banner
+  carries `data-testid="shortcuts-conflicts-banner"`
+  and `role="alert"`.
+
+### Tests
+
+- 23/23 `shortcut-conflicts` unit + integration cases
+  pass.
+- 47/47 existing `KeyboardShortcutsModal` cases pass
+  (the new banner only renders when conflicts > 0,
+  which never happens in the production list).
+- Combined: 70/70 against vitest 4.1.5.
+
+### Out of scope
+
+- **Per-component shortcut registration.** The hook
+  ecosystem (`useKeyboardShortcut`, `useShortcutSequence`)
+  has multiple sources of truth (chord hooks vs
+  global hooks); a central registry that all of them
+  feed into would let the detector cover dynamic
+  registrations too. That refactor is a separate
+  patch.
+- **Conflict-resolution UI.** The modal surfaces the
+  count + the summary text. A future patch could add
+  an inline "Disable conflicting binding" affordance,
+  but most adopters fix the conflict in code rather
+  than at runtime.
+
 ## [1.11.356] - 2026-05-18 -- UI: InfiniteScroll primitive (TODO 11.338)
 
 Ships an IntersectionObserver-based infinite-scroll

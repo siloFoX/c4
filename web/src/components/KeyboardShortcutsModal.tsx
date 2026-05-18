@@ -1,11 +1,16 @@
 import { useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { Accordion, Chip, Dialog, IconButton, Kbd, SearchBar } from './ui';
 import type { AccordionItem } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
 import { formatKeymapForCurrentPlatform } from '../lib/shortcut-keymap';
 import { useRecentlyUsedShortcuts } from '../lib/shortcut-recently-used';
+import {
+  detectShortcutConflicts,
+  formatShortcutConflicts,
+} from '../lib/shortcut-conflicts';
+import type { ShortcutSpec } from '../lib/shortcut-conflicts';
 
 interface KeyboardShortcutsModalProps {
   open: boolean;
@@ -87,6 +92,23 @@ export function KeyboardShortcutsModal({
   const trimmedFilter = filter.trim();
   const isFiltering = trimmedFilter.length > 0;
 
+  // (v1.11.357, TODO 11.339) Detect shortcut conflicts
+  // from SHORTCUT_ROWS so the operator sees a warning
+  // banner inside the modal when the canonical list
+  // contains a collision. Synonyms (different combos
+  // pointing at the same descriptionKey) are NOT
+  // flagged. The detector is pure so this useMemo
+  // only re-fires when SHORTCUT_ROWS changes
+  // identity (effectively never at runtime).
+  const conflicts = useMemo(() => {
+    const specs: ShortcutSpec[] = SHORTCUT_ROWS.map((r) => ({
+      keys: r.keys,
+      action: r.descriptionKey,
+      scope: r.category,
+    }));
+    return detectShortcutConflicts(specs);
+  }, []);
+
   const grouped = useMemo(() => {
     const out: Record<ShortcutCategory, Row[]> = {
       navigation: [],
@@ -157,6 +179,31 @@ export function KeyboardShortcutsModal({
             </Chip>
           ) : null}
         </div>
+        {/* (v1.11.357, TODO 11.339) Conflict warning
+            banner. Surfaces detected shortcut conflicts
+            from SHORTCUT_ROWS inline so an operator
+            updating the keymap sees the regression
+            before it hits prod. The full
+            file:line:col-style summary is in the
+            console; the banner here just announces
+            the count + the kind. */}
+        {conflicts.length > 0 ? (
+          <div
+            data-testid="shortcuts-conflicts-banner"
+            role="alert"
+            className="mb-3 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
+          >
+            <AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold">
+                {conflicts.length} shortcut{conflicts.length === 1 ? '' : 's'} conflict
+              </p>
+              <pre className="mt-1 whitespace-pre-wrap font-mono text-[10px]">
+                {formatShortcutConflicts(conflicts)}
+              </pre>
+            </div>
+          </div>
+        ) : null}
         {filtered.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
             {t('shortcuts.search.empty')}
