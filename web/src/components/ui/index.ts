@@ -111,3 +111,4 @@ export * from './command-bar';
 export * from './snapshot-diff';
 export * from './tree-view';
 export * from './cmd-history';
+export * from './diff-editor';
