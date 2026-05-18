@@ -4,6 +4,119 @@
 
 (no entries -- next release window)
 
+## [1.11.368] - 2026-05-18 -- UI: image lazy load helper (TODO 11.350)
+
+Builds `web/src/lib/lazy-image.tsx` -- an
+IntersectionObserver-based lazy image primitive
+with LQIP (low-quality image placeholder) blur-up,
+native `loading="lazy"` fallback, and
+`decoding="async"`.
+
+### Public surface
+
+```tsx
+<LazyImage
+  src="/avatars/w-32.jpg"
+  lqip="data:image/jpeg;base64,..."
+  alt="Worker avatar"
+  width={64}
+  height={64}
+  rootMargin="200px"
+  blurPx={12}
+  transitionMs={300}
+  decoding="async"
+  className="..."
+  imgClassName="..."
+  onLoad={fn}
+  onError={fn}
+/>
+```
+
+### Behaviour
+
+- LQIP renders as the wrapper's `background-image`
+  with `filter: blur(<blurPx>px)` so the visual
+  lands instantly with zero network cost (LQIP is
+  typically <2KB base64 JPEG).
+- The full-resolution image is gated by
+  IntersectionObserver with a 200px lookahead
+  (configurable). When IO is unavailable, the
+  hook short-circuits to native `loading="lazy"`
+  -- the `<img>` still ships immediately so the
+  browser can defer below-the-fold images.
+- On load the wrapper transitions
+  `filter: blur(...) -> none` over `transitionMs`
+  (default 300ms) and fades the `<img>` opacity 0
+  -> 1. The wrapper background is also faded to
+  `transparent` so the LQIP edges do not bleed
+  through the foreground alpha.
+- On error the `<img>` unmounts and the LQIP
+  stays visible. `data-state` reports `error` /
+  `loaded` / `fetching` / `idle` so adopters can
+  CSS-style off the state.
+- Native `loading="lazy"` + `decoding="async"`
+  both ride along on every render so the browser
+  applies its own deferral as defence in depth.
+- `srcSet` + `sizes` forwarded verbatim; the
+  responsive selection happens at the browser
+  level once the `<img>` mounts.
+
+### Tests
+
+`web/src/lib/lazy-image.test.tsx` -- 15 cases:
+
+- LQIP paints as background immediately.
+- `<img>` is NOT rendered before intersection
+  (data-state="idle").
+- Renders after intersection
+  (data-state="fetching") with
+  `loading="lazy"` + `decoding="async"`.
+- On load -> data-state="loaded" + wrapper
+  filter drops to `none`.
+- On error -> data-state="error" + `<img>`
+  unmounts.
+- `onLoad` / `onError` callbacks forwarded.
+- Falls through to native `loading="lazy"`
+  when `IntersectionObserver` is missing.
+- `srcSet` + `sizes` forwarded verbatim.
+- `decoding="sync"` override.
+- Numeric + CSS-length `width` / `height`.
+- `rootMargin` reaches the observer.
+- `className` + `imgClassName` overrides.
+- `blurPx=0` disables the blur filter.
+- `displayName` sanity.
+
+15/15 pass under vitest 4.1.5. TypeScript clean
+for `lazy-image.tsx`.
+
+### Pairs with existing primitives
+
+- `components/ui/image.tsx` (11.226) already
+  covers aspect-ratio + fallback + animate-pulse
+  placeholder for icon / avatar use. The new
+  `LazyImage` focuses on the LQIP blur-up case
+  -- different surface, different ergonomics.
+  Future patches can unify the two when an
+  adopter needs both stories at once.
+- `IntersectionObserver` mocking pattern aligned
+  with `components/ui/infinite-scroll.test.tsx`
+  (11.338) so test helpers stay consistent.
+
+### Out of scope
+
+- Per-page adoption. The primitive ships
+  standalone; the dispatch does not call out a
+  specific surface (no avatar / screenshot
+  list currently uses LQIP).
+- LQIP generation pipeline. Adopters supply the
+  data URI (typically a build-time `sharp` /
+  `vite-plugin-image-presets` step).
+- AVIF / WebP `<picture>` source selection.
+  `srcSet` + `sizes` cover the common path;
+  a `<picture>` adaptor is a follow-up.
+- Real-browser visual coverage (Playwright).
+  Unit tests assert behaviour.
+
 ## [1.11.367] - 2026-05-18 -- UI: suspense boundary wrapper (TODO 11.349)
 
 Builds the canonical `<SuspenseWrapper>` primitive
