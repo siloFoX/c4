@@ -112,3 +112,4 @@ export * from './snapshot-diff';
 export * from './tree-view';
 export * from './cmd-history';
 export * from './diff-editor';
+export * from './markdown-renderer';
