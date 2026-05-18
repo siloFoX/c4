@@ -4,6 +4,135 @@
 
 (no entries -- next release window)
 
+## [1.11.371] - 2026-05-18 -- UI: dark mode polish + sync (TODO 11.353)
+
+The dark-mode toggle + localStorage persistence
++ prefers-color-scheme detection have shipped
+incrementally across many earlier patches (11.231
+landed `useTheme()`, 11.326 audited token
+parity). This patch ships the two outstanding
+deliverables from the 11.353 dispatch:
+
+1. Cross-tab theme sync so a flip in one tab
+   immediately re-applies in every other open
+   tab.
+2. WCAG contrast helpers so future audits +
+   the dev-only contrast inspector planned for
+   a follow-up can compute ratios without a new
+   dependency.
+
+### Cross-tab sync (`lib/use-theme.ts`)
+
+The hook now subscribes to the cross-tab
+`storage` event keyed on `THEME_KEY`. When a
+different tab writes the theme into
+localStorage:
+
+- The browser emits `storage` to every other
+  tab; the hook mirrors `e.newValue` into local
+  state.
+- The existing `useEffect(theme)` then runs
+  `applyTheme(theme)` so the `<html class="dark">`
+  flip and the `tokens.css` cascade re-apply.
+- `e.newValue === null` (a `localStorage.clear()`
+  signal) re-reads via `readTheme()` so the tab
+  reverts to the canonical default rather than
+  freezing on the stale value.
+- Invalid values (a non-`'light' | 'dark' |
+  'system'` string written by an extension or
+  manual edit) are ignored.
+
+The listener removes itself on unmount; the test
+file gains five new cases covering the cross-tab
+path.
+
+### Contrast helpers (`lib/contrast.ts`)
+
+```ts
+relativeLuminance(color): number
+contrastRatio(fg, bg): number
+meetsAaContrast(fg, bg, isLargeText?): boolean
+meetsAaaContrast(fg, bg, isLargeText?): boolean
+evaluateContrast(fg, bg): {
+  ratio, aaNormal, aaLarge, aaaNormal, aaaLarge
+}
+parseColor(input): { r, g, b } | null
+```
+
+- Pure math; no DOM access, no React.
+- Accepts 6-digit hex, 8-digit hex with alpha
+  (drops alpha), 3-digit hex, and the `'h s%
+  l%'` HSL triplets used by `tokens.css`.
+- Per WCAG 2.1: linearises sRGB channels, then
+  applies the canonical
+  `0.2126 R + 0.7152 G + 0.0722 B` luminance
+  weights.
+- Exports the AA / AAA constants
+  (`AA_NORMAL=4.5`, `AA_LARGE=3`,
+  `AAA_NORMAL=7`, `AAA_LARGE=4.5`) so callers
+  reference one canonical source.
+
+### Tests
+
+`web/src/lib/contrast.test.ts` -- 23 cases:
+
+- `parseColor`: 6-digit hex / 3-digit hex /
+  8-digit hex (alpha stripped) / HSL triplet
+  (with hue normalisation) / `RGB` object /
+  unrecognised string returns null.
+- `relativeLuminance`: black=0, white=1, NaN
+  on invalid input.
+- `contrastRatio`: exact 21 for black/white,
+  exact 1 for identical, symmetric, NaN on
+  invalid, matches WCAG reference within
+  tolerance.
+- `meetsAaContrast` / `meetsAaaContrast`:
+  threshold checks + large-text cutoffs + parse
+  failure -> false.
+- `evaluateContrast`: packages the four checks
+  in one object; NaN ratio when invalid.
+- Threshold constants match WCAG 2.1.
+
+`web/src/lib/use-theme.test.ts` -- adds 5 cases
+on top of the existing 11:
+
+- Mirrors a theme set by another tab via the
+  storage event.
+- Ignores storage events for unrelated keys.
+- Ignores storage events carrying an invalid
+  theme value.
+- Falls back to the read-from-storage default
+  when `newValue === null` (localStorage.clear).
+- Removes the storage listener on unmount.
+
+40/40 pass under vitest 4.1.5; existing tests
+remain green. TypeScript clean for the source
+files; pre-existing strict-tuple-access warnings
+in the legacy portion of `use-theme.test.ts` are
+out of scope for this patch.
+
+### Out of scope
+
+- Runtime contrast inspector (overlay that
+  flags low-contrast surfaces in dev). The
+  `contrast.ts` helpers exist; a follow-up
+  patch can wire the inspector on top.
+- Per-component contrast audit ratchet. The
+  existing `theme-tokens-validator` already
+  catches hard-coded colours; future work can
+  add a contrast-pair audit using the helpers.
+- Light-mode token parity sweep. The token map
+  already exists in `tokens.css`; per-component
+  light-mode adoption stays the existing
+  per-page work.
+- Cross-tab sync for other preferences
+  (sidebar mode, detail mode, top view). They
+  already flow through a shared storage
+  listener at App level; only theme needed the
+  hook-local treatment because its
+  side-effect (`<html class="dark">`) lives
+  outside React state.
+
 ## [1.11.370] - 2026-05-18 -- UI: drag-and-drop file upload (TODO 11.352)
 
 The `FileDrop` component itself shipped in 11.270
