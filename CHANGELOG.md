@@ -4,6 +4,257 @@
 
 (no entries -- next release window)
 
+## [1.11.415] - 2026-05-18 -- UI: tree-view primitive (TODO 11.397)
+
+New `web/src/components/ui/tree-view.tsx`
+ships `<TreeView>` -- a hierarchical
+tree with full WAI-ARIA tree keyboard
+pattern, HTML5 drag-and-drop reorder,
+lazy children loading, and per-row
+disabled / icon / custom render slots.
+
+### API
+
+```tsx
+<TreeView
+  nodes={tree}
+  expandedIds={openIds}              // controlled
+  onExpandedIdsChange={setOpenIds}
+  selectedId={selected}
+  onSelectedIdChange={setSelected}
+  focusedId={focused}
+  onFocusedIdChange={setFocused}
+  enableDrag
+  onReorder={(src, target, pos) => move(src, target, pos)}
+  onLoadChildren={async (node) => loadChildrenFromApi(node.id)}
+  indent={20}
+  ariaLabel="Project files"
+/>
+```
+
+```ts
+interface TreeNode {
+  id: string;
+  label: ReactNode;
+  children?: TreeNode[];
+  isLeaf?: boolean;
+  disabled?: boolean;
+  icon?: ReactNode;
+  data?: unknown;
+}
+```
+
+### Keyboard (WAI-ARIA tree pattern)
+
+| key | effect |
+| --- | --- |
+| ArrowDown | next visible row |
+| ArrowUp | previous visible row |
+| ArrowRight | expand collapsed; if expanded, go to first child |
+| ArrowLeft | collapse expanded; if collapsed, go to parent |
+| Home | first row |
+| End | last visible row |
+| Enter / Space | toggle expansion + select |
+
+### Drag-and-drop reorder
+
+- `enableDrag={true}` flips `draggable`
+  on every non-disabled row.
+- Drop position computed via
+  `computeDropPosition(y, height,
+  canHaveChildren)`:
+  - canHaveChildren -> top quarter
+    'before' / middle 'inside' / bottom
+    quarter 'after'.
+  - leaf node -> top half 'before' /
+    bottom half 'after'.
+- `onReorder(sourceId, targetId,
+  position)` fires on drop. The host
+  performs the actual node-array
+  mutation -- the primitive only
+  reports the user intent.
+- Self-drops and drops on a
+  descendant of the source are
+  blocked (no callback).
+
+### Lazy loading
+
+- A node without `children` and
+  without `isLeaf: true` is treated
+  as lazy-loadable. Expanding it
+  calls `onLoadChildren(node)` and
+  shows the `loadingLabel` (default
+  "Loading...") until the promise
+  resolves.
+- The host updates the node array
+  with the loaded children (use the
+  exported `updateNodeChildren(nodes,
+  id, children)` helper).
+
+### Selection / focus / expansion
+
+All three are controlled-or-uncontrolled.
+Supply `*Id` for controlled or
+`defaultExpandedIds` /
+`defaultSelectedId` for uncontrolled.
+The corresponding callback fires in
+both modes so the host can keep a
+side-store in sync.
+
+### Pure helpers
+
+```ts
+export function flattenTree(
+  nodes: TreeNode[],
+  expandedIds: Set<string>,
+): FlatTreeRow[];
+
+export function findNodePath(
+  nodes: TreeNode[],
+  id: string,
+): string[] | null;
+
+export function updateNodeChildren(
+  nodes: TreeNode[],
+  id: string,
+  children: TreeNode[],
+): TreeNode[];
+
+export function computeDropPosition(
+  y: number,
+  height: number,
+  canHaveChildren: boolean,
+): 'before' | 'inside' | 'after';
+```
+
+### Data attributes
+
+Root (`role="tree"`, `aria-label`):
+
+- `data-section="tree-view"`
+- `data-node-count`
+
+Each row (`role="treeitem"`,
+`aria-level`, `aria-expanded` (omitted
+on leaves), `aria-selected`,
+`aria-disabled`):
+
+- `data-section="tree-view-item"`
+- `data-tree-id`
+- `data-tree-depth`
+- `data-tree-expanded`
+  (`true` / `false` / `leaf`)
+- `data-tree-selected`
+  (`true` / `false`)
+- `data-tree-focused`
+- `data-tree-loading`
+- `data-drop-position`
+  (`before` / `inside` / `after` while
+  dragging)
+
+Sub-nodes:
+
+- `data-section="tree-view-toggle"`
+  expand button (with `aria-label`
+  "Expand" / "Collapse")
+- `data-section="tree-view-spacer"`
+  layout placeholder for leaves
+- `data-section="tree-view-icon"`
+- `data-section="tree-view-label"`
+- `data-section="tree-view-loading"`
+  while a row is mid-load
+- `data-section="tree-view-empty"`
+  when `nodes.length === 0`
+
+### Tests
+
+55 cases in `tree-view.test.tsx`:
+
+- `flattenTree` (7): empty, roots
+  only, root expanded shows children,
+  nested expansion order, depth per
+  row, parentId per row, hasChildren
+  flag.
+- `findNodePath` (3): root, deeply
+  nested, unknown id.
+- `updateNodeChildren` (2):
+  immutable deep replace, no-op on
+  missing id.
+- `computeDropPosition` (6): top
+  before / middle inside / bottom
+  after on can-have-children; leaf
+  before/after; zero height; clamp
+  out-of-range y.
+- Component (37): role=tree + default
+  aria-label, ariaLabel custom, one
+  treeitem per visible row,
+  aria-expanded on expandable, no
+  aria-expanded on leaf, aria-selected,
+  aria-level=depth+1, click selects +
+  focuses, toggle click expands
+  without selecting, ArrowDown next,
+  ArrowUp prev, ArrowRight expands
+  collapsed, ArrowRight on expanded
+  to first child, ArrowLeft collapses
+  expanded, ArrowLeft on leaf to
+  parent, Home -> first, End -> last,
+  Enter toggles + selects, Space same,
+  expanding childless non-leaf fires
+  onLoadChildren, loading label
+  shown during async, draggable=true
+  when enableDrag, disabled not
+  draggable, click on disabled no-op,
+  indent paddingLeft applied, icon
+  rendered, renderNode override,
+  data-section + data-tree-id +
+  data-tree-depth, data-tree-expanded
+  leaf marker, "(empty)" when no
+  nodes, displayName, ref forwarding,
+  controlled expandedIds, controlled
+  selectedId, drop fires onReorder
+  with computed position, self-drop
+  ignored, descendant-drop ignored.
+
+55/55 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<HierarchyTree>` -- domain-
+  specific tree hardcoded to feature
+  modules. TreeView is the generic
+  primitive.
+- `<VirtualTable>` (11.375) -- flat
+  data surface; TreeView is the
+  nested variant.
+- `<CommandBar>` (11.395) -- often
+  paired with a multi-selection
+  TreeView host (multi-select is
+  documented as out of scope for v1
+  here).
+
+### Out of scope (deferred)
+
+- Multi-selection. Single-id model
+  for v1; a follow-on can add
+  `selectedIds: Set<string>`.
+- Virtualized rendering for huge
+  trees. Pair with the existing
+  virtualization primitives in a
+  follow-on.
+- Smart drag preview / ghost
+  element customization. Native
+  drag image is fine for v1.
+- Touch-gesture drag. HTML5 drag
+  events do not fire from touch
+  without polyfills.
+- Inline rename / cut / paste
+  affordances. Belong in the host.
+- Cross-tab DnD between two
+  TreeView instances. The drop
+  target must be in the same
+  TreeView for v1.
+
 ## [1.11.414] - 2026-05-18 -- UI: snapshot diff viewer (TODO 11.396)
 
 New `web/src/components/ui/snapshot-diff.tsx`
