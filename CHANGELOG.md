@@ -4,6 +4,89 @@
 
 (no entries -- next release window)
 
+## [1.11.329] - 2026-05-18 -- UI: IconButton primitive enhancements (TODO 11.311)
+
+Enhances `web/src/components/ui/icon-button.tsx` with tone
+and size presets plus a loading state mirroring the Button
+primitive's contract. Component-scope only, no daemon or
+CLI surface change.
+
+### Added
+
+- `tone?: IconButtonTone` prop ('neutral' | 'danger' |
+  'accent'). Default `'neutral'`.
+  - `neutral` -- muted-foreground icon that flips to
+    accent-foreground on hover. Pre-existing baseline,
+    now explicit.
+  - `danger` -- destructive palette for delete-style
+    affordances. Red text + red focus ring + tinted
+    hover.
+  - `accent` -- primary-tinted palette for highlighted
+    actions. Primary text + primary tinted hover.
+- `size?: IconButtonSize` prop ('sm' | 'md' | 'lg').
+  Default `'md'`. Square footprints of 32px / 36px /
+  40px. The 44x44 minimum mobile touch target is
+  preserved on every size via
+  `min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0`.
+- `loading?: boolean` + `loadingLabel?: string` (default
+  `'Loading'`) -- mirror the Button primitive's loading
+  contract (v1.11.326):
+  - Inline `<Spinner>` replaces the icon slot
+    (spinner size adapted to the IconButton size:
+    xs for sm, sm for md/lg).
+  - Auto-disables the click target.
+  - `aria-busy="true"` on the `<button>`.
+  - `<VisuallyHidden>{loadingLabel}</VisuallyHidden>`
+    so screen readers narrate the pending state.
+- Data-attribute selectors for e2e + theming:
+  `data-section="icon-button"`,
+  `data-section="icon-button-icon"`,
+  `data-section="icon-button-spinner"`,
+  `data-tone`, `data-size`,
+  `data-loading="true|false"`.
+
+### Changed
+
+- `aria-label` remains mandatory at the TS interface
+  level so an icon-only button cannot ship with a
+  blank accessible name. The pre-existing requirement
+  is now documented inline in the file header.
+- Class names refactored from the single inline blob
+  into per-prop `TONE_CLASSES` and `SIZE_CLASSES`
+  records so adopters can read the intent at the call
+  site.
+
+### Tests
+
+- `web/src/components/ui/icon-button.test.tsx` -- 20
+  new vitest cases on top of the existing 9 (29
+  total).
+  - tone (4): neutral / danger / accent classes
+    applied, `data-tone` selector present.
+  - size (5): default md, sm/md/lg classes,
+    44x44 touch target preserved on every size,
+    `data-size` selector present.
+  - loading (9): spinner rendered, icon slot
+    replaced, `aria-busy="true"`, auto-disable,
+    default 'Loading' SR text, custom `loadingLabel`,
+    `onClick` blocked, no spinner / aria-busy when
+    `loading=false`, `data-loading` selector
+    present.
+  - Data attribute baseline (2): icon slot carries
+    `data-section="icon-button-icon"` + aria-hidden,
+    button carries `data-section="icon-button"`.
+  All 29 green. Downstream consumer sanity check:
+  62 cases across `ThemeToggle.test.tsx` +
+  `ConfirmDialog.test.tsx` +
+  `DensityToggle.test.tsx` also pass against the
+  enhanced IconButton.
+
+### Versions
+
+- 1.11.328 -> 1.11.329 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.329]`.
+
 ## [1.11.328] - 2026-05-18 -- UI: Link primitive (TODO 11.310)
 
 New `Link` primitive at `web/src/components/ui/link.tsx`.
