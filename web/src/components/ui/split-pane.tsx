@@ -68,6 +68,24 @@ export interface SplitPaneProps {
   // (debouncing is the caller's responsibility).
   onRatioChange?: (ratio: number) => void;
   className?: string;
+  // (v1.11.409, TODO 11.391) Collapse the start pane on
+  // divider double-click. When the start pane is already
+  // collapsed (ratio=0), the next dblclick restores the
+  // previous ratio (or `defaultRatio` if no prior position).
+  // Default false keeps legacy byte-identical behaviour.
+  collapseOnDoubleClick?: boolean;
+  // (v1.11.409, TODO 11.391) Pixel-based initial size.
+  // When set, replaces `defaultRatio` -- the component
+  // measures the container on mount and converts the pixel
+  // value into the equivalent ratio. Reads back from
+  // localStorage are still ratio-encoded so cross-mode
+  // adopters stay compatible.
+  defaultSizePx?: number;
+  // (v1.11.409, TODO 11.391) Optional callback fired with
+  // the current size in pixels alongside `onRatioChange`.
+  // Useful when the caller stores a pixel value rather
+  // than a ratio.
+  onSizeChange?: (pixels: number) => void;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -112,6 +130,9 @@ export const SplitPane = forwardRef<HTMLDivElement, SplitPaneProps>(
       dividerAriaLabel,
       onRatioChange,
       className,
+      collapseOnDoubleClick = false,
+      defaultSizePx,
+      onSizeChange,
     },
     ref,
   ) => {
@@ -120,6 +141,38 @@ export const SplitPane = forwardRef<HTMLDivElement, SplitPaneProps>(
       clamp(readStored(storageKey, defaultRatio), 0, 1),
     );
     const [dragging, setDragging] = useState<boolean>(false);
+    // (v1.11.409, TODO 11.391) Remember the last non-zero
+    // ratio so collapse-on-double-click can restore the
+    // operator's preferred size when toggled back open.
+    const lastOpenRatioRef = useRef<number>(
+      ratio > 0 ? ratio : defaultRatio,
+    );
+    useEffect(() => {
+      if (ratio > 0) lastOpenRatioRef.current = ratio;
+    }, [ratio]);
+
+    // (v1.11.409, TODO 11.391) On mount, when `defaultSizePx`
+    // is provided AND the stored ratio is unavailable, convert
+    // the pixel value to a ratio using the measured container
+    // size. Runs once -- once the operator drags or keyboard-
+    // adjusts, the ratio is the source of truth.
+    useEffect(() => {
+      if (defaultSizePx === undefined) return;
+      // Skip when a stored ratio is already in effect (the
+      // useState initializer above picks it up).
+      if (storageKey) {
+        const stored = readStored(storageKey, NaN);
+        if (Number.isFinite(stored)) return;
+      }
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const size = orientation === 'horizontal' ? rect.width : rect.height;
+      if (size <= 0) return;
+      const r = clamp(defaultSizePx / size, 0, 1);
+      setRatio(r);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Cross-tab sync via the storage event. Same-tab updates
     // do not fire the storage event so siblings in this tab
@@ -160,6 +213,17 @@ export const SplitPane = forwardRef<HTMLDivElement, SplitPaneProps>(
         setRatio(clamped);
         writeStored(storageKey, clamped);
         onRatioChange?.(clamped);
+        // (v1.11.409, TODO 11.391) Pixel-aware callback fires
+        // alongside ratio. Skipped when the container has not
+        // measured yet (initial mount race).
+        if (onSizeChange) {
+          const container = containerRef.current;
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            const size = orientation === 'horizontal' ? rect.width : rect.height;
+            if (size > 0) onSizeChange(Math.round(clamped * size));
+          }
+        }
       },
       [
         collapseThreshold,
@@ -168,8 +232,24 @@ export const SplitPane = forwardRef<HTMLDivElement, SplitPaneProps>(
         minRatio,
         onRatioChange,
         storageKey,
+        onSizeChange,
+        orientation,
       ],
     );
+
+    // (v1.11.409, TODO 11.391) Toggle collapse on double-click
+    // of the divider. When already collapsed (ratio=0), restore
+    // the last open ratio (or defaultRatio as the fallback).
+    const onDoubleClick = useCallback(() => {
+      if (!collapseOnDoubleClick) return;
+      if (ratio === 0) {
+        applyRatio(lastOpenRatioRef.current || defaultRatio, {
+          skipSnap: true,
+        });
+      } else {
+        applyRatio(0, { skipSnap: true });
+      }
+    }, [applyRatio, collapseOnDoubleClick, defaultRatio, ratio]);
 
     const onPointerDown = useCallback(
       (e: PointerEvent<HTMLDivElement>) => {
@@ -319,10 +399,14 @@ export const SplitPane = forwardRef<HTMLDivElement, SplitPaneProps>(
           }
           data-section="split-pane-divider"
           data-dragging={dragging ? 'true' : 'false'}
+          data-collapse-on-double-click={
+            collapseOnDoubleClick ? 'true' : 'false'
+          }
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onKeyDown={onKeyDown}
+          onDoubleClick={onDoubleClick}
           className={cn(
             'shrink-0 select-none bg-border transition-colors hover:bg-primary/40 focus-visible:bg-primary/60 focus-visible:outline-none',
             isHoriz
