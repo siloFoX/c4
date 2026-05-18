@@ -35,7 +35,8 @@ import Sidebar from './components/layout/Sidebar';
 import DetailTabs from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
 import FeatureView from './components/layout/FeatureView';
-import HelpUIRoot from './components/HelpUIRoot';
+import HelpUIRoot, { openShortcutsModal } from './components/HelpUIRoot';
+import { buildShortcutCommands, mergePaletteCommands } from './lib/palette-commands';
 import AnnounceRegion from './components/AnnounceRegion';
 import MetricsBar from './components/MetricsBar';
 import AutonomousStatusBanner from './components/AutonomousStatusBanner';
@@ -249,6 +250,29 @@ export default function App() {
     [setTopView, setSelectedWorker, toggleSidebarCollapsed, setAnon],
   );
 
+  // (v1.11.369, TODO 11.351) Shortcut registry
+  // integration. SHORTCUT_ROWS in
+  // KeyboardShortcutsModal is the canonical
+  // documented-shortcuts list; surfacing it
+  // through the palette lets an operator
+  // fuzzy-search 'Ctrl+F' or 'sidebar' and land
+  // on the matching binding. Selecting a row
+  // opens the help modal so the binding sits in
+  // context (related shortcuts visible, no
+  // surprise side-effect from firing the chord
+  // programmatically).
+  const shortcutCommands = useMemo<Command[]>(
+    () =>
+      buildShortcutCommands({
+        onSelect: () => openShortcutsModal(),
+      }),
+    [],
+  );
+  const mergedCommands = useMemo<Command[]>(
+    () => mergePaletteCommands(paletteCommands, shortcutCommands),
+    [paletteCommands, shortcutCommands],
+  );
+
   // (v1.11.250, TODO 11.232) Multi-key chord shortcuts.
   //   gg  -> scroll the current view to the top
   //   gh  -> "home" = workers tab + clear the selected worker
@@ -312,7 +336,7 @@ export default function App() {
     <CommandPalette
       open={paletteOpen}
       onOpenChange={setPaletteOpen}
-      commands={paletteCommands}
+      commands={mergedCommands}
     />
     {/* (v1.11.350, TODO 11.332) AppShell adoption. The outer
         flex column + h-screen + bg-background rhythm now flows

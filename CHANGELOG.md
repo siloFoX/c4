@@ -4,6 +4,123 @@
 
 (no entries -- next release window)
 
+## [1.11.369] - 2026-05-18 -- UI: command palette quick search (TODO 11.351)
+
+The `CommandPalette` primitive itself shipped in
+11.277 (v1.11.295) with Cmd+K / Ctrl+K, fuzzy
+search, recents, and arrow-key navigation. This
+patch integrates the existing keyboard-shortcut
+registry (`SHORTCUT_ROWS` from
+`KeyboardShortcutsModal`) so an operator can
+fuzzy-search for "Ctrl+F" / "sidebar" / "search"
+inside the palette and land on the matching
+binding. Settings + recent actions already flow
+through the existing `paletteCommands` array in
+App.tsx; this patch adds the shortcuts dimension.
+
+### `lib/palette-commands.ts` (new)
+
+Pure aggregator helpers, no React, no global
+state -- hosts compose them inside their own
+`useMemo` blocks.
+
+- `buildRouteCommands(routes, group?)` -- maps a
+  thin `RouteCommandSpec[]` (`id`, `label`,
+  optional `shortcut`, `keywords`) into
+  `Command[]` with the default group
+  `"Navigate"`. Used by the existing
+  navigation surface in App.tsx; exposed as a
+  helper for future scoped palettes.
+- `buildShortcutCommands({ onSelect, category?,
+  group?, rows? })` -- consumes the
+  `SHORTCUT_ROWS` registry from
+  `KeyboardShortcutsModal` (or a custom rows
+  override) and emits one `Command` per row.
+  Each command carries the platform-formatted
+  `shortcut` chip (Cmd vs Ctrl via
+  `formatKeymapForCurrentPlatform`) and a
+  keywords list that includes the raw binding,
+  the category, the translated description, and
+  the platform-formatted display so fuzzy
+  search hits every angle. The default action
+  invokes the caller's `onSelect` with the row;
+  hosts wire `openShortcutsModal` so the
+  binding lands in context rather than firing
+  programmatically (Cmd+F as a synthetic event
+  is not safe to dispatch).
+- `buildSettingsCommands(entries, group?)` --
+  parallel helper for settings sub-routes;
+  default group `"Settings"`.
+- `mergePaletteCommands(...lists)` -- concat +
+  dedup by `id` (first occurrence wins).
+
+### Adoption: `App.tsx`
+
+```tsx
+const shortcutCommands = useMemo<Command[]>(
+  () => buildShortcutCommands({
+    onSelect: () => openShortcutsModal(),
+  }),
+  [],
+);
+const mergedCommands = useMemo<Command[]>(
+  () => mergePaletteCommands(paletteCommands, shortcutCommands),
+  [paletteCommands, shortcutCommands],
+);
+
+<CommandPalette ... commands={mergedCommands} />
+```
+
+The existing navigation + app + settings commands
+keep their group order; the shortcut rows render
+under a "Shortcuts" group below them. Selecting
+any shortcut closes the palette and opens the
+keyboard shortcuts modal via the
+`openShortcutsModal` global from `HelpUIRoot`.
+
+### Tests
+
+`web/src/lib/palette-commands.test.ts` -- 15
+cases:
+
+- `buildRouteCommands`: default + custom group,
+  shortcut + keywords forwarding, omits absent
+  props, action identity preserved.
+- `buildShortcutCommands`: emits one per
+  `SHORTCUT_ROWS` row by default, every command
+  carries shortcut + non-empty keywords;
+  category filter; rows override; `onSelect`
+  receives the row; custom group.
+- `buildSettingsCommands`: default group;
+  keywords forwarding.
+- `mergePaletteCommands`: concat + dedup
+  (first wins); empty arg returns `[]`;
+  ordering preserved across lists.
+
+15/15 pass under vitest 4.1.5. TypeScript clean
+for `palette-commands.ts` and `App.tsx`.
+
+### Out of scope
+
+- Direct keystroke dispatch from the palette
+  (e.g. fire `Cmd+F` programmatically when
+  selecting that command). Treats the
+  shortcuts dimension as a learn / lookup
+  surface; firing the chord would require a
+  per-shortcut action map that re-traverses
+  the existing keyboard handlers.
+- Per-page scoped palettes. The helpers
+  support arbitrary `Command[]` composition;
+  a future patch can wire palettes inside
+  Settings / WorkflowEditor / SpecialistsView
+  surfaces.
+- Localisation of the synthesised shortcut
+  labels. The shortcut translations already
+  flow through the i18n keys
+  (`shortcuts.toggleSidebar` etc); the helper
+  emits whatever `t(descriptionKey)`
+  resolves to under the current locale.
+
 ## [1.11.368] - 2026-05-18 -- UI: image lazy load helper (TODO 11.350)
 
 Builds `web/src/lib/lazy-image.tsx` -- an
