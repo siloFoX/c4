@@ -4,6 +4,149 @@
 
 (no entries -- next release window)
 
+## [1.11.373] - 2026-05-18 -- UI: data table sort/filter primitives (TODO 11.355)
+
+Builds the data-table state helpers + the
+`<DataTable>` composite primitive that composes
+them. The existing `<Table>` primitive in
+`components/ui/table.tsx` covers the single-column
+sort surface; this patch adds multi-column sort
+(shift-click append + priority badges), type-aware
+filters (text / select / range / date), URL
+state sync, and per-column accessors.
+
+### `lib/data-table-state.ts` (new)
+
+Pure functions, no React, no DOM:
+
+- `applyMultiSort(rows, sortBy, accessor?)` --
+  decorate-sort-undecorate to keep the sort
+  stable. Nulls sort last regardless of
+  direction.
+- `toggleSort(current, columnKey, { shiftKey? })`
+  -- returns the next sort list following the
+  asc -> desc -> clear cycle. Shift-click
+  appends or flips in place without losing the
+  others.
+- `applyFilters(rows, filters, accessor?)` --
+  AND-combines per-column filters. Supports
+  text (case-insensitive substring), select
+  (one-of), range (inclusive min/max), date
+  (inclusive ISO range; the `to` bound is
+  bumped to end-of-day so 2026-05-18 covers
+  events at 23:59).
+- `serializeTableState({ sortBy, filters,
+  paramPrefix? })` -- builds the URL query
+  parameter map. Format:
+  `sort=col1:asc,col2:desc` +
+  `f.<col>=text:foo` / `f.<col>=select:open|done`
+  / `f.<col>=range:1..100` /
+  `f.<col>=date:2026-05-01..2026-05-18`.
+- `parseTableState(params, paramPrefix?)` --
+  accepts `URLSearchParams` or a plain map.
+  Ignores malformed segments. Drops unknown
+  filter types.
+- React hook `useUrlTableState({ paramPrefix?,
+  defaultSort?, defaultFilters?, read?,
+  onWrite? })` -- reads the URL on mount,
+  writes back on every state change via
+  `window.history.replaceState` (custom
+  read/write let tests drive the hook without a
+  browser). Preserves unrelated URL params so a
+  table state update does not nuke auth /
+  page-id query state.
+
+### `components/ui/data-table.tsx` (new)
+
+```tsx
+<DataTable
+  columns={[
+    { key: 'name', label: 'Name', sortable: true, filter: { type: 'text' } },
+    { key: 'age', label: 'Age', sortable: true, filter: { type: 'range' } },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      filter: { type: 'select', options: [{ value: 'open' }, { value: 'closed' }] },
+    },
+  ]}
+  rows={rows}
+  sortBy={sortBy}
+  onSortByChange={setSortBy}
+  filters={filters}
+  onFilterChange={(col, filter) => /* setFilters */}
+/>
+```
+
+- Renders sortable column headers as buttons
+  that cycle asc -> desc -> clear. Shift+click
+  appends to the sort list, enabling multi-
+  column sort. Active sort columns show a
+  priority badge (1, 2, 3) when more than one
+  column is active.
+- Renders an optional filter row beneath the
+  header. Each column's `filter.type` picks
+  the right input shape (text input,
+  single/multi `<select>`, dual-number range,
+  date range).
+- Per-column `accessor` lets a row store derived
+  data somewhere other than `row[key]` (the
+  same accessor wires sort + filter so the two
+  always agree).
+- Per-column `render` for custom cells; defaults
+  to the row's keyed value (string-coerced).
+- Owns no state -- caller wires `sortBy` +
+  `filters` + setters (typically via
+  `useUrlTableState`).
+- Renders `aria-sort` on the active header.
+- Renders the empty-state message when no rows
+  pass the filter.
+- Exported from `components/ui/index.ts`.
+
+### Tests
+
+`web/src/lib/data-table-state.test.ts` -- 31
+cases covering applyMultiSort
+(single+secondary+nulls-last+stable),
+toggleSort (asc/desc/clear/replace/append/
+shift-flip/shift-remove), applyFilters
+(text/select/range/date + AND), serialize +
+parse round-trips for sort + every filter type,
+empty filter omission, paramPrefix, malformed
+sort segments, and the `useUrlTableState` hook
+(URL parse, write-back, setFilter clear,
+reset, unrelated-param preservation).
+
+`web/src/components/ui/data-table.test.tsx` --
+21 cases covering rendering (header + filter
+row + empty), aria-sort flags, single + multi-
+column sort with priority badges, all four
+filter types, accessor + render overrides,
+filter-row omission when no column declares
+one, and callback emission.
+
+52/52 pass under vitest 4.1.5. TypeScript clean
+for the new source files. The pre-existing
+`skeleton.tsx` strict-tuple warning is
+unchanged and out of scope.
+
+### Out of scope
+
+- Pagination / virtualisation. Adopters wrap
+  with the existing `Pagination` primitive +
+  `VirtualizedList` if needed.
+- Server-side sort / filter. The helpers run
+  client-side; a future adapter can swap
+  applyMultiSort / applyFilters for a remote
+  query.
+- Editable cells.
+- Column reorder / hide. The existing
+  ColumnPicker primitive covers hide.
+- React Router integration for the URL state
+  hook. The custom read/write knobs let a
+  future adoption pass `useSearchParams()`
+  from react-router-dom directly.
+
 ## [1.11.372] - 2026-05-18 -- UI: form validation framework (TODO 11.354)
 
 Extends the existing `lib/form-validation.ts`
