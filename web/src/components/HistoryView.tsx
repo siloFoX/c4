@@ -35,6 +35,9 @@ import {
 } from './ui';
 import { parseISODate, toISODate } from '../lib/date-format';
 import { useLocalizedFormatters } from '../lib/format-locale';
+import { useCopyShortcut } from '../lib/clipboard';
+import { useToast } from '../lib/use-toast';
+import Toast from './Toast';
 import { cn } from '../lib/cn';
 import HistoryDetailPane from './HistoryDetailPane';
 import { useScribeContext } from '../lib/use-scribe-context';
@@ -169,6 +172,22 @@ export default function HistoryView() {
   // (v1.10.651) Per-worker detail fetch moved to hook.
   const detail = useHistoryWorkerDetail({ selected, setError });
 
+  // (v1.11.365, TODO 11.347) Cmd+C / Ctrl+C on the
+  // selected row copies the worker name. The toast
+  // pipeline is local to HistoryView so the success
+  // / failure signal lands here rather than at the
+  // page chrome. The hook no-ops when no row is
+  // selected, when the focus is inside an input /
+  // textarea / contenteditable, or when the
+  // operator currently has a text selection.
+  const { toast, showToast, dismissToast } = useToast();
+  useCopyShortcut({
+    value: selected ?? '',
+    enabled: !!selected,
+    label: 'worker name',
+    showToast,
+  });
+
   const selectWorker = useCallback((name: string) => {
     closeScribe();
     setSelected(name);
@@ -266,6 +285,18 @@ export default function HistoryView() {
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col md:flex-row">
+      {/* (v1.11.365, TODO 11.347) Toast portal for the
+          Cmd+C row-copy shortcut. Mounted at the page
+          root so the toast lands above both the
+          sidebar and the detail pane regardless of
+          which one currently has focus. */}
+      {toast ? (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => dismissToast()}
+        />
+      ) : null}
       <aside className="w-full shrink-0 overflow-y-auto border-b border-border bg-card p-4 md:w-80 md:border-b-0 md:border-r">
         <Card className="border-none bg-transparent shadow-none">
           <CardHeader className="flex-row items-center justify-between gap-2 p-0">
