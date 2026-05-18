@@ -34,11 +34,50 @@ import { cn } from '../../lib/cn';
 
 export type ScrollAxis = 'y' | 'x' | 'both';
 export type ScrollAreaSize = 'auto' | 'thin' | 'default' | 'wide';
+// (v1.11.400, TODO 11.382) Named max-height presets. The
+// freeform `maxHeight` (number | string) prop keeps working;
+// callers that want a consistent rhythm across surfaces can
+// reach for the preset instead.
+//   - sm:   16rem (256px)  -- dropdown / popover body
+//   - md:   24rem (384px)  -- sidebar panel
+//   - lg:   32rem (512px)  -- mid-page block
+//   - xl:   48rem (768px)  -- modal body
+//   - screen: 100vh        -- full-viewport scroller
+export type ScrollAreaMaxHeightPreset =
+  | 'sm'
+  | 'md'
+  | 'lg'
+  | 'xl'
+  | 'screen';
+
+// (v1.11.400, TODO 11.382) Scroll position snapshot. Each
+// numeric field mirrors the underlying scroll element; the
+// `atTop` / `atBottom` / `atLeft` / `atRight` booleans are
+// pre-computed so callers do not have to redo the math.
+export interface ScrollAreaPosition {
+  scrollTop: number;
+  scrollLeft: number;
+  scrollHeight: number;
+  scrollWidth: number;
+  clientHeight: number;
+  clientWidth: number;
+  atTop: boolean;
+  atBottom: boolean;
+  atLeft: boolean;
+  atRight: boolean;
+}
 
 export interface ScrollAreaProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   children?: ReactNode;
   className?: string;
   maxHeight?: number | string;
+  /**
+   * (v1.11.400, TODO 11.382) Named max-height preset. When
+   * set, `style.maxHeight` resolves to the matching rem /
+   * vh value. Ignored when `maxHeight` is explicitly
+   * supplied (the freeform value wins).
+   */
+  maxHeightPreset?: ScrollAreaMaxHeightPreset;
   height?: number | string;
   axis?: ScrollAxis;
   /** Override the responsive scrollbar size. Default `'auto'`. */
@@ -56,6 +95,15 @@ export interface ScrollAreaProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
    * so the shadows can be styled / asserted from CSS.
    */
   shadows?: boolean;
+  /**
+   * (v1.11.400, TODO 11.382) Scroll-position tracking
+   * callback. Fires on mount + every scroll event + when
+   * the surface or its content resizes. Receives the full
+   * `ScrollAreaPosition` snapshot so callers can pull
+   * exact scrollTop / scrollLeft + the pre-computed edge
+   * flags. Default `undefined` = no listener installed.
+   */
+  onScrollPositionChange?: (position: ScrollAreaPosition) => void;
 }
 
 const AXIS_CLASSES: Record<ScrollAxis, string> = {
@@ -70,9 +118,50 @@ const SIZE_CLASSES: Record<Exclude<ScrollAreaSize, 'auto'>, string> = {
   wide: 'c4-scroll-wide',
 };
 
+// (v1.11.400, TODO 11.382) Per-preset max-height values.
+// Exported for tests + adopters that need to match the
+// rhythm in a non-ScrollArea surface.
+export const SCROLL_AREA_MAX_HEIGHT_PRESET: Record<
+  ScrollAreaMaxHeightPreset,
+  string
+> = {
+  sm: '16rem',
+  md: '24rem',
+  lg: '32rem',
+  xl: '48rem',
+  screen: '100vh',
+};
+
 function sizeToCss(v: number | string | undefined): string | undefined {
   if (v === undefined) return undefined;
   return typeof v === 'number' ? `${v}px` : v;
+}
+
+// (v1.11.400, TODO 11.382) Pure helper exported for tests +
+// custom callers. Snapshots the current scroll state of an
+// HTMLElement; safe for non-overflowing surfaces (atTop +
+// atBottom + atLeft + atRight all read `true`).
+export function snapshotScrollPosition(el: HTMLElement): ScrollAreaPosition {
+  const scrollTop = el.scrollTop;
+  const scrollLeft = el.scrollLeft;
+  const scrollHeight = el.scrollHeight;
+  const scrollWidth = el.scrollWidth;
+  const clientHeight = el.clientHeight;
+  const clientWidth = el.clientWidth;
+  const overflowsY = scrollHeight > clientHeight + 1;
+  const overflowsX = scrollWidth > clientWidth + 1;
+  return {
+    scrollTop,
+    scrollLeft,
+    scrollHeight,
+    scrollWidth,
+    clientHeight,
+    clientWidth,
+    atTop: !overflowsY || scrollTop <= 0,
+    atBottom: !overflowsY || scrollTop + clientHeight >= scrollHeight - 1,
+    atLeft: !overflowsX || scrollLeft <= 0,
+    atRight: !overflowsX || scrollLeft + clientWidth >= scrollWidth - 1,
+  };
 }
 
 export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
@@ -80,11 +169,13 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
     children,
     className,
     maxHeight,
+    maxHeightPreset,
     height,
     axis = 'y',
     size = 'auto',
     safeArea = false,
     shadows = false,
+    onScrollPositionChange,
     style,
     ...rest
   },
@@ -136,7 +227,41 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
     };
   }, [shadows, recompute]);
 
-  const mh = sizeToCss(maxHeight);
+  // (v1.11.400, TODO 11.382) Scroll-position tracking effect.
+  // Fires the callback on mount + every scroll + every
+  // ResizeObserver tick + window resize. Independent of
+  // `shadows` so callers can subscribe without enabling the
+  // visual shadow indicators.
+  useEffect(() => {
+    if (!onScrollPositionChange) return;
+    const el = innerRef.current;
+    if (!el) return;
+    const fire = () => {
+      onScrollPositionChange(snapshotScrollPosition(el));
+    };
+    fire();
+    el.addEventListener('scroll', fire, { passive: true });
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(fire);
+      ro.observe(el);
+    }
+    window.addEventListener('resize', fire);
+    return () => {
+      el.removeEventListener('scroll', fire);
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', fire);
+    };
+  }, [onScrollPositionChange]);
+
+  // (v1.11.400, TODO 11.382) Resolve max-height. Freeform
+  // `maxHeight` wins; otherwise the named preset (if any)
+  // maps to its rem / vh value.
+  const presetMh =
+    maxHeightPreset !== undefined
+      ? SCROLL_AREA_MAX_HEIGHT_PRESET[maxHeightPreset]
+      : undefined;
+  const mh = sizeToCss(maxHeight) ?? presetMh;
   const h = sizeToCss(height);
   const mergedStyle: CSSProperties = {
     ...(mh !== undefined ? { maxHeight: mh } : {}),
@@ -155,6 +280,8 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
       data-scrollarea-size={size}
       data-scrollarea-safe-area={safeArea ? '' : undefined}
       data-section="scroll-area"
+      data-axis={axis}
+      data-max-height-preset={maxHeightPreset ?? undefined}
       data-shadows={shadows ? 'true' : 'false'}
       data-at-top={shadows ? (atTop ? 'true' : 'false') : undefined}
       data-at-bottom={shadows ? (atBottom ? 'true' : 'false') : undefined}

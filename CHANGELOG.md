@@ -4,6 +4,124 @@
 
 (no entries -- next release window)
 
+## [1.11.400] - 2026-05-18 -- UI: scroll-area primitive (TODO 11.382)
+
+`<ScrollArea>` (11.164 + 11.227 + 11.297)
+already shipped custom-styled scrollbars
+(`.c4-scroll` CSS hooks), native scroll
+behavior, axis variants (y / x / both),
+responsive scrollbar size, safe-area
+padding, fade-shadow indicators on
+overflow edges. This patch closes the
+remaining dispatched bullets:
+
+- **Max-height variants** -- new
+  `maxHeightPreset` prop with named
+  presets (`sm`=16rem / `md`=24rem /
+  `lg`=32rem / `xl`=48rem /
+  `screen`=100vh). The freeform
+  `maxHeight` (number | string) prop
+  keeps working and wins when both are
+  passed.
+- **Scroll-position tracking via
+  callback** -- new
+  `onScrollPositionChange` prop fires
+  with a full `ScrollAreaPosition`
+  snapshot on mount + every scroll +
+  every ResizeObserver tick + window
+  resize. Snapshot carries the
+  pre-computed `atTop` / `atBottom` /
+  `atLeft` / `atRight` flags so callers
+  do not redo the math.
+
+### API additions
+
+```ts
+interface ScrollAreaProps {
+  // ... existing
+  maxHeightPreset?: 'sm' | 'md' | 'lg' | 'xl' | 'screen';
+  onScrollPositionChange?: (pos: ScrollAreaPosition) => void;
+}
+
+interface ScrollAreaPosition {
+  scrollTop: number;
+  scrollLeft: number;
+  scrollHeight: number;
+  scrollWidth: number;
+  clientHeight: number;
+  clientWidth: number;
+  atTop: boolean;
+  atBottom: boolean;
+  atLeft: boolean;
+  atRight: boolean;
+}
+```
+
+### Pure helper
+
+`snapshotScrollPosition(el: HTMLElement):
+ScrollAreaPosition` is exported alongside
+the component for tests + alternate hosts
+that want to render their own
+position-aware chrome.
+
+`SCROLL_AREA_MAX_HEIGHT_PRESET` map is
+exported so adopters can pull the
+matching CSS value without depending on
+the component.
+
+### Data attributes
+
+- `data-section="scroll-area"` (legacy)
+- `data-axis` (new) mirrors axis prop.
+- `data-max-height-preset` (new) mirrors
+  the named preset; omitted when no
+  preset is supplied.
+- `data-shadows` + `data-at-top` +
+  `data-at-bottom` retained from 11.297.
+
+### Tests + types
+
+- `scroll-area.test.tsx`: +13 new cases
+  (41 total). Covers
+  `snapshotScrollPosition()` (3),
+  `maxHeightPreset` (5),
+  `onScrollPositionChange` (4),
+  `data-axis` attr (1).
+- 28 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files.
+
+### Pairs with existing primitives
+
+- `<VirtualizedList>` (11.333) /
+  `<VirtualTable>` (11.375) -- own their
+  scroll machinery; do NOT wrap with
+  ScrollArea.
+- `<Drawer>` / `<Sheet>` -- internal
+  body scroll handled separately; can
+  host a `<ScrollArea>` inside their
+  body slot.
+
+### Out of scope
+
+- Per-page adoption (`maxHeightPreset`
+  rollout). All five preset values are
+  additive; every existing call site
+  stays byte-identical at the legacy
+  freeform `maxHeight`.
+- Throttling / debouncing the
+  `onScrollPositionChange` callback.
+  The host owns rate-limiting.
+- Imperative `scrollTo(top, left)`
+  method. Adopters already have the
+  forwarded `ref` to the underlying
+  scroll element and can call native
+  `scrollTo` directly.
+- Horizontal-only shadow indicators. The
+  fade-shadow contract is vertical-axis
+  only by design.
+
 ## [1.11.399] - 2026-05-18 -- UI: separator primitive (TODO 11.381)
 
 `<Separator>` (11.165) already shipped

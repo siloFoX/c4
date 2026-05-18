@@ -1,7 +1,7 @@
 import { createRef } from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import { ScrollArea } from './scroll-area';
+import { ScrollArea, type ScrollAreaPosition } from './scroll-area';
 
 describe('<ScrollArea>', () => {
   it('renders children', () => {
@@ -252,6 +252,179 @@ describe('<ScrollArea>', () => {
       expect(
         container.querySelector('[data-section="scroll-area"]'),
       ).not.toBeNull();
+    });
+  });
+
+  // -- v1.11.400 max-height presets + position tracking (TODO 11.382) --
+
+  describe('snapshotScrollPosition()', () => {
+    it('returns full snapshot for non-overflowing element (all "at" flags true)', async () => {
+      const mod = await import('./scroll-area');
+      const el = document.createElement('div');
+      Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 100 });
+      Object.defineProperty(el, 'clientHeight', { configurable: true, value: 100 });
+      Object.defineProperty(el, 'scrollWidth', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'clientWidth', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'scrollTop', { configurable: true, value: 0 });
+      Object.defineProperty(el, 'scrollLeft', { configurable: true, value: 0 });
+      const pos = mod.snapshotScrollPosition(el);
+      expect(pos.atTop).toBe(true);
+      expect(pos.atBottom).toBe(true);
+      expect(pos.atLeft).toBe(true);
+      expect(pos.atRight).toBe(true);
+      expect(pos.scrollTop).toBe(0);
+    });
+
+    it('flips atTop / atBottom when scrolled mid-content', async () => {
+      const mod = await import('./scroll-area');
+      const el = document.createElement('div');
+      Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 1000 });
+      Object.defineProperty(el, 'clientHeight', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'scrollWidth', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'clientWidth', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'scrollTop', { configurable: true, value: 50 });
+      Object.defineProperty(el, 'scrollLeft', { configurable: true, value: 0 });
+      const pos = mod.snapshotScrollPosition(el);
+      expect(pos.atTop).toBe(false);
+      expect(pos.atBottom).toBe(false);
+      expect(pos.scrollTop).toBe(50);
+    });
+
+    it('flips atBottom=true when scrolled to the bottom edge', async () => {
+      const mod = await import('./scroll-area');
+      const el = document.createElement('div');
+      Object.defineProperty(el, 'scrollHeight', { configurable: true, value: 1000 });
+      Object.defineProperty(el, 'clientHeight', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'scrollWidth', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'clientWidth', { configurable: true, value: 200 });
+      Object.defineProperty(el, 'scrollTop', { configurable: true, value: 800 });
+      Object.defineProperty(el, 'scrollLeft', { configurable: true, value: 0 });
+      const pos = mod.snapshotScrollPosition(el);
+      expect(pos.atBottom).toBe(true);
+      expect(pos.atTop).toBe(false);
+    });
+  });
+
+  describe('maxHeightPreset', () => {
+    it('exposes SCROLL_AREA_MAX_HEIGHT_PRESET map for sm/md/lg/xl/screen', async () => {
+      const mod = await import('./scroll-area');
+      expect(mod.SCROLL_AREA_MAX_HEIGHT_PRESET.sm).toBe('16rem');
+      expect(mod.SCROLL_AREA_MAX_HEIGHT_PRESET.md).toBe('24rem');
+      expect(mod.SCROLL_AREA_MAX_HEIGHT_PRESET.lg).toBe('32rem');
+      expect(mod.SCROLL_AREA_MAX_HEIGHT_PRESET.xl).toBe('48rem');
+      expect(mod.SCROLL_AREA_MAX_HEIGHT_PRESET.screen).toBe('100vh');
+    });
+
+    it('resolves to the matching CSS value on style.maxHeight', () => {
+      const { container } = render(
+        <ScrollArea maxHeightPreset="md">body</ScrollArea>,
+      );
+      const surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(surface.style.maxHeight).toBe('24rem');
+    });
+
+    it('exposes data-max-height-preset attr for the surface', () => {
+      const { container } = render(
+        <ScrollArea maxHeightPreset="lg">body</ScrollArea>,
+      );
+      const surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(surface.getAttribute('data-max-height-preset')).toBe('lg');
+    });
+
+    it('freeform maxHeight wins over the preset', () => {
+      const { container } = render(
+        <ScrollArea maxHeight={500} maxHeightPreset="lg">body</ScrollArea>,
+      );
+      const surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(surface.style.maxHeight).toBe('500px');
+    });
+
+    it('omits data-max-height-preset when no preset is supplied', () => {
+      const { container } = render(<ScrollArea>body</ScrollArea>);
+      const surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(surface.getAttribute('data-max-height-preset')).toBeNull();
+    });
+  });
+
+  describe('onScrollPositionChange callback', () => {
+    it('fires once on mount with the initial snapshot', () => {
+      const onChange = vi.fn();
+      render(
+        <ScrollArea onScrollPositionChange={onChange}>body</ScrollArea>,
+      );
+      expect(onChange).toHaveBeenCalled();
+      const pos = onChange.mock.calls[0]![0] as ScrollAreaPosition;
+      expect(typeof pos.scrollTop).toBe('number');
+      expect(typeof pos.scrollHeight).toBe('number');
+      expect(typeof pos.atTop).toBe('boolean');
+    });
+
+    it('fires again when the surface dispatches a scroll event', () => {
+      const onChange = vi.fn();
+      const { container } = render(
+        <ScrollArea onScrollPositionChange={onChange}>body</ScrollArea>,
+      );
+      onChange.mockClear();
+      const surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      surface.dispatchEvent(new Event('scroll'));
+      expect(onChange).toHaveBeenCalled();
+    });
+
+    it('cleans up the scroll listener on unmount', () => {
+      const onChange = vi.fn();
+      const { container, unmount } = render(
+        <ScrollArea onScrollPositionChange={onChange}>body</ScrollArea>,
+      );
+      const surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      onChange.mockClear();
+      unmount();
+      surface.dispatchEvent(new Event('scroll'));
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('snapshot carries pre-computed at-edge flags', () => {
+      const onChange = vi.fn();
+      render(
+        <ScrollArea onScrollPositionChange={onChange}>body</ScrollArea>,
+      );
+      const pos = onChange.mock.calls[0]![0] as ScrollAreaPosition;
+      // jsdom returns zero dimensions -> non-overflowing -> all flags true.
+      expect(pos.atTop).toBe(true);
+      expect(pos.atBottom).toBe(true);
+      expect(pos.atLeft).toBe(true);
+      expect(pos.atRight).toBe(true);
+    });
+  });
+
+  describe('data-axis attr', () => {
+    it('mirrors the axis prop', () => {
+      const { container, rerender } = render(<ScrollArea>body</ScrollArea>);
+      let surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(surface.getAttribute('data-axis')).toBe('y');
+      rerender(<ScrollArea axis="x">body</ScrollArea>);
+      surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(surface.getAttribute('data-axis')).toBe('x');
+      rerender(<ScrollArea axis="both">body</ScrollArea>);
+      surface = container.querySelector(
+        '[data-section="scroll-area"]',
+      ) as HTMLElement;
+      expect(surface.getAttribute('data-axis')).toBe('both');
     });
   });
 });
