@@ -4,6 +4,94 @@
 
 (no entries -- next release window)
 
+## [1.11.361] - 2026-05-18 -- UI: Tailwind preflight audit (TODO 11.343)
+
+Audits Tailwind preflight overrides in
+`web/src/index.css` and pins the catalogue as a CI
+ratchet so an accidental new universal selector
+surfaces as a test failure. Catalogues the existing
+7 known overrides (all intentional) in the new
+patch doc.
+
+### Audit findings
+
+The project's `index.css` has Tailwind preflight
+ENABLED (no `corePlugins.preflight: false` in
+`tailwind.config.js`). Seven intentional universal
+selectors override the defaults:
+
+1. `* { @apply border-border }` (line ~143) -- seeds
+   every element with the design system's border
+   color so `border` utilities can be added without
+   re-specifying the color. Standard shadcn pattern.
+2. `* { scrollbar-width: thin; scrollbar-color: ... }`
+   (line ~166) -- baseline scrollbar theme aligned
+   with the design tokens. Firefox / Edge.
+3. `*::-webkit-scrollbar { width: 10px; height: 10px }`
+   (line ~171) -- WebKit/Chrome track sizing.
+4. `*::-webkit-scrollbar-track { background: transparent }`
+   (line ~175) -- transparent track so the underlying
+   surface color shows through.
+5. `*::-webkit-scrollbar-thumb { ... }` (line ~178)
+   -- thumb color + rounded shape.
+6. `*::-webkit-scrollbar-thumb:hover { ... }` (line
+   ~184) -- hover-state thumb brightening.
+7. `*::-webkit-scrollbar-corner { background: transparent }`
+   (line ~188) -- corner where two scrollbars meet.
+
+None of these break design tokens; each is
+documented inline in `index.css` with a comment
+explaining the intent.
+
+### Added
+
+- `web/src/lib/preflight-audit.ts` -- regex scanner
+  for CSS source files. Flags top-level universal
+  selectors (`* { ... }`) and universal pseudo
+  selectors (`*::-webkit-scrollbar { ... }`).
+  Compound selectors (`.foo *`, `.foo > *`) are NOT
+  flagged. Block + line comments stripped before
+  matching.
+  - `PreflightOverride` interface (file, line,
+    selector, rule, excerpt).
+  - `PreflightRule` enum (`universal-selector` |
+    `universal-pseudo`).
+  - `scanSourceForPreflightOverrides(file, contents)`,
+    `scanFilesForPreflightOverrides(files)`,
+    `formatPreflightOverrides(overrides)` public
+    surface.
+- `web/src/lib/preflight-audit.test.ts` -- 12 unit
+  cases + 2 integration cases:
+  - empty CSS, universal selector flag, universal-
+    pseudo flag, compound-selector skip, attribute-
+    selector skip, comment skip, file/line report,
+    multi-override grouping, @layer block,
+    `*:where(.foo)` pseudo-arg matching;
+  - formatter empty + populated;
+  - integration: `MAX_KNOWN_PREFLIGHT_OVERRIDES = 7`
+    against `web/src/index.css`;
+  - sanity: `border-border` + `bg-background
+    text-foreground` `@apply` lines still present.
+
+### Tests
+
+- `preflight-audit.test.ts` -- 14/14 pass against
+  vitest 4.1.5.
+
+### Out of scope
+
+- **Disabling specific preflight reset rules.**
+  Tailwind exposes per-rule `corePlugins` toggles
+  (e.g., `corePlugins: { ringWidth: false }`) but
+  the project does not currently turn any off. The
+  audit assumes the full preflight is enabled; a
+  future patch that disables a rule would update
+  this doc.
+- **CSS-in-JS preflight audit.** The scanner only
+  walks the static `index.css` source. The project
+  has no styled-components / emotion call sites, so
+  CSS-in-JS coverage is out of scope.
+
 ## [1.11.360] - 2026-05-18 -- UI: Focus visible polish (TODO 11.342)
 
 Centralises the canonical focus-visible ring class
