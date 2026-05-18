@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Pagination } from './pagination';
+import { Pagination, buildPaginationItems } from './pagination';
 
 describe('<Pagination>', () => {
   it('renders only the single page button when totalPages=1 (no ellipsis, prev+next disabled)', () => {
@@ -342,5 +342,219 @@ describe('<Pagination>', () => {
         container.querySelector(`[data-pagination-page="${i}"]`),
       ).not.toBeNull();
     }
+  });
+
+  // -- v1.11.407 boundaryCount + pageLabelFormatter + disabled (TODO 11.389) --
+
+  describe('buildPaginationItems()', () => {
+    it('returns [1] when totalPages <= 1', () => {
+      expect(buildPaginationItems(1, 1, 1)).toEqual([1]);
+      expect(buildPaginationItems(1, 0, 1)).toEqual([1]);
+    });
+
+    it('default boundaryCount=1 produces "1, ..., page-1, page, page+1, ..., N"', () => {
+      expect(buildPaginationItems(5, 10, 1)).toEqual([
+        1, '...', 4, 5, 6, '...', 10,
+      ]);
+    });
+
+    it('boundaryCount=2 shows two pages on each side', () => {
+      expect(buildPaginationItems(5, 10, 1, 2)).toEqual([
+        1, 2, '...', 4, 5, 6, '...', 9, 10,
+      ]);
+    });
+
+    it('boundaryCount=3 with small total renders consecutive pages (no ellipsis)', () => {
+      expect(buildPaginationItems(3, 7, 1, 3)).toEqual([
+        1, 2, 3, 4, 5, 6, 7,
+      ]);
+    });
+
+    it('current page near the start collapses the trailing ellipsis only', () => {
+      expect(buildPaginationItems(2, 10, 1)).toEqual([
+        1, 2, 3, '...', 10,
+      ]);
+    });
+
+    it('current page near the end collapses the leading ellipsis only', () => {
+      expect(buildPaginationItems(9, 10, 1)).toEqual([
+        1, '...', 8, 9, 10,
+      ]);
+    });
+  });
+
+  it('boundaryCount=2 renders two pages on each boundary', () => {
+    render(
+      <Pagination
+        page={10}
+        totalPages={20}
+        onPageChange={() => {}}
+        boundaryCount={2}
+      />,
+    );
+    // Should show 1, 2, ..., 9, 10, 11, ..., 19, 20 (with sibling=1).
+    expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 19' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 20' })).toBeInTheDocument();
+  });
+
+  it('pageLabelFormatter overrides the per-page aria-label', () => {
+    render(
+      <Pagination
+        page={2}
+        totalPages={5}
+        onPageChange={() => {}}
+        pageLabelFormatter={(n) => `Go to page ${n} of 5`}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Go to page 2 of 5' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Go to page 3 of 5' }),
+    ).toBeInTheDocument();
+  });
+
+  it('pageLabelFormatter that throws falls back to "Page N"', () => {
+    const errorFn = () => {
+      throw new Error('boom');
+    };
+    render(
+      <Pagination
+        page={1}
+        totalPages={3}
+        onPageChange={() => {}}
+        pageLabelFormatter={errorFn}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Page 1' }),
+    ).toBeInTheDocument();
+  });
+
+  it('pageLabelFormatter that returns empty falls back to "Page N"', () => {
+    render(
+      <Pagination
+        page={1}
+        totalPages={3}
+        onPageChange={() => {}}
+        pageLabelFormatter={() => ''}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Page 1' }),
+    ).toBeInTheDocument();
+  });
+
+  it('disabled=true disables every button + suppresses onPageChange', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    render(
+      <Pagination
+        page={3}
+        totalPages={10}
+        onPageChange={onPageChange}
+        disabled
+      />,
+    );
+    const btn4 = screen.getByRole('button', { name: 'Page 4' });
+    expect((btn4 as HTMLButtonElement).disabled).toBe(true);
+    await user.click(btn4);
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it('disabled=true disables prev / next', () => {
+    const { container } = render(
+      <Pagination
+        page={5}
+        totalPages={10}
+        onPageChange={() => {}}
+        disabled
+      />,
+    );
+    expect(
+      (container.querySelector(
+        '[data-pagination-action="prev"]',
+      ) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (container.querySelector(
+        '[data-pagination-action="next"]',
+      ) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it('disabled=true disables the jump-to-page input + Go button', () => {
+    const { container } = render(
+      <Pagination
+        page={3}
+        totalPages={20}
+        onPageChange={() => {}}
+        disabled
+        showJumpToPage
+      />,
+    );
+    const input = container.querySelector(
+      '[data-pagination-jump-input]',
+    ) as HTMLInputElement;
+    expect(input.disabled).toBe(true);
+    const goBtn = container.querySelector(
+      '[data-pagination-action="jump"]',
+    ) as HTMLButtonElement;
+    expect(goBtn.disabled).toBe(true);
+  });
+
+  it('disabled=true suppresses jump-to-page form submission', () => {
+    const onPageChange = vi.fn();
+    const { container } = render(
+      <Pagination
+        page={3}
+        totalPages={20}
+        onPageChange={onPageChange}
+        disabled
+        showJumpToPage
+      />,
+    );
+    const form = container.querySelector(
+      '[data-pagination-jump-form]',
+    ) as HTMLFormElement;
+    fireEvent.submit(form);
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it('disabled=true mirrors on data-disabled attr', () => {
+    const { container } = render(
+      <Pagination
+        page={3}
+        totalPages={10}
+        onPageChange={() => {}}
+        disabled
+      />,
+    );
+    const nav = container.querySelector(
+      '[data-section="pagination"]',
+    ) as HTMLElement;
+    expect(nav.getAttribute('data-disabled')).toBe('true');
+  });
+
+  it('default disabled=false leaves controls active', () => {
+    const { container } = render(
+      <Pagination page={3} totalPages={10} onPageChange={() => {}} />,
+    );
+    expect(
+      container
+        .querySelector('[data-section="pagination"]')!
+        .getAttribute('data-disabled'),
+    ).toBe('false');
+  });
+
+  it('ellipsis spans carry data-section="pagination-ellipsis"', () => {
+    const { container } = render(
+      <Pagination page={5} totalPages={20} onPageChange={() => {}} />,
+    );
+    expect(
+      container.querySelector('[data-section="pagination-ellipsis"]'),
+    ).not.toBeNull();
   });
 });
