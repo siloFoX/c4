@@ -1104,6 +1104,8 @@
   "specialists.summary.backupAgeHours": "· 백업 {hours}h 전",
   "specialists.summary.backupAgeDays": "· 백업 {days}d 전",
   "specialists.summary.persistDisabled": "· 영속 비활성",
+  "feature.workersHero.label": "Workers",
+  "feature.workersHero.description": "At-a-glance worker dashboard with busy/idle/lost counts, last-hour activity, and spawn CTA.",
   "feature.scribe.label": "Scribe",
   "feature.scribe.description": "세션 컨텍스트 기록기 — 시작/중지/스캔 및 스냅샷 보기.",
   "feature.batch.label": "Batch",
