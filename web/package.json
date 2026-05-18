@@ -1,7 +1,7 @@
 {
   "name": "c4-web",
   "private": true,
-  "version": "1.11.357",
+  "version": "1.11.358",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,8 @@
     "lint": "tsc --noEmit",
     "lint:fix": "tsc --noEmit",
     "e2e": "playwright test --config=playwright.config.ts",
-    "e2e:debug": "playwright test --config=playwright.config.ts --debug"
+    "e2e:debug": "playwright test --config=playwright.config.ts --debug",
+    "bundle-budget": "node src/lib/bundle-budget.mjs --dist=dist"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
