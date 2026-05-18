@@ -4,6 +4,100 @@
 
 (no entries -- next release window)
 
+## [1.11.365] - 2026-05-18 -- UI: copy-paste integration polish (TODO 11.347)
+
+Adds the Toast-feedback wrapper and the
+keyboard-shortcut hook to the existing
+`lib/clipboard.ts` so adoption sites can opt into
+a consistent "Copy <label>" rhythm without
+re-writing the success/failure plumbing.
+Refactors `CopyButton` onto the new helper and
+wires Cmd+C / Ctrl+C row-copy at HistoryView.
+
+### `lib/clipboard.ts` (extended)
+
+- `copyWithToast(text, { label, showToast,
+  successMessage?, errorMessage?, onCopy?,
+  onError? })` -- wraps the existing
+  `copyTextToClipboardWithError`. On success
+  fires `Copied <label>` / on failure `Failed to
+  copy <label>` (label-derived defaults). Custom
+  message overrides take precedence. Returns
+  `{ ok, error, toasted }` so callers know
+  whether the toast plumbing actually fired.
+- `useCopyShortcut({ value, enabled, label,
+  showToast, onCopy, onError })` -- window-level
+  keydown listener for Cmd+C / Ctrl+C. No-ops
+  when `enabled` is false, when the active
+  target is an INPUT / TEXTAREA / SELECT /
+  BUTTON / contenteditable surface, or when the
+  operator currently has a text selection (the
+  native browser copy wins for sub-range
+  selections). Ignores Cmd+Shift+C and
+  Cmd+Alt+C. Refs let the listener keep a
+  stable identity while reading the latest
+  callbacks on each press.
+- `CopyShowToast` type alias re-exported so the
+  CopyButton + the hook + the future Cmd+C
+  shortcut all share the same toast signature.
+
+### Adoption
+
+- `web/src/components/ui/copy-button.tsx` --
+  `handleClick` now routes through
+  `copyWithToast`. The pulse animation stays
+  under CopyButton's local state; the toast
+  emission moves into the shared helper so a
+  future change to the message template only
+  touches one file.
+- `web/src/components/HistoryView.tsx` --
+  `useCopyShortcut({ value: selected ?? '',
+  enabled: !!selected, label: 'worker name',
+  showToast })` so Cmd+C / Ctrl+C anywhere on
+  the page (outside inputs / contenteditable)
+  copies the currently selected worker name and
+  pops a toast.
+
+### Tests
+
+`web/src/lib/clipboard.test.ts` -- adds 13 cases
+on top of the existing 8:
+
+- `copyWithToast`: success-toast emit, failure
+  toast emit, custom success / error messages,
+  no-showToast (toasted=false), default
+  "Copied" / "Failed to copy" without label,
+  onCopy on success + onError on failure.
+- `useCopyShortcut`: writes to the clipboard on
+  Cmd+C when enabled, no-ops when disabled,
+  no-ops inside an INPUT focus, ignores
+  Cmd+Shift+C and Cmd+Alt+C, fires the toast
+  through showToast, calls preventDefault on
+  the matched keydown.
+
+20/20 pass under vitest 4.1.5. TypeScript clean
+for `clipboard.ts`, `copy-button.tsx`, and
+`HistoryView.tsx`.
+
+### Out of scope
+
+- Adoption at every existing CopyButton call
+  site. The component contract is unchanged;
+  callers that already pass `showToast` keep
+  working. Migration of in-tree call sites that
+  do not currently wire `showToast` (e.g.
+  ChatView, WorkflowEditor) is a follow-up.
+- Per-page toast portals beyond HistoryView.
+  Snapshots / TokenUsage already host their own
+  toast pipelines; Health does not (no copy
+  surface today). A follow-up patch can audit
+  the pages and wire the shortcut where the
+  selection model maps cleanly.
+- Multi-row copy (Cmd+Shift+C). Reserved as a
+  future contract; the hook intentionally
+  ignores shift today so a future shortcut can
+  claim it.
+
 ## [1.11.364] - 2026-05-18 -- UI: locale-aware number/date formatters (TODO 11.346)
 
 Builds `web/src/lib/format-locale.ts` -- a thin

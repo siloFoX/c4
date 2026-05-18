@@ -11,7 +11,7 @@ import { cn } from '../../lib/cn';
 import { Button } from './button';
 import { IconButton } from './icon-button';
 import { Tooltip } from './tooltip';
-import { copyTextToClipboardWithError } from '../../lib/clipboard';
+import { copyWithToast, type CopyShowToast } from '../../lib/clipboard';
 
 // (v1.11.285, TODO 11.267) CopyButton -- canonical
 // copy-to-clipboard affordance. Wraps the existing
@@ -60,10 +60,7 @@ export interface CopyButtonProps {
   onError?: (err: Error) => void;
   // Optional toast pipeline -- when set, fires on every copy
   // attempt with the matching tone.
-  showToast?: (
-    message: string,
-    tone: 'success' | 'error' | 'info',
-  ) => void;
+  showToast?: CopyShowToast;
   disabled?: boolean;
   className?: string;
   // Forward to the underlying button so callers can address a
@@ -120,16 +117,22 @@ export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
       : `Copy ${resolvedLabel}`;
 
     const handleClick = useCallback(async () => {
-      const result = await copyTextToClipboardWithError(value);
+      // (v1.11.365, TODO 11.347) Route through the
+      // shared copyWithToast helper so the success +
+      // failure plumbing matches the keyboard shortcut
+      // path and the ErrorBoundary copy button. The
+      // glyph pulse stays under CopyButton's local
+      // state.
+      const result = await copyWithToast(value, {
+        label: resolvedLabel,
+        ...(showToast ? { showToast } : {}),
+        ...(onCopy ? { onCopy } : {}),
+        ...(onError ? { onError } : {}),
+      });
       if (result.ok) {
         setCopied(true);
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setCopied(false), pulseMs);
-        onCopy?.(value);
-        showToast?.(`Copied ${resolvedLabel}`, 'success');
-      } else {
-        onError?.(result.error ?? new Error('Clipboard unavailable'));
-        showToast?.(`Failed to copy ${resolvedLabel}`, 'error');
       }
     }, [onCopy, onError, pulseMs, resolvedLabel, showToast, value]);
 
