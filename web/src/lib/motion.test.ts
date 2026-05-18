@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { motion, motionClass } from './motion';
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderHook, cleanup } from '@testing-library/react';
+import {
+  motion,
+  motionClass,
+  useMotionClass,
+  useReducedMotion,
+} from './motion';
 
 describe('motion', () => {
   it('exposes the eight pre-baked motion presets', () => {
@@ -56,3 +63,85 @@ describe('motionClass', () => {
     expect(motionClass('fadeIn', false, 'opacity-100')).toBe(motion.fadeIn);
   });
 });
+
+// (v1.11.323, TODO 11.305) New canonical bundle exports:
+// `useReducedMotion` re-export + `useMotionClass` hook.
+
+function setMatchMedia(matches: boolean) {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }));
+}
+
+describe('useReducedMotion (re-exported from lib/motion)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    cleanup();
+  });
+
+  it('returns false when prefers-reduced-motion does not match', () => {
+    setMatchMedia(false);
+    const { result } = renderHook(() => useReducedMotion());
+    expect(result.current).toBe(false);
+  });
+
+  it('returns true when prefers-reduced-motion matches', () => {
+    setMatchMedia(true);
+    const { result } = renderHook(() => useReducedMotion());
+    expect(result.current).toBe(true);
+  });
+});
+
+describe('useMotionClass', () => {
+  beforeEach(() => {
+    setMatchMedia(false);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    cleanup();
+  });
+
+  it('returns the animated class when prefers-reduced-motion is OFF', () => {
+    setMatchMedia(false);
+    const { result } = renderHook(() => useMotionClass('fadeIn'));
+    expect(result.current).toBe(motion.fadeIn);
+  });
+
+  it('returns "" when prefers-reduced-motion is ON and no fallback', () => {
+    setMatchMedia(true);
+    const { result } = renderHook(() => useMotionClass('slideInRight'));
+    expect(result.current).toBe('');
+  });
+
+  it('returns the fallback when prefers-reduced-motion is ON', () => {
+    setMatchMedia(true);
+    const { result } = renderHook(() =>
+      useMotionClass('fadeIn', 'opacity-100'),
+    );
+    expect(result.current).toBe('opacity-100');
+  });
+
+  it('ignores the fallback when prefers-reduced-motion is OFF', () => {
+    setMatchMedia(false);
+    const { result } = renderHook(() =>
+      useMotionClass('scaleIn', 'opacity-100'),
+    );
+    expect(result.current).toBe(motion.scaleIn);
+  });
+
+  it('matches the stateless motionClass output for every key', () => {
+    setMatchMedia(false);
+    for (const key of Object.keys(motion) as (keyof typeof motion)[]) {
+      const { result } = renderHook(() => useMotionClass(key));
+      expect(result.current).toBe(motionClass(key, false));
+    }
+  });
+});
+
