@@ -4,6 +4,225 @@
 
 (no entries -- next release window)
 
+## [1.11.420] - 2026-05-18 -- UI: skeleton-set primitive (TODO 11.402)
+
+New `web/src/components/ui/skeleton-set.tsx`
+ships `<SkeletonSet>` -- predefined
+skeleton compositions for the four
+canonical page silhouettes
+(`card` / `list` / `table` /
+`detail-page`). Each variant inherits
+the shared loading-motion shimmer +
+respects `prefers-reduced-motion:
+reduce`.
+
+### API
+
+```tsx
+<SkeletonSet variant="card" count={4} />
+<SkeletonSet variant="list" rows={8} showAvatar />
+<SkeletonSet variant="table" rows={6} cols={5} />
+<SkeletonSet variant="detail-page" />
+```
+
+```ts
+type SkeletonSetVariant =
+  | 'card'
+  | 'list'
+  | 'table'
+  | 'detail-page';
+
+interface SkeletonSetProps {
+  variant: SkeletonSetVariant;
+  count?: number;
+  rows?: number;
+  cols?: number;
+  showAvatar?: boolean;
+  linesPerRow?: number;
+  className?: string;
+  ariaLabel?: string;
+  // ...HTMLAttributes<HTMLDivElement>
+}
+```
+
+### Variants
+
+- **card** -- a responsive grid of
+  `<Skeleton.Card>` placeholders
+  (default 3 cards; 1 col on phone,
+  2 on sm, 3 on lg). Configure with
+  `count`. Wrapper carries
+  `data-section="skeleton-set-cards"`
+  + `data-card-count`.
+- **list** -- a stacked
+  `<Skeleton.List>` (default 6 rows,
+  2 text lines each, no avatar).
+  Configure with `rows` +
+  `showAvatar` + `linesPerRow`.
+  Wrapper carries
+  `data-section="skeleton-set-list"`.
+- **table** -- a `<Skeleton.Table>`
+  with header row + body rows
+  (default 5 rows x 4 cols).
+  Configure with `rows` + `cols`.
+  Wrapper carries
+  `data-section="skeleton-set-table"`.
+- **detail-page** -- hero header
+  (title + subtitle bars) over a
+  2-column body (main: paragraph +
+  card; side: 2 cards). The header
+  bars use the shared shimmer
+  directly; the body delegates to
+  `<Skeleton.Text>` + `<Skeleton.
+  Card>`. Sub-section markers:
+  `-detail-header`, `-detail-body`,
+  `-detail-main`, `-detail-side`,
+  with `data-skeleton-detail`
+  ("title" / "subtitle") on the
+  header bars.
+
+### Reduced motion
+
+The component reads `useReducedMotion()`
+(media-query `(prefers-reduced-motion:
+reduce)`). When true:
+- The animation class drops the
+  pulse utility (no shimmer).
+- `data-motion-reduced="true"` flips
+  on the root so tests + downstream
+  styles can branch.
+
+### Pure helper-free contract
+
+There are no exported pure helpers
+for this primitive -- it is purely a
+declarative composition of existing
+shapes from `skeleton.tsx` (Skeleton.
+Card / Skeleton.List / Skeleton.Table
+/ Skeleton.Text). The variant
+defaults table (3 cards / 6 rows /
+5x4 table) is encoded as a
+module-local constant.
+
+### Sanity guards
+
+- `count`, `rows`, `cols` clamp to
+  `>= 0` and floor to integer.
+- `linesPerRow` clamps to `>= 1`.
+- Negative / non-finite inputs fall
+  back to 0 (rendering nothing for
+  the affected axis).
+
+### ARIA + data attributes
+
+Root (`role="status"`,
+`aria-busy="true"`, `aria-label`):
+
+- `data-section="skeleton-set"`
+- `data-variant`
+- `data-motion-reduced` ('true' /
+  'false')
+
+Variant containers:
+
+- `data-section="skeleton-set-cards"`
+  + `data-card-count` (card)
+- `data-section="skeleton-set-list"`
+  (delegates to `<Skeleton.List>`)
+- `data-section="skeleton-set-table"`
+  (delegates to `<Skeleton.Table>`)
+- `data-section="skeleton-set-detail"`
+  (detail-page wrapper)
+- `data-section="skeleton-set-detail-header"`
+- `data-section="skeleton-set-detail-body"`
+- `data-section="skeleton-set-detail-main"`
+- `data-section="skeleton-set-detail-side"`
+- `data-skeleton-set-card-index`
+  (card variant per-card)
+- `data-skeleton-detail` ("title" /
+  "subtitle") on detail header bars
+
+Default aria-label:
+`"Loading <variant>"`.
+
+### Tests
+
+28 cases in `skeleton-set.test.tsx`:
+
+- role=status + default aria-label
+  per variant
+- ariaLabel override
+- aria-busy="true"
+- data-section + data-variant on
+  root
+- variant="card": default 3 cards,
+  count override, data-card-count,
+  negative clamp to 0, fractional
+  floor
+- variant="list": list sub-component,
+  default 6 rows, rows override,
+  showAvatar=true renders avatars,
+  default omits avatars,
+  linesPerRow controls line count
+- variant="table": table sub-
+  component, default 5 rows x 4
+  cols, rows + cols overrides
+- variant="detail-page": header +
+  body + main + side sections,
+  main has paragraph + card,
+  side has two cards, header has
+  title + subtitle bars
+- data-motion-reduced reflects
+  matchMedia (true + false)
+- displayName
+- ref forwarding
+- forwards extra HTML attributes
+- honors className
+
+28/28 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<Skeleton>` + `Skeleton.Card` /
+  `.List` / `.Table` / `.Text` /
+  `.Avatar` (11.135 / 11.174 /
+  11.208 / 11.255) -- the building
+  blocks SkeletonSet composes.
+- `<SuspenseWrapper>` (11.158) --
+  hosts SkeletonSet as a fallback
+  for a whole page; the
+  variant=detail-page mirrors the
+  default SuspenseWrapper shape.
+- ThemeCustomizer (11.394) -- the
+  shimmer bg-muted resolves via
+  token, so the placeholders auto-
+  theme.
+
+### Out of scope (deferred)
+
+- Per-card content slot (avatar /
+  thumbnail variants). Skeleton.
+  Card is the only card shape for
+  v1; richer per-card variants
+  belong in a follow-on.
+- Form skeleton variant. Field
+  silhouettes do not match the
+  card / list / table / detail
+  axis; a separate variant or
+  helper is needed.
+- Stat dashboard variant (rows of
+  stat tiles). The existing
+  `StatCardShape` covers single
+  tiles; bundling them is a
+  separate composition.
+- Adoption sweep through existing
+  loading states. SuspenseWrapper +
+  the per-page custom skeletons
+  still ship their own; this
+  primitive is the canonical
+  surface for new adopters.
+
 ## [1.11.419] - 2026-05-18 -- UI: list-virtualizer primitive (TODO 11.401)
 
 New `web/src/components/ui/list-virtualizer.tsx`
