@@ -90,3 +90,4 @@ export * from './aspect-ratio';
 export * from './portal';
 export * from './focus-trap';
 export * from './link';
+export * from './virtualized-list';

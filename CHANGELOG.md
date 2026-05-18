@@ -4,6 +4,127 @@
 
 (no entries -- next release window)
 
+## [1.11.351] - 2026-05-18 -- UI: VirtualizedList primitive (TODO 11.333)
+
+Ships a fixed-row-height virtualized list primitive plus
+the windowing math, ref-handle scroll API, session-
+backed scroll restoration, and visibility / bottom-edge
+callbacks. The three adoption sites the dispatch lists
+(HistoryView rows, SessionsView list, WorkerList) all
+use grouped / non-trivial row rendering -- their
+adoption is deferred to follow-up per-page patches; the
+primitive is ready and the adoption pattern is
+documented.
+
+### Added
+
+- `web/src/components/ui/virtualized-list.tsx` --
+  `VirtualizedList<T>` component + the
+  `computeVisibleRange` helper. Public surface:
+  - `items: readonly T[]` -- the row data.
+  - `rowHeight: number` -- fixed height per row in px.
+  - `renderRow(item, index) -> ReactNode` -- per-row
+    render fn.
+  - `overscan?: number` -- default 4 rows beyond the
+    viewport edge that still get rendered.
+  - `scrollRestorationKey?: string` -- when set, the
+    primitive persists `scrollTop` to
+    `sessionStorage` under the
+    `c4:virtualized-list:<key>` namespace and
+    restores it on mount.
+  - `keyFor?: (item, index) -> string` -- stable
+    row key. Defaults to the row index.
+  - `onVisibleRangeChange?: (range) -> void` --
+    fires when the visible window shifts. Useful for
+    pre-fetching detail data for currently-visible
+    rows.
+  - `onReachBottom?: () -> void` -- fires once per
+    "reached bottom" transition. Useful for infinite
+    scroll fetch-next-page triggers.
+  - `emptyContent?: ReactNode` -- rendered when
+    `items.length === 0`.
+  - `ariaLabel?: string` -- forwarded to the scroller.
+  - Imperative ref handle: `{ scrollToIndex(index),
+    getScrollTop() }`.
+  - Data attributes for e2e:
+    `data-section="virtualized-list"`,
+    `data-row-count`, `data-visible-start`,
+    `data-visible-end`, `data-virt-row-index` per row.
+- `web/src/components/ui/virtualized-list.test.tsx`
+  -- 20 cases:
+  - `computeVisibleRange` math (5 cases: empty,
+    top, mid-scroll, clamp at bottom, clamp at top
+    with overscan).
+  - empty content rendering.
+  - visible-window cap (overscan respected).
+  - window shifts on scroll.
+  - spacer height equals `itemCount * rowHeight`.
+  - keyFor / default keying.
+  - scroll persistence to sessionStorage.
+  - scroll restoration on mount.
+  - `onVisibleRangeChange` callback.
+  - `onReachBottom` callback (fires once per
+    transition).
+  - imperative `scrollToIndex` + clamping.
+  - data attribute surfaces.
+  - aria-label forwarding.
+
+### Implementation notes
+
+- jsdom does not compute layout, so the primitive uses
+  a scroll-listener + viewport-height measurement loop
+  rather than IntersectionObserver per row. The
+  ResizeObserver path is the happy path in real
+  browsers; jsdom (no ResizeObserver) falls back to a
+  single measurement on mount + per-scroll re-measure.
+  IntersectionObserver-style sentinel behaviour is
+  exposed via the `onReachBottom` callback (sentinel
+  at the bottom edge) and the `onVisibleRangeChange`
+  callback (per-window-shift visibility report).
+- The math layer (`computeVisibleRange`) is pure +
+  unit-tested so the React effect lifecycle is not
+  needed to validate the visible-window contract.
+- The scroller renders a single spacer div of total
+  height with the row group absolute-translated to
+  `range.start * rowHeight`. This is the canonical
+  windowing pattern (react-window / react-virtuoso
+  use the same).
+
+### Deferred (adoptions)
+
+The three sites the dispatch names each have
+non-trivial row rendering that does not slot into
+the primitive's flat-list shape without preparatory
+work:
+
+- **WorkerList** -- renders two grouped lists
+  (`managers.map` + `regular.map`). Virtualizing
+  requires either flattening into a single
+  group-header + row list or wrapping each group in
+  its own `VirtualizedList`. The primitive's
+  fixed-row-height contract makes group headers
+  awkward without per-row variable height.
+- **SessionsView** -- list grouping by project +
+  collapsed-group affordance. Same shape mismatch.
+- **HistoryView** -- the rows include inline detail
+  panes that change row height. Variable-height
+  rows are out of scope for the v1.11.351 primitive
+  (the dispatch specifies "fixed-row-height
+  virtualization").
+
+Each adoption is a per-page follow-up: the per-page
+patch can reshape the list into a flat array of
+`{ kind: 'header' | 'row', ... }` entries, render a
+group header inline at the kind === 'header'
+indices, and use the new primitive end-to-end. The
+primitive's contract is stable; only the per-page
+data shape needs the prep work.
+
+### Tests
+
+- `virtualized-list.test.tsx` -- 20/20 pass against
+  vitest 4.1.5 + jsdom 29.1.1.
+
 ## [1.11.350] - 2026-05-18 -- UI: AppShell adoption (TODO 11.332)
 
 Migrates `web/src/App.tsx` to flow through the v1.11.343
