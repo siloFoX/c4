@@ -4,6 +4,145 @@
 
 (no entries -- next release window)
 
+## [1.11.370] - 2026-05-18 -- UI: drag-and-drop file upload (TODO 11.352)
+
+The `FileDrop` component itself shipped in 11.270
+(v1.11.288) with drag-and-drop + accept / size
+validation + multi-file + progress slot. This
+patch ships the two outstanding deliverables
+from the dispatch:
+
+1. Preview thumbnails for image files in the
+   staged-files list.
+2. An XHR-based upload helper that fills in the
+   "integration with upload API" gap.
+
+### Preview thumbnails (`components/ui/file-drop.tsx`)
+
+- New `previewThumbnails` prop (default `true`).
+  When enabled, every staged file whose MIME
+  starts with `image/` renders an inline
+  thumbnail at 8x8 (32px) next to the row.
+- Thumbnails use `URL.createObjectURL` and are
+  cached per identity key
+  (`name|size|lastModified`) so a re-render does
+  not allocate a fresh blob URL.
+- The cache is reconciled on every render: URLs
+  for files that no longer appear in the staged
+  list are revoked, and an unmount cleanup
+  revokes anything still in the map.
+- Non-image staged files (`.json`, `.zip`, etc)
+  keep the existing `FileText` glyph.
+- The thumbnail `<img>` uses
+  `decoding="async"` + `loading="lazy"` per the
+  11.350 lazy-image contract; `data-section=
+  "file-drop-thumbnail"` lets adopters target
+  the surface in CSS / e2e.
+
+### Upload helper (`lib/file-upload.ts`)
+
+`fetch()` does not surface upload-progress events,
+so the canonical "show how far along the upload
+is" pattern remains `XMLHttpRequest`. The new
+helper wraps the XHR boilerplate behind a typed
+surface so every adopter (Snapshots upload,
+Templates / Profiles import, future Specialists
+asset uploads) shares one pipeline.
+
+```ts
+uploadFile({
+  url,
+  file,
+  field?,            // FormData field name, default 'file'
+  method?,           // POST | PUT | PATCH, default POST
+  headers?,
+  fields?,           // extra FormData entries
+  onProgress?,       // { loaded, total, progress }
+  signal?,           // AbortSignal
+  timeoutMs?,        // default 0 (no timeout)
+  parseResponse?,    // default JSON.parse with text fallback
+}): Promise<{ ok, status, data, error }>
+
+uploadFiles({
+  url,
+  files,
+  onProgress?,       // adds { index, file }
+  onResult?,         // per-file completion callback
+  stopOnError?,      // default false; on true, exit on first failure
+  ...uploadFile rest
+}): Promise<UploadResult[]>
+
+validateFile(file, { accept?, maxSize? }):
+  { ok: true } | { ok: false, reason: 'unaccepted-type' | 'too-large' }
+```
+
+- Progress events emit `{ loaded, total,
+  progress }` where `progress` is `0..1` or
+  `null` when `lengthComputable` is false.
+- Abort: pass an `AbortSignal`. Already-aborted
+  signals resolve immediately with
+  `error: 'aborted'`.
+- Errors surface through the `error` field --
+  the promise never rejects so call sites do
+  not need defensive `try/catch`.
+- `validateFile` mirrors `FileDrop`'s internal
+  accept-string matcher (`.ext` /
+  `mime/*` / exact MIME) and exposes it for
+  pre-pick validation (drop the file BEFORE
+  staging it into the dropzone).
+
+### Tests
+
+`web/src/lib/file-upload.test.ts` -- 19 cases:
+
+- `uploadFile`: opens POST + sends FormData,
+  emits progress events with correct ratio,
+  handles `lengthComputable=false`, 5xx -> ok
+  false / `status N` error, network error,
+  signal abort + pre-aborted signal, header +
+  extra field forwarding, timeout event,
+  custom parseResponse.
+- `uploadFiles`: sequential dispatch, per-file
+  progress carries `index`, `stopOnError` exits
+  on first failure.
+- `validateFile`: no-accept default, size
+  limit, extension match + mismatch, `image/*`
+  wildcard, exact MIME, `maxSize: null` skip.
+
+19 (file-upload) + 31 (existing file-drop) = 50
+cases pass under vitest 4.1.5. TypeScript clean
+for `file-drop.tsx`, `file-upload.ts`, and the
+test file.
+
+### Pairs with existing primitives
+
+- `components/ui/file-drop.tsx` (11.270) is the
+  dropzone; this patch extends its preview
+  surface but does not change the public
+  contract.
+- `lib/lazy-image.tsx` (11.350) -- the
+  thumbnails reuse the `decoding="async"` +
+  `loading="lazy"` convention.
+
+### Out of scope
+
+- Per-page adoption beyond the
+  Snapshots dropzone. Templates / Profiles
+  imports keep their current bare-input flow
+  until a follow-up patch wires `uploadFile`
+  through.
+- Chunked / resumable uploads. The helper
+  ships a single POST per file; a future patch
+  can layer the chunk pipeline on the same
+  shape if a >2GB upload surface appears.
+- Server-side antivirus scanning hooks.
+  Daemon-side problem; the helper trusts the
+  response.
+- Drag-over visual polish (drop-zone highlight
+  animation). The existing `.data-active=true`
+  selector already drives the border colour
+  change; richer choreography is a follow-up.
+
 ## [1.11.369] - 2026-05-18 -- UI: command palette quick search (TODO 11.351)
 
 The `CommandPalette` primitive itself shipped in
