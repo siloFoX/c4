@@ -4,6 +4,112 @@
 
 (no entries -- next release window)
 
+## [1.11.409] - 2026-05-18 -- UI: split-view primitive (TODO 11.391)
+
+`<SplitPane>` (11.274 / v1.11.292) already
+shipped horizontal/vertical orientation,
+draggable divider with ARIA separator
+contract, keyboard nudge, snap zones,
+localStorage persistence + cross-tab sync.
+This patch closes the remaining dispatched
+bullets:
+
+- **`collapseOnDoubleClick`** (default
+  false). Double-clicking the divider
+  toggles between the current open ratio
+  and ratio=0. A `lastOpenRatioRef`
+  remembers the most recent non-zero
+  ratio so the next dblclick restores
+  the operator's preferred size (falls
+  back to `defaultRatio` when no prior
+  open size exists). Collapse via
+  dblclick uses `skipSnap: true` so it
+  reaches ratio=0 regardless of the
+  `minRatio` / `maxRatio` clamp; the
+  subsequent ArrowRight respects the
+  clamp again.
+- **`defaultSizePx`** prop -- pixel-
+  based initial size. On mount the
+  component measures the container and
+  converts the px value to the
+  equivalent ratio. A stored
+  `storageKey` ratio wins (cross-mode
+  adopters stay compatible).
+- **`onSizeChange(pixels)`** callback
+  fires alongside `onRatioChange(ratio)`
+  on every commit. Skipped when the
+  container has not measured yet
+  (mount race).
+
+### New `<SplitView>` alias
+
+```ts
+import { SplitView } from './components/ui/split-view';
+```
+
+Re-exports `<SplitPane>` under the
+dispatch-style name -- both resolve to
+the same React component. Types
+re-exported: `SplitViewProps`,
+`SplitViewOrientation`.
+
+### Data attributes
+
+- `data-collapse-on-double-click="true|false"`
+  on the divider (new) mirrors the prop.
+- Legacy attrs unchanged.
+
+### Tests + types
+
+- `split-pane.test.tsx`: 27 legacy cases
+  unchanged.
+- `split-view.test.tsx`: 16 new cases
+  (alias identity + render, default
+  collapseOnDoubleClick no-op,
+  collapse-on-first-dblclick, restore-on-
+  second-dblclick, restore to
+  defaultRatio when no prior, persist
+  via dblclick, post-collapse keyboard
+  clamp, defaultSizePx conversion
+  horizontal + vertical, stored ratio
+  wins, oversized px clamps to 100%,
+  px omitted falls back to ratio,
+  onSizeChange alongside onRatioChange,
+  vertical onSizeChange uses height,
+  omitted onSizeChange no-throw).
+- **43/43 pass** across split-pane +
+  split-view files.
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Pairs with existing primitives
+
+- `<DrawerResize>` (11.390) -- single
+  fixed-sided resizable panel. Use for
+  sidebars; SplitView for two-pane
+  resizers.
+- `<ScrollArea>` (11.382) -- composable
+  scroll surface; pair inside either
+  start/end pane.
+
+### Out of scope
+
+- Per-page adoption swap (SplitPane ->
+  SplitView). Additive; the alias
+  re-exports the same component.
+- Three-or-more pane composition.
+  Current contract is exactly two
+  panes; multi-pane layouts belong in
+  the `<Resizable>` primitive (TODO
+  11.392).
+- Touch-gesture collapse (swipe).
+- Animated collapse transition.
+  ratio jumps instantly on dblclick;
+  CSS transitions need a separate
+  animation lifecycle.
+
 ## [1.11.408] - 2026-05-18 -- UI: drawer-resize primitive (TODO 11.390)
 
 New `web/src/components/ui/drawer-resize.tsx`
