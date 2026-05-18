@@ -101,3 +101,4 @@ export * from './slider';
 export * from './file-upload-progress';
 export * from './virtual-table';
 export * from './hover-card';
+export * from './menubar';
