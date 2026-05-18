@@ -4,6 +4,270 @@
 
 (no entries -- next release window)
 
+## [1.11.416] - 2026-05-18 -- UI: cmd-history component (TODO 11.398)
+
+New `web/src/components/ui/cmd-history.tsx`
+ships `<CmdHistory>` -- a terminal
+command history list with substring
+search, ANSI color rendering for the
+captured output, per-row clipboard
+buttons, opt-in scroll restoration,
+and keyboard navigation.
+
+### API
+
+```tsx
+<CmdHistory
+  entries={history}
+  defaultQuery=""
+  onSelectedIdChange={(id) => setActive(id)}
+  storageKey="audit-history"
+  showTimestamps
+  showExitCodes
+  onCopy={(entry, target) => track('copy', { id: entry.id, target })}
+  ariaLabel="Command history"
+/>
+```
+
+```ts
+interface CmdHistoryEntry {
+  id: string;
+  command: string;
+  output?: string;
+  timestamp?: number;
+  exitCode?: number;
+  durationMs?: number;
+  cwd?: string;
+}
+```
+
+### Behaviour
+
+- **Search**: case-insensitive
+  substring match across command,
+  output, and cwd. Whitespace
+  trimmed. Controlled-or-uncontrolled
+  via `query` / `defaultQuery` +
+  `onQueryChange`.
+- **Selection**: single-id model.
+  Click selects + sets the
+  `data-selected="true"` attribute.
+  ArrowDown / ArrowUp / Home / End
+  move the selection. Controlled
+  via `selectedId` /
+  `onSelectedIdChange`.
+- **Counter**: `<filtered> /
+  <total>` next to the search box;
+  visible at all times.
+- **Exit codes**: badge with
+  `data-status="ok"` (exitCode ===
+  0) or `data-status="fail"`
+  (non-zero). Suppressed via
+  `showExitCodes={false}`.
+- **Timestamps**: `HH:MM:SS` from
+  `entry.timestamp` (ms epoch).
+  Suppressed via `showTimestamps={
+  false}`.
+- **Copy**: each row renders up to
+  three buttons -- Cmd (always),
+  Out + All (only when `entry.output`
+  exists). They write the canonical
+  serialization via
+  `navigator.clipboard.writeText`
+  AND call `onCopy(entry, target)`
+  -- the callback fires even when
+  clipboard is unavailable so tests
+  + non-https hosts get the same
+  side-channel.
+- **Scroll restoration**: opt-in via
+  `storageKey`. The latest scrollTop
+  serializes to localStorage under
+  the key `cmd-history-scroll:<key>`
+  on every scroll, and restores on
+  mount via `useLayoutEffect` so
+  there is no flash.
+- **renderCommand** prop overrides
+  the default command rendering for
+  pages that want to hyperlink or
+  decorate the text.
+
+### ANSI parser
+
+`parseAnsi(text)` returns
+`AnsiSegment[]` (`{ text, style }`).
+Supported SGR codes:
+
+| code | effect |
+| --- | --- |
+| 0 | reset |
+| 1 | bold |
+| 2 | dim |
+| 3 | italic |
+| 4 | underline |
+| 7 | inverse |
+| 9 | strikethrough |
+| 22 | normal weight |
+| 23 | not italic |
+| 24 | not underline |
+| 27 | not inverse |
+| 29 | not strikethrough |
+| 30-37 | fg color |
+| 38 | (unsupported -- skipped) |
+| 39 | default fg |
+| 40-47 | bg color |
+| 49 | default bg |
+| 90-97 | bright fg |
+| 100-107 | bright bg |
+
+Unsupported codes are ignored
+silently (no crash). 24-bit truecolor
+(`38;2;R;G;B`) is deferred to a
+follow-on -- 4-bit + bright covers
+the canonical bash / git / npm
+output.
+
+`ansiStyleToClassName(style)` maps the
+parsed style to Tailwind classes
+(`text-red-500`, `bg-emerald-500/30`,
+`font-bold`, `opacity-60`, `italic`,
+`underline`, `line-through`,
+`invert`).
+
+### Pure helpers (exported)
+
+```ts
+export function parseAnsi(text: string): AnsiSegment[];
+export function ansiStyleToClassName(style: AnsiStyle): string;
+
+export function filterCmdHistory(
+  entries: CmdHistoryEntry[],
+  query: string,
+): CmdHistoryEntry[];
+
+export function formatCmdHistoryClipboard(
+  entry: CmdHistoryEntry,
+  target: 'command' | 'output' | 'both',
+): string;
+```
+
+### ARIA + data attributes
+
+Root (`role="region"`, `tabIndex={0}`,
+`aria-label`):
+
+- `data-section="cmd-history"`
+- `data-entry-count`
+- `data-filtered-count`
+
+Sub-nodes:
+
+- `data-section="cmd-history-header"`
+- `data-section="cmd-history-search"`
+  (native `<input type="search">`)
+- `data-section="cmd-history-counter"`
+- `data-section="cmd-history-scroll"`
+  (overflow container; `onScroll`
+  persists)
+- `data-section="cmd-history-empty"`
+- `data-section="cmd-history-row"` +
+  `data-entry-id` +
+  `data-selected` +
+  `data-exit-code`
+- `data-section="cmd-history-row-header"`
+- `data-section="cmd-history-timestamp"`
+- `data-section="cmd-history-exit-code"`
+  + `data-status` (ok/fail)
+- `data-section="cmd-history-command"`
+- `data-section="cmd-history-row-actions"`
+- `data-section="cmd-history-copy-{command,output,both}"`
+- `data-section="cmd-history-cwd"`
+- `data-section="cmd-history-output"`
+- `data-section="cmd-history-output-segment"`
+  (ANSI-styled span)
+
+### Tests
+
+56 cases in `cmd-history.test.tsx`:
+
+- `parseAnsi` (12): empty, plain
+  text, fg, bg, bold, combined
+  codes, reset, pre-escape text,
+  bright colors, italic+underline,
+  unknown codes ignored, default
+  fg via 39.
+- `ansiStyleToClassName` (3):
+  default style empty, combined
+  classes, dim opacity.
+- `filterCmdHistory` (6): empty
+  query, case-insensitive command,
+  output match, cwd match,
+  whitespace trim, no-match.
+- `formatCmdHistoryClipboard` (4):
+  command, output, both,
+  missing-output empty string.
+- Component (31): aria-label
+  default + custom, one row per
+  entry, counter format, filter
+  via search, custom placeholder,
+  empty label default + custom,
+  controlled query, controlled
+  query + onQueryChange split,
+  click selects, data-selected,
+  ArrowDown / ArrowUp / Home /
+  End navigation, exit-code
+  badges with data-status, hide
+  exit codes, hide timestamps,
+  renderCommand override, copy
+  command / output / both via
+  clipboard, copy buttons hidden
+  without output, ANSI segment
+  inside output block, scroll
+  position writes + restores from
+  localStorage, root data-attrs,
+  cwd line, displayName, ref
+  forwarding.
+
+56/56 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<CodeBlock>` (11.379) --
+  single-shot syntax-highlighted
+  block. CmdHistory is the
+  history-of-commands variant.
+- `<VirtualTable>` (11.375) --
+  flat tabular data. CmdHistory
+  is the terminal-flavored
+  audit log layout.
+- ThemeCustomizer (11.394) --
+  CmdHistory reads token-based
+  classes so it auto-themes.
+
+### Out of scope (deferred)
+
+- 24-bit truecolor (`38;2;R;G;B` /
+  `48;2;R;G;B`). 4-bit + bright
+  covers the canonical bash / git
+  / npm output.
+- 256-color palette
+  (`38;5;N` / `48;5;N`).
+- OSC sequences (hyperlinks,
+  cursor positioning, title
+  setting).
+- Streaming append (rows added
+  while watching). The host
+  passes the latest snapshot
+  each render.
+- Inline replay (re-execute the
+  command). Belongs in the host.
+- Multi-select. Single-id model
+  for v1.
+- Output search-and-highlight.
+  The query filters rows; in-row
+  highlighting of matches is a
+  follow-on.
+
 ## [1.11.415] - 2026-05-18 -- UI: tree-view primitive (TODO 11.397)
 
 New `web/src/components/ui/tree-view.tsx`

@@ -110,3 +110,4 @@ export * from './theme-customizer';
 export * from './command-bar';
 export * from './snapshot-diff';
 export * from './tree-view';
+export * from './cmd-history';
