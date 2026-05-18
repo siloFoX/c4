@@ -88,3 +88,4 @@ export * from './radio-group';
 export * from './spinner';
 export * from './aspect-ratio';
 export * from './portal';
+export * from './focus-trap';
