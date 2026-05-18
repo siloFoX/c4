@@ -103,6 +103,17 @@ export const FEATURES: FeatureDef[] = [
     Icon: LayoutDashboard,
     load: () => import('./Workers'),
   },
+  // (v1.11.334, TODO 11.316) Sessions feature page --
+  // active / archived / all tabs, debounce search, and
+  // right-anchored Drawer for detail view.
+  {
+    id: 'sessions',
+    labelKey: 'feature.sessions.label',
+    descriptionKey: 'feature.sessions.description',
+    category: 'operations',
+    Icon: ListChecks,
+    load: () => import('./Sessions'),
+  },
   {
     id: 'scribe',
     labelKey: 'feature.scribe.label',

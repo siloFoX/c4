@@ -1106,6 +1106,8 @@
   "specialists.summary.persistDisabled": "· persist DISABLED",
   "feature.workersHero.label": "Workers",
   "feature.workersHero.description": "At-a-glance worker dashboard with busy/idle/lost counts, last-hour activity, and spawn CTA.",
+  "feature.sessions.label": "Sessions",
+  "feature.sessions.description": "Operator session log with active/archived/all tabs, debounce search, and detail drawer.",
   "feature.scribe.label": "Scribe",
   "feature.scribe.description": "Session context recorder — start/stop/scan and view snapshots.",
   "feature.batch.label": "Batch",
