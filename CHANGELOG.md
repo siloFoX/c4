@@ -4,6 +4,97 @@
 
 (no entries -- next release window)
 
+## [1.11.334] - 2026-05-18 -- UI: Sessions page polish (TODO 11.316)
+
+New `web/src/pages/Sessions.tsx` feature page with the
+dispatch shape: Tabs for active/archived/all, Avatar
+with status overlay per row, SearchBar with debounce,
+and right-anchored Drawer for the detail view.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/pages/Sessions.tsx` -- new feature page.
+  The daemon does not yet expose a list endpoint at
+  `/api/sessions` (only the per-id route used by
+  `lib/use-conversation`); the page is mock-data-driven
+  for now with a `sessions` prop override so tests and
+  specialised mounts can inject deterministic data. The
+  real endpoint will drop in as a prop swap when it
+  lands.
+- Three Tabs (`active` / `archived` / `all`) via the
+  Tabs primitive. `active` is default-selected so the
+  operator's first glance lands on live sessions.
+- Per-row Avatar with `status="online"|"offline"` based
+  on the session's status field. Avatar primitive
+  exposes `data-section="avatar-root"` and a sibling
+  `data-section="avatar-status"` so e2e tests can
+  assert per-row presence.
+- SearchBar with `debounceMs=200` (the primitive's
+  default). Filter is applied across `name`, `worker`,
+  `taskPreview`, and `id` so the operator can find a
+  session by any visible attribute.
+- Drawer (right-anchored, 360px wide) for the session
+  detail view. Drawer mounts only when a row is
+  clicked; the same Drawer renders an EmptyState when
+  no session is selected (defensive -- shouldn't
+  happen with the standard click flow).
+- Detail body uses TimeAgo for the started + last-active
+  timestamps and renders the optional `notes` slot in a
+  Panel.
+- Registered in `web/src/pages/registry.ts` under the
+  `operations` category with the `ListChecks` icon.
+  i18n entries added under `feature.sessions.label` and
+  `feature.sessions.description` in both en.json and
+  ko.json (lockstep preserved).
+- Data-attribute selectors throughout for e2e:
+  `data-section="sessions-page" | "sessions-row" | "sessions-row-name" | "sessions-list" | "sessions-detail"`,
+  plus `data-session-id`, `data-session-status`,
+  `data-count` (sessions-list), and per-row
+  `data-testid="sessions-row-<id>"`.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch implied the page would wire to a real
+  daemon `/api/sessions` endpoint. The endpoint does
+  not exist yet; the `sessions` prop override is the
+  test seam. A follow-up patch will replace the demo
+  dataset with a `useFetchSlot('/api/sessions')` once
+  the daemon route lands.
+- The Drawer currently shows a static detail view
+  (task preview + timing + notes). A richer detail
+  surface (live transcript, attach button, archive
+  toggle) can land in a follow-up.
+
+### Tests
+
+- `web/src/pages/Sessions.test.tsx` -- 13 vitest
+  cases:
+  - Page title + description render.
+  - `data-section="sessions-page"` selector present.
+  - Three tabs render with the documented labels.
+  - Active tab is default and shows only active
+    sessions.
+  - Switching to Archived shows only archived sessions.
+  - All tab shows every session.
+  - SearchBar renders with `data-testid="sessions-search"`.
+  - Filtering by name narrows the list.
+  - Empty-filter state shows the EmptyState message.
+  - Clicking a row opens the Drawer with the
+    matching `data-session-id`.
+  - Row exposes `data-session-id` +
+    `data-session-status` for e2e.
+  - Every row carries an Avatar with status overlay.
+  - Demo dataset renders without crashing when no
+    `sessions` prop is provided.
+- All 13 green.
+
+### Versions
+
+- 1.11.333 -> 1.11.334 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.334]`.
+
 ## [1.11.333] - 2026-05-18 -- UI: HistoryDetailPane polish (TODO 11.315)
 
 Polishes `web/src/components/HistoryDetailPane.tsx` --
