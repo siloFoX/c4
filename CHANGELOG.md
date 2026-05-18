@@ -4,6 +4,103 @@
 
 (no entries -- next release window)
 
+## [1.11.326] - 2026-05-18 -- UI: Button primitive enhancements (TODO 11.308)
+
+Enhances `web/src/components/ui/button.tsx` with a loading
+state, icon-only accessibility enforcement, and tone
+refinements for the destructive and ghost variants.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `loading?: boolean` prop on `Button`. When true:
+  - Inline `<Spinner size="sm">` renders before the
+    children with `data-section="button-spinner"` and
+    `aria-hidden="true"`.
+  - Auto-disables the click target (repeat clicks are
+    dropped at the disabled boundary, so callers do not
+    have to debounce separately).
+  - Emits `aria-busy="true"` on the `<button>` for AT.
+  - Renders a `<VisuallyHidden>` "Loading" announcement
+    so screen readers narrate the pending state.
+  - Keeps the children in the DOM (wrapped in a span
+    with `data-section="button-children"` and
+    `aria-hidden="true"` while loading) so the button's
+    intrinsic width does not jump on the state flip.
+- `loadingLabel?: string` prop (default `'Loading'`).
+  Override the SR-only text emitted while loading is
+  true. Use this when the call site already owns a more
+  specific message ('Saving', 'Deleting', 'Sending
+  request', etc).
+- Data-attribute selectors for e2e + theming:
+  `data-section="button"`, `data-variant`, `data-size`,
+  `data-loading="true|false"`.
+
+### Changed
+
+- `size="icon"` now emits a one-time dev-only console
+  warning when no `aria-label` is provided. Icon-only
+  buttons that lack an accessible name fail axe-core
+  audits; the warning surfaces the gap before it lands
+  on a designer's QA pass. Production builds skip the
+  warning.
+- Destructive variant: added
+  `focus-visible:ring-destructive` so the focus ring
+  uses the destructive tone instead of the default
+  primary, keeping the variant legible against the
+  ARPS palette.
+- Ghost variant: changed `hover:bg-accent` to
+  `hover:bg-accent/60` and added `bg-transparent
+  text-foreground` baseline so the ghost button no
+  longer steals the surface colour from neighbouring
+  chips when hovered.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed Workers row actions, Templates
+  save, and Profiles delete confirmation as adoption
+  sites. Threading `loading={...}` + `loadingLabel`
+  + `size="icon" aria-label="..."` at those call
+  sites is a follow-up per-page patch so each
+  migration lands with its own test refresh.
+
+### Tests
+
+- `web/src/components/ui/button.test.tsx` -- 13 new
+  vitest cases on top of the existing 12 (25 total).
+  New coverage:
+  - `loading=true` renders the inline spinner and
+    `aria-busy="true"`.
+  - `loading=true` auto-disables the button.
+  - `loading=true` emits the default 'Loading' SR
+    text.
+  - `loading=true` honours a custom `loadingLabel`.
+  - `loading=false` does NOT render the spinner or
+    `aria-busy`.
+  - `loading=true` blocks the `onClick` handler.
+  - `loading` keeps the children in the DOM.
+  - `loading` aria-hides the children slot.
+  - `size="icon"` without `aria-label` warns in dev.
+  - `size="icon"` with `aria-label` does NOT warn.
+  - `aria-label` passes through onto the button
+    element.
+  - Data-attribute selectors are present
+    (`data-section="button"`, `data-variant`,
+    `data-size`, `data-loading`).
+  - Destructive variant ships the
+    `focus-visible:ring-destructive` class.
+  - Ghost variant uses `bg-transparent` +
+    `hover:bg-accent/60`.
+  All 25 green. Downstream consumer sanity check:
+  `UIDemoRoute.test.tsx` + `DesignSystem.test.tsx`
+  (11 cases) also pass against the enhanced Button.
+
+### Versions
+
+- 1.11.325 -> 1.11.326 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.326]`.
+
 ## [1.11.325] - 2026-05-18 -- UI: storybook-style demo route (TODO 11.307)
 
 New `web/src/pages/UIDemoRoute.tsx` -- a single `/ui-demo`
