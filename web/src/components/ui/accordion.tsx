@@ -38,6 +38,27 @@ import { useReducedMotion } from '../../hooks/use-reduced-motion';
 
 export type AccordionMode = 'single' | 'multi';
 
+// (v1.11.387, TODO 11.369) Header heading level for the
+// trigger row. The legacy default is `h3`; callers can lower
+// the level (h4-h6) for nested accordions inside a page that
+// already has h2 sections, or raise it (h2) for a hero
+// FAQ-style accordion at the top of a page. The value is
+// strictly typed so adopters cannot pass invalid levels at
+// the type boundary.
+export type AccordionHeaderLevel = 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+// (v1.11.387, TODO 11.369) Panel content render strategy.
+//   - `'always'` (default, legacy byte-identical): every
+//     panel mounts on first render; closed panels are
+//     `hidden` so React/effects inside still fire. Cheap for
+//     small surfaces; matches the existing test suite.
+//   - `'lazy'`: a panel does not mount its `content` until the
+//     first time the item opens. Once mounted it stays
+//     mounted (so re-closing does NOT unmount). Useful when
+//     a panel hosts an expensive widget (chart, virtualized
+//     list, fetch-on-mount form).
+export type AccordionRenderMode = 'always' | 'lazy';
+
 export interface AccordionItem {
   id: string;
   title: ReactNode;
@@ -61,6 +82,20 @@ export interface AccordionProps
   onOpenIdsChange?: (ids: string[]) => void;
   ariaLabel?: string;
   className?: string;
+  // (v1.11.387, TODO 11.369) Heading level for the trigger
+  // row. Default `'h3'` matches the legacy markup
+  // byte-for-byte.
+  headerLevel?: AccordionHeaderLevel;
+  // (v1.11.387, TODO 11.369) When `mode='single'` and
+  // `collapsible=false`, clicking the active item does not
+  // close it -- so at least one panel stays open. Default
+  // `true` preserves the legacy "click-to-toggle-closed"
+  // behaviour. Ignored in `multi` mode (multi-open
+  // accordions can always close every panel).
+  collapsible?: boolean;
+  // (v1.11.387, TODO 11.369) Panel content render strategy.
+  // Default `'always'` keeps legacy byte-identical behaviour.
+  renderMode?: AccordionRenderMode;
 }
 
 function initialOpenSet(
@@ -93,6 +128,9 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
       onOpenIdsChange,
       ariaLabel = 'Accordion',
       className,
+      headerLevel = 'h3',
+      collapsible = true,
+      renderMode = 'always',
       ...rest
     },
     ref,
@@ -165,6 +203,10 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
       (id: string) => {
         const wasOpen = openSet.has(id);
         if (mode === 'single') {
+          // (v1.11.387, TODO 11.369) When `collapsible=false`,
+          // clicking the active item is a no-op so the
+          // accordion always has exactly one panel open.
+          if (wasOpen && !collapsible) return;
           const next = wasOpen ? new Set<string>() : new Set<string>([id]);
           commitOpen(next);
           return;
@@ -174,8 +216,34 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
         else next.add(id);
         commitOpen(next);
       },
-      [commitOpen, mode, openSet],
+      [commitOpen, mode, openSet, collapsible],
     );
+
+    // (v1.11.387, TODO 11.369) Lazy render tracking. Once an
+    // item has been opened we remember its id so a subsequent
+    // close keeps the panel mounted.
+    const everOpenedRef = useRef<Set<string>>(
+      new Set(openSet),
+    );
+    useEffect(() => {
+      // Sync the "has been open" set whenever the open set
+      // grows. We never remove ids -- once mounted, the panel
+      // stays in the tree (so internal state inside the
+      // content is preserved across collapse/expand).
+      let changed = false;
+      openSet.forEach((id) => {
+        if (!everOpenedRef.current.has(id)) {
+          everOpenedRef.current.add(id);
+          changed = true;
+        }
+      });
+      // The mutation does not need to trigger a re-render --
+      // React will re-render on the next state change that
+      // exposes the new content, which is exactly when the
+      // open set grew. The `changed` flag is kept as a marker
+      // for future diagnostics but is intentionally unused.
+      void changed;
+    }, [openSet]);
 
     const handleKeyDown = useCallback(
       (e: KeyboardEvent<HTMLDivElement>) => {
@@ -210,6 +278,9 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
         aria-label={ariaLabel}
         data-section="accordion"
         data-mode={mode}
+        data-collapsible={collapsible ? 'true' : 'false'}
+        data-render-mode={renderMode}
+        data-header-level={headerLevel}
         onKeyDown={handleKeyDown}
         className={cn('flex flex-col gap-2', className)}
         {...rest}
@@ -219,6 +290,15 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
           const isFocused = item.id === focusId;
           const headerId = `${baseId}-${item.id}-header`;
           const panelId = `${baseId}-${item.id}-panel`;
+          // (v1.11.387, TODO 11.369) Lazy render: skip the
+          // content children until the item has been opened at
+          // least once. We render the panel container either
+          // way so ARIA `aria-controls` always resolves; only
+          // the inner `content` is gated.
+          const hasEverOpened = everOpenedRef.current.has(item.id) || isOpen;
+          const shouldRenderContent =
+            renderMode === 'always' || hasEverOpened;
+          const HeaderTag = headerLevel;
           return (
             <section
               key={item.id}
@@ -227,9 +307,10 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
               data-accordion-item-disabled={
                 item.disabled ? 'true' : 'false'
               }
+              data-accordion-item-mounted={shouldRenderContent ? 'true' : 'false'}
               className="rounded-md border border-border bg-card/50"
             >
-              <h3 className="m-0">
+              <HeaderTag className="m-0">
                 <button
                   ref={(el) => {
                     triggerRefs.current[item.id] = el;
@@ -275,7 +356,7 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
                     ) : null}
                   </span>
                 </button>
-              </h3>
+              </HeaderTag>
               <div
                 id={panelId}
                 role="region"
@@ -290,7 +371,9 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
                   isOpen ? 'max-h-[1000px]' : 'max-h-0',
                 )}
               >
-                <div className="px-3 pb-3 pt-1 text-sm">{item.content}</div>
+                <div className="px-3 pb-3 pt-1 text-sm">
+                  {shouldRenderContent ? item.content : null}
+                </div>
               </div>
             </section>
           );
