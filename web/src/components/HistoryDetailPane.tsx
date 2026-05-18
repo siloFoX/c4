@@ -113,7 +113,10 @@ export default function HistoryDetailPane({ detail }: Props) {
     { value: 'metrics', label: 'Metrics', icon: <Activity className="h-3.5 w-3.5" aria-hidden="true" /> },
   ];
   return (
-    <Card className="flex h-full min-h-0 min-w-0 flex-col">
+    <Card
+      className="flex h-full min-h-0 min-w-0 flex-col"
+      data-print-section="history-detail"
+    >
       <CardHeader className="p-4 md:p-5">
         {/* (v1.11.301, TODO 11.283) Breadcrumb context row.
             Renders "History / <worker-name>" so the operator

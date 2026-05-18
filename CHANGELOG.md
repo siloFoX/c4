@@ -4,6 +4,127 @@
 
 (no entries -- next release window)
 
+## [1.11.363] - 2026-05-18 -- UI: print stylesheet sections (TODO 11.345)
+
+Extends the existing 11.196 print stylesheet with
+three new section hooks targeting the pages
+operators most commonly hand off as printed
+reports: History detail, Snapshots list, and the
+Specialists audit log.
+
+### Section hooks
+
+The marker is `data-print-section="..."` on a
+single root element per page. Three values are
+supported:
+
+- `history-detail` -- `HistoryDetailPane` Card.
+  Drops the avatar tile and breadcrumb in print
+  (the operator already knows whose history they
+  are printing), keeps the per-section
+  `break-inside: avoid` so the Task / Output /
+  Metrics tabs do not split across pages, and
+  trims the per-record action buttons (copy hash,
+  open commit) which would print as empty
+  squares.
+
+- `snapshots-list` -- the `<div>` wrapping the
+  Snapshots `<table>`. Forces `overflow: visible`
+  so the table is not clipped on a portrait sheet,
+  switches to `table-layout: fixed` so the columns
+  wrap predictably, drops the Actions column (only
+  buttons, all hidden), and tightens `padding` to
+  10pt.
+
+- `audit-log` -- `SpecialistsAuditPanel`'s root.
+  Drops the collapse toggle (the panel always
+  renders expanded in print), the window-filter +
+  export rows (no controls in print), and applies
+  `break-inside: avoid` per timeline entry so a
+  single audit row never splits across pages.
+
+### Generic in-section rules
+
+For any element carrying `data-print-section`, the
+sheet adds:
+
+- `page-break-before: always` (first section
+  excepted via `:first-of-type` reset).
+- `width: 100% !important; max-width: none
+  !important`.
+- Drop `border`, `box-shadow`, force white
+  background + black text -- the existing 11.196
+  body rules already do this for the page, but
+  the print section may have a stronger
+  background.
+- Hide common screen controls inside the section
+  selector: `[role="tablist"]`, `[role="navigation"]`,
+  `button`, `[data-pagination]`,
+  `[data-testid$="-button"]`, `[data-testid="copy-button"]`,
+  `[data-testid$="-filter"]`,
+  `[data-print-hide]`.
+
+The 11.196 chrome rules (nav, sidebar, toast,
+dropdown, tooltip, popover, drawer, command
+palette) still apply -- the section hooks only
+trim component-level controls inside the visible
+data surface.
+
+### Adoption
+
+- `web/src/components/HistoryDetailPane.tsx` --
+  outer Card carries `data-print-section="history-detail"`.
+- `web/src/pages/Snapshots.tsx` -- table-wrapping
+  `<div>` carries `data-print-section="snapshots-list"`.
+- `web/src/components/SpecialistsAuditPanel.tsx` --
+  panel root carries `data-print-section="audit-log"`.
+
+### Tests
+
+`web/src/styles/print.test.ts` gains 11 cases:
+section hooks declared, generic per-section rules
+(`page-break-before: always`, `width: 100%`,
+`max-width: none`), first-of-type reset, screen
+controls hidden inside the section, history-detail
+breadcrumb + avatar drop, history-detail
+sub-section `break-inside: avoid`,
+snapshots-list `overflow: visible` +
+`table-layout: fixed`, snapshots-list actions
+column hidden, audit-log toggle + window/export
+drop, audit-log timeline `break-inside: avoid`,
+and a structural assertion that every new rule
+lives inside the existing `@media print` block.
+
+19/19 tests pass (8 legacy + 11 new) against
+vitest 4.1.5; the three modified pages typecheck
+clean.
+
+### Reference
+
+ARPS design tokens (`/root/c4/arps-design-system-v1/tokens.css`)
+are not applied to the print sheet -- print uses
+black-on-white per the 11.196 contract -- but the
+section hooks map to the same surface boundaries
+the design system establishes for screen.
+
+### Out of scope
+
+- Vite extraction of the print sheet into a
+  separate stylesheet with `media="print"` so
+  screen renders never download it. The current
+  import pattern via `main.tsx` is intentional
+  (the `@media print` gate keeps the screen cost
+  to one parse). A follow-up patch could split
+  the stylesheet if first-paint regresses.
+- Print previews via puppeteer / playwright. Out
+  of scope for this patch; the section rules are
+  static CSS and the unit tests assert structural
+  invariants rather than rendered visuals.
+- Locale-aware date formatting in print. Headers
+  retain whatever the screen renders; a follow-up
+  patch (TODO 11.346) will adopt
+  Intl.DateTimeFormat at the call sites.
+
 ## [1.11.362] - 2026-05-18 -- UI: PWA manifest + service worker (TODO 11.344)
 
 Ships an offline-capable Progressive Web App

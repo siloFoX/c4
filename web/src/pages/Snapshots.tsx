@@ -339,7 +339,10 @@ export default function Snapshots() {
               ]}
             />
           </div>
-        <div className="overflow-x-auto rounded-md border border-border">
+        <div
+          className="overflow-x-auto rounded-md border border-border"
+          data-print-section="snapshots-list"
+        >
           <table
             data-testid="snapshots-table"
             className="w-full text-left text-sm"
