@@ -4,6 +4,247 @@
 
 (no entries -- next release window)
 
+## [1.11.414] - 2026-05-18 -- UI: snapshot diff viewer (TODO 11.396)
+
+New `web/src/components/ui/snapshot-diff.tsx`
+ships `<SnapshotDiff>` -- a side-by-side
+or unified text diff renderer with line
+numbers, fold-unchanged hunks, and
+prev/next change navigation. Pairs with
+audit log entries, change preview
+surfaces, and any host that needs to
+show a before / after comparison.
+
+### API
+
+```tsx
+<SnapshotDiff
+  before={oldText}
+  after={newText}
+  mode="unified"          // or "side-by-side"
+  language="ts"
+  contextLines={3}
+  showLineNumbers={true}
+  activeChangeIndex={0}   // controlled, optional
+  defaultActiveChangeIndex={0}
+  onActiveChangeIndex={(idx) => setIdx(idx)}
+  renderText={(text, lang) => <Highlight text={text} lang={lang} />}
+  defaultExpandedFolds={false}
+  ariaLabel="Audit diff"
+/>
+```
+
+### Diff engine (pure)
+
+`computeLineDiff(before, after)` runs
+an LCS-based line diff (Hirschberg-
+free; O(n*m) memory but linear-pass
+backtrack) and returns
+`DiffLine[]` with per-line
+`{ type: 'equal' | 'add' | 'remove',
+  oldLineNumber, newLineNumber, text }`.
+Empty strings produce no lines (the
+"both empty" case yields `[]`, not a
+single empty line).
+
+`findDiffChangeBlocks(lines)` groups
+consecutive non-equal lines into
+`{ startIndex, endIndex }` blocks --
+this is the navigation unit (one
+contiguous run of removes + adds
+counts as a single block).
+
+`groupDiffHunks(lines, contextLines)`
+splits the line array into hunks for
+rendering:
+- `{ type: 'lines', lines }` -- a
+  contiguous run of rendered rows.
+- `{ type: 'fold', lines, foldedLineCount }`
+  -- a collapsed run of unchanged
+  lines.
+
+The fold algorithm preserves
+`contextLines` rows on each side of
+every change block. At the start /
+end of the diff there is no anchor
+on one side, so the head / tail
+context collapses to zero.
+
+`pairSideBySide(lines)` is the
+side-by-side row generator: equal
+lines render on both sides; runs of
+removes get paired with subsequent
+adds (excess removes get empty
+right cells; excess adds get empty
+left cells).
+
+### Navigation
+
+- `Prev` / `Next` buttons in the
+  header cycle through change blocks
+  (wraps at the ends).
+- Keyboard inside the focused region:
+  `n` / `Alt+ArrowDown` -> next;
+  `p` / `Alt+ArrowUp` -> prev. Plain
+  ArrowUp / ArrowDown (without alt)
+  fall through to normal scrolling.
+- `activeChangeIndex` prop puts the
+  control under host ownership;
+  `onActiveChangeIndex(idx)` fires on
+  every navigation regardless of
+  mode.
+- Counter shows `<current+1> / <total>`
+  ("1 / 3"), or `0 / 0` when no
+  changes exist (buttons disabled).
+
+### Fold rendering
+
+Each fold renders one collapsible
+button with `aria-label="Expand <N>
+unchanged lines"`. Click expands
+that fold in place (state is per-
+hunk; expanding one fold does not
+expand others). `defaultExpandedFolds=
+true` mounts with every fold already
+expanded.
+
+### Syntax highlighting
+
+The component itself does NOT bundle
+a highlighter -- pass `renderText:
+(text, language) => ReactNode` to
+plug in Prism, Highlight.js, Shiki,
+etc. Default behaviour is plain
+text (the line content renders
+as-is in a monospace pre-wrap cell).
+
+### Data attributes
+
+Root (`role="region"`,
+`tabIndex={0}`, `aria-label`):
+
+- `data-section="snapshot-diff"`
+- `data-mode={'unified'|'side-by-side'}`
+- `data-language`
+- `data-change-count={N}`
+- `data-active-change-index`
+
+Header:
+
+- `data-section="snapshot-diff-header"`
+- summary span:
+  `data-section="snapshot-diff-summary"`
+  -> "+N -M"
+- nav: `-nav`, `-prev`, `-next`,
+  `-nav-counter`
+
+Body:
+
+- `data-section="snapshot-diff-body"`
+- inner table:
+  `-unified` or `-side-by-side`
+- row: `-row` +
+  `data-line-type={equal|add|remove}`
+  + `data-line-index={N}` +
+  `data-active={true|false}`
+- side-by-side cell: `-cell` +
+  `data-side={old|new}` +
+  `data-line-type={equal|add|remove|empty}`
+- line number: `-line-number` +
+  `data-side`
+- prefix: `-line-prefix`
+- content: `-line-content`
+- fold row: `-fold` + `data-fold-id`
+  + `data-fold-count`
+- fold button: `-fold-button`
+
+### Tests
+
+52 cases in `snapshot-diff.test.tsx`:
+
+- `computeLineDiff` (7): both empty,
+  empty before, empty after, all
+  equal, one-line change, line
+  numbers on mixed change, order
+  preserved across multiple edits.
+- `findDiffChangeBlocks` (4): empty,
+  single block, multiple blocks,
+  consecutive non-equal grouped.
+- `groupDiffHunks` (5): all-equal
+  folds entirely, long middle folds,
+  short equal runs unfolded, long
+  inter-change gap folds, empty
+  input.
+- `pairSideBySide` (5): equal pair,
+  remove + add pair, excess removes,
+  excess adds, empty input.
+- Component (31): aria-label default
+  + custom, root data attrs,
+  unified / side-by-side mode select,
+  summary line, prev / next disabled
+  / enabled, next wraps, prev wraps,
+  controlled override, line numbers
+  default / off, renderText hook,
+  per-row data-line-type, active
+  block highlight, counter "1 / N"
+  + "0 / 0", fold renders on long
+  unchanged regions, fold expand
+  click, side-by-side equal cells,
+  side-by-side pair, displayName,
+  ref forwarding, alt+ArrowDown
+  next, `n` next, `p` prev,
+  defaultExpandedFolds=true skips
+  collapse, data-fold-count, empty
+  body when both empty.
+
+52/52 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<CodeBlock>` (11.379) -- single-
+  block code rendering. SnapshotDiff
+  is the "two-block" variant.
+- `<VirtualTable>` (11.375) -- the
+  audit log surface that often hosts
+  SnapshotDiff in a row-expanded
+  detail panel.
+- The theme-customizer (11.394) --
+  SnapshotDiff reads `text-primary`,
+  `border-default` etc. via Tailwind
+  so it auto-themes with the
+  customizer.
+
+### Out of scope (deferred)
+
+- Bundled syntax highlighter. Pass
+  `renderText` to plug in Prism /
+  Highlight.js / Shiki. Bundling a
+  parser would balloon the primitive
+  budget.
+- Word / character-level intra-line
+  diff. Line-level only for v1; the
+  inline emphasis belongs in a
+  follow-on.
+- Three-way (merge) diff. The two-
+  way diff covers audit / preview;
+  three-way merge UX is a separate
+  primitive.
+- Patience / Myers-O(ND) diff. LCS
+  is correct + simple; faster
+  algorithms belong in a follow-on
+  for large files.
+- Side-by-side line pairing with
+  empty-row insertion to align
+  equal lines across a multi-line
+  add. The simpler "pair removes
+  with adds, fall through to
+  unpaired" contract is canonical
+  for v1.
+- Copy / share-link buttons. Belongs
+  in the audit log host, not the
+  primitive.
+
 ## [1.11.413] - 2026-05-18 -- UI: command-bar primitive (TODO 11.395)
 
 New `web/src/components/ui/command-bar.tsx`
