@@ -12,19 +12,22 @@ import {
 import PageFrame from './PageFrame';
 import {
   Badge,
+  BadgeCounter,
   Button,
-  Chip,
   EmptyState,
   Panel,
   RichText,
+  ScrollArea,
+  Tabs,
   TimeAgo,
   Timeline,
   UndoToast,
 } from '../components/ui';
-import type { TimelineItem, TimelineTone } from '../components/ui';
+import type { TabsItem, TimelineItem, TimelineTone } from '../components/ui';
+import Toast from '../components/Toast';
+import { useToast } from '../lib/use-toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useUndoToast } from '../hooks/use-undo-toast';
-import { cn } from '../lib/cn';
 
 // Notifications feed page (patch 11.186). Renders the unified lifecycle
 // notifications stream backed by GET /api/notifications when available,
@@ -172,6 +175,11 @@ export default function Notifications() {
   const { active: undoActive, showUndo } = useUndoToast({
     durationMs: UNDO_BANNER_MS,
   });
+  // (v1.11.342, TODO 11.324) Success toast for the
+  // Mark-all-read action. Errors do not occur on this
+  // local-state flip; the toast simply confirms the count
+  // that was just marked.
+  const { toast, showToast, dismissToast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -262,8 +270,64 @@ export default function Notifications() {
     [items, readAt],
   );
 
+  // (v1.11.342, TODO 11.324) Per-kind counts for the Tabs
+  // strip. Computed from `items` so the chips refresh
+  // immediately on a Clear-all / Undo without needing an
+  // extra trigger.
+  const kindCounts = useMemo(() => {
+    const base: Record<NotificationType, number> = {
+      dispatch: 0,
+      complete: 0,
+      halt: 0,
+      escalation: 0,
+      system: 0,
+    };
+    if (!items) return { ...base, all: 0 };
+    for (const n of items) {
+      base[n.type] += 1;
+    }
+    return { ...base, all: items.length };
+  }, [items]);
+
+  // (v1.11.342, TODO 11.324) Tabs strip items. Each label
+  // pairs the human-readable kind with a count chip so the
+  // operator can scan workload before clicking through.
+  const tabItems = useMemo<TabsItem[]>(
+    () =>
+      FILTERS.map((f) => ({
+        value: f.key,
+        label: (
+          <span
+            className="inline-flex items-center gap-1.5"
+            data-filter={f.key}
+          >
+            {f.label}
+            <span
+              data-testid={`notifications-tab-count-${f.key}`}
+              className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-muted px-1 text-[10px] text-muted-foreground"
+            >
+              {kindCounts[f.key]}
+            </span>
+          </span>
+        ),
+      })),
+    [kindCounts],
+  );
+
   const handleMarkAllRead = () => {
+    // (v1.11.342, TODO 11.324) Surface a success Toast with
+    // the marked count so the operator sees explicit
+    // confirmation of the local-state flip. Skip the toast
+    // when there were already zero unread items (the button
+    // is disabled in that state but defensive).
+    const unreadBefore = totalUnread;
     setReadAt(Date.now());
+    if (unreadBefore > 0) {
+      showToast(
+        `Marked ${unreadBefore} notification${unreadBefore === 1 ? '' : 's'} as read.`,
+        'success',
+      );
+    }
   };
 
   const handleLoadMore = () => {
@@ -307,7 +371,23 @@ export default function Notifications() {
       title="Notifications"
       description="Unified feed of lifecycle events from the autonomous loop and daemon."
       actions={
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {/* (v1.11.342, TODO 11.324) BadgeCounter chip
+              surfaces the unread count next to the
+              Mark-all-read button so the operator sees the
+              workload before clicking. tone="accent" matches
+              the rest-of-app warning palette for "needs
+              attention" affordances. Hidden when there is
+              nothing to mark. */}
+          {totalUnread > 0 ? (
+            <BadgeCounter
+              count={totalUnread}
+              tone="accent"
+              size="sm"
+              srLabel={`${totalUnread} unread notification${totalUnread === 1 ? '' : 's'}`}
+              data-testid="notifications-unread-counter"
+            />
+          ) : null}
           <Button
             type="button"
             size="sm"
@@ -345,37 +425,28 @@ export default function Notifications() {
         </div>
       )}
 
+      {/* (v1.11.342, TODO 11.324) Tabs primitive replaces
+          the prior hand-rolled <button><Chip> filter strip.
+          Each tab label embeds the per-kind count chip. The
+          role="group" wrapper is preserved so the existing
+          accessibility hook ("Filter notifications by type")
+          and the per-key data-filter attribute (used by
+          tests + e2e) survive the swap. */}
       <div
         role="group"
         aria-label="Filter notifications by type"
         className="flex flex-wrap items-center gap-2"
+        data-testid="notifications-filter-tabs"
       >
-        {FILTERS.map((f) => {
-          const selected = activeFilter === f.key;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => {
-                setActiveFilter(f.key);
-                setVisibleLimit(PAGE_SIZE);
-              }}
-              aria-pressed={selected}
-              data-filter={f.key}
-              className={cn(
-                'rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              )}
-            >
-              <Chip
-                tone={selected ? 'primary' : 'neutral'}
-                variant={selected ? 'solid' : 'subtle'}
-                size="md"
-              >
-                {f.label}
-              </Chip>
-            </button>
-          );
-        })}
+        <Tabs
+          value={activeFilter}
+          onChange={(value) => {
+            setActiveFilter(value as FilterKey);
+            setVisibleLimit(PAGE_SIZE);
+          }}
+          items={tabItems}
+          ariaLabel="Filter notifications by type"
+        />
       </div>
 
       <Panel className="p-4">
@@ -400,7 +471,19 @@ export default function Notifications() {
             data-testid="notifications-empty-state"
           />
         ) : (
-          <Timeline items={timelineItems} groupByDay />
+          /* (v1.11.342, TODO 11.324) ScrollArea caps the
+             feed height so a 50+ item Timeline does not
+             push the page below the fold. Below the cap
+             the Timeline scrolls inside its own scroll
+             shell, leaving the toolbar + filter strip
+             fixed in the viewport. */
+          <ScrollArea
+            axis="y"
+            data-testid="notifications-scrollarea"
+            className="max-h-[60vh]"
+          >
+            <Timeline items={timelineItems} groupByDay />
+          </ScrollArea>
         )}
       </Panel>
 
@@ -441,6 +524,22 @@ export default function Notifications() {
         onConfirm={confirmClearAll}
         onCancel={cancelClearConfirm}
       />
+
+      {/* (v1.11.342, TODO 11.324) Success-path Toast slot
+          for the Mark-all-read action. Clear-all still uses
+          its own UndoToast banner above; this slot covers
+          the lighter "I just flipped my unread chip"
+          confirmation. */}
+      <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">
+        {toast && (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onDismiss={dismissToast}
+          />
+        )}
+      </div>
     </PageFrame>
   );
 }

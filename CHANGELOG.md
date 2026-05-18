@@ -4,6 +4,80 @@
 
 (no entries -- next release window)
 
+## [1.11.342] - 2026-05-18 -- UI: Notifications page polish (TODO 11.324)
+
+Polishes `web/src/pages/Notifications.tsx` with a Tabs
+strip for kind filtering (replacing the hand-rolled
+Chip buttons), a BadgeCounter for the unread count, a
+ScrollArea cap on the feed, and a success Toast for the
+Mark-all-read action. Component-scope only, no daemon
+or CLI surface change. TimeAgo timestamps already
+shipped in v1.11.289 and are preserved.
+
+### Added
+
+- `Tabs` primitive replacing the prior `<button><Chip>`
+  filter strip. Six options (`All`, `Dispatch`,
+  `Complete`, `Halt`, `Escalation`, `System`) each
+  carrying a count chip with the per-kind total. The
+  outer `role="group"` wrapper and per-key `data-filter`
+  attributes are preserved so existing tests + e2e
+  selectors keep working.
+- `BadgeCounter` chip beside the Mark-all-read button.
+  Renders the unread count with `tone="accent"`,
+  `size="sm"`, and an aria-label like
+  `"<n> unread notification[s]"`. Hidden when there are
+  no unread items.
+- `ScrollArea axis="y" className="max-h-[60vh]"` wrapper
+  around the Timeline so a 50+ item feed scrolls inside
+  its own shell instead of pushing the toolbar below
+  the fold.
+- Success `Toast` on Mark-all-read. Surfaces
+  `"Marked <n> notification[s] as read."` after the
+  local-state flip. The Clear-all flow keeps its
+  existing UndoToast banner.
+- Per-kind count chip `data-testid`:
+  `notifications-tab-count-{all|dispatch|complete|halt|
+  escalation|system}`.
+- Data attributes:
+  - `data-testid="notifications-filter-tabs"` on the
+    Tabs wrapper.
+  - `data-testid="notifications-unread-counter"` on the
+    BadgeCounter chip.
+  - `data-testid="notifications-scrollarea"` on the
+    ScrollArea wrapper around the Timeline.
+
+### Changed
+
+- Imports: added `BadgeCounter`, `ScrollArea`, `Tabs`,
+  `TabsItem` from the ui barrel; added `Toast` from
+  `../components/Toast` and `useToast` from
+  `../lib/use-toast`. Removed the now-unused `Chip`
+  import and the `cn` helper import (the prior chip
+  className composition is gone).
+- `handleMarkAllRead` now snapshots the unread count
+  before flipping `readAt` so the success toast can
+  echo the right number. Skips the toast entirely when
+  the count was zero (defensive; the button is also
+  disabled in that state).
+- `tabItems` (new memo) renders each filter label with
+  an inline count chip. Preserves `data-filter` on the
+  label span so the legacy DOM-attribute selector still
+  matches.
+
+### Tests
+
+- `web/src/pages/Notifications.test.tsx` -- existing 17
+  cases unchanged. Five new cases:
+  - BadgeCounter chip shows the unread count;
+  - BadgeCounter chip hides when there are no unread
+    items;
+  - Mark-all-read fires a success toast with the
+    marked count;
+  - per-kind count chips render correct totals;
+  - timeline wraps in a `ScrollArea`.
+- 22/22 cases pass against vitest 4.1.5 + jsdom 29.1.1.
+
 ## [1.11.341] - 2026-05-18 -- UI: TokenUsage page polish (TODO 11.323)
 
 Polishes `web/src/pages/TokenUsage.tsx` with a new
