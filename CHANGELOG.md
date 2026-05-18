@@ -4,6 +4,101 @@
 
 (no entries -- next release window)
 
+## [1.11.327] - 2026-05-18 -- UI: Input primitive enhancements (TODO 11.309)
+
+Enhances `web/src/components/ui/input.tsx` with icon slots,
+a built-in clear button, and unified warning/success state
+slots that mirror the existing error slot.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `leadingIcon?: ReactNode` prop. Renders as an inline
+  span on the left edge of the input frame with
+  `data-section="input-leading"` and `aria-hidden="true"`.
+  The input gets `pl-9` to make room.
+- `trailingIcon?: ReactNode` prop. Same shape on the
+  right edge with `data-section="input-trailing"`. The
+  input gets `pr-9`.
+- `onClear?: () => void` callback. When provided AND the
+  input has a non-empty value (controlled `value` or
+  uncontrolled `defaultValue`), an X button renders at
+  the trailing edge with `data-section="input-clear"`.
+  Clicking it calls `onClear()`. `trailingIcon` takes
+  precedence -- the clear button only renders when no
+  explicit trailing icon is given.
+- `clearLabel?: string` prop (default `'Clear'`). SR
+  label for the clear button.
+- `warning?: ReactNode` and `success?: ReactNode` message
+  slots that mirror the existing `error` slot:
+  - Render a `<p>` below the input with
+    `data-section="input-warning"` /
+    `data-section="input-success"`.
+  - Wire the message id into `aria-describedby`.
+  - Apply a tone class (`border-warning`,
+    `border-success`) on the input.
+  - Do NOT flip `aria-invalid` (warning and success are
+    non-blocking states).
+- Data-attribute selectors throughout:
+  `data-section="input-control" | "input-field" | "input-wrap" | "input-leading" | "input-trailing" | "input-clear" | "input-hint" | "input-error" | "input-warning" | "input-success"`
+  plus `data-state="default|error|warning|success"` on
+  the input, field wrapper, and decoration wrapper.
+
+### Changed
+
+- Shared `TONE_CLASSES` constant inside `input.tsx`
+  keyed by canonical state name (`default | error |
+  warning | success`). FormField, NativeSelect, and any
+  other form-control primitive that adopts the same
+  vocabulary in a follow-up patch will share the same
+  border/focus-ring class set.
+- State precedence is now explicit: `error > warning >
+  success > default`. All three message slots can be
+  rendered simultaneously; the input's tone class
+  reflects only the highest-precedence state.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed SearchBar, Settings inputs, and
+  Snapshots filter as adoption sites. Threading
+  `leadingIcon={<SearchIcon />}` + `onClear={...}` at
+  those call sites is a follow-up per-page patch so
+  each migration lands with its own test refresh.
+
+### Tests
+
+- `web/src/components/ui/input.test.tsx` -- 22 new
+  vitest cases on top of the existing 20 (42 total).
+  New coverage:
+  - Icon slots (4): leadingIcon renders with pl-9,
+    trailingIcon renders with pr-9, slots are
+    aria-hidden, icon-decorated input is wrapped in
+    `[data-section="input-wrap"]`.
+  - Clear button (8): not rendered without onClear,
+    not rendered when value is empty, rendered when
+    onClear + non-empty value, custom clearLabel,
+    onClick fires onClear, adds pr-9, trailingIcon
+    takes precedence, works with defaultValue.
+  - Warning slot (3): message and tone class
+    rendered, aria-describedby wired, does not set
+    aria-invalid.
+  - Success slot (2): message and tone class
+    rendered, does not set aria-invalid.
+  - State precedence (3): error beats warning + success,
+    warning beats success, default when no slot is set.
+  - Data attributes (2): `data-section="input-control"`
+    + `data-state` on the input, `data-section="input-field"`
+    + `data-state` on the slotted wrapper.
+  All 42 green. Downstream sanity check: SearchBar +
+  FormField (55 cases) also pass against the enhanced
+  Input.
+
+### Versions
+
+- 1.11.326 -> 1.11.327 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.327]`.
+
 ## [1.11.326] - 2026-05-18 -- UI: Button primitive enhancements (TODO 11.308)
 
 Enhances `web/src/components/ui/button.tsx` with a loading
