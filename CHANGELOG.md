@@ -4,6 +4,92 @@
 
 (no entries -- next release window)
 
+## [1.11.381] - 2026-05-18 -- UI: dialog size variants (TODO 11.363)
+
+The `<Dialog>` primitive itself shipped earlier
+with focus trap (useFocusTrap), backdrop click
+close (closeOnBackdropClick, default true),
+Escape key (closeOnEsc), scroll lock
+(lockBodyScroll), variants
+(default/destructive/confirmation), and ARIA
+(role=dialog, aria-modal, aria-labelledby,
+aria-describedby). This patch lands the missing
+size variants the dispatch called out:
+sm / md / lg / full.
+
+### New `size` prop
+
+```ts
+type DialogSize = 'sm' | 'md' | 'lg' | 'full';
+```
+
+| size | max-width / clamp | notes |
+| --- | --- | --- |
+| `sm` | `max-w-sm` | confirmations, single-question prompts |
+| `md` | `max-w-lg` | default; matches the legacy width byte-identical |
+| `lg` | `max-w-3xl` | multi-field edit forms |
+| `full` | `max-w-[min(96vw,1280px)] max-h-[95vh] h-[95vh] overflow-y-auto` | full-screen edit surfaces with internal scroll |
+
+The default is `'md'` so every existing call site
+that omits `size` stays byte-identical (the
+underlying `max-w-lg` class is preserved). The
+panel gains `data-size="<size>"` for e2e
+selectors.
+
+`className` overrides continue to compose AFTER
+the size class so adopters can layer custom
+widths when the canonical set does not fit.
+
+### Tests
+
+`web/src/components/ui/dialog.test.tsx` -- adds 6
+new cases on top of the existing 27:
+
+- Default size = `'md'`; `max-w-lg` present;
+  `data-size="md"`.
+- `size="sm"` -> `max-w-sm`; `data-size="sm"`.
+- `size="lg"` -> `max-w-3xl`; `data-size="lg"`.
+- `size="full"` -> viewport-fill clamps
+  (`96vw` + `max-h-[95vh]` + `h-[95vh]` +
+  `overflow-y-auto`); `data-size="full"`.
+- `className` override composes after the size
+  classes.
+- `data-size` attribute is always present
+  across all four sizes.
+
+33/33 pass under vitest 4.1.5. TypeScript clean.
+
+### Pairs with existing primitives
+
+- `useFocusTrap` -- unchanged.
+- `getPortalRoot('dialog-root')` -- unchanged.
+- Variants
+  (`default` / `destructive` / `confirmation`)
+  remain orthogonal to size; combine freely
+  (e.g. `<Dialog variant="destructive"
+  size="sm">`).
+- `data-size` attribute joins
+  `data-variant` so e2e selectors can target
+  the visual axis they care about.
+
+### Out of scope
+
+- Per-page adoption (Snapshots restore /
+  delete, Templates import, Profiles delete
+  etc). The new size prop is additive; existing
+  call sites pick a size when they need it.
+  A future patch can audit the modals + adopt
+  appropriate sizes per surface.
+- An `xs` size below `sm`. The canonical four
+  cover the existing use cases.
+- Responsive size cascades (small viewport
+  collapses `lg` to `md`). Tailwind's `max-w-*`
+  already self-clamps to the viewport width;
+  no separate breakpoint logic needed.
+- Animation differences per size. The
+  `motionClass('scaleIn')` transition stays
+  identical across sizes.
+
 ## [1.11.380] - 2026-05-18 -- UI: dropdown menu sections + checkbox + radio + shortcuts (TODO 11.362)
 
 The `<DropdownMenu>` primitive shipped in 8.41

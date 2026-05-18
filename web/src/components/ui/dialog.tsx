@@ -30,6 +30,25 @@ import { useReducedMotion } from '../../hooks/use-reduced-motion';
 
 export type DialogVariant = 'default' | 'destructive' | 'confirmation';
 
+// (v1.11.381, TODO 11.363) Size variants. Map to
+// max-width / width tokens that match the rest of
+// the design system. `md` is the legacy default
+// (`max-w-lg`) so existing call sites remain
+// byte-identical without changes.
+export type DialogSize = 'sm' | 'md' | 'lg' | 'full';
+
+const SIZE_CLASSES: Record<DialogSize, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-3xl',
+  // (v1.11.381) `full` fills the available viewport
+  // minus the backdrop padding (p-4 on the
+  // backdrop), suitable for full-screen edit
+  // surfaces. Caps at 95vh so the panel always
+  // shows its bottom border.
+  full: 'max-w-[min(96vw,1280px)] max-h-[95vh] h-[95vh] overflow-y-auto',
+};
+
 interface DialogProps {
   open: boolean;
   onClose: () => void;
@@ -38,6 +57,10 @@ interface DialogProps {
   children?: ReactNode;
   footer?: ReactNode;
   variant?: DialogVariant;
+  // (v1.11.381, TODO 11.363) Size variant.
+  // Defaults to `'md'` (max-w-lg) so existing call
+  // sites stay byte-identical.
+  size?: DialogSize;
   // (v1.11.302) Optional leading icon override. When false
   // suppresses the auto-icon shipped with destructive /
   // confirmation variants. When a ReactNode, replaces the
@@ -80,6 +103,7 @@ export function Dialog({
   children,
   footer,
   variant = 'default',
+  size = 'md',
   icon,
   lockBodyScroll = true,
   closeOnBackdropClick = true,
@@ -142,9 +166,11 @@ export function Dialog({
         aria-describedby={ariaDescribedBy}
         data-section="dialog"
         data-variant={variant}
+        data-size={size}
         tabIndex={-1}
         className={cn(
-          'w-full max-w-lg rounded-lg border bg-card p-4 shadow-xl outline-none',
+          'w-full rounded-lg border bg-card p-4 shadow-xl outline-none',
+          SIZE_CLASSES[size],
           VARIANT_BORDER[variant],
           motionClass('scaleIn', reducedMotion),
           className,
