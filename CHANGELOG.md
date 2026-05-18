@@ -4,6 +4,128 @@
 
 (no entries -- next release window)
 
+## [1.11.354] - 2026-05-18 -- UI: Optimistic update hook (TODO 11.336)
+
+Ships a shared `useOptimisticMutation` hook that
+standardises the snapshot -> optimistic projection ->
+async commit -> rollback-on-error flow. Many pages
+already re-implement this pattern inline (Queue,
+Profiles, Templates, Snapshots); the hook collapses
+the five-line `try / setRows(opt) / await / catch /
+setRows(prev) / finally` block into a single
+`mutate(project, commit)` call.
+
+### Added
+
+- `web/src/lib/use-optimistic-mutation.ts` -- hook
+  + interfaces. Public surface:
+  ```ts
+  const [rows, setRows] = useState<Row[]>([]);
+  const { mutate, pending, error, reset } =
+    useOptimisticMutation({ state: rows, setState: setRows });
+
+  await mutate(
+    (prev) => prev.map((r) => r.id === id ? { ...r, status } : r),
+    async () => {
+      const data = await apiPost('/api/...', { ... });
+      return data.rows;  // optional authoritative replacement
+    },
+    { onSuccess, onError, keepOptimisticOnError },
+  );
+  ```
+  - `project` accepts either a new state value OR a
+    reducer function `(prev) => next`.
+  - `commit` returns either `void` (optimistic stays)
+    or `Promise<TState>` (authoritative
+    replacement).
+  - `keepOptimisticOnError` opt-out for adopters that
+    prefer "optimistic wins on error" semantics.
+- `web/src/lib/use-optimistic-mutation.test.ts` --
+  12 unit cases:
+  - initial pending=false / error=null;
+  - optimistic projection applied + kept on success;
+  - commit value replaces state when defined;
+  - rollback on error;
+  - `keepOptimisticOnError=true` keeps the
+    projection;
+  - project value (not function) shape;
+  - `onSuccess` invocation;
+  - `onError` invocation (no `onSuccess` fired);
+  - `pending` flips true during commit;
+  - `reset` clears error + pending;
+  - non-Error throws are coerced into Error
+    instances;
+  - sequential mutates see each other's state.
+
+### Adoption pattern
+
+The classical inline pattern (Queue.tsx today):
+
+```tsx
+const commit = useCallback(async (next: Row[]) => {
+  const prev = rows;
+  setRows(next);
+  setBusy(true);
+  setSaveError(null);
+  try {
+    const data = await apiPost('/api/...', { rows: next });
+    if (data.rows) setRows(data.rows);
+  } catch (e) {
+    setSaveError((e as Error).message);
+    setRows(prev);
+  } finally {
+    setBusy(false);
+  }
+}, [rows]);
+```
+
+Migrates to:
+
+```tsx
+const { mutate, pending, error } =
+  useOptimisticMutation({ state: rows, setState: setRows });
+
+const commit = useCallback(async (next: Row[]) => {
+  await mutate(
+    next,
+    async () => {
+      const data = await apiPost('/api/...', { rows: next });
+      return data.rows;
+    },
+  );
+}, [mutate]);
+```
+
+`pending` replaces the page's `busy`,
+`error?.message` replaces `saveError`. The hook owns
+the snapshot + rollback, so the adopter never holds a
+stale closure over the previous state.
+
+### Deferred (adoptions)
+
+The dispatch lists Profiles save / Templates save /
+Snapshots create as adoption sites. Each adoption is
+a one-function rewrite (the inline commit closure
+becomes a `mutate(...)` call). The existing per-page
+test suites assert the page's `busy` / `error` /
+rollback behaviour with the inline-closure shape; the
+hook produces functionally equivalent semantics
+but the test assertions may need re-pointing at the
+hook's `pending` / `error` instead of the page's
+local state.
+
+The hook is stable. Per-page adoption is deferred so
+each page's test update can land alongside the swap,
+preserving review clarity. The hook's `state` /
+`setState` contract is intentionally controlled-form
+so adopters keep using their existing `useState`
+declarations without renaming.
+
+### Tests
+
+- `use-optimistic-mutation.test.ts` -- 12/12 pass
+  against vitest 4.1.5 + jsdom 29.1.1.
+
 ## [1.11.353] - 2026-05-18 -- UI: Loading skeleton orchestration (TODO 11.335)
 
 Ships a shared `useLoadingSkeleton(loading, opts?)`
