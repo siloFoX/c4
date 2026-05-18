@@ -4,6 +4,167 @@
 
 (no entries -- next release window)
 
+## [1.11.372] - 2026-05-18 -- UI: form validation framework (TODO 11.354)
+
+Extends the existing `lib/form-validation.ts`
+primitives (11.186 shipped `required` / `minLength`
+/ `maxLength` / `pattern` / `email` / `custom` /
+`compose`) with a schema-based validation surface,
+async validator support, ARIA error association
+helpers, and a `useForm` hook. Adopters get a
+zod-shaped API without the runtime dependency.
+
+### Schema validators (`lib/form-validation.ts`)
+
+```ts
+type AsyncValidator<T> = (value: T) => Promise<ValidationResult>;
+type AnyValidator<T>   = Validator<T> | AsyncValidator<T>;
+type Schema<T>         = { [K in keyof T]?: AnyValidator<T[K]> };
+
+validateSchema(schema, values): { ok, errors, valid }
+validateSchemaAsync(schema, values, { onAsyncError? }): Promise<{ ok, errors, valid }>
+```
+
+- Sync pass: every validator that returns a plain
+  `{ error?: string }` runs immediately; async
+  validators are skipped (they fire in the async
+  pass).
+- Async pass: sync + async validators run in
+  parallel via `Promise.all`. Async rejections
+  surface as `'Validation failed'` (or a custom
+  message via `onAsyncError`).
+- Sync throws inside a validator's function body
+  are caught and surfaced the same way.
+
+### ARIA + Tailwind helpers
+
+```ts
+ariaErrorProps(error, errorId, describedByExtra?):
+  { 'aria-invalid'?: true; 'aria-describedby'?: string }
+
+fieldErrorClass(hasError): string  // canonical destructive border + ring
+hasAnyError<T>(errors): boolean
+```
+
+`ariaErrorProps` returns an empty object when the
+field has no error so a spread does not toggle
+the attributes. When `describedByExtra` is passed
+it appends to `aria-describedby` (lets adopters
+chain a hint id + an error id).
+
+### `lib/use-form.ts` -- React hook
+
+```tsx
+const form = useForm({
+  initialValues: { name: '', email: '' },
+  schema: {
+    name: required(),
+    email: compose(required(), email()),
+  },
+});
+const nameField = form.field('name');
+<Input
+  value={nameField.value}
+  onChange={(e) => nameField.onChange(e.target.value)}
+  onBlur={nameField.onBlur}
+  error={nameField.error}
+  id={nameField.id}
+  aria-describedby={nameField.props['aria-describedby']}
+/>
+<form onSubmit={form.handleSubmit(async (values) => save(values))}>
+  ...
+</form>
+```
+
+- State: `values`, `errors`, `touched`,
+  `isValid`, `isSubmitting`.
+- Mutators: `setValue` / `setValues` / `setError`
+  / `setErrors` / `setTouched`.
+- Validation: `validate()` (sync only) /
+  `validateAsync()` (full).
+- Submit: `handleSubmit(onValid, onInvalid?)`
+  wraps `<form onSubmit>`; touches every field,
+  runs the full async pass, calls `onValid` only
+  when validation succeeds.
+- `field(name)` returns a bundled handle:
+  `value` / `onChange` / `onBlur` / `error` /
+  `touched` / `id` / `errorId` / `props` (ARIA)
+  / `errorClass` (Tailwind).
+- Stable ids: each field gets a stable
+  `${baseId}-${name}` so `aria-describedby`
+  references resolve across re-renders.
+
+`validateOnChange` (default `true`) gates the
+per-keystroke validation so only touched fields
+re-validate. `validateOnBlur` (default `true`)
+runs validation on every blur even if the field
+was clean. Both are tunable.
+
+### Tests
+
+`web/src/lib/form-validation.test.ts` -- adds 22
+cases on top of the existing 18:
+
+- `validateSchema`: clean pass, per-field errors,
+  async-skipped-in-sync-pass, sparse schema.
+- `validateSchemaAsync`: resolves async errors,
+  clean pass, sync + async parallel, catches
+  rejections, custom `onAsyncError`, catches
+  sync throw in body.
+- `ariaErrorProps`: no-error -> empty, no-error
+  + describedByExtra forwards, error sets both
+  attrs, errorId + extra concatenated.
+- `fieldErrorClass`: empty when clean,
+  destructive border + ring when error.
+- `hasAnyError`: at-least-one true, all-clean
+  false.
+
+`web/src/lib/use-form.test.ts` -- 12 cases:
+
+- Initial state shape; setValue + skip-when-untouched;
+  setValue + validate-when-touched;
+  onBlur sets touched + validates;
+  validate() / validateAsync() return + persist
+  errors; setError / setErrors override; reset
+  with default + override; handleSubmit success
+  / failure / async; field() bundled ARIA flips
+  on error; field id stability per name.
+
+40/40 pass under vitest 4.1.5. TypeScript clean
+for the new source files. Pre-existing
+strict-tuple errors in legacy use-validations
+test remain unchanged.
+
+### Why not zod?
+
+The dispatch language mentioned "Zod schema-based
+validation" but the project carries no `zod`
+dependency today. Adding a runtime dep for a
+form-validation surface that the existing
+`Validator<T>` shape already covers would be
+disproportionate. The new schema API mirrors the
+zod ergonomics (`{ field: validator }`,
+`{ ok, errors }` result) without the bundle hit,
+and future migration to zod is a drop-in once an
+adopter actually needs the richer parsing.
+
+### Out of scope
+
+- Per-page adoption (Login / Settings /
+  WikiPage forms still use direct state +
+  inline validation). Each migration pairs
+  better with its page's own loading-state +
+  i18n refactor.
+- Field array / nested object validation.
+  Schema is flat today; nested adoption is a
+  follow-up.
+- File / blob validation. `lib/file-upload.ts`
+  already provides `validateFile`; integration
+  with `useForm` is a follow-up.
+- Cross-field rules (confirm-password). The
+  schema is per-field today; an additional
+  `crossFieldValidators` slot is a follow-up.
+
 ## [1.11.371] - 2026-05-18 -- UI: dark mode polish + sync (TODO 11.353)
 
 The dark-mode toggle + localStorage persistence
