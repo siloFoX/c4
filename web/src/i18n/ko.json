@@ -1316,6 +1316,7 @@
   "shortcuts.section.navigation": "탐색",
   "shortcuts.section.actions": "동작",
   "shortcuts.section.view": "보기",
+  "shortcuts.section.recent": "Recently used",
   "shortcuts.search.placeholder": "단축키 필터...",
   "shortcuts.search.ariaLabel": "단축키 필터",
   "shortcuts.search.empty": "일치하는 단축키 없음",

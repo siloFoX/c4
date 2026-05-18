@@ -4,6 +4,118 @@
 
 (no entries -- next release window)
 
+## [1.11.330] - 2026-05-18 -- UI: Keyboard Shortcuts overlay enhancements (TODO 11.312)
+
+Enhances `web/src/components/KeyboardShortcutsModal.tsx`
+with platform-aware keymap rendering and a "Recently
+used" section pinned above the category accordion.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/lib/shortcut-keymap.ts` -- platform-aware
+  keymap formatter:
+  - `detectPlatform()` -> `'mac' | 'other'`. Reads
+    `navigator.platform` first, falls back to
+    `navigator.userAgent`. SSR-safe (returns
+    `'other'` when `navigator` is undefined).
+  - `formatKeymap(label, platform?)` -- rewrites
+    canonical shortcut labels per platform:
+    `Ctrl -> Cmd` and `Alt -> Option` on Mac;
+    `Cmd -> Ctrl` and `Option -> Alt` on others.
+    Multi-modifier shortcuts (`Ctrl+Shift+P`),
+    Shift, and single-key labels (`?`, `Esc`) are
+    handled. Chord shortcuts (`g h`) untouched.
+  - `formatKeymapForCurrentPlatform(label)` --
+    convenience wrapper using the live platform.
+- `web/src/lib/shortcut-recently-used.ts` --
+  localStorage-backed recently-used shortcut
+  tracker:
+  - `getRecentlyUsedShortcuts(): string[]` --
+    most-recent-first list, capped at `MAX_ENTRIES`
+    (5).
+  - `markShortcutUsed(label)` -- move-to-front
+    dedup, persist to
+    `localStorage[c4:shortcuts:recent]`, broadcast
+    a `shortcut-recently-used-changed`
+    CustomEvent so every modal instance picks up
+    the change.
+  - `clearRecentlyUsedShortcuts()` -- wipe + event.
+  - `useRecentlyUsedShortcuts()` hook -- live list,
+    re-renders on change.
+  - `useMarkShortcutUsed()` hook -- stable mark
+    callback.
+  - Survives malformed storage (non-JSON, non-array,
+    non-string entries) gracefully.
+- `KeyboardShortcutsModal.tsx`:
+  - Each rendered `<Kbd>` now passes the label
+    through `formatKeymapForCurrentPlatform()` so
+    Mac operators see "Cmd+B" while Win/Linux
+    operators see "Ctrl+B".
+  - New "Recently used" section pinned above the
+    category accordion. Rendered when there is
+    history AND the filter still matches at least
+    one recent row. Tagged
+    `data-shortcuts-section="recent"`.
+  - i18n: `shortcuts.section.recent = "Recently
+    used"` added to en.json + ko.json (lockstep
+    preserved).
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed "customizable keymap display"
+  -- patch 11.312 ships the platform-aware
+  formatter that handles the common Mac vs PC
+  case. A future patch could expose a per-shortcut
+  override hook so an operator who prefers
+  `Control` over `Cmd` on Mac (rare but real) can
+  toggle the convention.
+- The dispatch listed "recently-used shortcuts row"
+  -- patch 11.312 ships the storage + hook + UI
+  surface. Adoption (wiring `markShortcutUsed(label)`
+  into the global key listener after each
+  successful dispatch) is a follow-up per-handler
+  patch so the recording lands in lockstep with
+  the existing dispatcher contract.
+
+### Tests
+
+- `web/src/lib/shortcut-keymap.test.ts` -- 15
+  vitest cases:
+  - `detectPlatform` (5): MacIntel, iPhone, Win32,
+    Linux, userAgent fallback.
+  - `formatKeymap` (8): Ctrl/Alt -> mac, Cmd/Option
+    -> other, multi-modifier, Shift untouched,
+    chord untouched, single-key untouched,
+    idempotent mac, idempotent other.
+  - `formatKeymapForCurrentPlatform` (2): live
+    platform mac + other.
+- `web/src/lib/shortcut-recently-used.test.ts` --
+  17 vitest cases:
+  - storage (10): empty initial state, prepend,
+    move-to-front dedup, cap at MAX_ENTRIES,
+    ignores empty labels, persists to
+    localStorage, clears, malformed storage,
+    non-array, non-string entries, change event
+    dispatch.
+  - useRecentlyUsedShortcuts hook (3): initial
+    storage value, updates on mark, updates on
+    clear.
+  - useMarkShortcutUsed hook (1): stable
+    callback records the shortcut.
+- Sanity check: 47 existing KeyboardShortcutsModal
+  tests still pass against the modal with the
+  recently-used section pinned + Kbd formatter
+  applied.
+- Total: 32 new lib tests + 47 modal tests still
+  green.
+
+### Versions
+
+- 1.11.329 -> 1.11.330 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.330]`.
+
 ## [1.11.329] - 2026-05-18 -- UI: IconButton primitive enhancements (TODO 11.311)
 
 Enhances `web/src/components/ui/icon-button.tsx` with tone

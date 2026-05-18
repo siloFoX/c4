@@ -1316,6 +1316,7 @@
   "shortcuts.section.navigation": "Navigation",
   "shortcuts.section.actions": "Actions",
   "shortcuts.section.view": "View",
+  "shortcuts.section.recent": "Recently used",
   "shortcuts.search.placeholder": "Filter shortcuts...",
   "shortcuts.search.ariaLabel": "Filter shortcuts",
   "shortcuts.search.empty": "No matching shortcuts",

@@ -4,6 +4,8 @@ import { Accordion, Chip, Dialog, IconButton, Kbd, SearchBar } from './ui';
 import type { AccordionItem } from './ui';
 import { cn } from '../lib/cn';
 import { t, useLocale } from '../lib/i18n';
+import { formatKeymapForCurrentPlatform } from '../lib/shortcut-keymap';
+import { useRecentlyUsedShortcuts } from '../lib/shortcut-recently-used';
 
 interface KeyboardShortcutsModalProps {
   open: boolean;
@@ -75,6 +77,7 @@ export function KeyboardShortcutsModal({
 }: KeyboardShortcutsModalProps) {
   useLocale();
   const [filter, setFilter] = useState('');
+  const recentlyUsed = useRecentlyUsedShortcuts();
 
   const filtered = useMemo(
     () => SHORTCUT_ROWS.filter((row) => matchesShortcut(row, filter)),
@@ -93,6 +96,27 @@ export function KeyboardShortcutsModal({
     for (const row of filtered) out[row.category].push(row);
     return out;
   }, [filtered]);
+
+  // (v1.11.330, TODO 11.312) Recently-used rows. Look up
+  // the canonical Row for each key in `recentlyUsed`,
+  // skip keys that are no longer in SHORTCUT_ROWS (e.g.
+  // a shortcut that was removed), and apply the current
+  // filter so the section participates in the search
+  // contract.
+  const recentRows = useMemo(() => {
+    const byKey = new Map<string, Row>();
+    for (const row of SHORTCUT_ROWS) {
+      byKey.set(row.keys, row);
+    }
+    const out: Row[] = [];
+    for (const key of recentlyUsed) {
+      const row = byKey.get(key);
+      if (row && matchesShortcut(row, filter)) {
+        out.push(row);
+      }
+    }
+    return out;
+  }, [recentlyUsed, filter]);
 
   return (
     <Dialog
@@ -138,39 +162,35 @@ export function KeyboardShortcutsModal({
             {t('shortcuts.search.empty')}
           </p>
         ) : (
-          /* (v1.11.290, TODO 11.272) Shortcut categories migrated
-             from inline <section> + SectionDivider to the Accordion
-             primitive (multi mode + all categories default-open so
-             the byte-identical first-load surface is preserved).
-             Operator can now collapse a category to focus on the
-             others, and the role=region / aria-labelledby /
-             ArrowDown / Home keyboard contract comes for free. */
-          <Accordion
-            mode="multi"
-            ariaLabel="Keyboard shortcut categories"
-            data-shortcuts-accordion="true"
-            defaultOpenIds={SECTION_ORDER.filter(
-              (cat) => grouped[cat].length > 0,
-            )}
-            items={SECTION_ORDER.filter(
-              (cat) => grouped[cat].length > 0,
-            ).map<AccordionItem>((cat) => ({
-              id: cat,
-              title: t(SECTION_KEYS[cat]),
-              content: (
-                <table
-                  className="w-full text-left text-sm"
-                  data-shortcuts-section={cat}
-                >
+          <>
+            {/* (v1.11.330, TODO 11.312) Recently-used
+                shortcuts section. Rendered above the
+                category accordion when there is history
+                AND the filter still matches at least
+                one recent row. Same Kbd / description
+                shape as the category rows. */}
+            {recentRows.length > 0 ? (
+              <section
+                data-shortcuts-section="recent"
+                className="mb-3 rounded-md border border-border bg-muted/30 p-3"
+              >
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t('shortcuts.section.recent')}
+                </h3>
+                <table className="w-full text-left text-sm">
                   <tbody>
-                    {grouped[cat].map((row) => (
+                    {recentRows.map((row) => (
                       <tr
-                        key={`${row.keys}-${row.descriptionKey}`}
+                        key={`recent-${row.keys}-${row.descriptionKey}`}
                         className="align-middle"
                       >
                         <td className="w-32 py-1 pr-2">
-                          <Kbd className={cn('border-border py-0.5 text-foreground')}>
-                            {row.keys}
+                          <Kbd
+                            className={cn(
+                              'border-border py-0.5 text-foreground',
+                            )}
+                          >
+                            {formatKeymapForCurrentPlatform(row.keys)}
                           </Kbd>
                         </td>
                         <td className="py-1 text-muted-foreground">
@@ -180,9 +200,58 @@ export function KeyboardShortcutsModal({
                     ))}
                   </tbody>
                 </table>
-              ),
-            }))}
-          />
+              </section>
+            ) : null}
+            {/* (v1.11.290, TODO 11.272) Shortcut categories migrated
+                from inline <section> + SectionDivider to the Accordion
+                primitive (multi mode + all categories default-open so
+                the byte-identical first-load surface is preserved).
+                Operator can now collapse a category to focus on the
+                others, and the role=region / aria-labelledby /
+                ArrowDown / Home keyboard contract comes for free. */}
+            <Accordion
+              mode="multi"
+              ariaLabel="Keyboard shortcut categories"
+              data-shortcuts-accordion="true"
+              defaultOpenIds={SECTION_ORDER.filter(
+                (cat) => grouped[cat].length > 0,
+              )}
+              items={SECTION_ORDER.filter(
+                (cat) => grouped[cat].length > 0,
+              ).map<AccordionItem>((cat) => ({
+                id: cat,
+                title: t(SECTION_KEYS[cat]),
+                content: (
+                  <table
+                    className="w-full text-left text-sm"
+                    data-shortcuts-section={cat}
+                  >
+                    <tbody>
+                      {grouped[cat].map((row) => (
+                        <tr
+                          key={`${row.keys}-${row.descriptionKey}`}
+                          className="align-middle"
+                        >
+                          <td className="w-32 py-1 pr-2">
+                            <Kbd
+                              className={cn(
+                                'border-border py-0.5 text-foreground',
+                              )}
+                            >
+                              {formatKeymapForCurrentPlatform(row.keys)}
+                            </Kbd>
+                          </td>
+                          <td className="py-1 text-muted-foreground">
+                            {t(row.descriptionKey)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ),
+              }))}
+            />
+          </>
         )}
       </div>
     </Dialog>
