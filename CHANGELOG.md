@@ -4,6 +4,111 @@
 
 (no entries -- next release window)
 
+## [1.11.366] - 2026-05-18 -- UI: scroll position restoration (TODO 11.348)
+
+Builds `web/src/lib/scroll-restore.ts` -- per-route
+scroll position save/restore via sessionStorage --
+and adopts it at the App.tsx topView surface so
+each top-level view remembers the operator's
+scroll position across tab switches and survives
+back/forward navigation.
+
+### `lib/scroll-restore.ts`
+
+- `saveScrollPosition(routeKey, position)` /
+  `getScrollPosition(routeKey)` /
+  `clearScrollPosition(routeKey)` /
+  `clearAllScrollPositions()` -- pure helpers
+  over `sessionStorage`. Bare keys get the
+  `c4:scroll-restore:` prefix; colon-bearing
+  keys are treated as fully-qualified.
+- `shouldRestoreScroll(navigationType)` returns
+  true for `'pop'` / `'replace'`, false for
+  `'forward'`. Pure decision helper for hosts
+  that want to layer their own scroll machinery
+  on top.
+- `useWindowScrollRestore({ routeKey,
+  navigationType?, targetRef?, debounceMs? })`
+  -- React hook. Saves the OUTGOING scroll
+  under the previous key on every routeKey
+  change. For the INCOMING route: forward ->
+  clear the saved entry + scroll to 0; pop /
+  replace -> read the saved value and apply
+  (falls back to 0 if none). Listens for scroll
+  events on the target (window by default, or
+  `targetRef.current` when passed) and
+  debounce-persists to sessionStorage. Final
+  write flushes on unmount. SSR-safe -- every
+  browser-only access is gated behind `typeof
+  window`.
+
+### Adoption: App.tsx
+
+```tsx
+const popRef = useRef(false);
+useEffect(() => {
+  const onPop = () => { popRef.current = true; };
+  window.addEventListener('popstate', onPop);
+  return () => window.removeEventListener('popstate', onPop);
+}, []);
+const navigationType = popRef.current ? 'pop' : 'forward';
+useEffect(() => { popRef.current = false; }, [topView]);
+useWindowScrollRestore({
+  routeKey: `topView:${topView}`,
+  navigationType,
+});
+```
+
+The popstate listener flips a ref to `true`; the
+ref is read once on the next topView change so
+the hook restores instead of resetting, then the
+ref clears so the next forward click resets
+again. The route key embeds the `topView:`
+prefix to namespace from future scope hooks.
+
+### Tests
+
+`web/src/lib/scroll-restore.test.ts` -- 19 cases:
+
+- Round-trip save / get / clear.
+- Null on cold key.
+- Round non-integer values.
+- Reject negative / NaN / Infinity.
+- Bare-key prefix vs colon-bearing pass-through.
+- `clearAllScrollPositions` removes only
+  prefixed entries.
+- `shouldRestoreScroll` truth table.
+- `useWindowScrollRestore` with a targetRef
+  element: forward resets, forward clears
+  stored value, pop restores, pop with no
+  saved value -> 0, save outgoing on routeKey
+  change, debounced scroll write,
+  unmount flush.
+- `useWindowScrollRestore` window mode: calls
+  `window.scrollTo` on pop with a saved value.
+
+19/19 pass under vitest 4.1.5. TypeScript clean
+for `scroll-restore.ts` and `App.tsx`.
+
+### Out of scope
+
+- Migration of the existing
+  `hooks/use-scroll-restoration.ts` (container-
+  scoped) into the new module. They cover
+  different surfaces -- container vs window /
+  per-route -- and the old hook still has
+  in-tree callers (HistoryView sidebar). A
+  follow-up patch can unify the API.
+- React Router integration. The c4 app does not
+  use React Router today; the hook's
+  `navigationType` argument lets a future
+  adoption pass `useNavigationType()` from
+  `react-router-dom` directly.
+- Per-page scope hooks (e.g. saving the
+  Snapshots table scroll separately from the
+  page scroll). A follow-up can pass
+  `targetRef` from the page-frame ref.
+
 ## [1.11.365] - 2026-05-18 -- UI: copy-paste integration polish (TODO 11.347)
 
 Adds the Toast-feedback wrapper and the

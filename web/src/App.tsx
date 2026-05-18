@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Login from './components/Login';
 import { LoadingSkeleton } from './pages/PageFrame';
 import { useToggle } from './lib/use-toggle';
@@ -30,6 +30,7 @@ import AppHeader from './components/layout/AppHeader';
 import { AppShell } from './components/layout/AppShell';
 import { UIErrorBoundary } from './components/ui/error-boundary';
 import { initWebVitals } from './lib/web-vitals';
+import { useWindowScrollRestore } from './lib/scroll-restore';
 import Sidebar from './components/layout/Sidebar';
 import DetailTabs from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
@@ -93,6 +94,33 @@ export default function App() {
     detailMode, setDetailMode,
     topView, setTopView,
   } = useUiPreferences({ onCrossTabSync });
+
+  // (v1.11.366, TODO 11.348) Per-route scroll
+  // restoration. Each `topView` value gets its own
+  // sessionStorage slot so a sidebar tab switch lands
+  // the operator back at the same scroll position
+  // they left. Defaults to 'forward' navigation
+  // semantics (clear + scroll to 0 on first entry)
+  // and switches to 'pop' (restore) when the browser
+  // history pops -- the popstate listener flips a
+  // ref that is read once per topView change.
+  const popRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onPop = (): void => {
+      popRef.current = true;
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const navigationType = popRef.current ? 'pop' : 'forward';
+  useEffect(() => {
+    popRef.current = false;
+  }, [topView]);
+  useWindowScrollRestore({
+    routeKey: `topView:${topView}`,
+    navigationType,
+  });
 
   // (v1.10.670) Ctrl+B / Cmd+B sidebar shortcut moved to hook.
   useSidebarShortcut({
