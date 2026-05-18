@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Progress, ProgressBar } from './progress';
+import { Progress, ProgressBar, CircularProgress } from './progress';
 
 describe('<Progress>', () => {
   it('sets aria-valuenow / valuemin / valuemax when value is provided', () => {
@@ -211,5 +211,236 @@ describe('<Progress>', () => {
     const aBar = a.container.querySelector('[role="progressbar"]');
     const bBar = b.container.querySelector('[role="progressbar"]');
     expect(aBar!.outerHTML).toBe(bBar!.outerHTML);
+  });
+});
+
+// -- v1.11.383 CircularProgress (TODO 11.365) -------------------
+
+describe('<CircularProgress>', () => {
+  it('renders role="progressbar" with valuemin/valuemax', () => {
+    render(<CircularProgress value={40} max={100} />);
+    const bar = screen.getByRole('progressbar');
+    expect(bar.getAttribute('aria-valuemin')).toBe('0');
+    expect(bar.getAttribute('aria-valuemax')).toBe('100');
+    expect(bar.getAttribute('aria-valuenow')).toBe('40');
+  });
+
+  it('omits aria-valuenow when indeterminate', () => {
+    render(<CircularProgress indeterminate />);
+    const bar = screen.getByRole('progressbar');
+    expect(bar).not.toHaveAttribute('aria-valuenow');
+    expect(bar.getAttribute('aria-valuemax')).toBe('100');
+  });
+
+  it('respects a custom max for aria-valuemax', () => {
+    render(<CircularProgress value={3} max={12} />);
+    const bar = screen.getByRole('progressbar');
+    expect(bar.getAttribute('aria-valuemax')).toBe('12');
+    expect(bar.getAttribute('aria-valuenow')).toBe('3');
+  });
+
+  it('default ariaLabel falls back to "Progress"', () => {
+    render(<CircularProgress value={50} />);
+    expect(
+      screen.getByRole('progressbar').getAttribute('aria-label'),
+    ).toBe('Progress');
+  });
+
+  it('uses string labelText as the accessible name', () => {
+    render(<CircularProgress value={50} labelText="Uploading" />);
+    expect(
+      screen.getByRole('progressbar').getAttribute('aria-label'),
+    ).toBe('Uploading');
+  });
+
+  it('explicit ariaLabel wins over labelText', () => {
+    render(
+      <CircularProgress value={50} labelText="Uploading" ariaLabel="Saving snapshot" />,
+    );
+    expect(
+      screen.getByRole('progressbar').getAttribute('aria-label'),
+    ).toBe('Saving snapshot');
+  });
+
+  it('default size="md" sets data-size + 48px outer box', () => {
+    render(<CircularProgress value={50} />);
+    const bar = screen.getByRole('progressbar') as HTMLElement;
+    expect(bar.getAttribute('data-size')).toBe('md');
+    expect(bar.style.width).toBe('48px');
+    expect(bar.style.height).toBe('48px');
+  });
+
+  it('size="xs" maps to a 24px box', () => {
+    render(<CircularProgress value={50} size="xs" />);
+    const bar = screen.getByRole('progressbar') as HTMLElement;
+    expect(bar.getAttribute('data-size')).toBe('xs');
+    expect(bar.style.width).toBe('24px');
+  });
+
+  it('size="lg" maps to a 64px box', () => {
+    render(<CircularProgress value={50} size="lg" />);
+    const bar = screen.getByRole('progressbar') as HTMLElement;
+    expect(bar.style.width).toBe('64px');
+  });
+
+  it('determinate arc dashoffset reflects the percent fraction', () => {
+    const { container } = render(<CircularProgress value={25} max={100} size="md" />);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    const dashArray = parseFloat(arc.getAttribute('stroke-dasharray') ?? '0');
+    const dashOffset = parseFloat(arc.getAttribute('stroke-dashoffset') ?? '0');
+    // 25% complete -> 75% of circumference remains hidden
+    expect(dashOffset / dashArray).toBeCloseTo(0.75, 2);
+  });
+
+  it('determinate at 100% has zero dashoffset', () => {
+    const { container } = render(<CircularProgress value={100} max={100} />);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    expect(parseFloat(arc.getAttribute('stroke-dashoffset') ?? '99')).toBeCloseTo(0, 1);
+  });
+
+  it('clamps determinate value above max to 100%', () => {
+    const { container } = render(<CircularProgress value={9999} max={100} />);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    expect(parseFloat(arc.getAttribute('stroke-dashoffset') ?? '99')).toBeCloseTo(0, 1);
+  });
+
+  it('indeterminate adds animate-spin to the svg + quarter-arc offset', () => {
+    const { container } = render(<CircularProgress indeterminate />);
+    const svg = container.querySelector(
+      '[data-section="circular-progress-svg"]',
+    ) as SVGElement;
+    expect(svg.classList.contains('animate-spin')).toBe(true);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    const dashArray = parseFloat(arc.getAttribute('stroke-dasharray') ?? '0');
+    const dashOffset = parseFloat(arc.getAttribute('stroke-dashoffset') ?? '0');
+    expect(dashOffset / dashArray).toBeCloseTo(0.75, 2);
+  });
+
+  it('determinate path does NOT add animate-spin to the svg', () => {
+    const { container } = render(<CircularProgress value={50} />);
+    const svg = container.querySelector(
+      '[data-section="circular-progress-svg"]',
+    ) as SVGElement;
+    expect(svg.classList.contains('animate-spin')).toBe(false);
+  });
+
+  it('applies the variant stroke class to the arc', () => {
+    const { container } = render(<CircularProgress value={50} variant="success" />);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    expect(arc.classList.contains('stroke-success')).toBe(true);
+  });
+
+  it('default variant maps to stroke-primary', () => {
+    const { container } = render(<CircularProgress value={50} />);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    expect(arc.classList.contains('stroke-primary')).toBe(true);
+  });
+
+  it('info variant maps to stroke-info', () => {
+    const { container } = render(<CircularProgress value={50} variant="info" />);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    expect(arc.classList.contains('stroke-info')).toBe(true);
+  });
+
+  it('warning + destructive variants map to their stroke tokens', () => {
+    const { container: w } = render(<CircularProgress value={50} variant="warning" />);
+    expect(
+      w.querySelector('[data-section="circular-progress-arc"]')!.classList.contains(
+        'stroke-warning',
+      ),
+    ).toBe(true);
+    const { container: d } = render(<CircularProgress value={50} variant="destructive" />);
+    expect(
+      d.querySelector('[data-section="circular-progress-arc"]')!.classList.contains(
+        'stroke-destructive',
+      ),
+    ).toBe(true);
+  });
+
+  it('showPercent renders the rounded percent inside the ring', () => {
+    render(<CircularProgress value={42} showPercent />);
+    expect(
+      document.querySelector('[data-section="circular-progress-label"]')!.textContent,
+    ).toBe('42%');
+  });
+
+  it('labelText wins over the percent label', () => {
+    render(<CircularProgress value={42} labelText="Saving" showPercent />);
+    expect(
+      document.querySelector('[data-section="circular-progress-label"]')!.textContent,
+    ).toBe('Saving');
+  });
+
+  it('no label rendered when showPercent + labelText are both omitted', () => {
+    render(<CircularProgress value={42} />);
+    expect(
+      document.querySelector('[data-section="circular-progress-label"]'),
+    ).toBeNull();
+  });
+
+  it('indeterminate + showPercent suppresses the percent label (no value to show)', () => {
+    render(<CircularProgress indeterminate showPercent />);
+    expect(
+      document.querySelector('[data-section="circular-progress-label"]'),
+    ).toBeNull();
+  });
+
+  it('data-indeterminate attr reflects the indeterminate flag', () => {
+    const { rerender } = render(<CircularProgress value={50} />);
+    expect(
+      screen.getByRole('progressbar').getAttribute('data-indeterminate'),
+    ).toBe('false');
+    rerender(<CircularProgress indeterminate />);
+    expect(
+      screen.getByRole('progressbar').getAttribute('data-indeterminate'),
+    ).toBe('true');
+  });
+
+  it('data-section="circular-progress" on the wrapper', () => {
+    render(<CircularProgress value={1} />);
+    expect(
+      document.querySelector('[data-section="circular-progress"]'),
+    ).not.toBeNull();
+  });
+
+  it('passes through caller className', () => {
+    render(<CircularProgress value={10} className="my-circle" />);
+    expect(screen.getByRole('progressbar')).toHaveClass('my-circle');
+  });
+
+  it('exposes a stable displayName', () => {
+    expect(CircularProgress.displayName).toBe('CircularProgress');
+  });
+
+  it('rounds the percent label to the nearest integer', () => {
+    render(<CircularProgress value={33.7} showPercent />);
+    expect(
+      document.querySelector('[data-section="circular-progress-label"]')!.textContent,
+    ).toBe('34%');
+  });
+
+  it('clamps negative values to 0% in the arc', () => {
+    const { container } = render(<CircularProgress value={-5} max={100} />);
+    const arc = container.querySelector(
+      '[data-section="circular-progress-arc"]',
+    ) as SVGCircleElement;
+    const dashArray = parseFloat(arc.getAttribute('stroke-dasharray') ?? '0');
+    const dashOffset = parseFloat(arc.getAttribute('stroke-dashoffset') ?? '0');
+    // 0% complete -> full circumference still hidden
+    expect(dashOffset / dashArray).toBeCloseTo(1, 2);
   });
 });

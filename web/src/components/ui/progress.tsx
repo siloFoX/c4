@@ -169,3 +169,186 @@ export const ProgressBar = Progress;
 export type ProgressBarProps = ProgressProps;
 export type ProgressBarSize = ProgressSize;
 export type ProgressBarVariant = ProgressVariant;
+
+// (v1.11.383, TODO 11.365) Circular progress variant. The linear
+// `<Progress>` covers row/upload surfaces; circular is the
+// canonical shape for compact loaders next to status text and
+// for save-in-progress affordances inside cards. The geometry
+// is pure SVG (no JS animation loop):
+//
+//   - track circle (muted) draws a full ring;
+//   - arc circle (variant tone) is the same circumference with a
+//     `stroke-dashoffset` that exposes the percent fraction --
+//     determinate path is `dashoffset = (1 - pct) * circumference`;
+//   - indeterminate path applies `animate-spin` on the whole svg
+//     with a fixed quarter arc, which keeps the visual rhythm
+//     consistent with the linear indeterminate stripe.
+//
+// `prefers-reduced-motion` is honored by `Spinner`'s logic at
+// the call site if the operator wants to swap; this component
+// keeps the SVG static but the wrapper does NOT add
+// `animate-spin` when the value is determinate. So under
+// reduced motion the determinate ring still shows the correct
+// percent stroke; only the indeterminate spinning ring loses
+// its rotation -- the operator sees a fixed quarter arc, which
+// is still readable as "in progress" alongside the label.
+export type CircularProgressSize = 'xs' | 'sm' | 'md' | 'lg';
+
+export interface CircularProgressProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+  value?: number;
+  max?: number;
+  indeterminate?: boolean;
+  size?: CircularProgressSize;
+  variant?: ProgressVariant;
+  // When `true`, renders the rounded percent inside the ring
+  // (e.g. "42%"). When `labelText` is set, that wins. Hidden
+  // by default so a 24px ring stays icon-sized.
+  showPercent?: boolean;
+  labelText?: ReactNode;
+  className?: string;
+  ariaLabel?: string;
+}
+
+// (v1.11.383) Per-size geometry. Each entry maps to the outer
+// box (`box` px), the stroke width, and the resolved radius +
+// circumference. The radius is `box/2 - stroke/2 - 1` so the
+// stroke stays inside the box bounds; the extra -1 prevents
+// browsers from rounding the arc against the edge.
+interface CircularGeometry {
+  box: number;
+  stroke: number;
+  radius: number;
+  circumference: number;
+  labelClass: string;
+}
+
+function geometryFor(size: CircularProgressSize): CircularGeometry {
+  const presets: Record<CircularProgressSize, { box: number; stroke: number; labelClass: string }> = {
+    xs: { box: 24, stroke: 2, labelClass: 'text-[9px]' },
+    sm: { box: 32, stroke: 3, labelClass: 'text-[10px]' },
+    md: { box: 48, stroke: 4, labelClass: 'text-xs' },
+    lg: { box: 64, stroke: 5, labelClass: 'text-sm' },
+  };
+  const { box, stroke, labelClass } = presets[size];
+  const radius = box / 2 - stroke / 2 - 1;
+  const circumference = 2 * Math.PI * radius;
+  return { box, stroke, radius, circumference, labelClass };
+}
+
+const CIRCULAR_VARIANT_STROKE: Record<ProgressVariant, string> = {
+  default: 'stroke-primary',
+  success: 'stroke-success',
+  warning: 'stroke-warning',
+  destructive: 'stroke-destructive',
+  info: 'stroke-info',
+};
+
+export function CircularProgress({
+  value,
+  max = 100,
+  indeterminate = false,
+  size = 'md',
+  variant = 'default',
+  showPercent = false,
+  labelText,
+  className,
+  ariaLabel,
+  ...rest
+}: CircularProgressProps) {
+  const safeMax = max > 0 ? max : 100;
+  const hasValue = !indeterminate && typeof value === 'number';
+  const percent = hasValue ? clampPercent(value as number, safeMax) : 0;
+  const percentText = `${Math.round(percent)}%`;
+  const geometry = geometryFor(size);
+  const center = geometry.box / 2;
+  // Indeterminate arc covers a quarter of the circle so the
+  // spinning ring reads as a partial arc; determinate offset
+  // exposes the percent fraction.
+  const indeterminateOffset = geometry.circumference * 0.75;
+  const determinateOffset = geometry.circumference * (1 - percent / 100);
+  const dashOffset = indeterminate ? indeterminateOffset : determinateOffset;
+
+  const ariaProps: Record<string, number | string> = {
+    'aria-valuemin': 0,
+    'aria-valuemax': safeMax,
+  };
+  if (hasValue) ariaProps['aria-valuenow'] = Math.max(0, Math.min(safeMax, value as number));
+
+  const showLabel = labelText !== undefined || showPercent;
+  const labelContent =
+    labelText !== undefined
+      ? labelText
+      : indeterminate
+        ? null
+        : percentText;
+
+  return (
+    <div
+      data-section="circular-progress"
+      data-size={size}
+      data-variant={variant}
+      data-indeterminate={indeterminate ? 'true' : 'false'}
+      role="progressbar"
+      aria-label={
+        ariaLabel ?? (typeof labelText === 'string' ? labelText : 'Progress')
+      }
+      {...ariaProps}
+      className={cn(
+        'relative inline-flex items-center justify-center text-muted-foreground',
+        className,
+      )}
+      style={{ width: geometry.box, height: geometry.box }}
+      {...rest}
+    >
+      <svg
+        width={geometry.box}
+        height={geometry.box}
+        viewBox={`0 0 ${geometry.box} ${geometry.box}`}
+        data-section="circular-progress-svg"
+        className={cn(indeterminate ? 'animate-spin' : null)}
+        aria-hidden="true"
+      >
+        <circle
+          data-section="circular-progress-track"
+          cx={center}
+          cy={center}
+          r={geometry.radius}
+          fill="none"
+          stroke="currentColor"
+          strokeOpacity={0.2}
+          strokeWidth={geometry.stroke}
+        />
+        <circle
+          data-section="circular-progress-arc"
+          cx={center}
+          cy={center}
+          r={geometry.radius}
+          fill="none"
+          strokeLinecap="round"
+          strokeWidth={geometry.stroke}
+          className={cn(
+            CIRCULAR_VARIANT_STROKE[variant],
+            indeterminate ? null : 'transition-[stroke-dashoffset]',
+          )}
+          strokeDasharray={geometry.circumference}
+          strokeDashoffset={dashOffset}
+          transform={`rotate(-90 ${center} ${center})`}
+        />
+      </svg>
+      {showLabel && labelContent !== null ? (
+        <span
+          data-section="circular-progress-label"
+          className={cn(
+            'absolute inset-0 flex items-center justify-center font-medium',
+            geometry.labelClass,
+          )}
+        >
+          {labelContent}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+CircularProgress.displayName = 'CircularProgress';
