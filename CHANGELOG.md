@@ -4,6 +4,151 @@
 
 (no entries -- next release window)
 
+## [1.11.343] - 2026-05-18 -- UI: AppShell consolidation (TODO 11.325)
+
+Introduces a reusable application shell primitive that
+standardises the header / sidebar / main / footer
+regions across the web app. The primitive owns the
+region landmarks, scroll discipline, responsive
+collapse, focus-visible ring contract, and Drawer-based
+mobile nav so per-page or per-section shells no longer
+have to re-derive the layout rhythm.
+
+The primitive is delivered as a NEW component file
+`web/src/components/layout/AppShell.tsx`. App.tsx is
+intentionally NOT migrated in this patch; the existing
+AppHeader + Sidebar + FeatureView composition keeps
+working byte-for-byte. Future patches can adopt
+AppShell incrementally.
+
+### Added
+
+- `web/src/components/layout/AppShell.tsx` -- reusable
+  shell primitive. Accepts:
+  - `header: ReactNode` -- rendered inside the
+    `<header role="banner">` landmark.
+  - `nav?: AppShellNavItem[]` -- optional array of
+    navigation items. When set, the shell renders an
+    `<aside aria-label="Sidebar">` + `<nav
+    aria-label="Primary">` cluster to the left of the
+    main region.
+  - `sidebarTitle?: ReactNode` and
+    `sidebarFooter?: ReactNode` -- optional sidebar
+    chrome.
+  - `sidebarCollapsed` /
+    `onSidebarCollapsedChange` -- controlled desktop
+    collapse axis. When true the rail shrinks to ~3.5rem
+    and labels are hidden behind Tooltips.
+  - `mobileNavOpen` / `onMobileNavOpenChange` --
+    controlled mobile Drawer axis. Falls back to an
+    internal state when not wired so the primitive can
+    render uncontrolled.
+  - `footer?: ReactNode` -- rendered inside the
+    `<footer role="contentinfo">` landmark.
+  - `children: ReactNode` -- the main region content,
+    wrapped in a vertical `ScrollArea`.
+- `AppShellNavItem` interface (`id`, `label`, `icon?`,
+  `href?`, `onClick?`, `active?`, `disabled?`). Renders
+  as an `<a>` when `href` is set, otherwise as a
+  `<button>`. Active state drives
+  `aria-current="page"` and `data-active="true"`.
+- `APP_SHELL_FOCUS_RING` exported constant. The shared
+  focus-visible ring class
+  (`focus-visible:outline-none focus-visible:ring-2
+  focus-visible:ring-primary focus-visible:ring-offset-2
+  focus-visible:ring-offset-background`) used by every
+  interactive surface inside the shell. Exported so
+  other layout primitives can share the same contract.
+- Per-region data-section attributes for e2e:
+  `data-section="app-shell"`,
+  `data-section="app-shell-header"`,
+  `data-section="app-shell-body"`,
+  `data-section="app-shell-sidebar"`,
+  `data-section="app-shell-sidebar-title"`,
+  `data-section="app-shell-sidebar-footer"`,
+  `data-section="app-shell-main"`,
+  `data-section="app-shell-footer"`,
+  `data-section="app-shell-nav-list"`,
+  `data-section="app-shell-nav-icon"`,
+  `data-section="app-shell-nav-label"`,
+  `data-section="app-shell-mobile-nav-body"`,
+  `data-section="app-shell-mobile-sidebar-footer"`.
+- Per-control data-testid attributes:
+  `data-testid="app-shell-mobile-nav-toggle"` on the
+  hamburger,
+  `data-testid="app-shell-sidebar-scroll"` on the
+  sidebar ScrollArea,
+  `data-testid="app-shell-main-scroll"` on the main
+  ScrollArea,
+  `data-testid="app-shell-sidebar-collapse-toggle"` on
+  the collapse handle (when wired),
+  `data-testid="app-shell-nav-<id>"` on each nav item.
+
+### Behaviour
+
+- Tooltips wrap every nav item when
+  `sidebarCollapsed === true`. The label moves into the
+  Tooltip body so the operator can still identify each
+  icon on hover / focus. When expanded the label is
+  inline next to the icon.
+- A mobile hamburger sits at the left of the header
+  (only when `nav` is provided) and toggles the Drawer
+  open. Hidden on `md` and above via Tailwind classes
+  so persistent + drawer mounts never collide.
+- The Drawer is left-anchored at `80vw` width, mirrors
+  the persistent sidebar's nav items, and closes
+  automatically when an item is clicked so the new
+  route is visible without an extra tap.
+- The main region is wrapped in a `ScrollArea axis="y"`
+  so long page content scrolls inside its own shell;
+  the header, sidebar, and footer stay fixed in the
+  viewport.
+- The collapse toggle button renders only when
+  `onSidebarCollapsedChange` is wired; uncollapsed
+  hosts keep the rail at full width with no toggle
+  affordance.
+
+### Tests
+
+- `web/src/components/layout/AppShell.test.tsx` -- new
+  test file. Twenty cases:
+  - renders header / main landmarks;
+  - skips footer landmark when omitted;
+  - renders footer landmark when provided;
+  - skips aside when `nav` is omitted;
+  - renders aside + nav items when `nav` is provided;
+  - marks the active nav item with `aria-current`
+    + `data-active`;
+  - fires nav onClick when clicked;
+  - skips onClick when disabled;
+  - hides nav labels + adds aria-label when collapsed;
+  - aside carries `data-collapsed="true"` when
+    collapsed;
+  - aside carries `data-collapsed="false"` when
+    expanded;
+  - collapse toggle only renders when
+    `onSidebarCollapsedChange` is wired;
+  - collapse toggle flips the controlled value;
+  - mobile nav toggle only renders when `nav` is
+    provided;
+  - mobile nav toggle opens the Drawer via the
+    controlled callback;
+  - sidebar title renders only when expanded;
+  - sidebar footer renders when provided;
+  - sidebar + main wrap in ScrollArea primitives;
+  - exports the focus-visible ring class;
+  - nav item renders as an `<a>` when `href` is set.
+- 20/20 cases pass against vitest 4.1.5 + jsdom 29.1.1.
+
+### Deferred
+
+- App.tsx migration. The existing AppHeader + Sidebar +
+  FeatureView composition is left intact; flipping the
+  app to use AppShell will involve threading the
+  shell's nav model through the existing TopView /
+  FeatureSidebar wiring and is large enough to warrant
+  its own patch.
+
 ## [1.11.342] - 2026-05-18 -- UI: Notifications page polish (TODO 11.324)
 
 Polishes `web/src/pages/Notifications.tsx` with a Tabs
