@@ -4,6 +4,229 @@
 
 (no entries -- next release window)
 
+## [1.11.413] - 2026-05-18 -- UI: command-bar primitive (TODO 11.395)
+
+New `web/src/components/ui/command-bar.tsx`
+ships `<CommandBar>` -- a bottom-anchored
+quick action bar that appears while a
+multi-selection is active. Pairs with the
+existing `<VirtualTable>` (11.375) +
+file/list hosts; the host owns its own
+selection state and feeds the bar the
+count + the available actions.
+
+### API
+
+```tsx
+<CommandBar
+  selectedCount={selected.size}
+  actions={[
+    { id: 'archive', label: 'Archive',
+      icon: <Archive />, onClick: archive },
+    { id: 'sep1', type: 'separator' },
+    { id: 'delete', label: 'Delete',
+      variant: 'destructive',
+      onClick: deleteAll, shortcut: 'Del' },
+    { id: 'export', label: 'Export',
+      onClick: exportAll, disabled: true },
+  ]}
+  onClearSelection={clear}
+  position="bottom"
+  align="center"
+  ariaLabel="Bulk actions"
+/>
+```
+
+### Auto-hide
+
+- `visible === undefined`: render only
+  when `selectedCount > 0`.
+- `visible === true`: always render.
+- `visible === false`: never render
+  (returns `null`).
+
+### Toolbar contract (WAI-ARIA)
+
+- Root: `<div role="toolbar"
+  aria-orientation="horizontal"
+  aria-label>`.
+- Single-tabstop pattern: exactly one
+  action button has `tabIndex=0` at a
+  time. The rest carry `tabIndex=-1`.
+- Arrow keys move the active tabstop
+  within the toolbar:
+  - **ArrowRight** -> next focusable.
+  - **ArrowLeft** -> previous focusable
+    (wraps).
+  - **Home** -> first focusable.
+  - **End** -> last focusable.
+- Disabled actions + separators are
+  skipped in the focus cycle.
+- **Escape** calls `onClearSelection`
+  (if supplied) -- one-handed dismissal
+  for keyboard users.
+
+### Action shape
+
+```ts
+interface CommandBarAction {
+  id: string;
+  label: string;
+  onClick: () => void;
+  icon?: ReactNode;
+  variant?: 'default' | 'primary' | 'destructive';
+  disabled?: boolean;
+  shortcut?: string;     // rendered as <kbd>
+  ariaLabel?: string;    // overrides label
+}
+
+interface CommandBarSeparator {
+  id: string;
+  type: 'separator';
+}
+```
+
+### Position + align
+
+- `position='bottom'` (default) --
+  fixed at bottom, horizontally centered
+  (`fixed left-1/2 -translate-x-1/2`).
+- `position='top'` -- fixed at top.
+- `position='static'` -- inline; caller
+  decides positioning; `align` controls
+  margin-auto.
+
+### Selection label
+
+`defaultSelectionLabel(n)` returns:
+- `n <= 0` -> "No selection"
+- `n === 1` -> "1 selected"
+- otherwise -> "<n> selected"
+
+Override via `selectionLabel?: (count)
+=> ReactNode` for i18n + custom strings.
+
+### Clear button
+
+Renders when `onClearSelection` is
+supplied AND `showClearButton !==
+false`. Click + Escape both trigger
+`onClearSelection`. `clearLabel`
+overrides the default "Clear
+selection" string.
+
+### Motion
+
+`motionSafe` (default true) adds the
+existing Tailwind motion-safe ladder
+(`animate-in fade-in
+slide-in-from-bottom-4`). Pass false
+to drop animations for static
+storybook captures.
+
+### Data attributes
+
+- Root: `data-section="command-bar"`,
+  `data-position`, `data-align`,
+  `data-selected-count`.
+- Action: `data-section="command-bar-
+  action"`, `data-action-id`,
+  `data-action-variant`,
+  `data-disabled`.
+- Separator: `data-section="command-bar
+  -separator"`.
+- Selection label: `data-section="
+  command-bar-selection-label"`.
+- Clear: `data-section="command-bar-
+  clear"`.
+- Icon / label / shortcut sub-nodes
+  each carry `data-section`.
+
+### Pure helpers
+
+```ts
+export function defaultSelectionLabel(
+  count: number,
+): string;
+
+export function isCommandBarSeparator(
+  item: CommandBarItem,
+): item is CommandBarSeparator;
+```
+
+### Tests
+
+47 cases in `command-bar.test.tsx`:
+
+- `defaultSelectionLabel` (4): 0,
+  negative, 1, n>1.
+- `isCommandBarSeparator` (2): true
+  for separator, false for action.
+- Component (41): auto-hide on count=0,
+  render on count>0, visible=true
+  override, visible=false override,
+  role=toolbar, aria-orientation,
+  default + custom ariaLabel, default
+  selection label, custom selectionLabel,
+  three actions rendered, action click,
+  disabled action skipped, data-disabled,
+  icon rendered, shortcut as `<kbd>`,
+  action.ariaLabel override,
+  data-action-variant per action,
+  separator role + orientation, clear
+  button render, clear click,
+  showClearButton=false, no
+  onClearSelection -> no clear,
+  custom clearLabel, single tabstop on
+  mount, ArrowRight next, ArrowLeft
+  wrap, Home -> first, End -> last,
+  ArrowRight skips disabled,
+  ArrowRight skips separator, Escape
+  -> clear, Escape no-op when no
+  handler, data-position (bottom/top/
+  static), data-align, data-selected-
+  count, data-section root,
+  displayName, ref forwarding, default
+  variant 'default', empty actions
+  list no-crash, motionSafe=false
+  drops motion classes.
+
+47/47 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<VirtualTable>` (11.375) -- the
+  canonical batch-selection surface
+  for tabular data. CommandBar
+  surfaces below the table while
+  rows are selected.
+- `<Toolbar>` -- this primitive is the
+  selection-scoped variant; a future
+  general-purpose `<Toolbar>` for
+  page-level actions belongs in a
+  separate dispatch.
+- `<Menubar>` (11.387) -- top-of-page
+  application menu. Different
+  affordance (menu vs. quick action).
+
+### Out of scope (deferred)
+
+- Drag-to-reorder actions. The
+  `actions` array order is canonical.
+- Overflow menu when too many actions
+  to fit horizontally. Belongs in a
+  follow-on once a real adopter hits
+  the limit.
+- Per-page adoption sweep.
+- Animated count-up when the
+  selection grows. The label updates
+  instantly.
+- Multi-selection-state mode (e.g.,
+  union vs. intersection). Single
+  count + flat action list is the
+  canonical surface.
+
 ## [1.11.412] - 2026-05-18 -- UI: theme-customizer primitive (TODO 11.394)
 
 New `web/src/components/ui/theme-customizer.tsx`
