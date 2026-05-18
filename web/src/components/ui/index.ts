@@ -86,3 +86,4 @@ export * from './badge-counter';
 export * from './toast';
 export * from './radio-group';
 export * from './spinner';
+export * from './aspect-ratio';
