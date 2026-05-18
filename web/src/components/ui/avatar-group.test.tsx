@@ -183,4 +183,23 @@ describe('<AvatarGroup>', () => {
     expect(visible.length).toBe(4);
     expect(chip!.textContent).toBe('+2');
   });
+
+  // -- v1.11.385 xl size (TODO 11.367) ----------------------------
+
+  it('size="xl" applies the -ml-5 overlap on adjacent tiles', () => {
+    render(<AvatarGroup items={items(3)} size="xl" />);
+    const wrappers = document.querySelectorAll('[data-avatar-group-item]');
+    expect(wrappers[1]!.className).toContain('-ml-5');
+    expect(wrappers[0]!.className).not.toContain('-ml-5');
+  });
+
+  it('size="xl" overflow chip resolves to h-12 w-12 text-base', () => {
+    render(<AvatarGroup items={items(8)} max={5} size="xl" />);
+    const chip = document.querySelector(
+      '[data-avatar-group-overflow]',
+    ) as HTMLElement;
+    expect(chip.className).toContain('h-12');
+    expect(chip.className).toContain('w-12');
+    expect(chip.className).toContain('text-base');
+  });
 });

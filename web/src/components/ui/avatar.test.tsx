@@ -219,4 +219,37 @@ describe('<Avatar>', () => {
     ) as HTMLElement;
     expect(wrapper.getAttribute('aria-label')).toBe('Bob, away');
   });
+
+  // -- v1.11.385 xl size (TODO 11.367) ----------------------------
+
+  it('size="xl" applies the 48px hero tile classes', () => {
+    render(<Avatar name="Eve" size="xl" />);
+    const node = screen.getByRole('img', { name: 'Eve' });
+    expect(node).toHaveClass('h-12');
+    expect(node).toHaveClass('w-12');
+    expect(node).toHaveClass('text-lg');
+  });
+
+  it('size="xl" scales the status overlay to h-3.5 w-3.5', () => {
+    const { container } = render(
+      <Avatar name="Eve" size="xl" status="online" />,
+    );
+    const dot = container.querySelector(
+      '[data-section="avatar-status"]',
+    ) as HTMLElement;
+    expect(dot.className).toMatch(/h-3\.5/);
+    expect(dot.className).toMatch(/w-3\.5/);
+  });
+
+  it('size="xl" composes with image variant', () => {
+    const { container } = render(
+      <Avatar src="/u.png" alt="Alice" size="xl" />,
+    );
+    // Outer Avatar tile span is the top-level child; it carries
+    // the size class. Image renders inside that wrapper.
+    const outer = container.firstChild as HTMLElement;
+    expect(outer.className).toContain('h-12');
+    expect(outer.className).toContain('w-12');
+    expect(outer.className).toContain('text-lg');
+  });
 });

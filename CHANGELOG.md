@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.385] - 2026-05-18 -- UI: avatar primitive (TODO 11.367)
+
+Adds the `xl` size tier to `<Avatar>` and
+`<AvatarGroup>`, closing the final dispatched
+size scale `xs / sm / md / lg / xl`. The rest
+of the contract (image with fallback initials,
+status indicator overlay, group/stack
+composition) already shipped in 11.226 /
+11.254 / 11.282; this patch rounds out the
+size matrix without touching legacy
+byte-identical behaviour for the four
+existing tiers.
+
+### Avatar size matrix
+
+| size | tile | text | status dot |
+| --- | --- | --- | --- |
+| `xs` | 20px | `text-[10px]` | `h-1.5 w-1.5` |
+| `sm` | 24px | `text-xs` | `h-2 w-2` |
+| `md` (default) | 32px | `text-sm` | `h-2.5 w-2.5` |
+| `lg` | 40px | `text-base` | `h-3 w-3` |
+| `xl` (new) | 48px | `text-lg` | `h-3.5 w-3.5` |
+
+The status-dot diameter scales in lock-step so
+`xl` keeps the ~1/3-tile rhythm that the other
+tiers use.
+
+### AvatarGroup size matrix
+
+| size | adjacent overlap | overflow chip |
+| --- | --- | --- |
+| `xs` | `-ml-1.5` | `h-5 w-5 text-[9px]` |
+| `sm` | `-ml-2` | `h-6 w-6 text-[10px]` |
+| `md` | `-ml-3` | `h-8 w-8 text-xs` |
+| `lg` | `-ml-4` | `h-10 w-10 text-sm` |
+| `xl` (new) | `-ml-5` | `h-12 w-12 text-base` |
+
+`-ml-5` (negative 20px) pulls the next tile
+left so the visible crescent on adjacent
+avatars matches the rhythm at smaller tiers
+(approximately 60% of the tile remains
+visible).
+
+### Tests + types
+
+- `avatar.test.tsx` +3 cases (33 total):
+  size="xl" tile classes, xl status-overlay
+  scaling, xl image-variant composition.
+- `avatar-group.test.tsx` +2 cases (23
+  total): xl `-ml-5` overlap on adjacent
+  tiles, xl overflow chip `h-12 w-12
+  text-base`.
+- 55/55 pass across both files.
+- `npx tsc --noEmit` clean for touched files.
+
+### Out of scope
+
+- Per-page adoption of the new `xl` tier. The
+  prop is additive; every existing call site
+  stays byte-identical at its current size.
+- A new `2xl` size tier. The 48px tile already
+  hits the "hero card / profile header"
+  density; larger surfaces should use a
+  full-bleed `<Image>` instead.
+- Reflowing the avatar-group overlap formula
+  to a percentage-based offset. The
+  Tailwind `-ml-N` scale stays consistent with
+  the rest of the primitive library.
+
 ## [1.11.384] - 2026-05-18 -- UI: badge + chip primitives (TODO 11.366)
 
 Closes the dispatch trio "status badge /
