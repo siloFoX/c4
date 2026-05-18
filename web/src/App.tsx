@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Login from './components/Login';
 import { LoadingSkeleton } from './pages/PageFrame';
 import { useToggle } from './lib/use-toggle';
@@ -29,6 +29,7 @@ import PageTransition from './components/PageTransition';
 import AppHeader from './components/layout/AppHeader';
 import { AppShell } from './components/layout/AppShell';
 import { UIErrorBoundary } from './components/ui/error-boundary';
+import { initWebVitals } from './lib/web-vitals';
 import Sidebar from './components/layout/Sidebar';
 import DetailTabs from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
@@ -54,6 +55,17 @@ import {
 } from './lib/preferences';
 
 export default function App() {
+  // (v1.11.359, TODO 11.341) Core Web Vitals reporter
+  // bootstrap. Registers LCP / FID / INP / CLS / TTFB
+  // listeners once per page load. Dev builds log each
+  // metric to the devtools console; production builds
+  // stay quiet unless a host wires `onReport`. The
+  // hook is idempotent, so HMR-induced re-mounts do
+  // not double-register.
+  useEffect(() => {
+    initWebVitals();
+  }, []);
+
   const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
   // (v1.10.669) Auth state machine + AUTH_EVENT listener moved to
   // lib/use-auth-state.
