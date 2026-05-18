@@ -32,7 +32,10 @@ export default function SpecialistsAuditPanel() {
   const { exportAuditBusy, handleAuditExport } = useAuditExport({ auditWindow });
 
   return (
-    <div className="rounded-md border border-border/40 bg-muted/5">
+    <div
+      className="rounded-md border border-border/40 bg-muted/5"
+      data-print-section="audit-log"
+    >
       <button
         type="button"
         onClick={toggleAuditOpen}

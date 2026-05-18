@@ -1,11 +1,22 @@
 /*
- * Print stylesheet (11.196)
+ * Print stylesheet (11.196 / 11.345)
  *
  * Component scope only: hides chrome (nav, sidebar, toast, command
  * palette, drawer, tooltip, popover), promotes the main content to
  * full width, and applies print-friendly typography. Utility classes
  * .print-only / .screen-only / .print-page-break-before / .no-print
  * are exposed for component-level opt-in.
+ *
+ * (v1.11.363, TODO 11.345) Section hooks:
+ *   - [data-print-section="history-detail"] (HistoryDetailPane)
+ *   - [data-print-section="snapshots-list"] (Snapshots page)
+ *   - [data-print-section="audit-log"]      (SpecialistsAuditPanel)
+ *
+ * When at least one of these is present in the DOM, screen-only
+ * siblings are pruned and the section expands to fill the printable
+ * page. Tab strips, pagination, filter bars, and action buttons
+ * inside the section collapse so the printed page shows the data,
+ * not the controls.
  */
 
 .print-only {
@@ -156,5 +167,124 @@
 
   @page {
     margin: 1.5cm;
+  }
+
+  /* (v1.11.363, TODO 11.345) Section hooks.
+   *
+   * When the page contains a [data-print-section="..."] element, we
+   * promote it to the visible print surface. The header / footer /
+   * sidebar are already hidden by the chrome rules above; these
+   * rules trim component-level controls (pagination, action
+   * buttons, tab strips, the "edit" / "delete" / "restore" rows)
+   * so the printed output is data-focused.
+   */
+
+  [data-print-section] {
+    page-break-before: always;
+    break-before: page;
+    width: 100% !important;
+    max-width: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  [data-print-section]:first-of-type {
+    page-break-before: auto;
+    break-before: auto;
+  }
+
+  /* Inside a print section, hide the screen-only controls that do
+   * not survive the page transfer: tab strips, pagination
+   * widgets, action buttons (Take snapshot / Restore / Delete /
+   * Edit / Verify chain / Export CSV), copy buttons, and filter
+   * bars. Operators printing a report want the data, not the
+   * controls.
+   */
+
+  [data-print-section] [role="tablist"],
+  [data-print-section] [role="navigation"],
+  [data-print-section] .pagination,
+  [data-print-section] [data-pagination],
+  [data-print-section] button,
+  [data-print-section] [role="button"]:not([data-print-keep]),
+  [data-print-section] [data-testid$="-button"],
+  [data-print-section] [data-testid="copy-button"],
+  [data-print-section] [data-testid$="-filter"],
+  [data-print-section] [data-print-hide] {
+    display: none !important;
+  }
+
+  /* History detail: drop the breadcrumb and the avatar tile -- in
+   * print we lead with the heading + status row instead.
+   */
+  [data-print-section="history-detail"] [data-testid="breadcrumb"],
+  [data-print-section="history-detail"] [data-testid="avatar"] {
+    display: none !important;
+  }
+  [data-print-section="history-detail"] section[data-section] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin: 0 0 0.8rem 0 !important;
+  }
+
+  /* Snapshots list: expose the full table; the wrapping div's
+   * `overflow-x-auto` causes the table to spill off the print
+   * page on a portrait sheet, so we force overflow visible and
+   * wrap the columns instead.
+   */
+  [data-print-section="snapshots-list"] {
+    overflow: visible !important;
+  }
+  [data-print-section="snapshots-list"] table {
+    table-layout: fixed;
+    width: 100% !important;
+    font-size: 10pt;
+  }
+  [data-print-section="snapshots-list"] th,
+  [data-print-section="snapshots-list"] td {
+    word-break: break-word;
+    padding: 4pt 6pt !important;
+  }
+  [data-print-section="snapshots-list"] th[scope="col"]:last-child,
+  [data-print-section="snapshots-list"] td:last-child {
+    /* The Actions column has only buttons (already hidden); drop
+     * the column header too so the table doesn't show an empty
+     * rightmost column.
+     */
+    display: none !important;
+  }
+
+  /* Audit log: the collapsible chrome is screen-only; for print
+   * we expand the entries unconditionally and switch the timeline
+   * from a vertical chrome layout to a flat list.
+   */
+  [data-print-section="audit-log"] {
+    background: #ffffff !important;
+  }
+  [data-print-section="audit-log"] [aria-expanded] {
+    display: none !important;
+  }
+  [data-print-section="audit-log"] [data-collapsed] {
+    display: block !important;
+  }
+  [data-print-section="audit-log"] [data-window-filter],
+  [data-print-section="audit-log"] [data-export-row] {
+    display: none !important;
+  }
+  [data-print-section="audit-log"] ol,
+  [data-print-section="audit-log"] ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  [data-print-section="audit-log"] li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border-bottom: 1px solid #cccccc;
+    padding: 4pt 0;
   }
 }
