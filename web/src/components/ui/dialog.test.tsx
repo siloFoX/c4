@@ -368,4 +368,84 @@ describe('<Dialog>', () => {
       document.querySelector('[data-section="dialog-footer"]'),
     ).not.toBeNull();
   });
+
+  // (v1.11.381, TODO 11.363) Size variants.
+
+  describe('size variants (v1.11.381)', () => {
+    it('defaults to size="md" with max-w-lg', () => {
+      render(
+        <Dialog open onClose={vi.fn()} title="t">
+          <span>body</span>
+        </Dialog>,
+      );
+      const panel = screen.getByRole('dialog');
+      expect(panel.getAttribute('data-size')).toBe('md');
+      expect(panel.className).toContain('max-w-lg');
+    });
+
+    it('size="sm" applies max-w-sm', () => {
+      render(
+        <Dialog open onClose={vi.fn()} title="t" size="sm">
+          <span>body</span>
+        </Dialog>,
+      );
+      const panel = screen.getByRole('dialog');
+      expect(panel.getAttribute('data-size')).toBe('sm');
+      expect(panel.className).toContain('max-w-sm');
+    });
+
+    it('size="lg" applies max-w-3xl', () => {
+      render(
+        <Dialog open onClose={vi.fn()} title="t" size="lg">
+          <span>body</span>
+        </Dialog>,
+      );
+      const panel = screen.getByRole('dialog');
+      expect(panel.getAttribute('data-size')).toBe('lg');
+      expect(panel.className).toContain('max-w-3xl');
+    });
+
+    it('size="full" applies the viewport-fill clamps + scroll', () => {
+      render(
+        <Dialog open onClose={vi.fn()} title="t" size="full">
+          <span>body</span>
+        </Dialog>,
+      );
+      const panel = screen.getByRole('dialog');
+      expect(panel.getAttribute('data-size')).toBe('full');
+      expect(panel.className).toContain('96vw');
+      expect(panel.className).toContain('max-h-[95vh]');
+      expect(panel.className).toContain('overflow-y-auto');
+    });
+
+    it('className override composes after the size classes', () => {
+      render(
+        <Dialog
+          open
+          onClose={vi.fn()}
+          title="t"
+          size="sm"
+          className="my-custom-dialog"
+        >
+          <span>body</span>
+        </Dialog>,
+      );
+      const panel = screen.getByRole('dialog');
+      expect(panel.className).toContain('max-w-sm');
+      expect(panel.className).toContain('my-custom-dialog');
+    });
+
+    it('data-size attribute is always present', () => {
+      const sizes = ['sm', 'md', 'lg', 'full'] as const;
+      for (const s of sizes) {
+        const { unmount } = render(
+          <Dialog open onClose={vi.fn()} title="t" size={s}>
+            <span>body</span>
+          </Dialog>,
+        );
+        expect(screen.getByRole('dialog').getAttribute('data-size')).toBe(s);
+        unmount();
+      }
+    });
+  });
 });
