@@ -4,6 +4,94 @@
 
 (no entries -- next release window)
 
+## [1.11.322] - 2026-05-18 -- UI: portal-root helper consolidation (TODO 11.304)
+
+Consolidates the inline "lazy-create + idempotent decoration"
+pattern that previously lived in each portal call site into
+a single canonical implementation in
+`web/src/lib/portal-root.ts`. Component-scope only, no
+daemon or CLI surface change.
+
+### Added
+
+- `definePortalRoot(id, descriptor)` factory in
+  `web/src/lib/portal-root.ts`: returns a typed getter that
+  bundles a named portal root id with its idempotent
+  decoration (className + arbitrary attributes). Example:
+  ```ts
+  const getToastRoot = definePortalRoot('toast-root', {
+    className: 'pointer-events-none fixed right-4 top-4 ...',
+    attributes: { 'data-toast-root': 'true' },
+  });
+  ```
+- New `PortalRootDescriptor` exported type:
+  `{ className?, attributes?, decorationMarker? }`. The
+  default `decorationMarker` is `data-decorated-<id>`; the
+  marker is the sentinel that makes decoration idempotent
+  (repeated `get()` calls do NOT re-stamp className on
+  every render).
+- Optional second-argument overload of `getPortalRoot`:
+  `getPortalRoot(id, descriptor?)`. Lets callers apply
+  ad-hoc decoration on first creation without wrapping in
+  `definePortalRoot`. Backwards-compatible with the
+  prior single-arg signature.
+
+### Changed
+
+- `web/src/lib/portal-root.ts` is now the canonical
+  implementation. The module-level JSDoc documents the
+  canonical pattern with three call shapes:
+  1. `<Portal containerId="...">` primitive (preferred
+     for new code).
+  2. `getPortalRoot(id)` for raw element access.
+  3. `definePortalRoot(id, descriptor)` for named layers
+     with persistent decoration.
+  All three forms produce the same DOM shape so e2e
+  selectors (`#toast-root`, `[data-portal-root="true"]`,
+  per-root markers) stay stable.
+- `PortalRootId` union extended with the canonical
+  `'app-portal-root'` id (the default container used by
+  the `<Portal>` primitive). The `(string & {})` open-end
+  is preserved so call sites can still pass arbitrary
+  ids.
+
+### Refactored
+
+- `web/src/components/Toast.tsx::getToastRoot` now delegates
+  to `definePortalRoot('toast-root', { className, attributes })`
+  instead of re-implementing the lazy-create + hasAttribute
+  guard + className stamp pattern inline. The exported
+  `getToastRoot()` function keeps the same return signature
+  (`HTMLElement`) for callers; the SSR / missing-body
+  contract is unchanged. All 55 existing Toast.test.tsx
+  cases pass against the refactored implementation.
+
+### Tests
+
+- `web/src/lib/portal-root.test.ts` -- 8 new vitest cases
+  on top of the existing 10 (18 total). New cases:
+  - `getPortalRoot` with descriptor stamps className.
+  - `getPortalRoot` with descriptor stamps custom
+    attributes.
+  - Decoration is idempotent across repeated calls (a
+    mutated className survives subsequent `get()` calls).
+  - Default `data-decorated-<id>` sentinel marker.
+  - Custom `decorationMarker` override.
+  - `definePortalRoot` returns a typed getter that reuses
+    the same element across calls.
+  - `definePortalRoot` preserves `data-portal-root="true"`.
+  - `definePortalRoot` returns null in SSR.
+  - Test cleanup tightened to purge by known id even when
+    the element lacks the `data-portal-root="true"`
+    sentinel (the "reuses pre-existing element" case).
+  All 18 green.
+
+### Versions
+
+- 1.11.321 -> 1.11.322 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.322]`.
+
 ## [1.11.321] - 2026-05-18 -- UI: useA11yIds helper bundle (TODO 11.303)
 
 New `useA11yIds` hook at `web/src/hooks/use-a11y-ids.ts`.

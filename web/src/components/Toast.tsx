@@ -6,7 +6,7 @@ import type { ComponentType, SVGProps } from 'react';
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 import { Card, CardContent, Chip } from './ui';
 import { cn } from '../lib/cn';
-import { getPortalRoot } from '../lib/portal-root';
+import { definePortalRoot } from '../lib/portal-root';
 import { motionClass } from '../lib/motion';
 import {
   MOTION_DURATION_FAST_MS,
@@ -100,15 +100,27 @@ const TOAST_EXIT_MS = MOTION_DURATION_FAST_MS;
 // Lazy-create the portal target so the toast layer survives parent
 // route changes: even if a page unmounts, #toast-root stays in
 // document.body and is reused by the next toast that mounts.
+//
+// (v1.11.322, TODO 11.304) The previous inline "lazy-create
+// + hasAttribute guard + className stamp" boilerplate is
+// now delegated to `definePortalRoot` in `lib/portal-root.ts`
+// so every named portal layer reaches for the same
+// idempotent decoration pattern.
+const TOAST_ROOT_CLASSES =
+  'pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2 pb-safe-b pl-safe-l pr-safe-r';
+
+const getToastRootInternal = definePortalRoot('toast-root', {
+  className: TOAST_ROOT_CLASSES,
+  attributes: { 'data-toast-root': 'true' },
+});
+
 export function getToastRoot(): HTMLElement {
-  const root = getPortalRoot('toast-root')!;
-  // Apply toast-specific positioning + tagging on first creation.
-  if (!root.hasAttribute('data-toast-root')) {
-    root.setAttribute('data-toast-root', 'true');
-    root.className =
-      'pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2 pb-safe-b pl-safe-l pr-safe-r';
-  }
-  return root;
+  // `definePortalRoot` returns null in SSR / missing-body
+  // scenarios. The toast layer only renders client-side, so
+  // we keep the original non-null assertion at the call
+  // boundary -- if `getToastRoot()` is ever called from an
+  // SSR pass, that is a bug.
+  return getToastRootInternal()!;
 }
 
 export default function Toast({
