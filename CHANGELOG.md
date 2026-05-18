@@ -4,6 +4,120 @@
 
 (no entries -- next release window)
 
+## [1.11.339] - 2026-05-18 -- UI: FeatureFlags page redesign (TODO 11.321)
+
+Redesigns `web/src/pages/FeatureFlags.tsx` so the
+component-scoped flag admin uses the same primitive set as
+the rest of the page hero: category Tabs with count chips,
+debounced SearchBar, FormField rows, and per-row Tooltip
+for the full description. Adds a `category` field to
+`FeatureFlagDef` to drive the new Tabs filter.
+
+### Added
+
+- `FeatureFlagCategory` type (`'motion' | 'navigation' |
+  'developer'`) and a `CATEGORY_LABELS` map in
+  `web/src/lib/feature-flags.ts`. Every flag in the
+  shipped `FLAGS` array now carries a required
+  `category` so the Tabs filter is total.
+- Category Tabs strip above the flag list with four
+  options:
+  - `All (<count>)` -- default, every flag visible.
+  - `Motion (<count>)`, `Navigation (<count>)`,
+    `Developer (<count>)` -- restrict the list to flags
+    in that bucket.
+  Each option label carries a count chip showing the
+  per-category total.
+- Debounced SearchBar (`size="sm"`, `debounceMs=200`,
+  `aria-label="Search feature flags"`) that filters the
+  visible flags by case-insensitive substring across
+  `key`, `label`, and `description`. Composes with the
+  active tab AND the TagInput chips -- all three filters
+  apply together.
+- FormField wrapper around each row's Switch
+  (`layout="horizontal"`, `helperText=description`) so
+  the description doubles as the field's helper text and
+  the row picks up the standard form-field rhythm.
+- Tooltip on the Switch (and its override badge) with the
+  description + default value -- `<description>. Default
+  <value>.`. Surfaces on hover / focus per the Tooltip
+  primitive's existing contract.
+- "No flags match the current filter" placeholder rendered
+  in place of the list when the composed filter eliminates
+  every flag.
+- Data attributes for e2e:
+  - `data-section="feature-flags-toolbar"` on the toolbar
+    wrapper.
+  - `data-section="feature-flags-list"` on the row list.
+  - `data-testid="feature-flags-category-tabs"` on the
+    Tabs wrapper.
+  - `data-testid="feature-flags-tab-count-{all|motion|
+    navigation|developer}"` on each tab count chip.
+  - `data-testid="feature-flags-search"` on the SearchBar
+    input.
+  - `data-testid="feature-flags-empty-filter"` on the
+    no-match placeholder.
+  - `data-testid="feature-flag-row-<key>"` on each row.
+  - `data-testid="feature-flag-control-<key>"` on the
+    Switch + override badge cluster (Tooltip target).
+  - `data-testid="feature-flag-override-<key>"` on the
+    override badge when the value differs from the
+    default.
+  - `data-testid="feature-flag-meta-<key>"` on the
+    `key=` / `default=` / `category=` mono line.
+  - `data-flag-category="<category>"` on each row.
+
+### Changed
+
+- `web/src/lib/feature-flags.ts` -- `FeatureFlagDef`
+  gains a required `category` field. All six shipped
+  flags annotated:
+  - `motion`: pageTransitions, motion, reducedMotion.
+  - `navigation`: routeProgress.
+  - `developer`: gridDebug, uiDemoRoute.
+- `web/src/pages/FeatureFlags.tsx` -- imports
+  `Tabs`, `FormField`, `Tooltip`, `Badge`, `SearchBar`
+  from the ui barrel and `CATEGORY_LABELS` +
+  `FeatureFlagCategory` from feature-flags.
+- The mono `key=` / `default=` line picks up an additional
+  `category=` segment so the operator can see the row's
+  bucket without scanning the Tabs strip.
+
+### Removed
+
+- `HelpTip` per-row icon. The Tooltip on the Switch +
+  FormField helperText already surface the description so
+  the extra HelpTip became redundant.
+- `RichText` inline description rendering. The helper text
+  uses plain text (still wrapped in the FormField's
+  semantic `<p data-section="form-field-helper">`); the
+  full markdown-lite description still flows through the
+  Tooltip body as plain text.
+
+### Tests
+
+- `web/src/pages/FeatureFlags.test.tsx` -- new test
+  file. Thirteen cases:
+  - renders one row per declared flag (default `all` tab);
+  - renders the experimental AlertBanner at the top;
+  - tab click filters rows by category;
+  - per-category count chips render correct totals;
+  - debounced search across key / label / description;
+  - composed tab + search filter;
+  - "no flags match" placeholder appears when the filter
+    eliminates everything;
+  - FormField (`data-layout="horizontal"`) wraps each
+    row and the helper text mirrors the description;
+  - Switch carries the motion-aware
+    `data-reduced-motion` attribute;
+  - clicking the Switch flips the override badge + writes
+    to localStorage;
+  - Reset clears overrides and restores defaults;
+  - Switch is wrapped in a Tooltip whose body contains
+    the description + default value;
+  - the legacy TagInput chip filter still narrows the
+    list.
+
 ## [1.11.338] - 2026-05-18 -- UI: Queue page redesign (TODO 11.320)
 
 Refactors `web/src/pages/Queue.tsx` so the autonomous queue
