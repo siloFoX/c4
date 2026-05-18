@@ -4,6 +4,267 @@
 
 (no entries -- next release window)
 
+## [1.11.418] - 2026-05-18 -- UI: markdown renderer primitive (TODO 11.400)
+
+New `web/src/components/ui/markdown-renderer.tsx`
+ships `<MarkdownRenderer>` -- a secure
+markdown -> React renderer with URL
+sanitization, fenced-code routed through
+`<CodeBlock>` (11.379) for syntax
+highlighting, optional GFM checkbox
+lists, and a custom anchor click hook.
+
+### API
+
+```tsx
+<MarkdownRenderer
+  source={planMarkdown}
+  language="ts"             // fallback for un-tagged fences
+  enableCheckboxes          // default true
+  linkTarget="_blank"
+  onAnchorClick={(href, e) => track('md.click', { href })}
+  onCheckboxChange={(idx, checked) => persist(idx, checked)}
+  sanitizeUrl={customSanitizer}
+  ariaLabel="Plan body"
+/>
+```
+
+### Block grammar
+
+- ATX headings 1..6 (`# ` ... `###### `)
+- Fenced code (` ``` ` / ` ```lang `) ->
+  `<CodeBlock>` with the captured
+  language (or the prop fallback)
+- Blockquote (`> ` lines, joined)
+- Horizontal rule (`---` / `***` / `___`)
+- Unordered list (`-` / `*` / `+`)
+- Ordered list (`1. ` / `2. ` ...)
+- Checkbox list (`- [ ]` / `- [x]`)
+- Paragraph (everything else)
+
+Inline:
+
+- `` `code` ``
+- `**bold**`, `*italic*` / `_italic_`,
+  `~~strikethrough~~`
+- `[label](url)` with URL sanitization
+- Bare `http://` / `https://` auto-link
+
+### URL sanitization
+
+Exported pure helper `safeUrl(url)`
+returns `string | null`:
+
+- `null` for empty input, `javascript:`,
+  `data:`, `vbscript:`, `file:`, or any
+  unknown scheme.
+- The original URL (verbatim) for
+  `http(s):` / `mailto:` / `tel:`,
+  absolute paths (`/`, `./`, `../`),
+  and fragments (`#`).
+
+When a `[label](url)` link sanitizes to
+`null`, the link disappears but the
+label remains as plain text -- the
+operator still reads the words, just
+without a clickable trap. Bare-URL
+auto-links omit entirely when blocked.
+
+Override via the `sanitizeUrl` prop to
+add allow-listed app schemes (e.g.
+`myapp://`).
+
+### Anchor links
+
+- `target` is configurable via
+  `linkTarget` (default `_blank`).
+- `rel="noopener noreferrer"` auto-
+  applied when target is `_blank`,
+  omitted otherwise.
+- `onAnchorClick(href, event)` fires
+  with the sanitized href (the
+  un-sanitized raw URL is preserved
+  on `data-href-raw` for tests).
+
+### Checkbox lists
+
+When `enableCheckboxes` is true (the
+default), a contiguous run of `- [ ]`
+/ `- [x]` items renders as a
+data-section="markdown-checkbox-list"
+with one `<input type="checkbox">`
+per item. Each item exposes
+`data-checked` + `data-checkbox-index`
+(flat index across the whole document,
+useful for state lookup).
+
+`onCheckboxChange(index, checked)`
+fires on toggle. When the prop is
+absent, checkboxes render as
+read-only.
+
+Pass `enableCheckboxes={false}` to
+collapse checkbox lists down to plain
+unordered lists with
+`data-checkbox-disabled="true"` on the
+wrapper.
+
+### Code-block integration
+
+Fenced code blocks render through the
+existing `<CodeBlock>` primitive
+(11.379), so the markdown renderer
+inherits its syntax highlighting,
+copy button, line numbers, and theme.
+The wrapping CodeBlock receives a
+`data-section="markdown-code-block"`
+attribute so tests can locate the
+block without depending on the inner
+implementation.
+
+### Pure helpers (exported)
+
+```ts
+export function safeUrl(url: string): string | null;
+
+export function parseMarkdownBlocks(
+  source: string,
+): MarkdownBlock[];
+
+export type MarkdownBlockType =
+  | 'heading'
+  | 'code'
+  | 'blockquote'
+  | 'hr'
+  | 'ul'
+  | 'ol'
+  | 'checkbox-list'
+  | 'paragraph';
+```
+
+### ARIA + data attributes
+
+Root (`role="region"`, `aria-label`):
+
+- `data-section="markdown-renderer"`
+- `data-block-count`
+
+Blocks:
+
+- `data-section="markdown-heading"`
+  + `data-level`
+- `data-section="markdown-paragraph"`
+- `data-section="markdown-blockquote"`
+- `data-section="markdown-hr"`
+- `data-section="markdown-ul"` /
+  `markdown-ol` / `markdown-li`
+- `data-section="markdown-checkbox-list"` /
+  `markdown-checkbox-item` /
+  `markdown-checkbox` /
+  `markdown-checkbox-text`
+- `data-section="markdown-code-block"`
+
+Inline:
+
+- `data-section="markdown-inline-code"`
+- `data-section="markdown-inline-bold"`
+- `data-section="markdown-inline-italic"`
+- `data-section="markdown-inline-strike"`
+- `data-section="markdown-link"`
+  + `data-href-raw`
+- `data-section="markdown-autolink"`
+
+### Tests
+
+52 cases in `markdown-renderer.test.tsx`:
+
+- `safeUrl` (8): empty, http/https,
+  mailto/tel, javascript blocked,
+  data blocked, vbscript/file
+  blocked, relative + fragment +
+  no-scheme, unknown scheme
+  blocked.
+- `parseMarkdownBlocks` (11):
+  empty, headings 1..6, fenced
+  with/without language, ul, ol,
+  checkbox list, blockquote, hr,
+  paragraph, blank-line
+  separation, ul-vs-checkbox
+  separation.
+- Component (33): aria-label
+  default + custom, data-block-
+  count, heading render + level,
+  paragraph, inline bold/italic/
+  strike, inline code, fenced code
+  via CodeBlock, ul / ol /
+  checkbox-list renders,
+  enableCheckboxes=false fallback
+  to ul, checkbox click fires
+  onCheckboxChange with flat
+  index, blockquote, hr,
+  [label](url) sanitized anchor,
+  javascript: dropped (label
+  remains), data: dropped, bare
+  http(s) autolink, linkTarget
+  blank with rel noopener,
+  linkTarget self omits rel,
+  onAnchorClick fires with
+  sanitized href, custom
+  sanitizeUrl override, multiple
+  blocks in source order,
+  displayName, ref forwarding,
+  data-href-raw on safe link,
+  code-block language fallback,
+  heading inline formatting,
+  blank-line paragraph
+  separation, ftp:// autolink
+  blocked.
+
+52/52 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<CodeBlock>` (11.379) --
+  fenced code blocks render
+  through this primitive.
+- `lib/markdown.tsx` (legacy
+  feature-page renderer) --
+  pre-dates the design system,
+  scoped to Plan + Morning. The
+  new primitive is the canonical
+  surface for fresh adopters.
+- ThemeCustomizer (11.394) --
+  the renderer reads token-based
+  Tailwind classes so it auto-
+  themes.
+
+### Out of scope (deferred)
+
+- Tables. GFM tables belong to a
+  follow-on; pipe-table parsing
+  is non-trivial.
+- HTML pass-through. The
+  primitive intentionally
+  sanitizes; raw HTML is denied
+  by omission.
+- Footnotes / definitions /
+  reference-style links. Out of
+  scope for v1.
+- Image rendering. `<img>` adds
+  a separate set of security
+  concerns (CORS, referrer
+  policy); follow-on.
+- Math / LaTeX. Out of scope.
+- Smart-typography (curly
+  quotes, em-dash). Out of scope.
+- Adoption sweep through existing
+  pages. The legacy
+  `lib/markdown.tsx` still drives
+  Plan + Morning; opt-in
+  migration is a separate
+  dispatch.
+
 ## [1.11.417] - 2026-05-18 -- UI: diff editor primitive (TODO 11.399)
 
 New `web/src/components/ui/diff-editor.tsx`
