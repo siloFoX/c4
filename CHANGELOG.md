@@ -4,6 +4,119 @@
 
 (no entries -- next release window)
 
+## [1.11.384] - 2026-05-18 -- UI: badge + chip primitives (TODO 11.366)
+
+Closes the dispatch trio "status badge /
+removable chip / count badge" by rounding out
+the existing primitives:
+
+- `<Badge>` (11.229 / v1.11.247) -- status
+  variants (success / warning / info / error /
+  destructive) with leading signal icons.
+  **NEW** `size: 'sm' | 'md' | 'lg'` prop +
+  `data-size` attribute. `md` is the legacy
+  default and stays byte-identical
+  (`px-2.5 py-0.5 text-xs`); `sm` thins to
+  `px-2 py-0.5 text-[10px]` for dense inline
+  rows; `lg` opens to `px-3 py-1 text-sm` for
+  hero/page-header status strips.
+- `<Chip>` (existing) -- removable chip with
+  delete handler (`onDismiss`,
+  `dismissLabel`). Tones (neutral / primary /
+  success / warning / danger), variants
+  (subtle / solid / outline), sizes (sm / md).
+  **Unchanged** -- already covered the
+  dispatch contract.
+- `<BadgeCounter>` (11.278 / v1.11.296) --
+  count/dot badge. **NEW** `CountBadge` alias
+  exported from `web/src/components/ui/badge.tsx`
+  so the dispatch-style name resolves at the
+  canonical import path:
+
+```tsx
+import { Badge, CountBadge } from './components/ui/badge';
+
+<Badge variant="success" size="sm">ready</Badge>
+<Badge variant="warning" size="lg">overdue</Badge>
+<CountBadge count={3} tone="danger" />
+```
+
+### Why a size scale on Badge
+
+Pre-11.366, every Badge rendered at the
+single `px-2.5 py-0.5 text-xs` rhythm. That
+fits row cells and panel headers but reads
+heavy in dense table rows (status pill next
+to a row count) and reads light in
+page-header status strips next to an h1.
+Adding `sm`/`lg` lets the caller pick a
+rhythm without forking the variant token.
+
+### Size geometry
+
+| size | padding | text class |
+| --- | --- | --- |
+| `sm` | `px-2 py-0.5` | `text-[10px]` |
+| `md` (default) | `px-2.5 py-0.5` | `text-xs` |
+| `lg` | `px-3 py-1` | `text-sm` |
+
+### CountBadge alias
+
+`BadgeCounter` is the canonical count
+primitive. The dispatch lists "count badge"
+as one of the trio so this patch re-exports
+it from `badge.tsx` under the
+dispatch-friendly name. Both names resolve to
+the same React component:
+
+```tsx
+import { CountBadge } from './components/ui/badge';
+import { BadgeCounter } from './components/ui/badge-counter';
+```
+
+All `BadgeCounterProps` / `BadgeCounterTone` /
+`BadgeCounterSize` / `BadgeCounterVariant`
+types are re-exported as `CountBadgeProps` /
+etc. The barrel (`components/ui/index.ts`)
+already re-exports the `badge-counter` module
+so the alias resolves through the barrel too.
+
+### Tests + snapshots
+
+- `badge.test.tsx`: +5 new size cases (sm
+  classes, md byte-identical, lg classes,
+  variant + size composition, default
+  data-size attr) and 5 CountBadge alias
+  cases (numeric output, overflow `99+`,
+  count=0 hides, showZero, data-tone +
+  data-variant forwarded). 26 total -> all
+  pass.
+- `badge.snapshot.test.tsx`: 7 storyshot
+  baselines updated to reflect the
+  `data-size="md"` attribute + the new class
+  order (padding/text classes moved from base
+  -> size variant). The visible render is
+  byte-identical -- same classes, same DOM
+  -- just the source string differs.
+- `chip.test.tsx`, `badge-counter.test.tsx`:
+  unchanged. **72/72 pass** across the four
+  files.
+- `npx tsc --noEmit` clean for touched files.
+
+### Out of scope
+
+- Per-page adoption swap (Badge -> sized
+  Badge). The new size prop is additive;
+  every existing call site stays
+  byte-identical.
+- Replacing `Chip` with `Badge` (or vice
+  versa). The two surfaces serve different
+  semantics: Badge = read-only status pill;
+  Chip = interactive removable token.
+- A new `xs` Badge size. The 10px text floor
+  in `sm` already hits the readability
+  threshold; below that goes to a dot.
+
 ## [1.11.383] - 2026-05-18 -- UI: progress indicator primitives (TODO 11.365)
 
 Ships `CircularProgress` -- a canonical SVG-based

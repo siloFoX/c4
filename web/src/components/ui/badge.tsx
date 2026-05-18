@@ -5,7 +5,7 @@ import type { VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/cn';
 
 export const badgeVariants = cva(
-  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
+  'inline-flex items-center rounded-full border font-semibold transition-colors',
   {
     variants: {
       variant: {
@@ -22,9 +22,20 @@ export const badgeVariants = cva(
         error: 'border-transparent bg-destructive text-destructive-foreground',
         neutral: 'border-transparent bg-muted text-muted-foreground',
       },
+      // (v1.11.384, TODO 11.366) Size scale. Default `md` matches
+      // the legacy `px-2.5 py-0.5 text-xs` byte-for-byte so every
+      // existing call site stays identical. `sm` is a denser
+      // inline-row chip; `lg` is a hero badge for page-header
+      // status strips.
+      size: {
+        sm: 'px-2 py-0.5 text-[10px]',
+        md: 'px-2.5 py-0.5 text-xs',
+        lg: 'px-3 py-1 text-sm',
+      },
     },
     defaultVariants: {
       variant: 'default',
+      size: 'md',
     },
   }
 );
@@ -47,6 +58,9 @@ export interface BadgeProps
 // where each redeclared this alias inline.
 export type BadgeVariant = NonNullable<BadgeProps['variant']>;
 
+// (v1.11.384, TODO 11.366) Hoisted size alias.
+export type BadgeSize = NonNullable<BadgeProps['size']>;
+
 // (v1.11.247, TODO 11.229) Default icon per signal-bearing
 // variant. Consumers can override with an explicit `icon` prop, or
 // opt out entirely with `icon={false}`. The four signal variants
@@ -65,6 +79,7 @@ const SIGNAL_ICON: Partial<Record<NonNullable<BadgeVariant>, ReactNode>> = {
 export function Badge({
   className,
   variant,
+  size,
   icon,
   children,
   ...props
@@ -82,7 +97,8 @@ export function Badge({
           : null;
   return (
     <span
-      className={cn(badgeVariants({ variant }), resolvedIcon && 'gap-1', className)}
+      data-size={size ?? 'md'}
+      className={cn(badgeVariants({ variant, size }), resolvedIcon && 'gap-1', className)}
       {...props}
     >
       {resolvedIcon}
@@ -90,3 +106,21 @@ export function Badge({
     </span>
   );
 }
+
+// (v1.11.384, TODO 11.366) CountBadge alias. The dispatch lists
+// "count badge" as one of the trio (status badge / removable
+// chip / count badge). `BadgeCounter` (11.278 / v1.11.296) is
+// the canonical count primitive; re-export it under the
+// dispatch-style name so callers can write either:
+//
+//   import { CountBadge } from './components/ui/badge';
+//   import { BadgeCounter } from './components/ui/badge-counter';
+//
+// Both resolve to the same React component.
+export {
+  BadgeCounter as CountBadge,
+  type BadgeCounterProps as CountBadgeProps,
+  type BadgeCounterTone as CountBadgeTone,
+  type BadgeCounterSize as CountBadgeSize,
+  type BadgeCounterVariant as CountBadgeVariant,
+} from './badge-counter';
