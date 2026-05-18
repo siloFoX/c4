@@ -4,6 +4,112 @@
 
 (no entries -- next release window)
 
+## [1.11.386] - 2026-05-18 -- UI: tabs primitive (TODO 11.368)
+
+Closes the dispatched tabs contract:
+
+- `<Tabs>` (existing, 11.228 / v1.11.246 +
+  11.281 / v1.11.299) already covered
+  accessible markup (`role="tablist"` /
+  `role="tab"` / `role="tabpanel"` +
+  `aria-selected` + `aria-controls`),
+  arrow-key keyboard navigation,
+  lazy-mount panels (`{active ? children :
+  null}`), and the `pill` / `line` visual
+  variants with `scroll` / `wrap` overflow.
+- This patch adds the missing pieces: a
+  `vertical` orientation, the
+  uncontrolled mode via `defaultValue`, and
+  the aria-orientation hook so assistive tech
+  knows which axis the arrow keys travel.
+
+### Orientation
+
+```tsx
+<Tabs items={ITEMS} value={v} onChange={setV} />
+<Tabs items={ITEMS} value={v} onChange={setV} orientation="vertical" />
+```
+
+`orientation` accepts `'horizontal'` (default,
+legacy) or `'vertical'`. In vertical mode the
+tablist:
+
+- renders as a column (`flex-col`);
+- exposes `aria-orientation="vertical"` and
+  `data-orientation="vertical"`;
+- handles ArrowUp / ArrowDown (instead of
+  ArrowLeft / ArrowRight) plus Home / End;
+- in the `line` variant, the active indicator
+  becomes a 2px bar docked to the right edge
+  (`inset-y-0 -right-px w-0.5`) and the
+  tablist's border flips from `border-b` to
+  `border-r`;
+- in `overflow="scroll"` mode, the scroll
+  axis flips to `overflow-y-auto`.
+
+The `pill` variant works identically in both
+orientations -- only the tablist flex
+direction changes.
+
+### Uncontrolled mode
+
+```tsx
+<Tabs items={ITEMS} defaultValue="two" />
+<Tabs items={ITEMS} />                                // first item active
+<Tabs items={ITEMS} defaultValue="two" onChange={(v) => log(v)} />
+```
+
+When `value` is omitted, `<Tabs>` keeps the
+active tab in internal state seeded from
+`defaultValue` (or the first item as a final
+fallback so the panel always has something to
+render). `onChange` still fires when supplied,
+so adopters can observe selection without
+owning the state.
+
+`value` wins over `defaultValue` -- supplying
+both runs in controlled mode and the parent
+owns the state.
+
+### Controlled-vs-uncontrolled contract
+
+| Props | Mode |
+| --- | --- |
+| `value` + `onChange` | controlled (legacy, byte-identical) |
+| `defaultValue` only | uncontrolled, internal state |
+| `defaultValue` + `onChange` | uncontrolled, observable |
+| `value` + `defaultValue` | controlled (`value` wins) |
+| neither | uncontrolled, falls back to `items[0].value` |
+
+### Tests + types
+
+- `tabs.test.tsx`: +14 new cases (49 total).
+  Covers aria-orientation horizontal +
+  vertical, vertical ArrowDown / ArrowUp
+  nav, vertical `line` variant indicator
+  position, vertical `border-r` tablist, the
+  vertical overflow-y-auto scroll axis, plus
+  defaultValue seeding, click + keyboard
+  updates in uncontrolled mode, onChange in
+  uncontrolled mode, value-wins-over-default,
+  controlled-without-setState stays put, and
+  the `items[0]` fallback.
+- `npx tsc --noEmit` clean for touched files.
+
+### Out of scope
+
+- Per-page swap of horizontal `<Tabs>` to
+  vertical. The new orientation is
+  additive; every existing call site stays
+  byte-identical at `orientation="horizontal"`.
+- Adaptive orientation (e.g., flip to
+  vertical below a breakpoint). Callers can
+  swap orientation themselves via a media
+  query hook.
+- Drag-to-reorder. The tablist stays in input
+  order; reorder UX is a separate primitive
+  (likely a wrapping list with a drag-handle).
+
 ## [1.11.385] - 2026-05-18 -- UI: avatar primitive (TODO 11.367)
 
 Adds the `xl` size tier to `<Avatar>` and

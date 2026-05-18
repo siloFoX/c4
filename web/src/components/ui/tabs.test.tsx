@@ -418,4 +418,173 @@ describe('<Tabs>', () => {
       HTMLElement.prototype.scrollIntoView = origScrollIntoView;
     }
   });
+
+  // -- v1.11.386 orientation + uncontrolled (TODO 11.368) --------
+
+  it('default orientation="horizontal" sets aria-orientation + data-orientation', () => {
+    render(<Tabs value="one" onChange={() => {}} items={ITEMS} />);
+    const list = screen.getByRole('tablist');
+    expect(list.getAttribute('aria-orientation')).toBe('horizontal');
+    expect(list.getAttribute('data-orientation')).toBe('horizontal');
+  });
+
+  it('orientation="vertical" sets aria-orientation + data-orientation + flex-col class', () => {
+    render(
+      <Tabs value="one" onChange={() => {}} items={ITEMS} orientation="vertical" />,
+    );
+    const list = screen.getByRole('tablist');
+    expect(list.getAttribute('aria-orientation')).toBe('vertical');
+    expect(list.getAttribute('data-orientation')).toBe('vertical');
+    expect(list.className).toContain('flex-col');
+  });
+
+  it('orientation="vertical" ArrowDown moves to the next tab + fires onChange', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Tabs
+        value="one"
+        onChange={onChange}
+        items={ITEMS}
+        orientation="vertical"
+      />,
+    );
+    screen.getByRole('tab', { name: 'One' }).focus();
+    await user.keyboard('{ArrowDown}');
+    expect(onChange).toHaveBeenCalledWith('two');
+    expect(document.activeElement).toBe(
+      screen.getByRole('tab', { name: 'Two' }),
+    );
+  });
+
+  it('orientation="vertical" ArrowUp moves to the previous tab', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Tabs
+        value="two"
+        onChange={onChange}
+        items={ITEMS}
+        orientation="vertical"
+      />,
+    );
+    screen.getByRole('tab', { name: 'Two' }).focus();
+    await user.keyboard('{ArrowUp}');
+    expect(onChange).toHaveBeenCalledWith('one');
+  });
+
+  it('orientation="vertical" + line variant draws the side indicator on right edge', () => {
+    const { container } = render(
+      <Tabs
+        value="one"
+        onChange={() => {}}
+        items={ITEMS}
+        orientation="vertical"
+        variant="line"
+      />,
+    );
+    const indicator = container.querySelector(
+      '[data-section="tab-underline"]',
+    ) as HTMLElement;
+    expect(indicator).not.toBeNull();
+    expect(indicator.className).toContain('-right-px');
+    expect(indicator.className).toContain('w-0.5');
+  });
+
+  it('orientation="vertical" + line variant tablist has border-r (not border-b)', () => {
+    render(
+      <Tabs
+        value="one"
+        onChange={() => {}}
+        items={ITEMS}
+        orientation="vertical"
+        variant="line"
+      />,
+    );
+    const list = screen.getByRole('tablist');
+    // Use classList for exact class matching since "border-border"
+    // would otherwise substring-match "border-b".
+    expect(list.classList.contains('border-r')).toBe(true);
+    expect(list.classList.contains('border-b')).toBe(false);
+  });
+
+  it('orientation="vertical" + overflow="scroll" uses overflow-y-auto (not overflow-x-auto)', () => {
+    render(
+      <Tabs
+        value="one"
+        onChange={() => {}}
+        items={ITEMS}
+        orientation="vertical"
+      />,
+    );
+    const list = screen.getByRole('tablist');
+    expect(list.className).toContain('overflow-y-auto');
+    expect(list.className).not.toContain('overflow-x-auto');
+  });
+
+  it('uncontrolled: defaultValue seeds the initial active tab', () => {
+    render(<Tabs defaultValue="two" items={ITEMS} />);
+    expect(screen.getByRole('tab', { name: 'Two' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('uncontrolled: clicking another tab updates internal state without a parent', async () => {
+    const user = userEvent.setup();
+    render(<Tabs defaultValue="one" items={ITEMS} />);
+    await user.click(screen.getByRole('tab', { name: 'Three' }));
+    expect(screen.getByRole('tab', { name: 'Three' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('uncontrolled: onChange still fires when provided', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Tabs defaultValue="one" onChange={onChange} items={ITEMS} />);
+    await user.click(screen.getByRole('tab', { name: 'Two' }));
+    expect(onChange).toHaveBeenCalledWith('two');
+  });
+
+  it('uncontrolled: falls back to first item when defaultValue is absent', () => {
+    render(<Tabs items={ITEMS} />);
+    expect(screen.getByRole('tab', { name: 'One' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('controlled mode: parent `value` wins over `defaultValue`', () => {
+    render(
+      <Tabs value="three" defaultValue="one" onChange={() => {}} items={ITEMS} />,
+    );
+    expect(screen.getByRole('tab', { name: 'Three' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('controlled mode: clicking a tab does NOT mutate internal state when parent ignores onChange', async () => {
+    const user = userEvent.setup();
+    render(<Tabs value="one" onChange={() => {}} items={ITEMS} />);
+    await user.click(screen.getByRole('tab', { name: 'Two' }));
+    // Parent did not call setState, so the active tab stays at "one".
+    expect(screen.getByRole('tab', { name: 'One' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('uncontrolled: keyboard nav updates the active tab through internal state', async () => {
+    const user = userEvent.setup();
+    render(<Tabs defaultValue="one" items={ITEMS} />);
+    screen.getByRole('tab', { name: 'One' }).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Two' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
 });
