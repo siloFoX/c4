@@ -106,3 +106,4 @@ export * from './navigation-menu';
 export * from './drawer-resize';
 export * from './split-view';
 export * from './resizable';
+export * from './theme-customizer';
