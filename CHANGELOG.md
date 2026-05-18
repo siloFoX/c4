@@ -4,6 +4,118 @@
 
 (no entries -- next release window)
 
+## [1.11.383] - 2026-05-18 -- UI: progress indicator primitives (TODO 11.365)
+
+Ships `CircularProgress` -- a canonical SVG-based
+circular progress variant exported from
+`web/src/components/ui/progress.tsx`. Pairs with
+the existing linear `<Progress>` /
+`<ProgressBar>` (11.256 / v1.11.274) and the
+indeterminate `<Spinner>` (11.292 / v1.11.310) to
+close the dispatched contract for TODO 11.365:
+determinate bar (with label), indeterminate
+spinner sizes (xs/sm/md/lg), circular variant,
+ARIA `progressbar` role.
+
+### CircularProgress
+
+```tsx
+<CircularProgress value={42} max={100} showPercent />
+<CircularProgress indeterminate size="sm" />
+<CircularProgress value={73} variant="success" labelText="Saved" />
+```
+
+- `value` / `max` -- determinate fraction.
+  Indeterminate when `indeterminate=true` or when
+  `value` is omitted.
+- `size: 'xs' | 'sm' | 'md' | 'lg'` -- box widths
+  24 / 32 / 48 / 64 px. Default `md`.
+- `variant: 'default' | 'success' | 'warning' |
+  'destructive' | 'info'` -- maps to the same
+  palette tokens as the linear bar so a
+  caller can swap shapes without retuning
+  colours.
+- `showPercent` -- when `true`, renders the
+  rounded percent inside the ring (e.g.
+  "42%"). Hidden by default so a 24px ring stays
+  icon-sized.
+- `labelText` -- free-form ReactNode wins over
+  the percent label. When `labelText` is a
+  string it also becomes the `aria-label`.
+- `ariaLabel` -- explicit accessible name. Wins
+  over `labelText`. Falls back to "Progress".
+
+### Geometry
+
+Each size resolves to a box, stroke width,
+radius, and circumference:
+
+| size | box (px) | stroke (px) | radius (px) | label class |
+| --- | --- | --- | --- | --- |
+| `xs` | 24 | 2 | 10 | `text-[9px]` |
+| `sm` | 32 | 3 | 13.5 | `text-[10px]` |
+| `md` | 48 | 4 | 21 | `text-xs` |
+| `lg` | 64 | 5 | 29.5 | `text-sm` |
+
+The arc is rotated -90deg so the stroke starts
+at 12 o'clock; `stroke-dashoffset` exposes the
+percent fraction (`(1 - pct) * circumference`).
+At 100% the offset is zero and the ring is
+complete.
+
+### Indeterminate mode
+
+`indeterminate` paints a fixed quarter-arc
+(`dashoffset = circumference * 0.75`) on the
+outer svg and applies `animate-spin` to the
+svg element, so the arc rotates at the standard
+Tailwind 1s linear cadence. The determinate
+path omits `animate-spin` -- the stroke length
+animates via the existing
+`transition-[stroke-dashoffset]` class so the
+percent change reads as a fill, not a spin.
+
+### ARIA
+
+The wrapper exposes `role="progressbar"` with
+`aria-valuemin=0`, `aria-valuemax=max`,
+`aria-valuenow=value` (omitted when
+indeterminate), and an `aria-label` that
+resolves: explicit `ariaLabel` ->
+string-typed `labelText` -> fallback
+`"Progress"`. Same precedence rule as the linear
+`Progress` (added in v1.11.345 / TODO 11.327).
+
+### Pairs with existing primitives
+
+- `<Progress>` / `<ProgressBar>` (11.256) --
+  linear bar, unchanged.
+- `<Spinner>` (11.292) -- 4 indeterminate sizes
+  (xs/sm/md/lg) + reduced-motion text fallback,
+  unchanged.
+
+### Tests + types
+
+`progress.test.tsx` extended +24 cases (52
+total). `npx vitest run progress.test.tsx
+spinner.test.tsx` -> 78/78 pass. `npx tsc
+--noEmit` clean for touched files; pre-existing
+errors in unrelated pages (UIDemoRoute,
+Workers, Workspaces, Validation.test) are not
+touched by this patch.
+
+### Out of scope
+
+- Per-page adoption swap (linear bar -> circular).
+  The new component is additive; no callers
+  rewired.
+- Animated "shimmer" indeterminate gradient.
+  The quarter-arc + spin is the canonical
+  Tailwind/shadcn rhythm.
+- Variant-specific stroke widths. All sizes use
+  the same per-size stroke regardless of
+  variant.
+
 ## [1.11.382] - 2026-05-18 -- UI: sheet primitive alias (TODO 11.364)
 
 Ships `web/src/components/ui/sheet.tsx` -- a
