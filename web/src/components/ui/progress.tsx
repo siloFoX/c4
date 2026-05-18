@@ -36,6 +36,14 @@ export interface ProgressProps extends Omit<HTMLAttributes<HTMLDivElement>, 'chi
   variant?: ProgressVariant;
   size?: ProgressSize;
   className?: string;
+  // (v1.11.345, TODO 11.327) Accessible name for the
+  // role=progressbar element. Required by axe-core's
+  // aria-progressbar-name rule. When a string-typed
+  // `labelText` is provided, it doubles as the
+  // aria-label so callers do not have to repeat
+  // themselves. The fallback "Progress" keeps the
+  // surface accessible even when neither prop is set.
+  ariaLabel?: string;
 }
 
 const VARIANT_BG: Record<ProgressVariant, string> = {
@@ -70,6 +78,7 @@ export function Progress({
   variant = 'default',
   size = 'md',
   className,
+  ariaLabel,
   ...rest
 }: ProgressProps) {
   const safeMax = max > 0 ? max : 100;
@@ -117,6 +126,14 @@ export function Progress({
       ) : null}
       <div
         role="progressbar"
+        // (v1.11.345, TODO 11.327) Accessible name precedence:
+        // explicit `ariaLabel` -> string `labelText` ->
+        // fallback "Progress" so the rendered progressbar
+        // always satisfies axe-core's aria-progressbar-name
+        // rule.
+        aria-label={
+          ariaLabel ?? (typeof labelText === 'string' ? labelText : 'Progress')
+        }
         {...ariaProps}
         className={cn(
           'relative w-full overflow-hidden rounded-full bg-muted',

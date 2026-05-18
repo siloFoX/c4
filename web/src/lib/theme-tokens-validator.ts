@@ -61,9 +61,34 @@ export interface ThemeViolation {
 // to be NOT preceded by a word character so URL fragments
 // (`href="#anchor"`) and selector strings (`'#main-id'`)
 // that contain non-hex characters do not match.
-const RE_HEX = /(^|[^\w])(#[0-9a-fA-F]{3,8})\b/g;
-const RE_RGB = /\b(rgba?\s*\()/g;
-const RE_HSL = /\b(hsla?\s*\()/g;
+const RE_HEX = /(^|[^\w])(#[0-9a-fA-F]{3,8})(\b|$)([^\n]*)/g;
+const RE_RGB = /\b(rgba?\s*\(([^)]*)\))/g;
+const RE_HSL = /\b(hsla?\s*\(([^)]*)\))/g;
+
+// (v1.11.344, TODO 11.326) A hex literal inside an English
+// sentence is almost always a content reference (issue
+// number, todo id, anchor fragment), not a CSS color. The
+// heuristic: when the hex is followed by a space + a
+// lowercase letter (e.g., "#142 to worker"), treat it as
+// natural-language content and skip the match. CSS values
+// in code are usually followed by `'`, `"`, `` ` ``, `,`,
+// `;`, `}`, `)`, or end-of-line.
+const RE_NATURAL_LANGUAGE_TAIL = /^\s+[a-z]/;
+function looksLikeNaturalLanguageTail(tail: string): boolean {
+  return RE_NATURAL_LANGUAGE_TAIL.test(tail);
+}
+
+// (v1.11.344, TODO 11.326) `hsl(var(--token))` /
+// `rgb(var(--token))` references compose an HSL / RGB
+// function around a CSS variable. They are *not* raw color
+// literals -- the actual color value still flows through
+// the token system. The canonical case is
+// `hsl(var(--primary) / 0.35)` which is the design system's
+// way of adding alpha to a tokenised color. Allow those
+// while still rejecting `hsl(220 18% 8%)`-style raw values.
+function isVarReference(args: string): boolean {
+  return /\bvar\(/.test(args);
+}
 
 // Lines that should be skipped entirely. Multi-line
 // JS-doc block comments are stripped first.
@@ -100,6 +125,8 @@ export function scanSourceForViolations(
     for (const match of line.matchAll(RE_HEX)) {
       const literal = match[2]!;
       if (!isPlausibleHexColor(literal)) continue;
+      const tail = match[4] ?? '';
+      if (looksLikeNaturalLanguageTail(tail)) continue;
       const col = (match.index ?? 0) + (match[1]?.length ?? 0);
       violations.push({
         file: filePath,
@@ -111,25 +138,33 @@ export function scanSourceForViolations(
       });
     }
 
-    // rgb / rgba function calls.
+    // rgb / rgba function calls. Skip when the arguments
+    // are a `var(--token)` reference -- those compose alpha
+    // / lightness onto a tokenised color and are canonical
+    // in the design system.
     for (const match of line.matchAll(RE_RGB)) {
+      const args = match[2] ?? '';
+      if (isVarReference(args)) continue;
       violations.push({
         file: filePath,
         line: i + 1,
         column: (match.index ?? 0) + 1,
-        match: match[1]!,
+        match: match[1]!.split('(')[0]! + '(',
         rule: 'rgb-fn',
         excerpt: raw.trim(),
       });
     }
 
-    // hsl / hsla function calls.
+    // hsl / hsla function calls. Same `var(--token)` skip
+    // as the rgb branch above.
     for (const match of line.matchAll(RE_HSL)) {
+      const args = match[2] ?? '';
+      if (isVarReference(args)) continue;
       violations.push({
         file: filePath,
         line: i + 1,
         column: (match.index ?? 0) + 1,
-        match: match[1]!,
+        match: match[1]!.split('(')[0]! + '(',
         rule: 'hsl-fn',
         excerpt: raw.trim(),
       });
