@@ -1104,6 +1104,8 @@
   "specialists.summary.backupAgeHours": "· backup {hours}h ago",
   "specialists.summary.backupAgeDays": "· backup {days}d ago",
   "specialists.summary.persistDisabled": "· persist DISABLED",
+  "feature.workersHero.label": "Workers",
+  "feature.workersHero.description": "At-a-glance worker dashboard with busy/idle/lost counts, last-hour activity, and spawn CTA.",
   "feature.scribe.label": "Scribe",
   "feature.scribe.description": "Session context recorder — start/stop/scan and view snapshots.",
   "feature.batch.label": "Batch",

@@ -4,6 +4,105 @@
 
 (no entries -- next release window)
 
+## [1.11.332] - 2026-05-18 -- UI: Workers page hero (TODO 11.314)
+
+New `web/src/pages/Workers.tsx` feature page with a
+glance-able hero header: live busy / idle / lost counts
+via BadgeCounter, last-hour activity Sparkline, and a
+primary "spawn worker" CTA wired to Toast feedback.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/pages/Workers.tsx` -- new feature page
+  registered under the `operations` category as
+  `workers-hero`. Hero card surfaces:
+  - Three count blocks (Busy / Idle / Lost) rendered
+    with BadgeCounter (v1.11.296), tones
+    accent/muted/danger.
+  - Sparkline (v1.11.235) showing the trend of total
+    worker count over the last ~12 polling buckets.
+    The sparkline buffer is persisted to
+    `localStorage['c4:workers:hero-sparkline']`
+    (capped at 12 samples) so the trend survives
+    page reloads inside the same browser session.
+  - Primary "Spawn worker" Button with the
+    `loading` prop (v1.11.326) wired to the Button
+    primitive's auto-disable + spinner + aria-busy
+    contract.
+  - Toast feedback (v1.11.298 ToastProvider +
+    useToast) on success (`Spawn request sent`) and
+    failure (`Spawn failed: <reason>`). The
+    surrounding `ToastProvider` scopes the toast
+    layer to the Workers card only so other pages'
+    toast state is not perturbed.
+- The counts are derived from `GET /api/list` polled
+  every 5 seconds. The state machine classifies
+  workers as Busy when their `state` (or `status`
+  fallback) is `busy` / `running` / `dispatching`,
+  Idle otherwise. The `lost` field is taken from the
+  response's `lost` array.
+- The default spawn handler issues
+  `POST /api/workers` with a JSON body
+  `{ "name": "auto-<seconds>-<base36>" }` and reads
+  the response body as the error message on failure.
+  Tests inject a custom `onSpawnRequest` prop so the
+  network flow is replaceable without mocking
+  `fetch` at the page boundary.
+- Data attributes throughout for e2e:
+  `data-section="workers-hero"`,
+  `data-section="workers-hero-trend"`,
+  `data-section="workers-hero-count-block"` + per-
+  block `data-tone`, plus `data-testid` hooks on
+  the card, CTA, count blocks, and sparkline.
+- Registered in `web/src/pages/registry.ts` under
+  the `operations` category with the
+  `LayoutDashboard` icon. i18n entries added under
+  `feature.workersHero.label` and
+  `feature.workersHero.description` (en + ko
+  lockstep preserved).
+
+### Deferred (dispatch follow-ups)
+
+- The default `defaultSpawnRequest` posts a
+  minimum-shape body to `/api/workers`. A future
+  patch can thread a richer payload (tier, target,
+  profile, branch) through a modal-driven CTA so
+  the operator can pick the spawn parameters
+  inline.
+- The 5-second polling cadence matches the sidebar's
+  `useFetchSlot('/api/list', 5000)` shape. Migrating
+  both consumers to a single shared SWR-style cache
+  is a follow-up.
+
+### Tests
+
+- `web/src/pages/Workers.test.tsx` -- 11 vitest
+  cases:
+  - Hero shell + title + description.
+  - `data-section="workers-hero"` selector.
+  - Three count blocks render.
+  - Counts derived from `/api/list` (busy/idle/lost
+    split).
+  - Spawn CTA renders.
+  - CTA click fires the spawn callback.
+  - Success toast on a successful spawn.
+  - Error toast (with the rejection message) on a
+    failed spawn.
+  - Sparkline element renders with an accessible
+    label.
+  - Count blocks carry `data-tone` for theming.
+  - Malformed `/api/list` response keeps counts at
+    0 (no crash).
+- All 11 green via
+  `vitest run --project unit src/pages/Workers.test.tsx`.
+
+### Versions
+
+- 1.11.331 -> 1.11.332 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.332]`.
+
 ## [1.11.331] - 2026-05-18 -- UI: Settings page redesign (TODO 11.313)
 
 Refactors `web/src/pages/Settings.tsx` to use the

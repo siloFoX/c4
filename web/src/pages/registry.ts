@@ -20,6 +20,7 @@ import {
   GitBranch,
   Keyboard,
   Layers,
+  LayoutDashboard,
   LayoutGrid,
   Layers3,
   ListChecks,
@@ -90,6 +91,18 @@ export interface FeatureDef {
 }
 
 export const FEATURES: FeatureDef[] = [
+  // (v1.11.332, TODO 11.314) Workers hero page -- glance
+  // view of busy / idle / lost counts + last-hour
+  // activity sparkline + spawn CTA. The detailed list
+  // lives in the sidebar; this page complements it.
+  {
+    id: 'workers-hero',
+    labelKey: 'feature.workersHero.label',
+    descriptionKey: 'feature.workersHero.description',
+    category: 'operations',
+    Icon: LayoutDashboard,
+    load: () => import('./Workers'),
+  },
   {
     id: 'scribe',
     labelKey: 'feature.scribe.label',
