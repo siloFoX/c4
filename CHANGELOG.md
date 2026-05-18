@@ -4,6 +4,105 @@
 
 (no entries -- next release window)
 
+## [1.11.345] - 2026-05-18 -- UI: Accessibility audit + fixes (TODO 11.327)
+
+Lands a CI-runnable axe-core helper plus an audit
+harness that scans the storybook gallery
+(`UIDemoRoute`) under both light + dark themes. Fixes
+two real a11y violations surfaced by the audit:
+
+- `aria-progressbar-name`: the `ProgressBar` primitive
+  was rendering `role="progressbar"` without an
+  accessible name. Now accepts an explicit
+  `ariaLabel` prop, auto-derives from a string
+  `labelText`, and falls back to `"Progress"`.
+- `aria-tooltip-name`: the `Tooltip` body had no
+  accessible name when the `label` prop was a
+  non-text ReactNode (e.g., an icon-only label).
+  Now auto-applies `aria-label={label}` when the
+  label is a string, falling back to `"Tooltip"`
+  otherwise.
+
+### Added
+
+- `axe-core` devDependency (`^4.11.4`).
+- `web/src/test-utils/axe.ts` -- vitest-friendly axe
+  helper. Public surface:
+  - `pageA11yCheck(container, opts?) ->
+    Promise<A11yResult>` -- runs axe against the
+    container and returns
+    `{ ok, violations, summary }`.
+  - `expectNoA11yViolations(result)` -- throws a
+    single human-readable error when violations
+    exist.
+  - `formatA11ySummary(violations)` -- the same
+    summary string used internally; exported for
+    custom assertions.
+  - `A11yViolationDetail` / `A11yResult` /
+    `PageA11yCheckOpts` interfaces.
+- Default jsdom skip list (`color-contrast`,
+  `landmark-one-main`, `region`,
+  `page-has-heading-one`). Color contrast in
+  particular requires real-browser computed-style
+  resolution; the dispatch's contrast goal is
+  acknowledged but defers to a future Playwright
+  harness. The skip list is documented inline + in
+  `docs/patches/11.327-ui-a11y-audit.md`.
+- `web/src/test-utils/axe.test.ts` -- 13 unit tests
+  for the helper (happy path, button-name flag,
+  image-alt flag, contrast skip default, custom skip
+  override, summary formatter pluralisation,
+  expectation throw behaviour, etc.).
+- `web/src/pages/UIDemoRoute.a11y.test.tsx` -- new
+  audit harness. Two cases:
+  - the demo gallery passes axe-core under the dark
+    theme;
+  - the demo gallery passes axe-core under the
+    light theme.
+- `ariaLabel` prop on `<Progress>` primitive. Optional;
+  auto-derives from `labelText` (when string-typed)
+  or falls back to `"Progress"`.
+
+### Changed
+
+- `web/src/components/ui/progress.tsx` --
+  `role="progressbar"` element now carries
+  `aria-label` (see precedence above). Satisfies
+  axe-core's `aria-progressbar-name` rule.
+- `web/src/components/ui/tooltip.tsx` --
+  `role="tooltip"` element now carries `aria-label`
+  (string label or `"Tooltip"` fallback). Satisfies
+  axe-core's `aria-tooltip-name` rule. No DOM-tree
+  changes, no test-query changes -- the existing
+  tests pass byte-for-byte.
+
+### Tests
+
+- `web/src/test-utils/axe.test.ts` -- 13/13 pass.
+- `web/src/pages/UIDemoRoute.a11y.test.tsx` -- 2/2
+  pass (both themes).
+- `web/src/components/ui/progress.test.tsx` --
+  13 prior cases pass unchanged.
+- `web/src/components/ui/tooltip.test.tsx` --
+  43 prior cases pass unchanged.
+
+### Out of scope
+
+- Color-contrast rule. jsdom does not resolve
+  Tailwind utility classes to computed RGB values
+  so axe cannot evaluate contrast in a vitest
+  environment. The default skip list documents the
+  decision. A future Playwright-based harness can
+  re-enable the rule against a real browser render.
+- Per-page audit harness for every existing page
+  (Queue, Workers, Sessions, etc.). The
+  UIDemoRoute already exercises every primitive
+  variant; per-page audits are valuable but each
+  needs its own data stubs and would balloon this
+  patch. Follow-up patches can add them
+  incrementally using the new `pageA11yCheck`
+  helper.
+
 ## [1.11.344] - 2026-05-18 -- UI: Dark mode parity audit (TODO 11.326)
 
 Audits the design-token compliance contract for the

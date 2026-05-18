@@ -188,6 +188,15 @@ export function Tooltip({
         role="tooltip"
         id={id}
         data-visible={visible}
+        // (v1.11.345, TODO 11.327) Accessible name fallback
+        // for axe-core's aria-tooltip-name rule. When the
+        // label is a non-string ReactNode (an icon-only
+        // label), the tooltip body has no text content and
+        // axe reports a violation. Stringifying via the
+        // typeof check covers the simple case; richer
+        // labels can override the aria-label via their
+        // own wrapper.
+        aria-label={typeof label === 'string' ? label : 'Tooltip'}
         className={cn(
           'pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity',
           pos,
