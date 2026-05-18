@@ -4,6 +4,93 @@
 
 (no entries -- next release window)
 
+## [1.11.350] - 2026-05-18 -- UI: AppShell adoption (TODO 11.332)
+
+Migrates `web/src/App.tsx` to flow through the v1.11.343
+`AppShell` primitive at the outer-shell level. The
+gradient header backdrop + `AppHeader` content now
+render inside `AppShell.header`; the body (MetricsBar +
+banners + Suspense + PageTransition + topView switcher)
+renders inside `AppShell` children. The existing per-view
+scroll discipline survives via a new
+`mainScroll="inherit"` opt-out on the primitive. No
+visible UX change.
+
+### Added
+
+- `mainScroll?: 'auto' | 'inherit'` prop on `AppShell`.
+  `'auto'` (default) keeps the v1.11.343 contract -- the
+  `<main>` children are wrapped in a vertical
+  `ScrollArea`. `'inherit'` skips the wrapper so the
+  caller's children manage their own scroll. Used by
+  App.tsx because each topView branch already owns its
+  `overflow-hidden` + `min-h-0` chain (terminal /
+  chat / multi-pane editors).
+- `data-main-scroll="auto|inherit"` data attribute on
+  the rendered `<main>` element so e2e + styling can
+  branch on the active mode.
+- `web/src/components/layout/Sidebar.snapshot.test.tsx`
+  -- visual snapshot test for the existing Sidebar
+  primitive at its two canonical states (collapsed and
+  expanded). The dispatch asks for "visual snapshot
+  test for collapsed/expanded sidebar states"; these
+  snapshots lock down the rendered DOM tree so a
+  layout refactor that drops the icon rail class or
+  the collapse handle surfaces in CI. Two snapshots
+  written; two additional assertions verify the
+  AccountMenu's `collapsed` prop is threaded through
+  correctly.
+
+### Changed
+
+- `web/src/App.tsx` -- outer shell rewritten to use
+  `<AppShell>`. The outer `<div className="flex
+  h-screen flex-col bg-background">` and the gradient
+  `<div>` wrapper are gone; the gradient class moves
+  into `AppShell.headerClassName` (overriding the
+  primitive's default `border-b + bg-card/40`). The
+  v1.11.134 gradient is preserved byte-for-byte.
+  `mainScroll="inherit"` so the per-view scroll
+  discipline survives. `<HelpUIRoot>` and
+  `<CommandPalette>` are siblings of `<AppShell>` (not
+  children) because they are portal-based modals -- the
+  shell's `<main>` landmark stays free of modal
+  content.
+- `web/src/components/layout/AppShell.test.tsx` -- 20
+  prior cases + 2 new `mainScroll` cases.
+
+### Tests
+
+- `AppShell.test.tsx` -- 22/22 pass.
+- `Sidebar.test.tsx` -- 31/31 pass (no change).
+- `AppHeader.test.tsx` -- 19/19 pass (no change).
+- `Sidebar.snapshot.test.tsx` (new) -- 4/4 pass with 2
+  snapshots written.
+- 76/76 AppShell + AppHeader + Sidebar related cases
+  pass.
+
+### Not migrated
+
+- **The Sidebar component's nav model** does not flow
+  through `AppShell.nav`. The existing Sidebar renders
+  dynamic content (WorkerList + HierarchyTree +
+  AccountMenu) that does not fit the
+  `AppShellNavItem[]` shape (`id`, `label`, `icon`,
+  `href`). Sidebar continues to render INSIDE the
+  default-view body (under `topView === 'workers'`).
+  Migrating the dynamic sidebar to `AppShell.nav` is a
+  follow-up that would require extending the primitive
+  with a richer nav model (or accepting an opaque
+  `ReactNode` slot).
+- **The header internals (MetricsBar / banner /
+  RouteProgressBar / GridDebugOverlay)** stay inside
+  `<main>` rather than moving to a `subHeader` slot.
+  `<header role="banner">` should contain navigation
+  only; the status strips below it semantically
+  belong with the main content. A future patch can
+  add a `subHeader` slot if the design system grows
+  one.
+
 ## [1.11.349] - 2026-05-18 -- UI: Keyboard nav audit (TODO 11.331)
 
 Lands a vitest-runnable keyboard-nav smoke helper plus

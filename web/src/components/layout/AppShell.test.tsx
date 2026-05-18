@@ -325,4 +325,29 @@ describe('<AppShell>', () => {
     expect(item.tagName).toBe('A');
     expect(item.getAttribute('href')).toBe('#docs');
   });
+
+  // (v1.11.350, TODO 11.332) mainScroll prop controls
+  // whether the children are wrapped in a ScrollArea.
+  it('wraps main in a ScrollArea by default (mainScroll="auto")', () => {
+    render(<AppShell header="H">body</AppShell>);
+    expect(
+      screen.getByTestId('app-shell-main-scroll'),
+    ).toBeInTheDocument();
+    const main = screen.getByRole('main');
+    expect(main.getAttribute('data-main-scroll')).toBe('auto');
+  });
+
+  it('skips the ScrollArea wrap when mainScroll="inherit"', () => {
+    render(
+      <AppShell header="H" mainScroll="inherit">
+        body
+      </AppShell>,
+    );
+    expect(
+      screen.queryByTestId('app-shell-main-scroll'),
+    ).not.toBeInTheDocument();
+    const main = screen.getByRole('main');
+    expect(main.getAttribute('data-main-scroll')).toBe('inherit');
+    expect(main.textContent).toContain('body');
+  });
 });
