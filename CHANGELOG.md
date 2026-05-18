@@ -4,6 +4,98 @@
 
 (no entries -- next release window)
 
+## [1.11.378] - 2026-05-18 -- UI: tooltip Radix-style extensions (TODO 11.360)
+
+The `<Tooltip>` primitive itself shipped in 11.276
+(v1.11.294) with hover/focus triggers, placements,
+arrow, controlled-via-`open`, ARIA-describedby,
+and per-direction delays. This patch adds the
+Radix-style features the dispatch called out:
+observable controlled mode, defaultOpen, portal
+rendering, and touch long-press.
+
+### New props
+
+- `onOpenChange(next)` -- fires whenever the
+  visibility flips (hover / focus / Escape /
+  touch); a host can use it for observability
+  or to mirror state.
+- `defaultOpen` -- uncontrolled initial value.
+- `portal` -- `true` mounts the body under the
+  canonical `tooltip-root` portal so it
+  escapes overflow:hidden ancestors; a
+  caller-supplied HTMLElement is used verbatim.
+- `touchOpen` (default `true`) -- enables
+  touch long-press to show.
+- `touchHoldMs` (default `500`) -- long-press
+  duration before the tooltip shows.
+
+The legacy `open` prop mirrors into internal
+state on every change (loose control) so
+existing call sites keep working byte-identical
+-- Escape still closes when `open` is set,
+matching v1.10 behaviour. `onOpenChange` fires
+for every internal flip so a host that wants
+strict control can hold the truth in its own
+state.
+
+### Portal rendering
+
+`portal={true}` mounts the body under the
+`tooltip-root` portal node managed by
+`lib/portal-root.ts` (auto-created on first
+use). The body switches to `position: fixed`
+instead of `absolute`. The trigger wrapper
+gets `data-portal="true"` for e2e selectors.
+
+### Touch long-press
+
+`touchstart` -> schedules a `setTimeout(setOpen,
+touchHoldMs)`. `touchend` / `touchcancel`
+cancels the timer + calls `hide()` so a tap
+without hold does not show the tooltip.
+`touchOpen={false}` disables touch entirely
+so a long-press passes through to the host.
+
+### Tests
+
+`tooltip.test.tsx` -- adds 9 new cases on top
+of the existing 26:
+
+- `onOpenChange` fires on hover transitions
+  (true then false).
+- `defaultOpen` makes the tooltip visible on
+  mount.
+- `open` prop sync writes the latest controlled
+  value into local state on every change.
+- `portal={true}` renders the body in the
+  portal root + flips `data-portal="true"`.
+- Legacy inline render keeps `data-portal="false"`.
+- Custom HTMLElement portal target works.
+- Touch long-press shows after `touchHoldMs`.
+- `touchend` before `touchHoldMs` cancels.
+- `touchOpen={false}` disables touch.
+
+35/35 pass under vitest 4.1.5. TypeScript clean.
+
+### Pairs with existing primitives
+
+- `lib/portal-root.ts` --
+  `getPortalRoot('tooltip-root')` is the
+  canonical mount target.
+- Existing `placement` / `arrow` / `showDelay`
+  / `hideDelay` props unchanged.
+- The 47-case `tooltip.snapshot.test.tsx`
+  suite still renders the legacy inline shape
+  so the snapshot contract is preserved.
+
+### Out of scope
+
+- Collision detection / flip when the
+  tooltip would overflow the viewport.
+- React 19 ref-as-prop migration.
+- Native Popover API integration.
+
 ## [1.11.377] - 2026-05-18 -- UI: breadcrumbs router integration (TODO 11.359)
 
 The `<Breadcrumbs>` primitive itself shipped in
