@@ -4,6 +4,158 @@
 
 (no entries -- next release window)
 
+## [1.11.388] - 2026-05-18 -- UI: select primitive (TODO 11.370)
+
+Extends `<Select>` (single-value, existing
+since the original library) with the
+dispatched ergonomics and adds a sister
+`<MultiSelect>` primitive in the same file
+for multi-value pickers.
+
+### `<Select>` additive props
+
+- `clearable?: boolean` (default false). When
+  true and `value !== ''`, a small inline `X`
+  button on the trigger resets the value to
+  `''` via `onChange('')`. The clear handler
+  stops propagation so the trigger does not
+  also toggle the menu.
+- `searchable?: boolean` (default false).
+  When true, the popup gains a search input
+  above the listbox that filters options by
+  case-insensitive substring match against
+  `label`. ArrowUp / ArrowDown / Home / End /
+  Enter / Escape all flow through the search
+  input so keyboard nav still works. Closing
+  the menu resets the query. The legacy
+  type-ahead matcher is suppressed when
+  `searchable=true` because the search input
+  owns printable keystrokes.
+- `searchPlaceholder?: string` (default
+  "Search..."). Only used when
+  `searchable=true`.
+- New `filterSelectOptions(options, query)`
+  pure helper exported alongside the
+  component for callers that want to compute
+  their own filtered view (e.g., async +
+  client-side fallback).
+
+The popup structure changed when
+`searchable=true`: the `<ul role="listbox">`
+is now wrapped in a `<div
+data-section="select-popup">` so the search
+row can sit above it. When `searchable=false`
+the legacy render is preserved
+byte-identical -- the wrapper still renders
+but the search row does not.
+
+### New `<MultiSelect>` primitive
+
+```tsx
+import { MultiSelect } from './components/ui/select';
+
+<MultiSelect
+  options={FRUITS}
+  values={selected}
+  onChange={setSelected}
+  ariaLabel="Fruits"
+  searchable
+  clearable
+/>
+```
+
+- `values: string[]` + `onChange: (next:
+  string[]) => void` -- array-based value
+  shape.
+- `Space` / `Enter` / click on an option
+  toggles it in/out of the value set
+  WITHOUT closing the popup (multi-select
+  semantics).
+- Listbox carries `aria-multiselectable="true"`;
+  every option exposes `aria-selected` per
+  its membership.
+- Each option renders a checkbox glyph
+  (`<input type=checkbox readOnly>`) before
+  its label so the selection state is visible
+  without scanning aria attributes.
+- Trigger label renders comma-joined labels
+  up to `maxLabelChips` (default 3); above
+  that it collapses to "<n> selected".
+- `data-selected-count` on the trigger
+  mirrors `values.length` for downstream
+  test/storyshot assertions.
+- Same `searchable` / `clearable` /
+  `searchPlaceholder` ergonomics as
+  `<Select>`. Clear empties the array.
+- ARIA combobox + listbox + activedescendant
+  pattern matches the single Select for
+  consistency.
+
+### Tests + types
+
+- `select.test.tsx`: +28 new cases (52
+  total). Covers clearable default-off,
+  empty-value-hides-clear, clear button
+  rendering + onChange, clear stop-
+  propagation, search input render, filter
+  behaviour, empty-state, Enter committing
+  the highlighted FILTERED option, query
+  reset on close, ArrowDown within filtered
+  list, `filterSelectOptions` helper (3
+  cases), MultiSelect placeholder render,
+  comma-join up to maxLabelChips, "<n>
+  selected" overflow, toggle-on-click, no-
+  auto-close, Space + ArrowDown toggle,
+  aria-multiselectable, aria-selected per
+  option, searchable filter, clearable
+  button render + clear path, Escape close
+  + focus restore, checkbox visual state
+  matches values, data-selected-count
+  reflects values.length.
+- `npx tsc --noEmit` clean for touched
+  files. Pre-existing errors in unrelated
+  pages are unchanged.
+
+### Pairs with existing primitives
+
+- `<NativeSelect>` -- platform `<select>`
+  wrapper for the simple 3-7 option case.
+  Unchanged.
+- `<Combobox>` -- richer autocomplete pattern
+  (11.371 follow-on). Will integrate with
+  the same `filterSelectOptions` helper.
+- `<VirtualizedList>` (`virtualized-list.tsx`)
+  -- callers that need windowed rendering
+  inside the listbox can compose with this
+  primitive directly. Inline virtualization
+  inside `<Select>` is deferred (see "Out of
+  scope").
+
+### Out of scope
+
+- **Inline virtualization** of the listbox
+  inside `<Select>` / `<MultiSelect>`. The
+  existing `<VirtualizedList>` covers the
+  windowed render case and can be dropped
+  into a custom popup. Inlining adds a
+  scrollHeight measurement + ResizeObserver
+  story that belongs in a separate patch
+  with its own perf budget.
+- **Async `loadOptions(query)`**. The current
+  contract takes a static `options[]` array;
+  callers that load remotely should swap in
+  new options on each query change. A
+  proper `loadOptions` story needs a
+  debounce, request cancellation, and a
+  loading state -- deferred.
+- **Tag chips on the MultiSelect trigger.**
+  The comma-join + count fallback covers the
+  baseline; per-chip removal belongs in a
+  TagInput-like primitive.
+- **Async `select.searchable` with cached
+  fallback**. Same reasoning as
+  `loadOptions`.
+
 ## [1.11.387] - 2026-05-18 -- UI: accordion primitive (TODO 11.369)
 
 `<Accordion>` (11.272 / v1.11.290) already
