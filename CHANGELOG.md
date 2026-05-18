@@ -4,6 +4,98 @@
 
 (no entries -- next release window)
 
+## [1.11.328] - 2026-05-18 -- UI: Link primitive (TODO 11.310)
+
+New `Link` primitive at `web/src/components/ui/link.tsx`.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/components/ui/link.tsx` -- canonical styled
+  anchor with internal/external auto-detection. External
+  links automatically open in a new tab with
+  `rel="noopener noreferrer"` and a trailing external
+  icon so operators see they will leave the app before
+  clicking.
+- Three variants:
+  - `default` -- primary-coloured link with hover
+    underline. Main "action" links.
+  - `muted` -- muted-foreground link with hover
+    underline. Secondary / metadata links.
+  - `inline` -- inherits text colour, always-underlined.
+    For "click here" affordances inside running prose.
+- External-link detection: any href that starts with a
+  URL scheme (`https:`, `http:`, `mailto:`, `tel:`,
+  etc) OR a protocol-relative prefix (`//`) is treated
+  as external. Everything else (relative paths,
+  absolute paths, anchor fragments) is internal.
+- Auto-applied security tokens: external + `_blank`
+  target adds `rel="noopener noreferrer"`. The tokens
+  are layered with caller-supplied `rel` (no
+  duplicates).
+- Override props:
+  - `external?: boolean` -- force the classification
+    when auto-detect guesses wrong (e.g. an internal
+    route exposed through a reverse proxy).
+  - `hideExternalIcon?: boolean` -- suppress the
+    trailing icon for compact link rows.
+  - `target` -- caller-supplied target wins (e.g.
+    `_self` for an external link that should navigate
+    in-place).
+- Exported `isExternalHref(href: string): boolean`
+  helper so call sites can reuse the same
+  classification logic without rendering a Link.
+- Data-attribute selectors for e2e + theming:
+  `data-section="link"`, `data-variant`,
+  `data-external="true|false"`,
+  `data-section="link-content"`,
+  `data-section="link-external-icon"`.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch asked for the raw `<a>` tags across the
+  app to be replaced with `<Link>`. Sweeping the
+  codebase is a follow-up per-page patch so each
+  migration lands with its own test refresh and the
+  blast radius of this commit stays minimal.
+
+### Tests
+
+- `web/src/components/ui/link.test.tsx` -- 32 vitest
+  cases:
+  - `isExternalHref` (9): https / http / mailto / tel /
+    protocol-relative classified as external; relative
+    / absolute-same-origin / anchor fragments
+    classified as internal; non-string input returns
+    false.
+  - `<Link>` (23): renders `<a>` with the children as
+    accessible name; sets href; default / muted /
+    inline variant class sets; internal hrefs do not
+    set target or rel and do not render the external
+    icon; external hrefs auto-set `target="_blank"`,
+    `rel="noopener noreferrer"`, and the external
+    icon; external icon is `aria-hidden`;
+    `hideExternalIcon` suppresses the icon;
+    `external=false` override prevents auto-detect;
+    `external=true` override forces external
+    semantics on a relative href; caller-supplied
+    target wins; non-`_blank` target does not add the
+    security rel tokens; caller-supplied rel merges
+    with the security tokens without duplicates;
+    `mailto:` link is classified as external; data
+    attributes (`data-section="link"`, `data-variant`,
+    `data-external`, `data-section="link-content"`);
+    children render inside the link-content slot; ref
+    forwarding; className merge; stable displayName.
+  All 32 green.
+
+### Versions
+
+- 1.11.327 -> 1.11.328 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.328]`.
+
 ## [1.11.327] - 2026-05-18 -- UI: Input primitive enhancements (TODO 11.309)
 
 Enhances `web/src/components/ui/input.tsx` with icon slots,
