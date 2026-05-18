@@ -4,6 +4,123 @@
 
 (no entries -- next release window)
 
+## [1.11.376] - 2026-05-18 -- UI: empty state variants (TODO 11.358)
+
+The `<EmptyState>` primitive itself shipped in
+11.248 (v1.11.266) with the illustration slot +
+title/description/action/secondaryAction +
+helpLink + size variants. This patch ships the
+predefined `variant` presets the dispatch asked
+for + adoption at three surfaces (HistoryView,
+Templates, SpecialistsAuditPanel).
+
+### Variant presets
+
+Four canonical variants resolve to a default
+illustration + title + description:
+
+| variant | illustration | title |
+| --- | --- | --- |
+| `empty-list` | `empty-queue` | `Nothing here yet` |
+| `no-results` | `search-empty` | `No matches` |
+| `error` | `access-denied` | `Something went wrong` |
+| `loading-failed` | `no-data` | `Could not load` |
+
+`EMPTY_STATE_VARIANTS` exported as the canonical
+list.
+
+Override precedence:
+
+- Explicit `icon` wins over both `illustration`
+  and the variant illustration.
+- Explicit `illustration` wins over the variant
+  illustration.
+- Explicit `title` / `description` wins over
+  the variant default.
+
+When a variant is set, the rendered root carries
+`data-empty-state-variant="<variant>"` so e2e
+selectors can target the category without
+knowing the title.
+
+`title` becomes optional when `variant` is set
+(the variant supplies the default).
+
+### Adoption
+
+- `web/src/components/HistoryView.tsx` -- the
+  empty-state branch now picks `no-results`
+  when any filter is active (query /
+  statusFilter / sinceDay / untilDay) or
+  `empty-list` otherwise. The existing
+  `data-testid="history-empty-state"` survives;
+  the description copy adapts to the active
+  filter context.
+- `web/src/pages/Templates.tsx` -- annotates
+  the existing empty surface with
+  `variant="empty-list"`; the custom
+  `EmptyQueueIllustration` icon is preserved.
+- `web/src/components/SpecialistsAuditPanel.tsx`
+  -- swaps the inline `<div>` empty message for
+  the canonical `<EmptyState>`. Loading still
+  renders inline. The audit-window filter
+  picks `variant="no-results"` for non-`all`
+  values; otherwise `empty-list`.
+
+### Tests
+
+`web/src/components/ui/empty-state.test.tsx` --
+adds 8 new cases on top of the existing 33:
+
+- `empty-list` applies default illustration +
+  title + description.
+- `no-results` / `error` / `loading-failed`
+  each set their own
+  `data-empty-state-variant` + default title.
+- Explicit `title` overrides the variant
+  default.
+- Explicit `description` overrides the variant
+  default.
+- Explicit `illustration` overrides the variant
+  default.
+- Explicit `icon` wins over the variant
+  illustration.
+- `data-empty-state-variant` is omitted when
+  no variant is set.
+
+41/41 EmptyState cases pass; HistoryView (39
+existing) + Templates (44 existing) suites
+still green. TypeScript clean for the touched
+files; pre-existing strict-tuple / TS6133
+warnings outside scope.
+
+### Pairs with existing primitives
+
+- `components/illustrations/*` -- variant
+  defaults reuse the existing canonical
+  illustrations; no new SVG.
+- `lib/data-table-state.ts` (11.355) --
+  DataTable's empty-state slot accepts a
+  ReactNode; an adopter can drop the new
+  variant in directly.
+- `components/SearchEmpty` / `SessionsEmpty`
+  remain available as illustration tokens
+  for adopters that need finer control than
+  the canonical four variants.
+
+### Out of scope
+
+- Every existing EmptyState call site
+  migration. The variant prop is additive --
+  legacy call sites with explicit
+  illustration / title / description keep
+  working byte-for-byte; per-page migration
+  is a follow-up.
+- i18n keys for the variant default copy.
+  The defaults are English; adopters that
+  need locale-aware copy keep passing
+  explicit `title` / `description`.
+
 ## [1.11.375] - 2026-05-18 -- UI: settings redesign primitives (TODO 11.357)
 
 The dispatch asked for a Settings.tsx refactor

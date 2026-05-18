@@ -156,8 +156,17 @@ export default function Templates() {
       >
         <TabsPanel value={activeTab} className="mt-3">
           {!loading && tabFiltered.length === 0 ? (
+            // (v1.11.376, TODO 11.358) EmptyState
+            // variant adoption. The custom
+            // EmptyQueueIllustration icon is
+            // preserved (existing testid) so the
+            // visual stays byte-identical; the
+            // `variant='empty-list'` annotation
+            // exposes the canonical category via
+            // data-empty-state-variant for e2e.
             <EmptyState
               size="md"
+              variant="empty-list"
               icon={
                 <span data-testid="templates-empty-illustration">
                   <EmptyQueueIllustration size={160} />

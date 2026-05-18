@@ -520,17 +520,39 @@ export default function HistoryView() {
               </div>
             )}
             {summary.length === 0 && !error && (
-              <EmptyState
-                size="sm"
-                illustration="no-workers"
-                title={t('history.empty')}
-                description="No workers have completed tasks in the selected date range yet."
-                secondaryAction={{
-                  label: 'Browse archived workers',
-                  href: '#feature=cleanup',
-                }}
-                data-testid="history-empty-state"
-              />
+              // (v1.11.376, TODO 11.358) EmptyState
+              // variant adoption. When any filter is
+              // active the canonical 'no-results'
+              // variant applies (search-empty
+              // illustration + 'No matches' copy
+              // override-able). Otherwise the
+              // 'empty-list' variant uses the
+              // empty-queue illustration. The
+              // existing tested title remains the
+              // override so the i18n key stays
+              // wired.
+              (() => {
+                const filterActive =
+                  !!query || !!statusFilter || !!sinceDay || !!untilDay;
+                return (
+                  <EmptyState
+                    size="sm"
+                    variant={filterActive ? 'no-results' : 'empty-list'}
+                    illustration="no-workers"
+                    title={t('history.empty')}
+                    description={
+                      filterActive
+                        ? 'No workers matched the current filter. Try broadening the query or clearing the date range.'
+                        : 'No workers have completed tasks in the selected date range yet.'
+                    }
+                    secondaryAction={{
+                      label: 'Browse archived workers',
+                      href: '#feature=cleanup',
+                    }}
+                    data-testid="history-empty-state"
+                  />
+                );
+              })()
             )}
             {summary.length > 0 && !error ? (
               /* (v1.11.272, TODO 11.254) AvatarGroup roster
