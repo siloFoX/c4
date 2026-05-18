@@ -4,6 +4,131 @@
 
 (no entries -- next release window)
 
+## [1.11.397] - 2026-05-18 -- UI: code block primitive (TODO 11.379)
+
+`<CodeBlock>` (11.253 / v1.11.271) already
+shipped the dispatched core: copy button,
+line numbers (`showLineNumbers`), language
+indicator badge, filename header, wrap
+toggle, scrollable body (`maxHeight`),
+clipboard fallback. This patch closes the
+remaining dispatched bullet -- **syntax-
+highlighted code display** -- via a small
+built-in tokeniser plus a plug-in callback
+for adopters that need richer grammar.
+
+### What changed
+
+- **`highlight` prop** (default
+  `undefined`):
+  - `undefined` -> use the built-in
+    tokeniser when `language` is in
+    `CODE_BLOCK_SUPPORTED_LANGUAGES` (json
+    / javascript / typescript / bash).
+    Unsupported languages render plain text.
+  - `false` -> skip highlighting entirely.
+    Legacy byte-identical when paired with
+    an unsupported language.
+  - `(code, language) => ReactNode` ->
+    caller-supplied highlighter (shiki,
+    hljs, prism). The return value
+    replaces the code body verbatim.
+- **Built-in tokeniser**:
+  `highlightCode(code, language)` exports
+  a `CodeBlockToken[]`. Each token has a
+  `type` (`'plain' | 'keyword' | 'string'
+  | 'number' | 'comment' | 'boolean' |
+  'variable'`) mapped to a semantic
+  Tailwind color (info / success /
+  warning / muted-foreground italic) so
+  the palette tracks the theme.
+- **Language aliases**: `js` / `jsx` ->
+  javascript, `ts` / `tsx` -> typescript,
+  `sh` / `shell` / `zsh` -> bash.
+- **Render path**: token spans render
+  inside the existing
+  `<code data-code-block-code>` element,
+  so the line-number gutter + copy button
+  + wrap toggle keep working unchanged.
+  Each token wrapper exposes
+  `data-token="<type>"` for downstream
+  CSS / test hooks.
+
+### Tokeniser support
+
+| language | tokens recognised |
+| --- | --- |
+| `json` | strings, numbers, `true` / `false` / `null` |
+| `javascript` | line + block comments, single / double / template strings, numbers, ~40 keywords, booleans + null/undefined |
+| `typescript` | same as JS plus `type` / `keyof` / `satisfies` / `is` / `never` / `unknown` / `infer` / `asserts` |
+| `bash` | `#` line comments, single / double strings, `$VAR` / `${VAR}` variables, ~25 builtins/keywords, numbers |
+
+The tokeniser is intentionally regex-based
+and small (~150 lines). Adopters who need
+full grammar accuracy plug in shiki via
+the callback.
+
+### Tests + types
+
+- `code-block.test.tsx`: +20 new cases (43
+  total). Covers `highlightCode()` for
+  empty source, unsupported language,
+  JSON tokens, JS keywords + comments +
+  numbers, JS template literals, TS-only
+  keywords, language aliases (js/ts/sh/
+  shell), bash comments + variables +
+  builtins + braced `${var}`, exported
+  `CODE_BLOCK_SUPPORTED_LANGUAGES`,
+  `<CodeBlock>` integration (token spans
+  for supported language, plain for
+  unsupported, plain when language
+  omitted, `highlight={false}` suppresses,
+  `highlight={fn}` calls plug-in,
+  `highlight={fn}` bypasses built-in,
+  copy still emits raw text, tokens
+  inside the existing `<code>` element).
+- 23 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files (removed an unused `hasHeader`
+  local along the way).
+
+### Pairs with existing primitives
+
+- `<RichText>` -- larger markdown-style
+  body content; the new built-in
+  highlighter does NOT cover the
+  three-backtick fenced code blocks
+  inside RichText. RichText callers that
+  want highlighted snippets should embed
+  `<CodeBlock>` themselves.
+- `<Snippet>` (existing inline-code
+  primitive) -- short inline code without
+  the header / copy / line-number chrome.
+
+### Out of scope
+
+- **Per-page adoption** of the new
+  highlighter. The prop is additive;
+  every existing call site stays
+  byte-identical (plain text) when the
+  language is omitted.
+- **Theme-aware token palette**.
+  Hard-coded info / success / warning /
+  muted tokens; adopters that want a
+  light-vs-dark token re-tune should pass
+  a plug-in highlighter.
+- **Grammar accuracy** beyond the four
+  built-in languages. Adopters bring
+  shiki / hljs / prism via the callback.
+- **Line-level highlighting** (diff hunk
+  markers, error gutters). Belongs in a
+  separate diff primitive with its own
+  contract.
+- **Token-level click handlers**. The
+  tokens render as plain spans; surfacing
+  per-token clicks would require a
+  larger contract revamp.
+
 ## [1.11.396] - 2026-05-18 -- UI: kbd primitive (TODO 11.378)
 
 `<Kbd>` (11.250 / v1.11.268) already shipped
