@@ -4,6 +4,171 @@
 
 (no entries -- next release window)
 
+## [1.11.374] - 2026-05-18 -- UI: notification stream + toast queue (TODO 11.356)
+
+Builds `web/src/lib/notification-stream.ts` -- an
+SSE subscriber for `/api/notifications` plus a
+bounded toast queue with auto-dismiss,
+hover-pause, and click-to-action handlers. Layered
+above the existing `useToast` / `Toast` primitives
+so server-pushed notifications get their own
+canonical surface distinct from the imperative
+host pattern.
+
+### `lib/notification-stream.ts`
+
+Wire shape:
+
+```json
+{
+  "id": "notif-1",
+  "kind": "success" | "error" | "info" | "warning",
+  "message": "Worker auto-w42 finished",
+  "title": "Optional title",
+  "ts": 1747584000000,
+  "durationMs": 5000,
+  "sticky": false,
+  "action": { "label": "Open", "href": "/?view=workers" }
+}
+```
+
+`type` is accepted as an alias for `kind`.
+Unrecognised `kind` values fall back to `info`.
+Missing / non-numeric `ts` falls back to
+`Date.now()`. Missing `id` -> stable
+`generateFallbackId()`. The action is dropped
+when no `label` is supplied. Malformed JSON
+returns `null` (the subscriber silently drops
+the frame -- a corrupted server message never
+crashes the client).
+
+```ts
+const stream = useNotificationStream({
+  url: '/api/notifications',
+  maxVisible: 5,
+  autoDismissMs: 5000,
+  onMessage,
+  onAction,
+  onError,
+  eventSourceFactory,
+  enabled: true,
+});
+```
+
+API:
+
+- `stream.toasts` -- current visible queue
+  (FIFO; cap at `maxVisible`).
+- `stream.connected` -- true when the
+  EventSource is open.
+- `stream.paused` -- hover-pause flag.
+- `stream.dismiss(id)` -- imperative single-row
+  dismiss.
+- `stream.dismissAll()` -- clear queue.
+- `stream.enqueue(notification)` -- host-side
+  insert (tests, local events). Dedups by id
+  (replace in place).
+- `stream.setPaused(b)` -- freeze every active
+  auto-dismiss timer when `true`; resume picks
+  up the remaining time so a 1000ms timer
+  paused at 400ms fires 600ms after resume.
+- `stream.fireAction(id)` -- calls `onAction`
+  then dismisses the toast.
+
+Behaviour:
+
+- `maxVisible` cap (default 5): older entries
+  shift out FIFO when exceeded. Cleared timers
+  on shift.
+- `autoDismissMs` (default 5000) is the default
+  timer. Per-notification `durationMs` wins;
+  `sticky: true` skips the timer entirely
+  (equivalent to `durationMs: 0`).
+- Hover-pause records remaining time so the
+  resume schedules a fresh timeout with the
+  remainder, not a fresh full-duration timer.
+- `enabled: false` skips the SSE wiring but
+  keeps the queue working for imperative
+  `enqueue(...)` calls -- useful for tests +
+  optional notification surfaces.
+- `eventSourceFactory` lets tests inject a fake.
+- SSR-safe: every `EventSource` / `window`
+  access runs inside `useEffect`.
+- Closes the EventSource + clears every timer
+  on unmount.
+
+Default constants exported so adopters reference
+one source: `DEFAULT_NOTIFICATIONS_URL =
+'/api/notifications'`, `DEFAULT_MAX_VISIBLE = 5`,
+`DEFAULT_AUTO_DISMISS_MS = 5000`.
+
+### Tests
+
+`web/src/lib/notification-stream.test.ts` -- 26
+cases:
+
+- `parseNotificationPayload`: minimal payload
+  parses (defaults kind=info, generates id,
+  fills ts); `type` aliases `kind`;
+  unrecognised kind -> info; action label +
+  href; drops action with no label; null on
+  malformed JSON; null when message missing;
+  explicit ts honoured; sticky + durationMs.
+- `useNotificationStream`: opens
+  EventSource and flips connected on open;
+  flips connected to false on error + fires
+  onError; enqueues on JSON message; silently
+  drops malformed messages; caps queue at
+  maxVisible (oldest shift out); dedup by id;
+  auto-dismiss after autoDismissMs; per-entry
+  durationMs override; sticky entries never
+  auto-dismiss; hover-pause freezes + resume
+  keeps remaining duration; dismiss(id)
+  removes one + clears its timer;
+  dismissAll() empties queue; fireAction(id)
+  calls onAction + dismisses; fireAction
+  with unknown id no-ops; closes
+  EventSource on unmount; enabled=false
+  skips SSE but keeps enqueue; default
+  autoDismissMs is 5000.
+
+26/26 pass under vitest 4.1.5. TypeScript clean.
+
+### Pairs with existing primitives
+
+- `lib/use-toast.ts` (11.137) -- imperative
+  host pattern; unchanged. The new stream is
+  the server-pushed counterpart, not a
+  replacement.
+- `components/Toast.tsx` -- the toast
+  rendering primitive; a future patch can
+  wire a `NotificationPortal` that consumes
+  `stream.toasts` and renders the queue
+  through this component.
+- `lib/api.ts::eventSourceUrl` -- helper for
+  building authed SSE URLs; the host wires it
+  through the `url` option when needed.
+
+### Out of scope
+
+- The daemon-side `/api/notifications` SSE
+  endpoint. The client subscriber + queue are
+  in place; the daemon route ships separately.
+- `<NotificationPortal>` component that
+  renders the queue as stacked toasts at the
+  edge of the viewport. The hook surface is
+  ready; a future patch wires the visual
+  surface.
+- App.tsx adoption. The stream is opt-in;
+  per-surface adoption pairs better with
+  each page's own notification routing
+  (worker status, queue events, audit
+  alerts).
+- Cross-tab dedup (a notification fired in
+  one tab also fires in others). Acceptable
+  today since each tab maintains its own
+  EventSource connection.
+
 ## [1.11.373] - 2026-05-18 -- UI: data table sort/filter primitives (TODO 11.355)
 
 Builds the data-table state helpers + the
