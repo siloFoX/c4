@@ -4,6 +4,146 @@
 
 (no entries -- next release window)
 
+## [1.11.375] - 2026-05-18 -- UI: settings redesign primitives (TODO 11.357)
+
+The dispatch asked for a Settings.tsx refactor
+(segment groups Account/Appearance/Shortcuts/
+Advanced + search filter + debounced save with
+optimistic UI + revert). The existing
+`pages/Settings.tsx` has a 47-case test suite,
+so this patch ships the underlying primitives
+without disturbing the page; a follow-up patch
+will swap the page rendering once each tab's
+test fixture is paired.
+
+### `lib/settings-sections.ts` (new)
+
+Pure helpers, no React:
+
+- `SettingsGroup = 'account' | 'appearance' |
+  'shortcuts' | 'advanced'` (`SETTINGS_GROUP_VALUES`
+  exported as the canonical list).
+- `SettingsSection { id, title, description?,
+  group, keywords?, priority?, badge? }` --
+  one entry per surfaceable setting.
+- `groupSections(sections)` -> `GroupedSettings[]`
+  -- buckets by canonical group, drops empty
+  groups, sorts within each group by
+  `priority` ascending (sections without
+  `priority` follow in source order).
+- `normalizeSearchQuery(query)` -- lower-cases
+  + splits on whitespace.
+- `filterSections(sections, query)` -- every
+  token in the query must appear in the
+  haystack (id + title + description +
+  keywords + group); AND semantics; empty
+  query returns the full list.
+- `filterAndGroupSections(sections, query)` --
+  one-shot combinator.
+- `CANONICAL_SETTINGS_SECTIONS` -- eight
+  canonical sections that map the existing
+  pages/Settings.tsx tabs into the four
+  groups (general+scribe+feature-flags ->
+  advanced, theme+density -> appearance,
+  notifications+locale -> account, shortcuts
+  -> shortcuts). Searchable by declared
+  keywords (`palette` -> theme, `flag` ->
+  feature-flags, etc).
+
+### `lib/use-debounced-save.ts` (new)
+
+```ts
+const save = useDebouncedSave({
+  initialValue: prefs,
+  onSave: async (next) => apiPut('/api/prefs', next),
+  debounceMs: 300,
+  onBeforeSave?,
+  onAfterSave?,
+});
+save.value          // optimistic value, renders instantly
+save.status         // 'idle' | 'pending' | 'saving' | 'error'
+save.error          // last error, or null
+save.commit(next)   // schedules save; value updates immediately
+save.flush()        // fires pending save now
+save.reset(next?)   // restore to last committed or override
+```
+
+Optimistic UI contract:
+
+- `commit(next)` updates `value` immediately +
+  flips `status` to `pending`. Debounce timer
+  starts; rapid commits coalesce into one save
+  with the latest value.
+- Timer fires -> `status` flips to `'saving'`;
+  `onSave(next)` runs.
+- On success: if `onSave` returns a value, it
+  replaces the optimistic state
+  (server-authoritative). `status` -> `'idle'`;
+  the new value becomes the committed
+  rollback target.
+- On failure: `value` reverts to the last
+  committed state; `status` -> `'error'`;
+  `error` carries the rejection. The next
+  `commit()` clears the error and starts a
+  fresh attempt.
+- `flush()` cancels the timer and runs the
+  pending save immediately. Useful for the
+  Settings page's "save now" affordance.
+- `reset(next?)` cancels the timer + restores
+  the optimistic + committed state to the
+  override (or the last committed value when
+  called with no args).
+
+SSR-safe: every timer lives in a ref + useEffect;
+cleanup on unmount cancels the pending timer so
+no save fires after the host unmounts.
+
+### Tests
+
+`web/src/lib/settings-sections.test.ts` -- 14
+cases: `groupSections` (one-per-group, empty
+drops, priority sort, non-priority in source
+order, empty input, canonical labels);
+`normalizeSearchQuery` (empty, lowercase + split,
+collapse whitespace); `filterSections` (empty ->
+full list, id/title/group match,
+description/keywords match, AND semantics,
+case-insensitive); `filterAndGroupSections`
+(returns grouped shape, drops empty groups);
+`CANONICAL_SETTINGS_SECTIONS` (declared section
+ids, every group covered, searchable by
+keywords).
+
+`web/src/lib/use-debounced-save.test.ts` -- 12
+cases: initial state, commit updates value +
+flips to pending, coalesces rapid commits,
+status flow idle->pending->saving->idle on
+success, revert + error on failure,
+server-authoritative value adoption, flush(),
+reset() restores last committed, reset(next)
+overrides both, next commit() after error
+clears the error, onBeforeSave + onAfterSave
+fire, unmount cancels timer.
+
+26/26 + 14/14 + 12/12 = 31/31 pass under
+vitest 4.1.5. TypeScript clean.
+
+### Out of scope
+
+- `pages/Settings.tsx` rendering swap. The
+  primitives are ready; the page refactor
+  pairs better with paired test-fixture
+  updates (47 existing cases).
+- Per-section save endpoints. The hook is
+  generic; adopters wire `onSave` to whichever
+  API path applies (`/api/prefs`,
+  `/api/config`, etc).
+- Live conflict detection (two tabs editing
+  the same preference). The dark-mode
+  cross-tab pattern from 11.353 covers theme;
+  a generic "preference cross-tab sync" hook
+  is a follow-up.
+
 ## [1.11.374] - 2026-05-18 -- UI: notification stream + toast queue (TODO 11.356)
 
 Builds `web/src/lib/notification-stream.ts` -- an
