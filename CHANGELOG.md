@@ -4,6 +4,89 @@
 
 (no entries -- next release window)
 
+## [1.11.380] - 2026-05-18 -- UI: dropdown menu sections + checkbox + radio + shortcuts (TODO 11.362)
+
+The `<DropdownMenu>` primitive shipped in 8.41
+(refined through 11.228 prefetch + 11.286
+separators). This patch adds the dispatch
+features: section headings, checkbox items,
+radio items, and a canonical shortcut chip.
+
+### New entry kinds
+
+```ts
+type DropdownMenuEntry =
+  | DropdownMenuItem        // existing
+  | DropdownMenuSeparator   // existing
+  | DropdownMenuSection     // new
+  | DropdownMenuCheckbox    // new
+  | DropdownMenuRadio;      // new
+```
+
+- `{ kind: 'section', label }` -- non-interactive
+  group heading, `role="presentation"`. Skipped
+  by keyboard nav + type-ahead.
+- `{ kind: 'checkbox', label, checked,
+  onCheckedChange, closeOnChange?, ... }` --
+  `role="menuitemcheckbox"`, `aria-checked`
+  mirrors state. Default keeps menu open after
+  toggle (filter pattern); `closeOnChange: true`
+  dismisses.
+- `{ kind: 'radio', label, value, groupValue,
+  onValueChange, closeOnChange?, ... }` --
+  `role="menuitemradio"`, `aria-checked` is
+  `groupValue === value`. Same
+  `groupValue` / `onValueChange` ref across
+  multiple rows models one exclusive group.
+
+### New `shortcut` prop
+
+```ts
+{ key: 'save', label: 'Save', shortcut: 'Ctrl+S', onSelect }
+```
+
+Renders as a `<kbd>` chip in the right slot
+(`data-section="dropdown-menu-shortcut"`).
+Shortcut wins over `hint` so the right column
+never doubles.
+
+### Glyphs
+
+Checkbox: inline check SVG (mirrors lucide's
+Check). Radio: inline filled circle. Both kept
+as inline SVG so the dropdown adds no new
+icon dep. The leading slot is always reserved
+on checkbox/radio rows so labels line up
+vertically across mixed-kind menus.
+
+### Tests
+
+`dropdown-menu.test.tsx` -- 10 new cases on top
+of the existing 37:
+
+- Section heading renders with `data-section`;
+  not a `menuitem`; type-ahead skips it.
+- Checkbox renders `role="menuitemcheckbox"` +
+  `aria-checked` + check glyph when checked;
+  click toggles `onCheckedChange`; default
+  keeps menu open; `closeOnChange=true`
+  dismisses; disabled does not toggle.
+- Radio renders `role="menuitemradio"` per
+  row + `aria-checked` tied to `groupValue`;
+  click fires `onValueChange(value)`.
+- Shortcut renders a `<kbd>` chip; wins over
+  hint when both are set.
+
+47/47 pass under vitest 4.1.5. TypeScript
+clean.
+
+### Out of scope
+
+- Per-page adoption (row actions, header user
+  menu) beyond existing Sidebar AccountMenu.
+- Submenu (`kind: 'submenu'`).
+- Indeterminate checkbox state.
+
 ## [1.11.379] - 2026-05-18 -- UI: popover arrow + data-testid (TODO 11.361)
 
 The `<Popover>` primitive itself shipped in 11.171

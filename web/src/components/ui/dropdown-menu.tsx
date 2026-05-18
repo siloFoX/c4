@@ -40,6 +40,12 @@ export interface DropdownMenuItem {
   icon?: ReactNode;
   // Optional muted secondary text rendered to the right of the label.
   hint?: ReactNode;
+  // (v1.11.380, TODO 11.362) Keyboard shortcut hint
+  // rendered as a `<kbd>` chip in the right slot.
+  // When both `shortcut` and `hint` are set, `shortcut`
+  // wins so callers don't accidentally double the
+  // right column.
+  shortcut?: string;
   // Variant: 'default' = normal item, 'danger' = destructive (red).
   variant?: 'default' | 'danger';
   disabled?: boolean;
@@ -61,12 +67,117 @@ export interface DropdownMenuSeparator {
   kind: 'separator';
 }
 
-export type DropdownMenuEntry = DropdownMenuItem | DropdownMenuSeparator;
+// (v1.11.380, TODO 11.362) Section heading entry.
+// Renders a non-interactive group label so a set of
+// related items reads as one logical section
+// ('Workspace', 'Account'). Skipped by keyboard
+// nav + type-ahead.
+export interface DropdownMenuSection {
+  key: string;
+  kind: 'section';
+  label: ReactNode;
+}
+
+// (v1.11.380, TODO 11.362) Shortcut hint added to
+// the standard item shape. Renders as a `<kbd>`
+// chip in the right-side slot (replaces / takes
+// precedence over the existing `hint` for a
+// consistent shortcut surface).
+export interface DropdownMenuItemBase {
+  shortcut?: string;
+}
+
+// (v1.11.380, TODO 11.362) Checkbox item. Renders
+// with a leading check glyph that reflects the
+// checked state and toggles on activation. The
+// `onCheckedChange` callback fires with the next
+// state; the menu does NOT auto-close so a host
+// can keep the menu open across multiple
+// toggles (typical filter-dropdown pattern).
+// Set `closeOnChange: true` to mirror the legacy
+// item behaviour.
+export interface DropdownMenuCheckbox extends DropdownMenuItemBase {
+  key: string;
+  kind: 'checkbox';
+  label: ReactNode;
+  checked: boolean;
+  onCheckedChange: (next: boolean) => void;
+  closeOnChange?: boolean;
+  disabled?: boolean;
+  icon?: ReactNode;
+  hint?: ReactNode;
+  onPrefetch?: () => void;
+}
+
+// (v1.11.380, TODO 11.362) Radio item. Exclusive
+// selection within its radio-group sibling set.
+// `value` identifies the option; the parent's
+// `radioValue` field (when paired) determines
+// which row is checked. Standalone radio rows
+// (no group) treat `checked={value === ''}` as the
+// indicator -- not the typical pattern but
+// supported for one-off rows.
+export interface DropdownMenuRadio extends DropdownMenuItemBase {
+  key: string;
+  kind: 'radio';
+  label: ReactNode;
+  value: string;
+  // Selected value of the surrounding radio group
+  // (or this row's own value when standalone).
+  groupValue: string;
+  onValueChange: (next: string) => void;
+  closeOnChange?: boolean;
+  disabled?: boolean;
+  icon?: ReactNode;
+  hint?: ReactNode;
+}
+
+export type DropdownMenuEntry =
+  | DropdownMenuItem
+  | DropdownMenuSeparator
+  | DropdownMenuSection
+  | DropdownMenuCheckbox
+  | DropdownMenuRadio;
 
 function isSeparator(
   entry: DropdownMenuEntry,
 ): entry is DropdownMenuSeparator {
   return (entry as DropdownMenuSeparator).kind === 'separator';
+}
+
+function isSection(
+  entry: DropdownMenuEntry,
+): entry is DropdownMenuSection {
+  return (entry as DropdownMenuSection).kind === 'section';
+}
+
+function isCheckbox(
+  entry: DropdownMenuEntry,
+): entry is DropdownMenuCheckbox {
+  return (entry as DropdownMenuCheckbox).kind === 'checkbox';
+}
+
+function isRadio(
+  entry: DropdownMenuEntry,
+): entry is DropdownMenuRadio {
+  return (entry as DropdownMenuRadio).kind === 'radio';
+}
+
+function isInteractive(
+  entry: DropdownMenuEntry,
+): entry is DropdownMenuItem | DropdownMenuCheckbox | DropdownMenuRadio {
+  return !isSeparator(entry) && !isSection(entry);
+}
+
+function entryLabel(entry: DropdownMenuEntry): ReactNode {
+  if (isSeparator(entry)) return null;
+  if (isSection(entry)) return entry.label;
+  return entry.label;
+}
+
+function entryDisabled(entry: DropdownMenuEntry): boolean {
+  if (isSeparator(entry) || isSection(entry)) return true;
+  return Boolean((entry as { disabled?: boolean }).disabled);
 }
 
 interface DropdownMenuProps {
@@ -92,6 +203,58 @@ interface DropdownMenuProps {
 // Type-ahead reset window. Single-letter keys reset the buffer if the
 // user pauses longer than this between keystrokes.
 const TYPEAHEAD_RESET_MS = 500;
+
+// (v1.11.380, TODO 11.362) Canonical glyphs for
+// checkbox + radio entries. Kept as inline SVG so
+// the menu has no new icon dep. The shapes mirror
+// lucide's Check / Circle to stay visually consistent
+// with the rest of the UI.
+const CheckGlyph = (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const RadioGlyph = (
+  <svg width="8" height="8" viewBox="0 0 8 8">
+    <circle cx="4" cy="4" r="4" fill="currentColor" />
+  </svg>
+);
+
+function renderRightSlot(
+  entry:
+    | DropdownMenuItem
+    | DropdownMenuCheckbox
+    | DropdownMenuRadio,
+): ReactNode {
+  const shortcut = (entry as { shortcut?: string }).shortcut;
+  const hint = (entry as { hint?: ReactNode }).hint;
+  if (shortcut) {
+    return (
+      <kbd
+        data-section="dropdown-menu-shortcut"
+        className="rounded border border-border bg-muted/30 px-1 py-[1px] text-[10px] font-medium text-muted-foreground"
+      >
+        {shortcut}
+      </kbd>
+    );
+  }
+  if (hint) {
+    return (
+      <span className="text-[11px] text-muted-foreground">{hint}</span>
+    );
+  }
+  return null;
+}
 
 function mergeRefs<T>(
   ...refs: Array<Ref<T> | undefined>
@@ -216,8 +379,10 @@ export function DropdownMenu({
       for (let step = 1; step <= len; step++) {
         const idx = (startFrom + step + len) % len;
         const entry = items[idx];
-        if (!entry || isSeparator(entry) || entry.disabled) continue;
-        const text = labelString(entry.label).toLowerCase();
+        if (!entry) continue;
+        if (!isInteractive(entry)) continue;
+        if (entryDisabled(entry)) continue;
+        const text = labelString(entryLabel(entry)).toLowerCase();
         if (text.startsWith(buf)) {
           setHighlight(idx);
           focusItem(idx);
@@ -320,7 +485,7 @@ export function DropdownMenu({
   const highlightedEntry =
     highlight >= 0 && highlight < items.length ? items[highlight] : null;
   const activeItemId =
-    highlightedEntry && !isSeparator(highlightedEntry) && !highlightedEntry.disabled
+    highlightedEntry && isInteractive(highlightedEntry) && !entryDisabled(highlightedEntry)
       ? `${itemIdPrefix}${highlight}`
       : undefined;
 
@@ -355,6 +520,144 @@ export function DropdownMenu({
                     data-section="dropdown-menu-separator"
                     className="my-1 h-px bg-border"
                   />
+                );
+              }
+              if (isSection(entry)) {
+                return (
+                  <li
+                    key={entry.key}
+                    role="presentation"
+                    data-section="dropdown-menu-section"
+                    className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    {entry.label}
+                  </li>
+                );
+              }
+              if (isCheckbox(entry)) {
+                const checkbox = entry;
+                return (
+                  <li key={checkbox.key}>
+                    <button
+                      id={`${itemIdPrefix}${idx}`}
+                      ref={(el) => {
+                        itemsRef.current[idx] = el;
+                      }}
+                      type="button"
+                      role="menuitemcheckbox"
+                      aria-checked={checkbox.checked}
+                      data-section="dropdown-menu-checkbox"
+                      data-checked={checkbox.checked ? 'true' : 'false'}
+                      disabled={checkbox.disabled}
+                      onMouseEnter={() => {
+                        setHighlight(idx);
+                        if (!checkbox.disabled) checkbox.onPrefetch?.();
+                      }}
+                      onFocus={() => {
+                        if (!checkbox.disabled) checkbox.onPrefetch?.();
+                      }}
+                      onClick={() => {
+                        if (checkbox.disabled) return;
+                        checkbox.onCheckedChange(!checkbox.checked);
+                        if (checkbox.closeOnChange) close();
+                      }}
+                      onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          if (checkbox.disabled) return;
+                          checkbox.onCheckedChange(!checkbox.checked);
+                          if (checkbox.closeOnChange) {
+                            close({ restoreFocus: true });
+                          }
+                        }
+                      }}
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                        'focus:outline-none focus:bg-accent focus:text-accent-foreground',
+                        checkbox.disabled
+                          ? 'cursor-not-allowed opacity-50'
+                          : 'hover:bg-accent hover:text-accent-foreground',
+                        highlight === idx && !checkbox.disabled
+                          ? 'bg-accent text-accent-foreground'
+                          : '',
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex h-4 w-4 items-center justify-center"
+                      >
+                        {checkbox.checked ? CheckGlyph : null}
+                      </span>
+                      {checkbox.icon ? (
+                        <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center">
+                          {checkbox.icon}
+                        </span>
+                      ) : null}
+                      <span className="flex-1 truncate">{checkbox.label}</span>
+                      {renderRightSlot(checkbox)}
+                    </button>
+                  </li>
+                );
+              }
+              if (isRadio(entry)) {
+                const radio = entry;
+                const checked = radio.groupValue === radio.value;
+                return (
+                  <li key={radio.key}>
+                    <button
+                      id={`${itemIdPrefix}${idx}`}
+                      ref={(el) => {
+                        itemsRef.current[idx] = el;
+                      }}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={checked}
+                      data-section="dropdown-menu-radio"
+                      data-checked={checked ? 'true' : 'false'}
+                      data-value={radio.value}
+                      disabled={radio.disabled}
+                      onMouseEnter={() => setHighlight(idx)}
+                      onClick={() => {
+                        if (radio.disabled) return;
+                        radio.onValueChange(radio.value);
+                        if (radio.closeOnChange) close();
+                      }}
+                      onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          if (radio.disabled) return;
+                          radio.onValueChange(radio.value);
+                          if (radio.closeOnChange) {
+                            close({ restoreFocus: true });
+                          }
+                        }
+                      }}
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                        'focus:outline-none focus:bg-accent focus:text-accent-foreground',
+                        radio.disabled
+                          ? 'cursor-not-allowed opacity-50'
+                          : 'hover:bg-accent hover:text-accent-foreground',
+                        highlight === idx && !radio.disabled
+                          ? 'bg-accent text-accent-foreground'
+                          : '',
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex h-4 w-4 items-center justify-center"
+                      >
+                        {checked ? RadioGlyph : null}
+                      </span>
+                      {radio.icon ? (
+                        <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center">
+                          {radio.icon}
+                        </span>
+                      ) : null}
+                      <span className="flex-1 truncate">{radio.label}</span>
+                      {renderRightSlot(radio)}
+                    </button>
+                  </li>
                 );
               }
               const item = entry;
@@ -406,11 +709,7 @@ export function DropdownMenu({
                       </span>
                     ) : null}
                     <span className="flex-1 truncate">{item.label}</span>
-                    {item.hint ? (
-                      <span className="text-[11px] text-muted-foreground">
-                        {item.hint}
-                      </span>
-                    ) : null}
+                    {renderRightSlot(item)}
                   </button>
                 </li>
               );
