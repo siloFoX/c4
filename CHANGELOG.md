@@ -4,6 +4,130 @@
 
 (no entries -- next release window)
 
+## [1.11.410] - 2026-05-18 -- UI: resizable layout primitive (TODO 11.392)
+
+New `web/src/components/ui/resizable.tsx`
+ships `<Resizable>` -- composable
+multi-panel resizer with horizontal /
+vertical direction + per-panel min/max
+ratio constraints. Distinct from
+`<SplitPane>` / `<SplitView>` (11.391)
+which are FIXED at exactly two panes;
+`<Resizable>` supports an arbitrary
+number of adjacent panels with one
+handle between every pair.
+
+### API
+
+```ts
+interface ResizablePanelConfig {
+  id: string;
+  content: ReactNode;
+  defaultSize?: number;     // ratio 0..1
+  minSize?: number;         // default 0.1
+  maxSize?: number;         // default 1
+  ariaLabel?: string;
+}
+
+interface ResizableProps {
+  panels: ResizablePanelConfig[];
+  direction?: 'horizontal' | 'vertical';
+  storageKey?: string;
+  keyboardStep?: number;    // default 0.025
+  ariaLabel?: string;
+  handleAriaLabel?: (prev, next) => string;
+  className?: string;
+  onSizesChange?: (sizes: number[]) => void;
+}
+```
+
+### Behaviour
+
+- **Boundary-local drag.** Dragging
+  between panel[i] and panel[i+1]
+  affects ONLY those two; siblings
+  stay put.
+- **Per-panel clamping.** Each panel
+  respects `[minSize, maxSize]`.
+- **Normalization on mount.**
+  defaultSize values are normalized so
+  the group sums to 1.0. NaN /
+  negative inputs fall back to per-
+  panel minSize; over-max entries
+  clamp.
+- **Persistence.** Opt-in via
+  `storageKey`. Stored array
+  validated (matching length +
+  numeric entries) before
+  re-application.
+- **Cross-tab `storage` sync.**
+- **Pointer drag.** Primary button +
+  `setPointerCapture`.
+- **Keyboard.** Direction-aware
+  arrows; Home -> panel[i] min, End
+  -> panel[i] max.
+
+### Pure helpers
+
+`normalizeResizableSizes(raw, mins,
+maxs)` and `applyResizableDelta(sizes,
+i, delta, mins, maxs)` exported for
+tests + alternate hosts.
+
+### ARIA
+
+- Root: `role="group"` +
+  `aria-orientation` + `aria-label`.
+- Panel: `role="group"` + `aria-label`.
+- Handle: `role="separator"` +
+  `aria-orientation` +
+  `aria-valuemin/now/max`.
+
+### Data attributes
+
+- `data-section="resizable"` + `data-direction` + `data-panel-count` on root.
+- `data-section="resizable-panel"` +
+  `data-panel-id` + `data-panel-index` per panel.
+- `data-section="resizable-handle"` +
+  `data-handle-index` + `data-dragging` per handle.
+
+### Tests + types
+
+- `resizable.test.tsx`: 36 cases (6
+  normalize helper + 6 delta helper +
+  24 component). Covers panel count,
+  data attrs, role + orientation,
+  flex-basis ratios, keyboard
+  ArrowLeft/Right/Down + Home + End,
+  pointer drag + clamp + pointerup
+  end + non-primary no-op,
+  localStorage write + read +
+  invalid-length + bad-JSON
+  fallbacks, per-panel + per-handle
+  data attrs, displayName.
+- 36/36 pass.
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via barrel.
+
+### Pairs with existing primitives
+
+- `<SplitView>` / `<SplitPane>` (11.391)
+  -- exactly two panes.
+- `<DrawerResize>` (11.390) -- single
+  fixed-sided resizable.
+
+### Out of scope
+
+- Per-page adoption.
+- Imperative size set/get methods.
+- Collapse-on-double-click (ambiguous
+  in N-panel; use SplitView for the
+  binary case).
+- Animated resize transitions.
+- Drag-anywhere-in-panel resize.
+- Pixel-mode sizing across the group.
+
 ## [1.11.409] - 2026-05-18 -- UI: split-view primitive (TODO 11.391)
 
 `<SplitPane>` (11.274 / v1.11.292) already
