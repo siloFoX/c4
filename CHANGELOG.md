@@ -4,6 +4,100 @@
 
 (no entries -- next release window)
 
+## [1.11.352] - 2026-05-18 -- UI: Error boundary primitive (TODO 11.334)
+
+Adds a route-level error boundary primitive (`UIErrorBoundary`)
+that renders the canonical `ErrorState` fallback on a
+caught error, wires a Retry button to the boundary's reset,
+supports a telemetry hook, and resets automatically when a
+`resetKeys` identity changes. Wraps every page route in
+`App.tsx` so a crash in one topView no longer takes down
+the whole app -- the existing top-level
+`components/ErrorBoundary` remains the safety net for
+crashes outside the page tree (header / shell / sidebar).
+
+### Added
+
+- `web/src/components/ui/error-boundary.tsx` --
+  `UIErrorBoundary` primitive:
+  - `children: ReactNode` -- the subtree to protect.
+  - `fallback?: ReactNode | (error, retry) => ReactNode`
+    -- override the default `ErrorState`. Factory form
+    receives the caught error + a `retry()` callback
+    bound to the boundary's reset.
+  - `onError?: (error, info) => void` -- telemetry
+    hook. Always invoked on a caught error. Errors
+    thrown from the reporter are swallowed so the
+    sink cannot crash the boundary.
+  - `resetKeys?: ReadonlyArray<unknown>` -- when the
+    array identity changes (shallow compare) the
+    boundary clears its error state and re-renders
+    children. Useful for route key changes.
+  - `title?: string` / `description?: string` -- copy
+    overrides on the default `ErrorState` card.
+  - `className?: string` -- forwarded to the default
+    `ErrorState` wrapper.
+  - Always logs to `console.error` so dev-time stack
+    traces are visible in devtools without a wired
+    reporter.
+- `web/src/components/ui/error-boundary.test.tsx` --
+  13 unit cases covering happy-path passthrough, the
+  default ErrorState fallback, title / description
+  overrides, ReactNode + factory fallback forms,
+  `onError` invocation + reporter-throw swallow,
+  `console.error` telemetry, Retry button, resetKeys
+  identity flip + stable-identity no-op, nested
+  boundary locality, and className forwarding.
+- `web/src/App.tsx` -- wraps the entire `<PageTransition>`
+  page-route block in a single `<UIErrorBoundary
+  resetKeys={[topView]}>`. A crash in any topView
+  surfaces the friendly "This view crashed" card with
+  a Retry button; navigating away resets the boundary
+  automatically.
+
+### Adoption pattern
+
+```tsx
+<UIErrorBoundary
+  title="Could not load the Chat view"
+  description="Retry to re-mount the chat surface, or navigate away."
+  resetKeys={[topView]}
+  onError={(err) => reporter.send(err)}
+>
+  <Chat />
+</UIErrorBoundary>
+```
+
+Both the existing top-level boundary
+(`components/ErrorBoundary`) and the new
+`UIErrorBoundary` are exported. The top-level one is
+the global safety net rendered in `main.tsx`; the new
+primitive is meant for per-route / per-feature
+subtrees.
+
+### Tests
+
+- `error-boundary.test.tsx` -- 13/13 pass.
+- App.tsx type-checks cleanly. No App-level test
+  exists (App.tsx renders a huge tree wired to many
+  hooks); the migration is a structural refactor that
+  per-component tests cover from below.
+
+### Out of scope
+
+- **Migrating the existing `components/ErrorBoundary`
+  to use `UIErrorBoundary`.** The existing top-level
+  boundary has a richer surface (stack-trace pre,
+  Copy stack, Open GitHub issue, Reload page) that
+  this primitive intentionally does not duplicate.
+  Both coexist.
+- **Per-route reporter wiring.** The `onError` hook
+  is documented; per-page adopters can wire it to
+  `lib/error-reporter` when they need an explicit
+  reporter call site. The default
+  `console.error` telemetry covers the dev-loop
+  case.
+
 ## [1.11.351] - 2026-05-18 -- UI: VirtualizedList primitive (TODO 11.333)
 
 Ships a fixed-row-height virtualized list primitive plus

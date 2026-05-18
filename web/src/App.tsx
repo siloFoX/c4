@@ -28,6 +28,7 @@ const SettingsView = lazy(() => import('./components/SettingsView'));
 import PageTransition from './components/PageTransition';
 import AppHeader from './components/layout/AppHeader';
 import { AppShell } from './components/layout/AppShell';
+import { UIErrorBoundary } from './components/ui/error-boundary';
 import Sidebar from './components/layout/Sidebar';
 import DetailTabs from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
@@ -328,6 +329,18 @@ export default function App() {
           per-branch keys (key={topView}) inside continue to drive
           their existing motion-safe animate-in classes for nested
           state changes (e.g., detailMode within the worker view). */}
+      {/* (v1.11.352, TODO 11.334) UIErrorBoundary wraps every
+          page route in one place. resetKeys={[topView]} clears
+          the error state when the operator navigates away from
+          a crashed view so the next route mounts clean. The
+          top-level <ErrorBoundary> in main.tsx remains the
+          safety net for crashes outside the page tree (header,
+          shell, sidebar). */}
+      <UIErrorBoundary
+        resetKeys={[topView]}
+        title="This view crashed"
+        description="The page below failed to render. Retry to re-mount, or navigate away."
+      >
       <PageTransition routeKey={topView} className="flex min-h-0 flex-1">
       {topView === 'history' ? (
         <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
@@ -420,6 +433,7 @@ export default function App() {
         </div>
       )}
       </PageTransition>
+      </UIErrorBoundary>
       </Suspense>
     </AppShell>
     </AnnounceRegion>
