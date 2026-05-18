@@ -304,4 +304,107 @@ describe('<Notifications>', () => {
   it('UNDO_BANNER_MS exports the 5000 ms duration matching the dispatch spec', () => {
     expect(UNDO_BANNER_MS).toBe(5000);
   });
+
+  // (v1.11.342, TODO 11.324) BadgeCounter chip surfaces the
+  // unread count next to the Mark-all-read button.
+  it('shows a BadgeCounter with the unread count next to Mark all read', async () => {
+    mockFetchOk(makeItems(['dispatch', 'complete', 'halt']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    const counter = screen.getByTestId('notifications-unread-counter');
+    expect(counter.textContent || '').toContain('3');
+  });
+
+  it('hides the BadgeCounter chip when there are no unread items', async () => {
+    mockFetchOk([
+      {
+        id: 'r-1',
+        type: 'dispatch',
+        title: 'Already read',
+        description: '-',
+        timestamp: new Date().toISOString(),
+        read: true,
+      },
+    ]);
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Already read')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId('notifications-unread-counter'),
+    ).not.toBeInTheDocument();
+  });
+
+  // (v1.11.342, TODO 11.324) Mark-all-read fires a success
+  // Toast with the marked count.
+  it('fires a success toast after Mark all read with the marked count', async () => {
+    const user = userEvent.setup();
+    mockFetchOk(makeItems(['dispatch', 'complete']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    await user.click(
+      screen.getByRole('button', {
+        name: /Mark all notifications as read/i,
+      }),
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Marked 2 notifications as read/),
+      ).toBeInTheDocument();
+    });
+  });
+
+  // (v1.11.342, TODO 11.324) Per-kind count chips on the
+  // Tabs strip render correct totals.
+  it('renders per-kind count chips on the Tabs strip', async () => {
+    mockFetchOk(
+      makeItems([
+        'dispatch',
+        'dispatch',
+        'complete',
+        'halt',
+        'escalation',
+        'system',
+      ]),
+    );
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId('notifications-tab-count-all').textContent,
+    ).toBe('6');
+    expect(
+      screen.getByTestId('notifications-tab-count-dispatch').textContent,
+    ).toBe('2');
+    expect(
+      screen.getByTestId('notifications-tab-count-complete').textContent,
+    ).toBe('1');
+    expect(
+      screen.getByTestId('notifications-tab-count-halt').textContent,
+    ).toBe('1');
+    expect(
+      screen.getByTestId('notifications-tab-count-escalation').textContent,
+    ).toBe('1');
+    expect(
+      screen.getByTestId('notifications-tab-count-system').textContent,
+    ).toBe('1');
+  });
+
+  // (v1.11.342, TODO 11.324) ScrollArea wraps the timeline
+  // so long feeds stay within the viewport.
+  it('wraps the timeline in a ScrollArea', async () => {
+    mockFetchOk(makeItems(['dispatch', 'complete']));
+    render(<Notifications />);
+    await waitFor(() => {
+      expect(screen.getByText('Event dispatch 0')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId('notifications-scrollarea'),
+    ).toBeInTheDocument();
+  });
 });
