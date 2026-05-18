@@ -89,3 +89,4 @@ export * from './spinner';
 export * from './aspect-ratio';
 export * from './portal';
 export * from './focus-trap';
+export * from './link';
