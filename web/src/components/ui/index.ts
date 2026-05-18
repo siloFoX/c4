@@ -97,3 +97,4 @@ export * from './infinite-scroll';
 export * from './suspense-wrapper';
 export * from './data-table';
 export * from './toggle';
+export * from './slider';
