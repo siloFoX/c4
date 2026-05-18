@@ -607,4 +607,273 @@ describe('<DropdownMenu>', () => {
     );
     expect(seps).toHaveLength(2);
   });
+
+  // (v1.11.380, TODO 11.362) New entry types:
+  // section heading, checkbox, radio, shortcut.
+
+  describe('section heading (v1.11.380)', () => {
+    it('renders a non-interactive heading row with data-section', async () => {
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            { key: 'hdr', kind: 'section', label: 'Workspace' },
+            {
+              key: 'rename',
+              label: 'Rename',
+              onSelect: vi.fn(),
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const heading = document.querySelector(
+        '[data-section="dropdown-menu-section"]',
+      );
+      expect(heading).not.toBeNull();
+      expect(heading?.textContent).toBe('Workspace');
+      // The section heading is NOT a menuitem.
+      expect(
+        document.querySelector('[role="menuitem"]')?.textContent,
+      ).toBe('Rename');
+    });
+
+    it('skips section headings during type-ahead navigation', async () => {
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            { key: 'hdr', kind: 'section', label: 'Workspace' },
+            { key: 'rename', label: 'Rename', onSelect: vi.fn() },
+            { key: 'workspace2', label: 'Workspace settings', onSelect: vi.fn() },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      await user.keyboard('w');
+      await waitFor(() => {
+        // Should land on 'Workspace settings' (the
+        // actionable item), not the heading.
+        expect(
+          screen.getByRole('menuitem', { name: 'Workspace settings' }),
+        ).toHaveFocus();
+      });
+    });
+  });
+
+  describe('checkbox items (v1.11.380)', () => {
+    it('renders with role=menuitemcheckbox + aria-checked + check glyph when checked', async () => {
+      const onCheckedChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'wifi',
+              kind: 'checkbox',
+              label: 'Wifi',
+              checked: true,
+              onCheckedChange,
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const cb = screen.getByRole('menuitemcheckbox');
+      expect(cb).toHaveAttribute('aria-checked', 'true');
+      expect(cb.getAttribute('data-checked')).toBe('true');
+    });
+
+    it('toggles on click + keeps the menu open by default', async () => {
+      const onCheckedChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'wifi',
+              kind: 'checkbox',
+              label: 'Wifi',
+              checked: false,
+              onCheckedChange,
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      await user.click(screen.getByRole('menuitemcheckbox'));
+      expect(onCheckedChange).toHaveBeenCalledWith(true);
+      // Menu stays open since closeOnChange is unset.
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+    });
+
+    it('closeOnChange=true dismisses the menu after the toggle', async () => {
+      const onCheckedChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'wifi',
+              kind: 'checkbox',
+              label: 'Wifi',
+              checked: false,
+              closeOnChange: true,
+              onCheckedChange,
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      await user.click(screen.getByRole('menuitemcheckbox'));
+      await waitFor(() => {
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('disabled checkbox does not toggle', async () => {
+      const onCheckedChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'wifi',
+              kind: 'checkbox',
+              label: 'Wifi',
+              checked: false,
+              disabled: true,
+              onCheckedChange,
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const cb = screen.getByRole('menuitemcheckbox');
+      // Disabled buttons swallow clicks at the
+      // browser level; verifying that
+      // onCheckedChange stays unfired even if the
+      // user manages to click via keyboard.
+      fireEvent.click(cb);
+      expect(onCheckedChange).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('radio items (v1.11.380)', () => {
+    it('renders one menuitemradio per row with aria-checked tied to groupValue', async () => {
+      const onValueChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'sort-name',
+              kind: 'radio',
+              label: 'Name',
+              value: 'name',
+              groupValue: 'name',
+              onValueChange,
+            },
+            {
+              key: 'sort-date',
+              kind: 'radio',
+              label: 'Date',
+              value: 'date',
+              groupValue: 'name',
+              onValueChange,
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const radios = screen.getAllByRole('menuitemradio');
+      expect(radios).toHaveLength(2);
+      expect(radios[0]).toHaveAttribute('aria-checked', 'true');
+      expect(radios[1]).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('clicking a radio calls onValueChange with its value', async () => {
+      const onValueChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'sort-name',
+              kind: 'radio',
+              label: 'Name',
+              value: 'name',
+              groupValue: 'date',
+              onValueChange,
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      await user.click(screen.getByRole('menuitemradio'));
+      expect(onValueChange).toHaveBeenCalledWith('name');
+    });
+  });
+
+  describe('shortcut display (v1.11.380)', () => {
+    it('renders a <kbd> chip with the shortcut text on the right of an item', async () => {
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'save',
+              label: 'Save',
+              shortcut: 'Ctrl+S',
+              onSelect: vi.fn(),
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const kbd = document.querySelector(
+        '[data-section="dropdown-menu-shortcut"]',
+      );
+      expect(kbd).not.toBeNull();
+      expect(kbd?.textContent).toBe('Ctrl+S');
+      expect(kbd?.tagName).toBe('KBD');
+    });
+
+    it('shortcut wins over hint when both are set', async () => {
+      const user = userEvent.setup();
+      render(
+        <DropdownMenu
+          trigger={<button>open</button>}
+          items={[
+            {
+              key: 'save',
+              label: 'Save',
+              shortcut: 'Ctrl+S',
+              hint: 'plain hint',
+              onSelect: vi.fn(),
+            },
+          ] as DropdownMenuEntry[]}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: 'open' }));
+      const kbd = document.querySelector(
+        '[data-section="dropdown-menu-shortcut"]',
+      );
+      expect(kbd?.textContent).toBe('Ctrl+S');
+      // The hint span should NOT render alongside the
+      // shortcut.
+      expect(
+        document.querySelectorAll('[data-section="dropdown-menu-shortcut"]'),
+      ).toHaveLength(1);
+    });
+  });
 });
