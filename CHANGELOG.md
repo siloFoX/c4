@@ -4,6 +4,160 @@
 
 (no entries -- next release window)
 
+## [1.11.408] - 2026-05-18 -- UI: drawer-resize primitive (TODO 11.390)
+
+New `web/src/components/ui/drawer-resize.tsx`
+ships `<DrawerResize>` -- side panel that
+the operator can resize via a draggable
+inner-edge handle. Width clamps to
+`[minWidth, maxWidth]`; uncontrolled or
+controlled state; optional localStorage
+persistence per `storageKey`.
+
+### API
+
+```ts
+interface DrawerResizeProps {
+  children: ReactNode;
+  side?: 'left' | 'right';     // default 'right'
+  width?: number;              // controlled
+  defaultWidth?: number;       // uncontrolled, default 280
+  onWidthChange?: (next: number) => void;
+  minWidth?: number;           // default 200
+  maxWidth?: number;           // default 600
+  storageKey?: string;         // omit to disable persistence
+  keyboardStep?: number;       // default 16
+  pageStep?: number;           // default 80
+  handleAriaLabel?: string;    // default 'Resize panel'
+  className?: string;
+  handleClassName?: string;
+}
+```
+
+```tsx
+<DrawerResize
+  side="left"
+  defaultWidth={320}
+  minWidth={240}
+  maxWidth={480}
+  storageKey="workers-sidebar"
+>
+  <SidebarBody />
+</DrawerResize>
+```
+
+### Behaviour
+
+- **Pointer drag.** primary button only.
+  pointerdown captures the start position;
+  pointermove commits live width (no
+  persistence per move); pointerup ends
+  drag + writes the final width to
+  localStorage (when `storageKey` is set).
+  Uses `setPointerCapture` for reliable
+  cross-element drag.
+- **Side semantics.** Right-side panel
+  has its handle on its LEFT edge; left-
+  side panel has its handle on its RIGHT
+  edge. Dragging the handle "inward"
+  toward the panel body shrinks; dragging
+  outward grows.
+- **Clamping.** Every commit (pointer +
+  keyboard) runs through
+  `clampDrawerWidth(value, min, max)`.
+  Stored values are clamped on mount so
+  a stale localStorage entry never opens
+  the panel outside the bounds.
+- **Keyboard.** Right-side: ArrowLeft
+  grows / ArrowRight shrinks (mental
+  model: drag-left = wider). Left-side
+  panel reverses. PageUp / PageDown
+  apply `pageStep`. Home / End jump to
+  min / max.
+- **ARIA.** Handle has `role="separator"`
+  + `aria-orientation="vertical"` +
+  `aria-valuemin/max/now` + a configurable
+  `aria-label` (default "Resize panel").
+
+### Pure helper
+
+`clampDrawerWidth(value, min, max)` is
+exported alongside the component for
+tests + adopters that want the same
+clamp logic externally.
+
+### Data attributes
+
+| attr | location |
+| --- | --- |
+| `data-section="drawer-resize"` | root |
+| `data-side` (left / right) | root + handle |
+| `data-width` | root |
+| `data-dragging` (true / false) | root + handle |
+| `data-section="drawer-resize-handle"` | handle |
+| `data-section="drawer-resize-body"` | children wrapper |
+
+### Tests + types
+
+- `drawer-resize.test.tsx`: 36 cases.
+  Covers `clampDrawerWidth` (5: below /
+  above / passthrough / NaN / inverted
+  min-max), component (31: default 280
+  / defaultWidth seed / clamp on seed /
+  controlled override, role + aria
+  attrs, handle docking left vs right,
+  keyboard ArrowLeft/Right for both
+  sides, PageUp/PageDown + Home/End,
+  keyboard clamp to min + max,
+  localStorage write on keyboard
+  commit + read on mount, stored value
+  clamped + NaN ignored, absent key
+  skips persistence, pointer drag
+  updates width, pointerup ends drag
+  + persists, non-primary button no-op,
+  drag delta clamped to maxWidth, root
+  data attrs, controlled mode does NOT
+  update internal but DOES call
+  onWidthChange).
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Pairs with existing primitives
+
+- `<Drawer>` (11.279) -- modal side panel
+  with focus trap + slide animation. Use
+  Drawer for transient overlays;
+  DrawerResize for persistent layout
+  sidebars.
+- `<SplitPane>` (existing) -- two-pane
+  resizer; reach for SplitPane when both
+  sides own resizable content.
+- `<ScrollArea>` (11.382) -- compose
+  inside DrawerResize when the panel
+  body needs custom scroll chrome.
+
+### Out of scope
+
+- Per-page adoption of DrawerResize.
+  Additive; no existing surface is
+  forced onto the new primitive.
+- Auto-collapse to a 0px width
+  (mini-sidebar). Belongs in a separate
+  CollapsibleSidebar primitive.
+- Drag from anywhere within the panel
+  (the drag handle is the canonical
+  affordance).
+- Touch-specific drag thresholds. The
+  pointer event API covers touch +
+  mouse uniformly; per-device tuning
+  belongs in a follow-on.
+- Vertical resize (top-bottom). The
+  contract is horizontal-only;
+  vertical resize is `<SplitPane>`
+  territory.
+
 ## [1.11.407] - 2026-05-18 -- UI: pagination primitive (TODO 11.389)
 
 `<Pagination>` (11.264 / v1.11.282)
