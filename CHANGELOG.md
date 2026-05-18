@@ -4,6 +4,118 @@
 
 (no entries -- next release window)
 
+## [1.11.355] - 2026-05-18 -- UI: Undo/redo system primitive (TODO 11.337)
+
+Ships a generic `useUndoHistory<T>(initial, opts?)` hook
+that models state as the classic past / present /
+future triple, with optional Cmd+Z / Cmd+Shift+Z
+keyboard shortcuts wired to `window.keydown`. The hook
+is the deliverable; per-page adoption (Queue reorder,
+Settings edits, Templates edits) is deferred to
+follow-up patches per the established 11.33x rollout
+pattern.
+
+### Added
+
+- `web/src/lib/use-undo-history.ts` -- generic
+  past/present/future hook:
+  - `state`: the current value.
+  - `set(next | (prev) => next)`: pushes the previous
+    state onto `past`, sets the new present, and
+    clears `future` (canonical undo/redo semantics).
+    No-op when `Object.is(next, present)`.
+  - `undo()` / `redo()`: shifts state between the
+    stacks. No-op when the relevant stack is empty.
+  - `canUndo` / `canRedo`: cached booleans for
+    button-disabled wiring.
+  - `reset(next)`: replaces state AND clears both
+    stacks (use for "load from server" flows).
+  - `past` / `future` arrays exposed read-only so
+    callers can render history previews (timeline,
+    breadcrumbs) without re-deriving them.
+  - `maxHistory` option (default 100): caps the past
+    array so a chatty editor cannot grow the history
+    unboundedly.
+  - `shortcuts` option (default false): when true,
+    wires `Cmd+Z` / `Ctrl+Z` / `Cmd+Shift+Z` /
+    `Ctrl+Shift+Z` / `Cmd+Y` / `Ctrl+Y` listeners on
+    `window`. Skips when the keydown target is an
+    `<input>` / `<textarea>` / `<select>` /
+    contenteditable -- the browser's native
+    text-input undo keeps working.
+- `web/src/lib/use-undo-history.test.ts` -- 20 unit
+  cases:
+  - initial state + default max constant;
+  - `set` push + future clear;
+  - reducer-form `set`;
+  - no-op when `next === present`;
+  - undo + future push;
+  - undo no-op when past is empty;
+  - redo + past push;
+  - redo no-op when future is empty;
+  - new `set` clears the future after an undo;
+  - `maxHistory` drops oldest past entries;
+  - `reset` clears both stacks;
+  - shortcuts off by default (Cmd+Z does not fire);
+  - shortcuts on -> Cmd+Z fires undo;
+  - Cmd+Shift+Z fires redo;
+  - Cmd+Y fires redo (Windows alt-form);
+  - Meta+Z fires undo (mac form);
+  - skip when keydown target is `<input>`;
+  - skip when keydown target is `<textarea>`;
+  - listener removed on unmount.
+
+### Adoption pattern
+
+```tsx
+const {
+  state: rows,
+  set: setRows,
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+  reset,
+} = useUndoHistory<Row[]>(initialRows, { shortcuts: true });
+
+// Drag-reorder push:
+setRows((prev) => moveItem(prev, fromIdx, toIdx));
+
+// Reset on server load:
+useEffect(() => { if (loaded) reset(loaded); }, [loaded, reset]);
+
+// Toolbar buttons:
+<Button disabled={!canUndo} onClick={undo}>Undo</Button>
+<Button disabled={!canRedo} onClick={redo}>Redo</Button>
+```
+
+For pages that already wire optimistic mutations
+(v1.11.354 `useOptimisticMutation`), the two hooks
+compose: pass `state` + `setRows` from
+`useUndoHistory` into the optimistic hook's controlled
+inputs, and every committed mutation lands on the
+undo stack automatically.
+
+### Deferred (adoptions)
+
+The dispatch lists Queue page reorder / Settings edits
+/ Templates edits as adoption sites. Each adoption
+needs:
+
+1. Swap the page's `useState` for `useUndoHistory`.
+2. Replace `setX(next)` with `set(next)` (same call
+   site).
+3. Wire Undo / Redo buttons in the toolbar.
+4. Update tests that assert local state shape.
+
+The hook is stable. Per-page adoption is deferred so
+each page's test update can land alongside the swap.
+
+### Tests
+
+- `use-undo-history.test.ts` -- 20/20 pass against
+  vitest 4.1.5 + jsdom 29.1.1.
+
 ## [1.11.354] - 2026-05-18 -- UI: Optimistic update hook (TODO 11.336)
 
 Ships a shared `useOptimisticMutation` hook that
