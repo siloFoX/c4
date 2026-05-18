@@ -71,4 +71,140 @@ describe('<Button>', () => {
   it('exposes a stable displayName for devtools', () => {
     expect(Button.displayName).toBe('Button');
   });
+
+  // (v1.11.326, TODO 11.308) Loading state.
+
+  it('loading=true renders an inline spinner and aria-busy', () => {
+    render(<Button loading>Save</Button>);
+    const btn = screen.getByRole('button');
+    expect(btn.getAttribute('aria-busy')).toBe('true');
+    expect(btn.querySelector('[data-section="button-spinner"]')).not.toBeNull();
+  });
+
+  it('loading=true auto-disables the button', () => {
+    render(<Button loading>Save</Button>);
+    const btn = screen.getByRole('button');
+    expect(btn).toBeDisabled();
+  });
+
+  it('loading=true emits SR-only "Loading" text by default', () => {
+    render(<Button loading>Save</Button>);
+    expect(screen.getByText('Loading')).toBeInTheDocument();
+  });
+
+  it('loading=true honours a custom loadingLabel', () => {
+    render(
+      <Button loading loadingLabel="Saving">
+        Save
+      </Button>,
+    );
+    expect(screen.getByText('Saving')).toBeInTheDocument();
+  });
+
+  it('loading=false does NOT render the spinner or aria-busy', () => {
+    render(<Button loading={false}>Save</Button>);
+    const btn = screen.getByRole('button');
+    expect(btn.getAttribute('aria-busy')).toBeNull();
+    expect(btn.querySelector('[data-section="button-spinner"]')).toBeNull();
+  });
+
+  it('loading=true does NOT fire onClick', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(
+      <Button loading onClick={onClick}>
+        Save
+      </Button>,
+    );
+    await user.click(screen.getByRole('button'));
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('loading keeps the children in the DOM (width does not jump)', () => {
+    render(<Button loading>Save</Button>);
+    expect(
+      screen.getByRole('button').querySelector(
+        '[data-section="button-children"]',
+      ),
+    ).not.toBeNull();
+  });
+
+  it('loading aria-hides the children so the spinner + SR text are the only announced content', () => {
+    render(<Button loading>Save</Button>);
+    const childrenSlot = screen
+      .getByRole('button')
+      .querySelector('[data-section="button-children"]');
+    expect(childrenSlot?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  // (v1.11.326, TODO 11.308) Icon-only accessibility.
+
+  it('warns in dev when size="icon" is used without aria-label', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      render(
+        <Button size="icon">
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+      expect(warn).toHaveBeenCalled();
+      const msg = warn.mock.calls[0]?.[0];
+      expect(typeof msg).toBe('string');
+      expect(String(msg)).toMatch(/aria-label/);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('does NOT warn when size="icon" is used WITH aria-label', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      render(
+        <Button size="icon" aria-label="Delete row">
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('aria-label passes through onto the button element', () => {
+    render(
+      <Button size="icon" aria-label="Delete row">
+        <svg aria-hidden="true" />
+      </Button>,
+    );
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe(
+      'Delete row',
+    );
+  });
+
+  // (v1.11.326, TODO 11.308) Data-attribute selectors for e2e.
+
+  it('exposes data-section="button" + data-variant + data-size + data-loading', () => {
+    render(<Button variant="destructive" size="lg" loading>Delete</Button>);
+    const btn = screen.getByRole('button');
+    expect(btn.getAttribute('data-section')).toBe('button');
+    expect(btn.getAttribute('data-variant')).toBe('destructive');
+    expect(btn.getAttribute('data-size')).toBe('lg');
+    expect(btn.getAttribute('data-loading')).toBe('true');
+  });
+
+  // (v1.11.326, TODO 11.308) Tone refinements.
+
+  it('destructive variant includes the destructive focus ring', () => {
+    render(<Button variant="destructive">Delete</Button>);
+    expect(screen.getByRole('button').className).toContain(
+      'focus-visible:ring-destructive',
+    );
+  });
+
+  it('ghost variant uses bg-transparent and accent/60 hover state', () => {
+    render(<Button variant="ghost">Hover</Button>);
+    const cls = screen.getByRole('button').className;
+    expect(cls).toContain('bg-transparent');
+    expect(cls).toContain('hover:bg-accent/60');
+  });
 });
