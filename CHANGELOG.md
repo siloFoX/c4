@@ -4,6 +4,109 @@
 
 (no entries -- next release window)
 
+## [1.11.407] - 2026-05-18 -- UI: pagination primitive (TODO 11.389)
+
+`<Pagination>` (11.264 / v1.11.282)
+already shipped page list with ellipsis
+truncation, prev/next buttons, optional
+First/Last buttons, jump-to-page input,
+ARIA navigation role, aria-current="page"
+on the active button, sibling count. This
+patch closes a few ergonomics gaps:
+
+- **`boundaryCount` prop** (default 1).
+  Controls how many always-visible pages
+  render at each boundary
+  (leading / trailing). Default 1 matches
+  the legacy layout. `boundaryCount=2`
+  produces "1, 2, ..., page, ..., N-1,
+  N" -- useful for very long lists where
+  the operator wants two anchor pages
+  on each side.
+- **`pageLabelFormatter` prop**.
+  `(page: number) => string` callback
+  overrides the per-page `aria-label`
+  (default `"Page <n>"`). Lets adopters
+  localise or augment (e.g. "Page 3 of
+  10"). Throw-safe + empty-string-safe
+  -- falls back to the legacy default.
+- **`disabled` prop** (default false).
+  Disables every interactive control
+  (prev / next / first / last / page
+  buttons / jump input + Go) and mirrors
+  on `data-disabled="true"`. Jump-form
+  submission becomes a no-op. Useful
+  when the underlying table is loading
+  + the operator should not change page
+  mid-fetch.
+- **Pure helper exported**:
+  `buildPaginationItems(page, totalPages,
+  siblingCount, boundaryCount = 1)`.
+  Returns the `Array<number | '...'>` for
+  tests + adopters that want to render
+  their own page-list chrome with the
+  same ellipsis math.
+- **New data attrs**:
+  `data-disabled="true|false"` on the
+  root nav; `data-section="pagination-ellipsis"`
+  on every ellipsis span (the legacy
+  `data-testid="pagination-ellipsis"`
+  stays for back-compat).
+
+### API additions
+
+```ts
+interface PaginationProps {
+  // ... existing
+  boundaryCount?: number;                     // default 1
+  pageLabelFormatter?: (page: number) => string;
+  disabled?: boolean;                         // default false
+}
+```
+
+### Tests + types
+
+- `pagination.test.tsx`: +17 new cases
+  (43 total). Covers
+  `buildPaginationItems` (6: empty / 1
+  total, default boundary, boundary=2,
+  boundary=3 small total, near-start
+  ellipsis, near-end ellipsis),
+  `boundaryCount=2` render (1),
+  `pageLabelFormatter` (3:
+  override / throw fallback / empty
+  fallback), `disabled` (6:
+  page buttons / prev / next / jump
+  input + Go / form submission /
+  data-disabled attr / data-disabled
+  default false), ellipsis
+  `data-section` attr (1).
+- 26 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files.
+
+### Out of scope
+
+- Per-page adoption of the new props.
+  Additive; every existing call site
+  stays byte-identical at the legacy
+  defaults.
+- Page-size selector ("10 / 25 / 50 per
+  page"). Belongs in a separate
+  `<PageSizeSelect>` primitive paired
+  with Pagination by the caller.
+- Total-items count display ("Showing
+  21-30 of 250"). Belongs in a
+  `<PaginationSummary>` sibling.
+- Cursor-based pagination contract. The
+  current primitive is offset/index
+  only; cursor-based lists need a
+  different shape.
+- Compact mobile variant. Existing
+  primitive already wraps when short on
+  horizontal space; a dedicated mobile
+  "..." truncation is a follow-on.
+
 ## [1.11.406] - 2026-05-18 -- UI: navigation-menu primitive (TODO 11.388)
 
 New `web/src/components/ui/navigation-menu.tsx`
