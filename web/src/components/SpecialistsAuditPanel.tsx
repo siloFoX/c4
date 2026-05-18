@@ -5,7 +5,7 @@ import { useToggle } from '../lib/use-toggle';
 import { useSpecialistsAudit, type AuditWindow } from '../lib/use-specialists-audit';
 import { useAuditVerify } from '../lib/use-audit-verify';
 import { useAuditExport } from '../lib/use-audit-export';
-import { ScrollArea, Timeline } from './ui';
+import { EmptyState, ScrollArea, Timeline } from './ui';
 import type { TimelineItem, TimelineTone } from './ui';
 
 // (v1.10.531) Extracted from SpecialistsView. The collapsible
@@ -127,13 +127,36 @@ export default function SpecialistsAuditPanel() {
           </div>
           <ScrollArea maxHeight={256}>
             {auditEntries.length === 0 ? (
-              <div className="p-3 text-[11px] text-muted-foreground">
-                {auditLoading
-                  ? t('common.loading')
-                  : auditWindow === 'all'
-                    ? t('specialists.audit.empty.all')
-                    : tFormat('specialists.audit.empty.window', { window: auditWindow })}
-              </div>
+              // (v1.11.376, TODO 11.358) Adopt the
+              // canonical EmptyState. The
+              // 'no-results' variant when a
+              // window filter is active surfaces
+              // the search-empty illustration;
+              // the 'empty-list' variant
+              // otherwise. Loading state stays
+              // inline since EmptyState is the
+              // post-resolution surface.
+              auditLoading ? (
+                <div
+                  className="p-3 text-[11px] text-muted-foreground"
+                  data-testid="audit-loading"
+                >
+                  {t('common.loading')}
+                </div>
+              ) : (
+                <EmptyState
+                  size="sm"
+                  variant={auditWindow === 'all' ? 'empty-list' : 'no-results'}
+                  title={
+                    auditWindow === 'all'
+                      ? t('specialists.audit.empty.all')
+                      : tFormat('specialists.audit.empty.window', {
+                          window: auditWindow,
+                        })
+                  }
+                  data-testid="audit-empty-state"
+                />
+              )
             ) : (
               (() => {
                 // (v1.11.167) patch 11.149 - notifications-log surface adopts

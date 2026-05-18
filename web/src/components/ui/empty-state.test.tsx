@@ -363,4 +363,100 @@ describe('<EmptyState>', () => {
       expect(EmptyState.displayName).toBe('EmptyState');
     });
   });
+
+  // (v1.11.376, TODO 11.358) Variant presets.
+
+  describe('variant presets', () => {
+    it('empty-list applies the default illustration + title + description', () => {
+      const { container } = render(<EmptyState variant="empty-list" />);
+      const root = container.querySelector(
+        '[data-empty-state-variant="empty-list"]',
+      );
+      expect(root).not.toBeNull();
+      expect(
+        container.querySelector('[data-section="empty-state-title"]')
+          ?.textContent,
+      ).toBe('Nothing here yet');
+      expect(
+        container.querySelector('[data-section="empty-state-description"]')
+          ?.textContent,
+      ).toContain('No items to show');
+      expect(
+        container.querySelector('[data-section="empty-state-illustration"]'),
+      ).not.toBeNull();
+    });
+
+    it('no-results, error, loading-failed each set their own data attr + title', () => {
+      const cases: Array<{ variant: 'no-results' | 'error' | 'loading-failed'; expectTitle: string }> = [
+        { variant: 'no-results', expectTitle: 'No matches' },
+        { variant: 'error', expectTitle: 'Something went wrong' },
+        { variant: 'loading-failed', expectTitle: 'Could not load' },
+      ];
+      for (const c of cases) {
+        const { container, unmount } = render(<EmptyState variant={c.variant} />);
+        expect(
+          container.querySelector(
+            `[data-empty-state-variant="${c.variant}"]`,
+          ),
+        ).not.toBeNull();
+        expect(
+          container.querySelector('[data-section="empty-state-title"]')
+            ?.textContent,
+        ).toBe(c.expectTitle);
+        unmount();
+      }
+    });
+
+    it('explicit title overrides the variant default', () => {
+      const { container } = render(
+        <EmptyState variant="empty-list" title="Custom title" />,
+      );
+      expect(
+        container.querySelector('[data-section="empty-state-title"]')
+          ?.textContent,
+      ).toBe('Custom title');
+    });
+
+    it('explicit description overrides the variant default', () => {
+      const { container } = render(
+        <EmptyState variant="empty-list" description="Custom description" />,
+      );
+      expect(
+        container.querySelector('[data-section="empty-state-description"]')
+          ?.textContent,
+      ).toBe('Custom description');
+    });
+
+    it('explicit illustration overrides the variant default', () => {
+      const { container } = render(
+        <EmptyState
+          variant="empty-list"
+          illustration="all-done"
+          title="x"
+        />,
+      );
+      expect(
+        container.querySelector('[data-section="empty-state-illustration"]'),
+      ).not.toBeNull();
+    });
+
+    it('explicit icon wins over variant illustration', () => {
+      const { container } = render(
+        <EmptyState
+          variant="empty-list"
+          icon={<span data-testid="custom-icon">X</span>}
+          title="x"
+        />,
+      );
+      expect(
+        container.querySelector('[data-testid="custom-icon"]'),
+      ).not.toBeNull();
+    });
+
+    it('omits the data-empty-state-variant attr when no variant is set', () => {
+      const { container } = render(<EmptyState title="t" />);
+      const root = container.querySelector('[data-section="empty-state"]');
+      expect(root?.getAttribute('data-empty-state-variant')).toBeNull();
+    });
+  });
 });

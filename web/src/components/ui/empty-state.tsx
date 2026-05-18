@@ -75,6 +75,60 @@ export interface EmptyStateHelpLink {
   href: string;
 }
 
+// (v1.11.376, TODO 11.358) Predefined `variant` presets.
+// Each variant resolves to a default illustration + a
+// canonical (English) title + description so adopters can
+// drop in one prop instead of repeating the boilerplate.
+//
+// Explicit `illustration` / `icon` / `title` / `description`
+// props ALWAYS win -- variants are a starting point, not a
+// hard contract.
+export type EmptyStateVariant =
+  | 'empty-list'
+  | 'no-results'
+  | 'error'
+  | 'loading-failed';
+
+interface VariantDefaults {
+  illustration: EmptyStateIllustration;
+  title: string;
+  description: string;
+}
+
+const VARIANT_DEFAULTS: Record<EmptyStateVariant, VariantDefaults> = {
+  'empty-list': {
+    illustration: 'empty-queue',
+    title: 'Nothing here yet',
+    description:
+      'No items to show. Once one is created, it will appear in this list.',
+  },
+  'no-results': {
+    illustration: 'search-empty',
+    title: 'No matches',
+    description:
+      'Your filter or search did not match any items. Try clearing the filter or broadening the query.',
+  },
+  error: {
+    illustration: 'access-denied',
+    title: 'Something went wrong',
+    description:
+      'The request could not be completed. Try again, or check the logs for details.',
+  },
+  'loading-failed': {
+    illustration: 'no-data',
+    title: 'Could not load',
+    description:
+      'We could not reach the server. Check your connection and retry.',
+  },
+};
+
+export const EMPTY_STATE_VARIANTS: readonly EmptyStateVariant[] = [
+  'empty-list',
+  'no-results',
+  'error',
+  'loading-failed',
+] as const;
+
 export interface EmptyStateProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   icon?: ReactNode;
@@ -85,7 +139,19 @@ export interface EmptyStateProps
    * Ignored when `icon` is also set.
    */
   illustration?: EmptyStateIllustration;
-  title: string;
+  /**
+   * (v1.11.376, TODO 11.358) Optional canonical
+   * variant. Resolves to a default illustration +
+   * title + description. Explicit props win when
+   * both are set.
+   */
+  variant?: EmptyStateVariant;
+  /**
+   * Title. Optional when `variant` is set; the
+   * variant's default title applies. Required
+   * otherwise.
+   */
+  title?: string;
   description?: string | ReactNode;
   action?: EmptyStateAction | ReactNode;
   /**
@@ -136,6 +202,7 @@ const SIZE_CLASSES: Record<EmptyStateSize, {
 export function EmptyState({
   icon,
   illustration,
+  variant,
   title,
   description,
   action,
@@ -145,15 +212,30 @@ export function EmptyState({
   className,
   ...rest
 }: EmptyStateProps) {
+  // (v1.11.376, TODO 11.358) Resolve variant
+  // defaults. Explicit props win over variant
+  // defaults, which win over a bare empty string.
+  const variantDefaults = variant ? VARIANT_DEFAULTS[variant] : null;
+  const resolvedIllustration =
+    illustration ?? variantDefaults?.illustration ?? undefined;
+  const resolvedTitle =
+    title !== undefined && title !== null
+      ? title
+      : (variantDefaults?.title ?? '');
+  const resolvedDescription =
+    description !== undefined
+      ? description
+      : variantDefaults?.description;
   // `icon` always wins so existing consumers retain control;
-  // `illustration` is the fallback path for callers that want
-  // the named art with one prop.
+  // `illustration` (or the variant-resolved illustration) is the
+  // fallback path for callers that want the named art with one
+  // prop.
   const resolvedIcon: ReactNode =
     icon !== undefined
       ? icon
-      : illustration !== undefined
+      : resolvedIllustration !== undefined
         ? (() => {
-            const Component = ILLUSTRATION_REGISTRY[illustration];
+            const Component = ILLUSTRATION_REGISTRY[resolvedIllustration];
             return <Component aria-hidden />;
           })()
         : null;
@@ -162,6 +244,7 @@ export function EmptyState({
     <div
       data-section="empty-state"
       data-empty-state-size={size}
+      {...(variant ? { 'data-empty-state-variant': variant } : {})}
       className={cn(
         'flex flex-col items-center justify-center rounded-md border border-border bg-card text-center',
         sizing.root,
@@ -187,14 +270,14 @@ export function EmptyState({
           data-section="empty-state-title"
           className={cn('font-semibold text-foreground', sizing.title)}
         >
-          {title}
+          {resolvedTitle}
         </span>
-        {description ? (
+        {resolvedDescription ? (
           <span
             data-section="empty-state-description"
             className="text-sm text-muted-foreground"
           >
-            {description}
+            {resolvedDescription}
           </span>
         ) : null}
       </div>
