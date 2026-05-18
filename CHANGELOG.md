@@ -4,6 +4,129 @@
 
 (no entries -- next release window)
 
+## [1.11.391] - 2026-05-18 -- UI: slider + range primitive (TODO 11.373)
+
+New `web/src/components/ui/slider.tsx` ships
+two canonical primitives:
+
+- `<Slider>` -- single-value slider.
+- `<RangeSlider>` -- two-thumb range
+  selector.
+
+Both implement the WAI-ARIA slider pattern
+with full keyboard navigation. Horizontal
+orientation only in v1; vertical can be
+added on a follow-on (the geometry is
+mirror-symmetric).
+
+### Keyboard contract
+
+| key | Slider | RangeSlider (focused thumb) |
+| --- | --- | --- |
+| ArrowRight / ArrowUp | +step | +step |
+| ArrowLeft / ArrowDown | -step | -step |
+| PageUp | +pageStep | +pageStep |
+| PageDown | -pageStep | -pageStep |
+| Home | jump to min | jump to min (or low/high pair-bound) |
+| End | jump to max | jump to max |
+
+Default `pageStep` is `max(step, (max-min) / 10)`.
+RangeSlider clamps each thumb so the low
+cannot exceed the high (and vice versa).
+
+### ARIA
+
+```
+role="slider"
+aria-valuemin=<min>
+aria-valuemax=<max>
+aria-valuenow=<value>
+aria-valuetext=<formatValue(value)>
+aria-orientation="horizontal"
+aria-label=<ariaLabel | 'Minimum' | 'Maximum'>
+```
+
+RangeSlider's low thumb exposes
+`aria-valuemax=<high>` and the high thumb
+exposes `aria-valuemin=<low>` so screen
+readers correctly announce the per-thumb
+bounds, not the absolute range.
+
+### Steps
+
+Values are clamped to `[min, max]` and snapped
+to the nearest `step` increment (anchored at
+`min`). Both render and `onChange` use the
+snapped value, so a `value={7}` with `step={5}`
+renders as 5 immediately and never surfaces
+the raw 7. A pure helper `clampToStep(value,
+min, max, step)` is exported for tests and
+custom callers.
+
+### Tooltip
+
+Each thumb renders a small floating label
+(`data-section="slider-tooltip"` /
+`-tooltip-low` / `-tooltip-high`) above the
+thumb showing the formatted value. The
+default formatter is `String(value)`; a small
+`sliderFormatters` map exports
+`{ none, withPercent, fixed1, fixed2 }` for
+common cases.
+
+### Controlled / uncontrolled
+
+| Props | Mode |
+| --- | --- |
+| `value` + `onChange` | controlled |
+| `defaultValue` only | uncontrolled, internal state |
+| `defaultValue` + `onChange` | uncontrolled, observable |
+| `value` + `defaultValue` | controlled (`value` wins) |
+| neither | uncontrolled, starts at `min` |
+
+Same five-row table for RangeSlider with
+`values` / `defaultValues`. Internal state
+seeds once on mount.
+
+### Tests + types
+
+- `slider.test.tsx`: 53 cases. Covers
+  `clampToStep` helper (7), `<Slider>` (24,
+  including bounds, snapping, all keyboard
+  paths, controlled+uncontrolled, disabled,
+  tooltip, formatter, no-refire when
+  unchanged, displayName), `<RangeSlider>`
+  (18, including the per-thumb bounds, the
+  cannot-cross constraint in both
+  directions, Page nav, defaults to
+  Minimum/Maximum aria labels, snapping,
+  uncontrolled defaults, disabled,
+  per-thumb tooltips, formatValue feeding
+  both tooltips + aria-valuetext), and the
+  `sliderFormatters` helper (4).
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Out of scope
+
+- **Pointer drag-to-set**. v1 is keyboard-
+  only. Drag will need pointermove +
+  pointercancel handlers across the track
+  surface plus a translateX commit on
+  release. Deferred to its own patch with
+  the touch-vs-pointer story called out.
+- **Vertical orientation**. Mirror-
+  symmetric geometry; deferred.
+- **Marks / tick labels**. The discrete
+  step contract already enforces snapping
+  on the value side; visual tick rendering
+  belongs in a separate styling patch.
+- **Inverted track** (high-on-left). Layout
+  flip; can be added with an `inverted`
+  prop.
+
 ## [1.11.390] - 2026-05-18 -- UI: switch + toggle primitives (TODO 11.372)
 
 Closes the dispatched pair:
