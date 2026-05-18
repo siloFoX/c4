@@ -4,6 +4,122 @@
 
 (no entries -- next release window)
 
+## [1.11.358] - 2026-05-18 -- UI: Bundle size budget (TODO 11.340)
+
+Adds a CI-runnable `npm run bundle-budget` script that
+gzips every JS chunk in `web/dist/assets/`, classifies
+each as `main` / `vendor` / `route`, and fails when any
+class total exceeds its budget. Default budgets match
+the dispatch spec: `main < 500KB`, `vendor < 800KB`,
+plus a `route < 200KB` cap for per-page lazy chunks
+that prevents a single feature page from quietly
+growing multi-MB.
+
+### Added
+
+- `web/src/lib/bundle-budget.mjs` -- the script
+  itself. Pure helpers (`classifyChunk`,
+  `checkBundleBudgets`, `formatReport`) are exported
+  so a vitest test can exercise them without running
+  the real build. The runner-only bits
+  (`collectChunkRecords`, `parseArgs`, the direct
+  invocation guard via `import.meta.url`) keep the
+  side-effect path quiet during test imports.
+- `web/src/lib/bundle-budget.test.js` -- 18 unit
+  cases:
+  - `classifyChunk`: vendor / main / route matching;
+  - `DEFAULT_BUNDLE_BUDGETS`: byte values match the
+    dispatch spec, frozen against mutation;
+  - `checkBundleBudgets`: empty input, within budget,
+    main / vendor / route breaches, multiple
+    breaches, per-class sum, boundary == budget
+    (not flagged), one byte over (flagged), byClass
+    grouping, caller-supplied budgets;
+  - `formatReport`: per-class [ok]/[OVER] status,
+    omits Breaches section on success, includes
+    per-chunk gz/raw sizes.
+- `bundle-budget` script in `web/package.json` --
+  `node src/lib/bundle-budget.mjs --dist=dist`. Run
+  AFTER `npm run build`. Exits non-zero when any
+  class total exceeds its budget.
+
+### Public API
+
+```js
+export const DEFAULT_BUNDLE_BUDGETS = {
+  main:   500 * 1024,   // 500 KB gzipped
+  vendor: 800 * 1024,   // 800 KB gzipped
+  route:  200 * 1024,   // 200 KB gzipped (per-page caps)
+};
+
+export function classifyChunk(filename) -> 'main' | 'vendor' | 'route';
+
+export function checkBundleBudgets(records, budgets?) -> {
+  ok: boolean;
+  perClass: { main: number; vendor: number; route: number };
+  byClass:  { main: Record[]; vendor: Record[]; route: Record[] };
+  breaches: Array<{ class, actual, budget, delta }>;
+  budgets;
+};
+
+export function collectChunkRecords(distDir) -> Record[];
+export function formatReport(report) -> string;
+```
+
+### Classifier rules
+
+| filename | class |
+| --- | --- |
+| `vendor-*.js` / `vendor.*.js` | `vendor` |
+| `index.*.js` / `index-*.js` / `main.*.js` | `main` |
+| everything else (`Queue-abc.js`, `Workers.123.js`) | `route` |
+
+The classifier mirrors the manual-chunks shape from
+`vite.config.ts`: react / react-dom / xterm /
+lucide-react each get their own `vendor-*` chunk; the
+remaining node_modules collapse into `vendor`; the
+entry point is `index`; everything from `lazy(() =>
+import(...))` lands as a route chunk named after the
+imported file.
+
+### CI integration
+
+```yaml
+- run: npm --prefix web run build
+- run: npm --prefix web run bundle-budget
+```
+
+Exit code 0 = within budget, 1 = exceeded OR dist
+missing, 2 = usage error.
+
+### Tests
+
+- `bundle-budget.test.js` -- 18/18 pass against
+  vitest 4.1.5 (node environment).
+- Test file uses `.test.js` (not `.test.mjs`)
+  because the project's vitest include pattern is
+  `src/**/*.{test,spec}.{ts,tsx,js,jsx}`. `web/`'s
+  `"type": "module"` makes plain `.js` ESM, so the
+  import of the `.mjs` script resolves cleanly.
+
+### Out of scope
+
+- **Automatic CI gate wiring.** The script is ready
+  to plug into `.github/workflows/*.yml` whenever
+  the project gains one. The npm script + non-zero
+  exit code is the CI contract.
+- **Per-route history tracking.** A future patch
+  could persist the per-class totals to a
+  `web/scripts/bundle-budget.history.json` so
+  trends across releases are visible. Out of scope
+  for the initial gate.
+- **Sourcemap-based attribution.** The current
+  classifier groups by filename only. A future
+  patch could parse the sourcemap to attribute
+  bytes back to individual source files, but the
+  filename heuristic catches the dispatch's
+  contract (main vs vendor) cleanly.
+
 ## [1.11.357] - 2026-05-18 -- UI: Keyboard shortcut conflict detector (TODO 11.339)
 
 Adds a pure conflict detector + a dev console reporter
