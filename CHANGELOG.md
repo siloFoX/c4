@@ -4,6 +4,203 @@
 
 (no entries -- next release window)
 
+## [1.11.406] - 2026-05-18 -- UI: navigation-menu primitive (TODO 11.388)
+
+New `web/src/components/ui/navigation-menu.tsx`
+ships `<NavigationMenu>` -- horizontal site
+navigation with top-level links AND
+dropdown / mega-menu panels per item.
+Distinct from `<Menubar>` (11.387, an
+application-style menu strip) -- this
+primitive is for product-style site nav
+(Products / Solutions / Pricing) where each
+trigger is either a direct link or opens a
+rich content panel.
+
+### API
+
+```ts
+interface NavigationMenuLink {
+  id: string;
+  label: ReactNode;
+  href: string;
+  description?: ReactNode;
+  icon?: ReactNode;
+  external?: boolean;
+}
+
+interface NavigationMenuSection {
+  id: string;
+  heading?: ReactNode;
+  links: NavigationMenuLink[];
+}
+
+interface NavigationMenuItem {
+  id: string;
+  label: ReactNode;
+  href?: string;                          // direct top-level link
+  sections?: NavigationMenuSection[];     // dropdown / mega-menu
+  content?: ReactNode;                    // custom panel slot
+  panelMinWidth?: number | string;        // px or CSS string; default 12rem
+  disabled?: boolean;
+}
+
+interface NavigationMenuProps {
+  items: NavigationMenuItem[];
+  ariaLabel?: string;                     // default 'Site navigation'
+  className?: string;
+  'data-testid'?: string;
+}
+```
+
+### Three sub-menu shapes
+
+| `href` | `sections` | `content` | Result |
+| --- | --- | --- | --- |
+| set | -- | -- | direct top-level link (anchor) |
+| -- | 1 section | -- | single-column list panel |
+| -- | 2+ sections | -- | multi-column mega panel (`data-is-mega="true"`) |
+| -- | -- | set | fully custom panel content slot |
+
+`external: true` on a link sets
+`target="_blank" rel="noopener noreferrer"`
+and renders an ExternalLink glyph.
+
+### Viewport-aware positioning
+
+`computeNavPanelOffset(triggerLeft,
+panelWidth, viewportWidth)` is exported
+alongside the component. When the panel
+would overflow the right edge, the offset
+shifts the panel left by the overflow
+amount, capped so the leading edge never
+goes off-screen.
+
+### Keyboard contract
+
+| key | location | effect |
+| --- | --- | --- |
+| ArrowRight / ArrowLeft | on trigger | move focus between triggers (wrap, skips disabled) |
+| ArrowDown / Enter / Space | on sub-menu trigger | open dropdown |
+| Home / End | on trigger | jump to first / last enabled trigger |
+| Escape | anywhere | close dropdown + restore focus |
+
+Direct-link triggers (no submenu) skip the
+ArrowDown / Enter / Space handler -- Enter
+on the anchor follows the href via the
+browser default.
+
+### Behaviour
+
+- **Single open panel at a time.**
+- **Roving tabindex.** Only the focused
+  (or first enabled) trigger has
+  `tabindex=0`.
+- **Hover-swap.** Once any panel is open,
+  hovering a sibling trigger swaps panels.
+  Hover with no panel open does NOT
+  auto-open.
+- **Click-outside dismiss.**
+- **Disabled triggers** drop out of the
+  ArrowLeft / Right cycle.
+
+### ARIA
+
+- Root: `<nav>` element + `aria-label`.
+- Sub-menu trigger: `<button>` with
+  `aria-haspopup="menu"` +
+  `aria-expanded` + `aria-controls`.
+- Direct-link trigger: `<a>` with
+  `aria-disabled` when applicable.
+- Panel: `role="menu"` +
+  `aria-orientation="vertical"` +
+  `aria-labelledby=<trigger-id>`.
+- Section heading: visually styled
+  uppercase label row inside the panel
+  (presentational; not a `menuitem`).
+
+### Data attributes
+
+| attr | location |
+| --- | --- |
+| `data-section="nav-menu"` | root nav |
+| `data-section="nav-menu-item"` + `data-nav-menu-item=<id>` + `data-nav-menu-open` | per top-level li |
+| `data-section="nav-menu-trigger"` + `data-nav-menu-trigger=<id>` | trigger element |
+| `data-section="nav-menu-panel"` + `data-nav-menu-panel=<id>` | open dropdown |
+| `data-section="nav-menu-mega"` or `nav-menu-panel-list` + `data-is-mega` | panel body |
+| `data-section="nav-menu-panel-content"` | custom content slot |
+| `data-section="nav-menu-section"` + `data-nav-menu-section=<id>` | section group |
+| `data-section="nav-menu-section-heading"` | section heading row |
+| `data-section="nav-menu-link"` + `data-nav-menu-link=<id>` | section link anchor |
+| `data-section="nav-menu-chevron"` | trigger chevron svg |
+
+### Tests + types
+
+- `navigation-menu.test.tsx`: 32 cases.
+  Covers `computeNavPanelOffset` (3:
+  no-overflow / overflow / leading-edge
+  cap), `<NavigationMenu>` (29: role +
+  aria-label default + override, mixed
+  button / anchor triggers, roving
+  tabindex, click open / toggle close,
+  mega vs single-section render, section
+  heading + link content, external link
+  target/rel/glyph, direct-link anchor,
+  custom content slot, ArrowRight /
+  ArrowLeft / Home / End nav, skip-
+  disabled wrap, ArrowDown / Enter /
+  Space opens, Escape closes, click-
+  outside closes, hover-swap, hover does
+  NOT open without one open,
+  aria-haspopup + aria-expanded +
+  aria-controls + aria-labelledby,
+  data-nav-menu-open per item, disabled
+  anchor focus skip, panelMinWidth
+  override, data-testid forwarding,
+  stable displayName).
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Pairs with existing primitives
+
+- `<Menubar>` (11.387) -- application
+  menu strip (File / Edit / View). Use
+  Menubar for desktop-style menus;
+  NavigationMenu for site-style nav.
+- `<DropdownMenu>` (11.362) -- single
+  trigger + rich item types.
+- `<HoverCard>` (11.385) -- pure preview
+  popover; use for non-actionable
+  previews vs nav links.
+
+### Out of scope
+
+- Per-page adoption of NavigationMenu.
+  Additive; no existing surface is
+  forced onto the new primitive.
+- Mobile / hamburger sheet variant. The
+  current layout is desktop-first; a
+  responsive mobile fallback belongs in
+  a separate primitive (or a
+  `<Sheet>`-anchored composition).
+- Portal-rendered dropdown panels. The
+  current dropdown is absolute-
+  positioned inside the trigger's
+  container.
+- Multi-row mega-menus (rich heroes,
+  embedded forms beyond the `content`
+  slot). The `content` slot already
+  covers fully custom layouts; deeper
+  composition is the adopter's choice.
+- Focus inside the panel after open.
+  Currently the open panel's links use
+  native tab order; programmatic focus-
+  on-open belongs in a separate
+  accessibility patch with its own
+  story.
+
 ## [1.11.405] - 2026-05-18 -- UI: menubar primitive (TODO 11.387)
 
 New `web/src/components/ui/menubar.tsx` ships
