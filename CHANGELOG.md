@@ -4,6 +4,83 @@
 
 (no entries -- next release window)
 
+## [1.11.349] - 2026-05-18 -- UI: Keyboard nav audit (TODO 11.331)
+
+Lands a vitest-runnable keyboard-nav smoke helper plus
+an integration audit over the storybook gallery, and
+documents the full app-wide keyboard map. The audit
+found zero "div-as-button" gaps in
+`web/src/components/ui/*.tsx` (every interactive
+primitive is natively focusable or carries the proper
+tabindex + role). The full keyboard map is preserved
+in `docs/patches/11.331-ui-keyboard-audit.md` so
+future onboarding can scan it in one place.
+
+### Added
+
+- `web/src/test-utils/keyboard.ts` -- helper surface:
+  - `listTabbable(container) -> TabbableEntry[]`
+    enumerates every keyboard-reachable element under
+    the container (filters disabled, hidden,
+    aria-hidden, display:none, tabindex="-1").
+  - `findInteractiveGaps(container) ->
+    InteractiveFinding[]` flags
+    `[data-clickable="true"]` elements that are NOT
+    natively focusable AND lack tabindex / role.
+  - `auditKeyboardNav(container) -> { tabbable, gaps,
+    ok }` -- combined report.
+  - `expectKeyboardAuditOk(report)` -- throws a
+    multi-line summary when gaps exist.
+  - `fireEscape(target?)`, `fireEnter(target?)`,
+    `fireSpace(target?)`, `fireTab(target?, shift?)`
+    -- synthetic keyboard event helpers for tests
+    that exercise focus traps / dialog Escape /
+    button activation. Bubble + cancelable so any
+    ancestor handler catches them.
+- `web/src/test-utils/keyboard.test.ts` -- 19 unit
+  cases for the helper (tabbable enumeration,
+  disabled / hidden filters, tabindex semantics,
+  aria-label / textContent precedence, fire-helper
+  contracts, audit pass/fail, expectation throw
+  behaviour).
+- `web/src/pages/UIDemoRoute.keyboard.test.tsx` --
+  integration audit. Two cases:
+  - every interactive primitive in the gallery is
+    keyboard-reachable (zero gaps);
+  - the gallery exposes a non-empty tabbable
+    inventory (`> 10` nodes).
+- `docs/patches/11.331-ui-keyboard-audit.md` -- full
+  keyboard map (canonical shortcuts, dialog /
+  drawer / modal Escape contract, focus-trap
+  coverage, roving tabindex consumers).
+
+### Audit findings
+
+| layer | files scanned | div-as-button gaps |
+| --- | --- | --- |
+| `web/src/pages/UIDemoRoute.tsx` (storybook gallery) | every primitive variant | 0 |
+
+The integration audit passes with zero gaps. Every
+primitive that participates in the tab order is
+either a native form control (`<button>`, `<a>`,
+`<input>`, etc.) or carries an explicit
+`tabindex` + `role` per the WAI-ARIA contract.
+
+### Out of scope
+
+- **Per-page keyboard audit for every page.** The
+  helper is ready to drop into any existing page
+  test. UIDemoRoute is the first adopter; follow-up
+  patches can add per-page audits without changing
+  the helper.
+- **Real-browser focus traversal.** jsdom does NOT
+  advance `document.activeElement` in response to a
+  Tab keydown. The helper enumerates the tabbable
+  inventory and checks each element's affordances,
+  but it does NOT prove the OS-level focus algorithm
+  matches the order. A Playwright follow-up can
+  re-verify the geometry side.
+
 ## [1.11.348] - 2026-05-18 -- UI: Animation polish (TODO 11.330)
 
 Audits the UI primitive tree for animation classes that
