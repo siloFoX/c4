@@ -4,6 +4,108 @@
 
 (no entries -- next release window)
 
+## [1.11.401] - 2026-05-18 -- UI: aspect-ratio primitive (TODO 11.383)
+
+`<AspectRatio>` (11.299 / v1.11.317)
+already shipped the common ratio presets
+(16:9 / 9:16 / 4:3 / 3:4 / 21:9 / 1:1),
+custom numeric ratio, content slot, and
+the modern `aspect-ratio` CSS path. This
+patch closes the remaining dispatched
+bullet -- **intrinsic sizing fallback** --
+via the `padding-bottom: <h/w>%` trick
+plus a `forceFallback` opt-in for legacy
+embeds + tests.
+
+### What changed
+
+- **`forceFallback?: boolean`** prop
+  (default `false`). When `true`, the
+  wrapper sets `padding-bottom: <h/w>%`
+  instead of `aspect-ratio: <w / h>`. The
+  content slot positions absolutely
+  inside as before.
+- **Runtime feature detection** --
+  `supportsAspectRatio()` exported helper
+  reads `'aspectRatio' in
+  document.documentElement.style` once
+  per process (memoized). Default
+  behavior auto-falls-back when the
+  modern property is absent (very old
+  browsers). SSR returns `true` so the
+  modern path renders on the server.
+- **`ratioToPaddingBottom()`** pure
+  helper exported alongside the
+  component. Returns the percent string
+  (e.g. `'56.25%'` for 16:9). Adopters
+  can use it to inline the trick in
+  non-AspectRatio surfaces.
+- **`__resetAspectRatioSupportCache()`**
+  test hook to clear the memoized
+  feature-detection value.
+- **`data-fallback="true|false"`** attr
+  on the wrapper mirrors which path
+  rendered, so downstream tests +
+  storyshots can assert.
+
+### Padding-bottom math
+
+```
+padding-bottom = (height / width) * 100%
+```
+
+| ratio | padding-bottom |
+| --- | --- |
+| `16:9` | `56.25%` |
+| `4:3` | `75%` |
+| `1:1` | `100%` |
+| `21:9` | `42.857%` |
+| `9:16` | `177.778%` |
+| numeric `2` | `50%` |
+| numeric `4` | `25%` |
+
+Values clamped to 3 decimals for stability
+across browsers.
+
+### Tests + types
+
+- `aspect-ratio.test.tsx`: +14 new cases
+  (30 total). Covers
+  `ratioToPaddingBottom()` (6:
+  16:9 / 4:3 / 1:1 / 21:9 / numeric /
+  invalid input), `supportsAspectRatio()`
+  (2: returns boolean + memoization),
+  `forceFallback` (6: padding-bottom path
+  per preset, numeric ratio, content slot
+  positioning, default path under jsdom,
+  `data-fallback` attr).
+- 16 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files.
+
+### Out of scope
+
+- Per-page adoption of `forceFallback`.
+  Additive; every existing call site
+  stays byte-identical on the modern
+  path.
+- Container queries for ratio
+  responsiveness. Aspect-ratio is a
+  width-only contract; per-breakpoint
+  ratios belong in a separate
+  ResponsiveAspectRatio primitive.
+- CSS `@supports` feature detection in
+  the stylesheet. The runtime detection
+  + memoization is cheaper than per-
+  surface CSS branching and keeps the
+  inline style story stable under SSR.
+- Auto-fallback flush on document
+  visibility change. The cache is
+  per-process; tests that need to
+  re-probe use the
+  `__resetAspectRatioSupportCache()`
+  hook.
+
 ## [1.11.400] - 2026-05-18 -- UI: scroll-area primitive (TODO 11.382)
 
 `<ScrollArea>` (11.164 + 11.227 + 11.297)
