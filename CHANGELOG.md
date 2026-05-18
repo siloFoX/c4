@@ -4,6 +4,150 @@
 
 (no entries -- next release window)
 
+## [1.11.403] - 2026-05-18 -- UI: hover-card primitive (TODO 11.385)
+
+New `web/src/components/ui/hover-card.tsx`
+ships `<HoverCard>` -- a rich preview
+popover that opens on pointer hover (NOT
+on focus). Pairs with the existing
+`<Tooltip>` (focus + hover, short inline
+copy) and `<Popover>` (click trigger,
+rich content) primitives: HoverCard is
+the "mouse pause -> preview" surface
+specifically.
+
+### Behaviour
+
+- Trigger fires `mouseenter` -> open
+  after `openDelay` (default 300ms).
+  Mouseleave -> close after `closeDelay`
+  (default 200ms).
+- Hovering the panel keeps it open (the
+  panel mouseenter cancels the pending
+  close; mouseleave schedules a new
+  close).
+- Touch fallback: `touchstart` on the
+  trigger acts like mouseenter.
+- Keyboard: ESC closes a stale-open
+  card (both on the trigger and at the
+  document level).
+- Focus does NOT open the card -- that is
+  by design. Use `<Popover>` for focus-
+  triggered surfaces.
+- Smart anchor positioning: panel
+  auto-flips to the opposite side when
+  the preferred placement would
+  overflow the viewport. Matches the
+  existing `<Popover>` placement
+  contract.
+- Portal rendering: panel mounts under
+  the auto-created `hover-card-root`
+  portal so it escapes parent
+  overflow / transform containers.
+- ARIA: trigger gets `aria-describedby`
+  pointing at the panel when open. Panel
+  uses `role="tooltip"`.
+
+### API
+
+```ts
+interface HoverCardProps {
+  trigger: ReactElement;
+  content: ReactNode;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  placement?: 'top' | 'bottom' | 'left' | 'right';  // default 'bottom'
+  align?: 'start' | 'center' | 'end';                // default 'center'
+  offset?: number;                                    // default 8px
+  openDelay?: number;                                 // default 300ms
+  closeDelay?: number;                                // default 200ms
+  className?: string;
+  'data-testid'?: string;
+}
+```
+
+### Pure helper
+
+`computeHoverCardPosition()` is exported
+alongside the component for tests + parallel
+primitives that want the same
+flip-on-overflow math.
+
+### Data attributes
+
+- Trigger: `data-hover-card-trigger="true"`,
+  `data-hover-card-open="true|false"`.
+- Panel: `data-section="hover-card-panel"`,
+  `data-hover-card-placement` mirrors the
+  resolved placement.
+
+### Tests + types
+
+- `hover-card.test.tsx`: 26 cases.
+  Covers `computeHoverCardPosition` (6:
+  below/above/left/right flip,
+  start/center/end align),
+  `<HoverCard>` (20: default closed,
+  trigger attr, openDelay timer,
+  cancellation on leave-before-open,
+  openDelay=0 immediate, closeDelay
+  timer, panel hover cancels close,
+  panel-leave reschedules close, focus
+  does NOT open, touchstart opens,
+  trigger Escape closes, document
+  Escape closes, controlled prop
+  drives state, onOpenChange
+  transitions, portal mount,
+  role+placement attrs,
+  aria-describedby link,
+  data-hover-card-open mirror,
+  data-testid forwarding, stable
+  displayName).
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Pairs with existing primitives
+
+- `<Tooltip>` (existing) -- short
+  text-only hover/focus surface. Use
+  Tooltip for accessibility labels +
+  inline hints; reach for HoverCard
+  when the preview needs rich layout
+  (avatar, multi-line description,
+  inline action).
+- `<Popover>` (11.275) -- click-
+  triggered rich surface with focus
+  trap. Reach for Popover when the
+  trigger is a click target; reach for
+  HoverCard when the trigger is a pure
+  preview affordance.
+
+### Out of scope
+
+- Per-page adoption of HoverCard. The
+  primitive is additive; existing
+  Tooltip / Popover sites stay
+  unchanged.
+- Sub-card / nested HoverCard. The
+  panel mouseenter / mouseleave logic
+  is single-level only; nested previews
+  would need a shared open-state
+  registry.
+- Focus-triggered open. By design --
+  use `<Popover>` for focus-trigger
+  surfaces.
+- Arrow / pointer glyph on the panel.
+  The card is a flat surface; an arrow
+  bump would conflict with the rich
+  panel content. Add separately if a
+  per-page surface needs it.
+- Long-press / haptic feedback on
+  touch. The current touchstart
+  shortcut covers the baseline.
+
 ## [1.11.402] - 2026-05-18 -- UI: collapsible primitive (TODO 11.384)
 
 `<Collapsible>` (11.177) already shipped
