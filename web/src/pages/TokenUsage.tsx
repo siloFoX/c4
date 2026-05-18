@@ -24,7 +24,8 @@ import {
 import type { DataListItem, TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
-import { dateRange, formatNumber } from '../lib/format';
+import { dateRange } from '../lib/format';
+import { useLocalizedFormatters } from '../lib/format-locale';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import { useTableSort } from '../hooks/use-table-sort';
 
@@ -68,6 +69,11 @@ const PERIOD_TO_DAYS: Record<PeriodOption, number> = {
 
 export default function TokenUsage() {
   useLocale();
+  // (v1.11.364, TODO 11.346) Locale-aware integer
+  // formatter for the per-period totals + per-row
+  // values. Replaces the locale-agnostic
+  // `formatNumber` from lib/format.
+  const fmt = useLocalizedFormatters();
   // (v1.11.341, TODO 11.323) Period state now lives in
   // PeriodOption (string) so the new 'all' choice composes
   // with the numeric day values without a separate branch.
@@ -191,16 +197,16 @@ export default function TokenUsage() {
             <div className="flex flex-wrap items-baseline gap-3">
               <span className="text-xs uppercase tracking-wide text-muted-foreground">{t('tokenUsagePage.total')}</span>
               <span className="font-mono text-xl text-foreground">
-                {formatNumber(data.total)}
+                {fmt.integer(data.total)}
               </span>
               {data.totalInput != null && (
                 <span className="text-xs text-muted-foreground">
-                  {t('tokenUsagePage.input')} {formatNumber(data.totalInput)}
+                  {t('tokenUsagePage.input')} {fmt.integer(data.totalInput)}
                 </span>
               )}
               {data.totalOutput != null && (
                 <span className="text-xs text-muted-foreground">
-                  {t('tokenUsagePage.output')} {formatNumber(data.totalOutput)}
+                  {t('tokenUsagePage.output')} {fmt.integer(data.totalOutput)}
                 </span>
               )}
             </div>
@@ -223,14 +229,14 @@ export default function TokenUsage() {
                 {
                   id: 'total',
                   label: t('tokenUsagePage.total'),
-                  value: formatNumber(data.total),
+                  value: fmt.integer(data.total),
                 },
                 ...(data.totalInput != null
                   ? [
                       {
                         id: 'input',
                         label: t('tokenUsagePage.input'),
-                        value: formatNumber(data.totalInput),
+                        value: fmt.integer(data.totalInput),
                       } satisfies DataListItem,
                     ]
                   : []),
@@ -239,7 +245,7 @@ export default function TokenUsage() {
                       {
                         id: 'output',
                         label: t('tokenUsagePage.output'),
-                        value: formatNumber(data.totalOutput),
+                        value: fmt.integer(data.totalOutput),
                       } satisfies DataListItem,
                     ]
                   : []),
@@ -248,7 +254,7 @@ export default function TokenUsage() {
                   label: 'Avg / day',
                   value:
                     perDay.length > 0
-                      ? formatNumber(
+                      ? fmt.integer(
                           Math.round(
                             perDay.reduce((a, e) => a + e.total, 0) /
                               perDay.length,
@@ -261,7 +267,7 @@ export default function TokenUsage() {
                   label: 'Avg / worker',
                   value:
                     perWorker.length > 0
-                      ? formatNumber(
+                      ? fmt.integer(
                           Math.round(
                             perWorker.reduce((a, e) => a + e.total, 0) /
                               perWorker.length,
@@ -294,7 +300,7 @@ export default function TokenUsage() {
                     </span>
                     <Bar value={e.total} max={workerMax} />
                     <span className="w-20 shrink-0 text-right font-mono text-muted-foreground">
-                      {formatNumber(e.total)}
+                      {fmt.integer(e.total)}
                     </span>
                   </li>
                 ))}
@@ -326,7 +332,7 @@ export default function TokenUsage() {
                     width="100%"
                     showDots
                     showLastValue
-                    lastValueFormatter={formatNumber}
+                    lastValueFormatter={fmt.integer}
                     className="flex-1"
                     ariaLabel={`Daily token totals trend across ${perDay.length} days`}
                   />
@@ -339,7 +345,7 @@ export default function TokenUsage() {
                       </span>
                       <Bar value={e.total} max={dayMax} tone="accent" />
                       <span className="w-20 shrink-0 text-right font-mono text-muted-foreground">
-                        {formatNumber(e.total)}
+                        {fmt.integer(e.total)}
                       </span>
                     </li>
                   ))}
@@ -370,7 +376,7 @@ export default function TokenUsage() {
                   tone={((Number(snap.pct) || 0) > 85) ? 'danger' : 'accent'}
                 />
                 <span className="w-32 shrink-0 text-right font-mono text-muted-foreground">
-                  {formatNumber(snap.used)} / {formatNumber(snap.limit)}
+                  {fmt.integer(snap.used)} / {fmt.integer(snap.limit)}
                 </span>
               </li>
             ))}
@@ -428,6 +434,12 @@ export { perTaskComparator };
 export type { PerTaskRow, PerTaskSortKey };
 
 function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
+  // (v1.11.364, TODO 11.346) Locale-aware integer
+  // formatter for the per-row total / input / output
+  // columns. Hook lives here so the table respects
+  // a Settings locale flip without a full TokenUsage
+  // remount.
+  const fmt = useLocalizedFormatters();
   // (v1.11.258, TODO 11.240) Sort persistence via useTableSort.
   // Default sort = total desc so the largest-token tasks land at
   // the top on first open (the operator's most common question is
@@ -498,21 +510,21 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
       label: t('tokenUsagePage.tableHeader.total'),
       align: 'right',
       sortable: true,
-      render: (e) => formatNumber(e.total ?? coerceTotal(e)),
+      render: (e) => fmt.integer(e.total ?? coerceTotal(e)),
     },
     {
       key: 'input',
       label: t('tokenUsagePage.tableHeader.input'),
       align: 'right',
       sortable: true,
-      render: (e) => formatNumber(e.input),
+      render: (e) => fmt.integer(e.input),
     },
     {
       key: 'output',
       label: t('tokenUsagePage.tableHeader.output'),
       align: 'right',
       sortable: true,
-      render: (e) => formatNumber(e.output),
+      render: (e) => fmt.integer(e.output),
     },
     {
       key: 'io',
