@@ -349,4 +349,160 @@ describe('<Tooltip>', () => {
     }).not.toThrow();
     vi.useRealTimers();
   });
+
+  // (v1.11.378, TODO 11.360) Radix-style extensions:
+  // onOpenChange + defaultOpen + portal + touch.
+
+  describe('controlled / uncontrolled (v1.11.378)', () => {
+    it('fires onOpenChange on hover transitions in uncontrolled mode', () => {
+      vi.useFakeTimers();
+      const onOpenChange = vi.fn();
+      render(
+        <Tooltip label="t" delayMs={0} onOpenChange={onOpenChange}>
+          <button>x</button>
+        </Tooltip>,
+      );
+      fireEvent.mouseEnter(screen.getByRole('button', { name: 'x' }));
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(onOpenChange).toHaveBeenCalledWith(true);
+      fireEvent.mouseLeave(screen.getByRole('button', { name: 'x' }));
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      vi.useRealTimers();
+    });
+
+    it('respects defaultOpen when neither open nor onOpenChange is set', () => {
+      render(
+        <Tooltip label="t" defaultOpen>
+          <button>x</button>
+        </Tooltip>,
+      );
+      const body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body?.getAttribute('data-visible')).toBe('true');
+    });
+
+    it('open prop sync writes the latest controlled value into local state on every change', () => {
+      const { rerender } = render(
+        <Tooltip label="t" open={false}>
+          <button>x</button>
+        </Tooltip>,
+      );
+      let body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body?.getAttribute('data-visible')).toBe('false');
+      rerender(
+        <Tooltip label="t" open={true}>
+          <button>x</button>
+        </Tooltip>,
+      );
+      body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body?.getAttribute('data-visible')).toBe('true');
+      rerender(
+        <Tooltip label="t" open={false}>
+          <button>x</button>
+        </Tooltip>,
+      );
+      body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body?.getAttribute('data-visible')).toBe('false');
+    });
+  });
+
+  describe('portal (v1.11.378)', () => {
+    it('renders the tooltip body in the portal root when portal=true', () => {
+      render(
+        <Tooltip label="t" defaultOpen portal>
+          <button>x</button>
+        </Tooltip>,
+      );
+      const body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body).not.toBeNull();
+      const root = document.querySelector('[data-tooltip-root]');
+      expect(root?.getAttribute('data-portal')).toBe('true');
+    });
+
+    it('legacy inline render keeps data-portal=false', () => {
+      render(
+        <Tooltip label="t" defaultOpen>
+          <button>x</button>
+        </Tooltip>,
+      );
+      const root = document.querySelector('[data-tooltip-root]');
+      expect(root?.getAttribute('data-portal')).toBe('false');
+    });
+
+    it('accepts a custom HTMLElement portal target', () => {
+      const target = document.createElement('div');
+      target.id = 'custom-portal-target';
+      document.body.appendChild(target);
+      try {
+        render(
+          <Tooltip label="t" defaultOpen portal={target}>
+            <button>x</button>
+          </Tooltip>,
+        );
+        expect(
+          target.querySelector('[data-tooltip-body="true"]'),
+        ).not.toBeNull();
+      } finally {
+        target.remove();
+      }
+    });
+  });
+
+  describe('touch long-press (v1.11.378)', () => {
+    it('shows after touchHoldMs of contact', () => {
+      vi.useFakeTimers();
+      render(
+        <Tooltip label="t" touchHoldMs={250}>
+          <button>x</button>
+        </Tooltip>,
+      );
+      fireEvent.touchStart(screen.getByRole('button', { name: 'x' }));
+      act(() => {
+        vi.advanceTimersByTime(260);
+      });
+      const body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body?.getAttribute('data-visible')).toBe('true');
+      vi.useRealTimers();
+    });
+
+    it('touchend before touchHoldMs cancels the show', () => {
+      vi.useFakeTimers();
+      render(
+        <Tooltip label="t" touchHoldMs={250}>
+          <button>x</button>
+        </Tooltip>,
+      );
+      fireEvent.touchStart(screen.getByRole('button', { name: 'x' }));
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      fireEvent.touchEnd(screen.getByRole('button', { name: 'x' }));
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      const body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body?.getAttribute('data-visible')).toBe('false');
+      vi.useRealTimers();
+    });
+
+    it('touchOpen=false disables long-press entirely', () => {
+      vi.useFakeTimers();
+      render(
+        <Tooltip label="t" touchOpen={false} touchHoldMs={100}>
+          <button>x</button>
+        </Tooltip>,
+      );
+      fireEvent.touchStart(screen.getByRole('button', { name: 'x' }));
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      const body = document.querySelector('[data-tooltip-body="true"]');
+      expect(body?.getAttribute('data-visible')).toBe('false');
+      vi.useRealTimers();
+    });
+  });
 });
