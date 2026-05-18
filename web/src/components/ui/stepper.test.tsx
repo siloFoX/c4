@@ -273,4 +273,179 @@ describe('<Stepper>', () => {
     fireEvent.click(badge);
     expect(onStepClick).toHaveBeenCalledWith(0);
   });
+
+  // -- v1.11.394 progressbar + visible progress (TODO 11.376) -----
+
+  it('renders a role=progressbar element with aria-valuemin/max/now', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+      { id: '3', label: 'C' },
+    ];
+    render(<Stepper steps={steps} currentIndex={1} />);
+    const pb = document.querySelector(
+      '[role="progressbar"][data-section="stepper-progressbar"]',
+    ) as HTMLElement;
+    expect(pb).not.toBeNull();
+    expect(pb.getAttribute('aria-valuemin')).toBe('0');
+    expect(pb.getAttribute('aria-valuemax')).toBe('3');
+    // currentIndex=1 -> one step complete.
+    expect(pb.getAttribute('aria-valuenow')).toBe('1');
+  });
+
+  it('progressbar aria-valuetext is "Step <current+1> of <total>"', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+      { id: '3', label: 'C' },
+    ];
+    render(<Stepper steps={steps} currentIndex={1} />);
+    const pb = document.querySelector(
+      '[data-section="stepper-progressbar"]',
+    ) as HTMLElement;
+    expect(pb.getAttribute('aria-valuetext')).toBe('Step 2 of 3');
+    expect(pb.getAttribute('aria-label')).toBe('Step 2 of 3');
+  });
+
+  it('progressbar caps valuenow at total when currentIndex exceeds steps', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+    ];
+    render(<Stepper steps={steps} currentIndex={5} />);
+    const pb = document.querySelector(
+      '[data-section="stepper-progressbar"]',
+    ) as HTMLElement;
+    // All steps are complete + caption flips to "Wizard complete".
+    expect(pb.getAttribute('aria-valuenow')).toBe('2');
+    expect(pb.getAttribute('aria-valuetext')).toBe('Wizard complete');
+  });
+
+  it('progressbar is suppressed when steps is empty', () => {
+    render(<Stepper steps={[]} currentIndex={0} />);
+    expect(
+      document.querySelector('[data-section="stepper-progressbar"]'),
+    ).toBeNull();
+  });
+
+  it('progressLabel override replaces the auto caption', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+    ];
+    render(
+      <Stepper
+        steps={steps}
+        currentIndex={0}
+        progressLabel="Configuring deployment, please wait"
+      />,
+    );
+    const pb = document.querySelector(
+      '[data-section="stepper-progressbar"]',
+    ) as HTMLElement;
+    expect(pb.getAttribute('aria-valuetext')).toBe(
+      'Configuring deployment, please wait',
+    );
+  });
+
+  it('progressLabel=null suppresses the visually-hidden progressbar entirely', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+    ];
+    render(
+      <Stepper steps={steps} currentIndex={0} progressLabel={null} />,
+    );
+    expect(
+      document.querySelector('[data-section="stepper-progressbar"]'),
+    ).toBeNull();
+  });
+
+  it('showVisibleProgress=true renders the visible caption above the list', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+      { id: '3', label: 'C' },
+    ];
+    render(
+      <Stepper steps={steps} currentIndex={1} showVisibleProgress />,
+    );
+    expect(
+      document.querySelector('[data-section="stepper-visible-progress"]'),
+    ).toHaveTextContent('Step 2 of 3');
+  });
+
+  it('default showVisibleProgress=false hides the visible caption', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+    ];
+    render(<Stepper steps={steps} currentIndex={0} />);
+    expect(
+      document.querySelector('[data-section="stepper-visible-progress"]'),
+    ).toBeNull();
+  });
+
+  it('showVisibleProgress + progressLabel override both feed the caption', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+    ];
+    render(
+      <Stepper
+        steps={steps}
+        currentIndex={0}
+        progressLabel="Step 1 of 2 (uploading)"
+        showVisibleProgress
+      />,
+    );
+    const visible = document.querySelector(
+      '[data-section="stepper-visible-progress"]',
+    );
+    expect(visible).toHaveTextContent('Step 1 of 2 (uploading)');
+    const pb = document.querySelector(
+      '[data-section="stepper-progressbar"]',
+    ) as HTMLElement;
+    expect(pb.getAttribute('aria-valuetext')).toBe(
+      'Step 1 of 2 (uploading)',
+    );
+  });
+
+  it('root wrapper carries data-section="stepper-root" + data-orientation', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B' },
+    ];
+    const { container, rerender } = render(
+      <Stepper steps={steps} currentIndex={0} />,
+    );
+    const root = container.querySelector(
+      '[data-section="stepper-root"]',
+    ) as HTMLElement;
+    expect(root.getAttribute('data-orientation')).toBe('horizontal');
+    rerender(
+      <Stepper steps={steps} currentIndex={0} orientation="vertical" />,
+    );
+    expect(
+      container
+        .querySelector('[data-section="stepper-root"]')!
+        .getAttribute('data-orientation'),
+    ).toBe('vertical');
+  });
+
+  it('progressbar valuenow respects retroactive errors (error rows are NOT complete)', () => {
+    const steps = [
+      { id: '1', label: 'A' },
+      { id: '2', label: 'B', error: true },
+      { id: '3', label: 'C' },
+    ];
+    render(<Stepper steps={steps} currentIndex={2} />);
+    const pb = document.querySelector(
+      '[data-section="stepper-progressbar"]',
+    ) as HTMLElement;
+    // currentIndex=2, but step 2 (idx 1) is in error -> only
+    // 1 step is "complete" (idx 0). The progressbar should
+    // report 1, not 2.
+    expect(pb.getAttribute('aria-valuenow')).toBe('1');
+  });
 });

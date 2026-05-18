@@ -4,6 +4,102 @@
 
 (no entries -- next release window)
 
+## [1.11.394] - 2026-05-18 -- UI: stepper primitive (TODO 11.376)
+
+`<Stepper>` (11.252 / v1.11.270) already
+shipped the dispatched core: horizontal /
+vertical orientation, complete / current /
+pending / error states, click-to-jump
+(`onStepClick` + `allowFuture`), per-step
+error flag. This patch closes the remaining
+dispatched bullet -- **ARIA progressbar** --
+plus an opt-in visible progress caption for
+hosts that want a "Step X of N" callout.
+
+### What changed
+
+- **Companion ARIA progressbar.** A
+  visually-hidden `<span role="progressbar">`
+  sibling renders inside the wrapper with
+  `aria-valuemin=0` /
+  `aria-valuemax=<steps.length>` /
+  `aria-valuenow=<completed-count>` /
+  `aria-valuetext="Step <current+1> of
+  <total>"`. The completed count respects
+  retroactive errors (an error row is NOT
+  counted as complete even if it sits
+  before currentIndex). Past the last
+  step (`currentIndex >= steps.length`)
+  the caption flips to "Wizard complete"
+  and `aria-valuenow=<total>`.
+- **`progressLabel`** prop overrides the
+  auto caption. Pass `null` to suppress
+  the visually-hidden progressbar
+  entirely (rare; assistive tech still
+  needs SOME progress hook).
+- **`showVisibleProgress`** prop renders a
+  visible `<p>` caption above the list
+  carrying the same text as
+  `aria-valuetext`. Default `false` keeps
+  the legacy markup byte-identical.
+- **Wrapper `<div data-section="stepper-root"
+  data-orientation>`** now wraps the
+  existing `<ol>` so the progressbar +
+  optional caption can sit alongside.
+  Existing `<ol role="list">` + per-step
+  `<li>` + badge markup is unchanged. The
+  `ref` still forwards to the `<ol>` so
+  existing imperative callers stay
+  compatible.
+
+### API additions
+
+```ts
+interface StepperProps {
+  // ... existing
+  progressLabel?: string | null;
+  showVisibleProgress?: boolean;
+}
+```
+
+### Tests + types
+
+- `stepper.test.tsx`: +11 new cases (32
+  total). Covers the progressbar element +
+  attrs (valuemin/max/now/text), default
+  caption format, "Wizard complete" past
+  the last step, suppression when steps is
+  empty, `progressLabel` override,
+  `progressLabel=null` suppresses,
+  `showVisibleProgress` renders the visible
+  caption, default hides, both overrides
+  feed the same text, root wrapper
+  data-section + data-orientation,
+  retroactive error rows are NOT counted as
+  complete in valuenow.
+- 21 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files (the 8 pre-existing test errors
+  are unchanged from before the patch).
+
+### Out of scope
+
+- Per-page adoption of `showVisibleProgress`.
+  The prop is additive; every existing
+  call site stays byte-identical at
+  `false`.
+- Smooth-animated progress transition. The
+  progressbar attrs are read snapshots --
+  any visible motion comes from the badge
+  ring + connector classes, which the
+  caller's CSS owns.
+- A `partialProgress` semantic where the
+  current step counts as 0.5. The
+  canonical WAI-ARIA reading uses integer
+  step counts; partial progress on a
+  multi-step wizard belongs in a separate
+  primitive (linear `<Progress>`).
+
 ## [1.11.393] - 2026-05-18 -- UI: virtualized table primitive (TODO 11.375)
 
 New `web/src/components/ui/virtual-table.tsx`

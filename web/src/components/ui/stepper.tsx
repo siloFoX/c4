@@ -26,6 +26,20 @@ export interface StepperProps
   allowFuture?: boolean;
   size?: 'sm' | 'md';
   className?: string;
+  // (v1.11.394, TODO 11.376) Override the visually-hidden
+  // aria-valuetext / aria-label string surfaced on the
+  // companion role="progressbar" element. Defaults to
+  // "Step <current+1> of <total>", or "Wizard complete"
+  // when currentIndex >= steps.length. Pass `null` to
+  // explicitly suppress the visually-hidden progressbar
+  // (very rare -- assistive tech still needs SOME progress
+  // hook).
+  progressLabel?: string | null;
+  // (v1.11.394, TODO 11.376) When true, render a VISIBLE
+  // "Step X of N" caption above the list in addition to
+  // the visually-hidden progressbar element. Default
+  // false keeps the legacy markup byte-identical.
+  showVisibleProgress?: boolean;
 }
 
 // (v1.11.270, TODO 11.252) 'error' joins the canonical state set.
@@ -64,12 +78,64 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
       allowFuture = false,
       size = 'md',
       className,
+      progressLabel,
+      showVisibleProgress = false,
       ...rest
     },
     ref,
   ) {
     const isVertical = orientation === 'vertical';
+
+    // (v1.11.394, TODO 11.376) Companion progressbar.
+    // `aria-valuenow` counts the rows already complete
+    // PLUS the in-flight current step proportionally
+    // (current step is treated as 0% complete -- when it
+    // flips to complete via currentIndex++, the count
+    // advances by 1). The aria-valuetext caption is the
+    // dispatch-aligned "Step <current+1> of <total>"
+    // string, or "Wizard complete" once the operator
+    // moves past the last step (currentIndex >=
+    // steps.length).
+    const total = steps.length;
+    const completed = steps.filter((step, idx) => {
+      const s = stateOf(idx, currentIndex, !!step.error);
+      return s === 'complete';
+    }).length;
+    const isComplete = total > 0 && currentIndex >= total;
+    const defaultProgressText = isComplete
+      ? 'Wizard complete'
+      : total > 0
+        ? `Step ${Math.min(currentIndex + 1, total)} of ${total}`
+        : '';
+    const resolvedProgressLabel =
+      progressLabel === undefined ? defaultProgressText : progressLabel;
+    const ariaValueNow = isComplete ? total : completed;
+
     return (
+      <div
+        data-section="stepper-root"
+        data-orientation={orientation}
+      >
+        {showVisibleProgress && total > 0 ? (
+          <p
+            data-section="stepper-visible-progress"
+            className="mb-2 text-xs text-muted-foreground"
+          >
+            {resolvedProgressLabel}
+          </p>
+        ) : null}
+        {resolvedProgressLabel !== null && total > 0 ? (
+          <span
+            role="progressbar"
+            data-section="stepper-progressbar"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={ariaValueNow}
+            aria-valuetext={resolvedProgressLabel}
+            aria-label={resolvedProgressLabel}
+            className="sr-only"
+          />
+        ) : null}
       <ol
         ref={ref}
         role="list"
@@ -196,6 +262,7 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
           );
         })}
       </ol>
+      </div>
     );
   },
 );
