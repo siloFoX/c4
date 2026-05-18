@@ -4,6 +4,124 @@
 
 (no entries -- next release window)
 
+## [1.11.382] - 2026-05-18 -- UI: sheet primitive alias (TODO 11.364)
+
+Ships `web/src/components/ui/sheet.tsx` -- a
+canonical shadcn-style `<Sheet>` alias over the
+existing `<Drawer>` (11.279 / v1.11.297) plus a
+`size` preset (sm/md/lg/full) so adopters get a
+consistent rhythm across the modal surface.
+
+### Sheet vs Drawer
+
+The dispatch contract -- side anchor
+(left/right/top/bottom), slide animation, focus
+trap, backdrop, Escape close, scroll lock,
+portal mount, reduced-motion gating -- is
+already covered by `<Drawer>`. This patch
+ships:
+
+- A `<Sheet>` alias so the canonical naming
+  (matches shadcn) is available without
+  renaming the underlying primitive.
+- A `size?: SheetSize` preset
+  (`'sm' | 'md' | 'lg' | 'full'`) that resolves
+  to the underlying drawer's `width` (for
+  left/right sides) or `height` (for top/bottom).
+
+`<Drawer>` continues to be exported for callers
+that already use it.
+
+### Size presets
+
+| size | width (left/right) | height (top/bottom) |
+| --- | --- | --- |
+| `sm` | `256px` | `25%` |
+| `md` | `320px` | `50%` |
+| `lg` | `480px` | `75%` |
+| `full` | `720px` (Drawer maxWidth: 100% clamps to viewport) | `95vh` |
+
+`md` is the default and matches the legacy
+Drawer defaults (`width = '320px'` for
+left/right, `height = '50%'` for top/bottom)
+byte-identical, so swapping `<Drawer>` for
+`<Sheet>` at an existing call site without
+specifying `size` is a no-op.
+
+Explicit `width` / `height` props win over the
+size preset so adopters that need a custom
+length can override.
+
+### Adoption
+
+The dispatch mentions "mobile nav, filter
+panels". The existing Drawer is already adopted
+at:
+
+- `web/src/components/layout/Sidebar.tsx`
+  (mobile drawer)
+- `web/src/components/Drawer*Drawer*` filter
+  panels in various pages.
+
+Per-page adoption swap (Drawer -> Sheet) is
+opt-in; the alias is additive. A future patch
+can audit + migrate adopters to the canonical
+Sheet naming when the design surface needs the
+new size preset.
+
+### Tests
+
+`web/src/components/ui/sheet.test.tsx` -- 15
+cases:
+
+- Renders nothing when open=false.
+- Renders body when open=true.
+- Defaults side="right".
+- Forwards side="left" / "top" / "bottom".
+- size="md" -> 320px width on right-anchored.
+- size="sm" -> 256px on left-anchored.
+- size="lg" -> 480px on right-anchored.
+- size="full" -> 720px + maxWidth: 100% clamp.
+- top side picks the height preset
+  (size="md" -> 50%); width is NOT set.
+- bottom side="lg" -> 75% height.
+- Explicit width wins over size preset.
+- Explicit height wins over size preset.
+- Title + close button render and the close
+  button fires onOpenChange(false).
+- closeOnBackdropClick=false suppresses the
+  backdrop close.
+- Sheet.displayName exposed.
+
+15/15 pass under vitest 4.1.5. TypeScript clean.
+
+### Pairs with existing primitives
+
+- `<Drawer>` (11.279) -- unchanged. Sheet is
+  a thin wrapper.
+- `useFocusTrap` -- unchanged (inherited via
+  Drawer).
+- `useReducedMotion` -- unchanged (inherited).
+- `<Dialog>` size scale (11.363) -- the
+  sm/md/lg/full presets visually match the
+  Dialog scale so modal-vs-sheet decisions
+  stay continuous.
+
+### Out of scope
+
+- Per-page adoption swap from Drawer to
+  Sheet. The alias is additive; existing call
+  sites stay byte-identical.
+- An additional `xs` size below `sm`. Adopters
+  who need it pass `width` / `height`
+  directly.
+- Touch swipe-to-close. Out of scope for this
+  primitive; a follow-up could layer it.
+- Responsive size cascade (small viewport
+  collapses `lg` to `md`). The Drawer's
+  `maxWidth: 100%` / `maxHeight: 100%` clamps
+  already handle the narrow-viewport case.
+
 ## [1.11.381] - 2026-05-18 -- UI: dialog size variants (TODO 11.363)
 
 The `<Dialog>` primitive itself shipped earlier

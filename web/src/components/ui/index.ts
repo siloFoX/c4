@@ -16,6 +16,7 @@ export * from './skeleton';
 export * from './error-state';
 export * from './dialog';
 export * from './drawer';
+export * from './sheet';
 export * from './pagination';
 export * from './radio';
 export * from './checkbox';
