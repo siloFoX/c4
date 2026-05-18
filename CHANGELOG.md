@@ -4,6 +4,128 @@
 
 (no entries -- next release window)
 
+## [1.11.389] - 2026-05-18 -- UI: combobox primitive (TODO 11.371)
+
+`<Combobox>` (11.275 / v1.11.293) already
+covered the dispatched ARIA combobox pattern,
+autocomplete input, custom value support
+(via `allowFreeText`), and an async loader
+slot. This patch closes the remaining
+dispatched bullets:
+
+- **Debounced search** -- the previous
+  contract required the host page to debounce
+  `onQueryChange` itself. New `debounceMs?:
+  number` prop (default 0 = legacy
+  fire-every-keystroke) collapses bursts of
+  input into a single trailing call after
+  the window of silence elapses.
+- **Integration with Select** -- new
+  `selectOptionsToComboboxOptions(options)`
+  pure adapter widens a `SelectOption[]`
+  (from `./select`) into a `ComboboxOption[]`
+  shape so both primitives can share an
+  options array. Behaves as identity for the
+  `value`/`label` fields and preserves the
+  `disabled` flag when present (no
+  `disabled` key emitted on the output when
+  the input lacks one, so
+  `exactOptionalPropertyTypes: true` stays
+  happy).
+- **Home / End keyboard nav** -- jumps the
+  highlight to the first / last enabled
+  option in the visible list. Both are
+  no-ops when the dropdown is closed. Skips
+  disabled options.
+
+### API
+
+```tsx
+import {
+  Combobox,
+  selectOptionsToComboboxOptions,
+} from './components/ui/combobox';
+
+<Combobox
+  options={selectOptionsToComboboxOptions(fruitsForSelect)}
+  value={picked}
+  onChange={setPicked}
+  ariaLabel="Pick a fruit"
+  // Debounce the host's onQueryChange callback by 300 ms
+  onQueryChange={hostQuery => fetchRemote(hostQuery)}
+  debounceMs={300}
+/>
+```
+
+### Debounce semantics
+
+- `debounceMs <= 0` (default): `onQueryChange`
+  fires synchronously on every keystroke
+  (legacy byte-identical).
+- `debounceMs > 0`: each new keystroke
+  CLEARS the pending timer and starts a
+  new one. The callback fires once,
+  `debounceMs` ms after the last keystroke.
+- The internal client-side filter (when no
+  host `onQueryChange` is wired) is NOT
+  debounced -- the dropdown stays responsive
+  regardless of `debounceMs`.
+- The pending timer is cleared on unmount so
+  no late call lands after the component is
+  gone.
+
+### Home / End
+
+Both bail out of the handler when the popup
+is closed (no premature `e.preventDefault`),
+so the existing Home/End semantics on the
+parent surface are preserved. Disabled
+options are skipped during the scan.
+
+### Tests + types
+
+- `combobox.test.tsx`: +13 new cases (40
+  total). Covers debounceMs=0 sync per-
+  keystroke, debounceMs>0 collapses bursts
+  into one trailing call, debounce window
+  resets on each keystroke, internal filter
+  is NOT debounced, Home jumps to first
+  enabled, End skips disabled to last
+  enabled, Home no-op when closed,
+  selectOptionsToComboboxOptions value+label
+  pass-through, disabled flag forwarded,
+  no spurious `disabled` key when absent,
+  fresh array result, type-parameter
+  preservation, and integration end-to-end
+  (adapter -> Combobox renders options).
+- `npx tsc --noEmit` clean for touched
+  files.
+
+### Pairs with existing primitives
+
+- `<Select>` / `<MultiSelect>` (11.370 /
+  v1.11.388) -- now share an options
+  shape via the new adapter.
+- `<SearchBar>` -- pure free-text query
+  driver, unchanged.
+
+### Out of scope
+
+- **Multi-select mode.** `<MultiSelect>`
+  (11.370) covers the array-based picker.
+  Combobox stays single-value to keep its
+  free-text + autocomplete role clean.
+- **Async cancellation.** `debounceMs`
+  collapses the typed bursts but does not
+  cancel in-flight host fetches. Hosts
+  should pair `onQueryChange` with their
+  own `AbortController` story.
+- **Generic option label adapter.** The
+  shipped adapter expects `label: string`
+  (matching SelectOption); ReactNode labels
+  belong in the native ComboboxOption
+  shape.
+
 ## [1.11.388] - 2026-05-18 -- UI: select primitive (TODO 11.370)
 
 Extends `<Select>` (single-value, existing
