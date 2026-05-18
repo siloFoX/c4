@@ -4,6 +4,126 @@
 
 (no entries -- next release window)
 
+## [1.11.379] - 2026-05-18 -- UI: popover arrow + data-testid (TODO 11.361)
+
+The `<Popover>` primitive itself shipped in 11.171
+(v1.11.189) and has been extended over time with
+portal rendering, focus trap, anchor positioning,
+click-outside dismiss, Escape close, and a
+controlled/uncontrolled contract. This patch
+lands the two outstanding pieces from the
+dispatch:
+
+- **Arrow chevron** (`arrow?: boolean`) pointing
+  from the popover body toward the trigger. The
+  arrow positions against the inverse of the
+  resolved placement so it always hugs the
+  trigger surface (matches the Tooltip arrow
+  contract from 11.276).
+- **`data-testid`** forwarded onto the portal-
+  mounted panel so e2e selectors can address
+  specific popovers (previously every panel
+  shared the auto-generated `id`).
+
+### New props
+
+| prop | default | purpose |
+| --- | --- | --- |
+| `arrow` | `false` | render the chevron |
+| `data-testid` | `undefined` | forwarded onto the dialog node |
+
+The arrow span carries `aria-hidden="true"` so
+screen readers skip the decorative chevron. The
+panel root gains `data-popover-arrow="true|false"`
+so e2e selectors can branch on the visual state.
+
+### What was already in place
+
+- click trigger ✓
+- portal rendering (via `getPortalRoot('popover-root')`) ✓
+- focus trap (via `useFocusTrap`) ✓
+- anchor positioning with `placement` + `align` +
+  `offset` + automatic flip when the chosen
+  side does not fit ✓
+- controlled / uncontrolled (`open` / `defaultOpen`
+  / `onOpenChange`) ✓
+- `closeOnClickOutside` + `closeOnEsc` ✓
+- ARIA: `aria-haspopup="dialog"`,
+  `aria-expanded`, `aria-controls`, `role="dialog"`
+  ✓
+- Return-focus-to-trigger on close ✓
+
+This patch is additive only -- legacy call sites
+keep working byte-identical.
+
+### Adoption
+
+The Popover primitive is already adopted at:
+
+- `web/src/pages/Plan.tsx`
+- `web/src/components/ui/date-picker.tsx`
+- `web/src/components/ui/toolbar.tsx`
+- `web/src/components/ui/column-picker.tsx`
+- `web/src/pages/Config.tsx`
+- `web/src/pages/Health.tsx`
+- `web/src/pages/DesignSystem.tsx`
+
+No per-page adoption changes ship in this patch
+(the arrow is opt-in; existing visuals stay the
+same). The dispatch mentions "user menu, filter
+dropdowns" -- the existing date-picker /
+column-picker / toolbar already cover the
+filter-dropdown surface. A future patch can
+opt the AccountMenu / sidebar dropdowns into
+the arrow visual when the design surface needs
+to differentiate them from the click-only
+filter pickers.
+
+### Tests
+
+`web/src/components/ui/popover.test.tsx` -- adds
+4 new cases on top of the existing 17:
+
+- No arrow by default; `data-popover-arrow="false"`
+  on the panel; no arrow span.
+- `arrow={true}` -> `data-popover-arrow="true"`
+  + arrow span present + `aria-hidden="true"`.
+- Arrow position class matches the inverse of
+  the resolved placement (bottom placement -> arrow
+  at `top-[-3px]`).
+- `data-testid` forwarded onto the panel
+  dialog (e2e-addressable via
+  `screen.getByTestId`).
+
+21/21 pass under vitest 4.1.5. Pre-existing
+strict-tuple warning at the `useFocusTrap`
+call site (`exactOptionalPropertyTypes: true`)
+is unchanged and out of scope.
+
+### Pairs with existing primitives
+
+- `<Tooltip>` (11.276 / 11.378) -- the arrow
+  visual style matches: 1.5x1.5 rotated square,
+  3px tuck, border + bg-popover.
+- `lib/portal-root.ts` --
+  `getPortalRoot('popover-root')` continues to
+  serve as the canonical mount target.
+- `<Toolbar>` / `<DatePicker>` / `<ColumnPicker>`
+  -- already adopt Popover; opting any of them
+  into `arrow` is a one-prop change.
+
+### Out of scope
+
+- Collision detection beyond the existing
+  binary flip (e.g. shifting horizontally
+  when a vertical edge runs out of room).
+  jsdom layout limitations + the existing
+  flip cover the common cases.
+- React 19 ref-as-prop migration.
+- AccountMenu / sidebar dropdown adoption.
+  The primitive supports `arrow`; per-page
+  visual adoption is a follow-up.
+
 ## [1.11.378] - 2026-05-18 -- UI: tooltip Radix-style extensions (TODO 11.360)
 
 The `<Tooltip>` primitive itself shipped in 11.276

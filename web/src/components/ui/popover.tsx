@@ -30,7 +30,17 @@ export interface PopoverProps {
   offset?: number;
   closeOnClickOutside?: boolean;
   closeOnEsc?: boolean;
+  // (v1.11.379, TODO 11.361) Render a small
+  // arrow chevron pointing from the popover body
+  // toward the trigger. Default false to keep
+  // existing visuals byte-identical; opt in per
+  // adopter (canonical pattern matches Tooltip's
+  // arrow contract).
+  arrow?: boolean;
   className?: string;
+  // (v1.11.379, TODO 11.361) Test hook on the
+  // outer panel.
+  'data-testid'?: string;
 }
 
 function opposite(p: PopoverPlacement): PopoverPlacement {
@@ -93,7 +103,9 @@ export function Popover({
   offset = 6,
   closeOnClickOutside = true,
   closeOnEsc = true,
+  arrow = false,
   className,
+  'data-testid': testId,
 }: PopoverProps) {
   const reducedMotion = useReducedMotion();
   const isControlled = controlledOpen !== undefined;
@@ -187,6 +199,27 @@ export function Popover({
       } as Record<string, unknown>)
     : trigger;
 
+  // (v1.11.379, TODO 11.361) Arrow positioning.
+  // The arrow is a 6x6 rotated square half-tucked
+  // behind the popover so the visible edge reads
+  // as a triangle pointing toward the trigger.
+  // Anchored to the inverse edge of the resolved
+  // placement so the arrow always sits closest to
+  // the trigger surface.
+  const arrowClass = (() => {
+    switch (position.placement) {
+      case 'top':
+        return 'bottom-[-3px] left-1/2 -translate-x-1/2';
+      case 'bottom':
+        return 'top-[-3px] left-1/2 -translate-x-1/2';
+      case 'left':
+        return 'right-[-3px] top-1/2 -translate-y-1/2';
+      case 'right':
+      default:
+        return 'left-[-3px] top-1/2 -translate-y-1/2';
+    }
+  })();
+
   const panel = open && typeof document !== 'undefined' ? createPortal(
     <div
       ref={panelRef}
@@ -194,6 +227,8 @@ export function Popover({
       role="dialog"
       tabIndex={-1}
       data-popover-placement={position.placement}
+      data-popover-arrow={arrow ? 'true' : 'false'}
+      {...(testId ? { 'data-testid': testId } : {})}
       style={{
         position: 'fixed',
         top: `${position.top}px`,
@@ -201,12 +236,22 @@ export function Popover({
         zIndex: 90,
       }}
       className={cn(
-        'min-w-[8rem] rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md outline-none',
+        'relative min-w-[8rem] rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md outline-none',
         motionClass('fadeIn', reducedMotion),
         className,
       )}
     >
       {content}
+      {arrow ? (
+        <span
+          aria-hidden="true"
+          data-popover-arrow="true"
+          className={cn(
+            'absolute h-1.5 w-1.5 rotate-45 border border-border bg-popover',
+            arrowClass,
+          )}
+        />
+      ) : null}
     </div>,
     getPortalRoot('popover-root') ?? document.body,
   ) : null;
