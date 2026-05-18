@@ -4,6 +4,97 @@
 
 (no entries -- next release window)
 
+## [1.11.318] - 2026-05-18 -- UI: Portal primitive (TODO 11.300)
+
+New `Portal` primitive at `web/src/components/ui/portal.tsx`.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/components/ui/portal.tsx` -- canonical wrapper
+  around `react-dom` `createPortal` that funnels every overlay
+  surface through a single SSR-safe lazy-mount path. Layers
+  two guarantees on top of the pre-existing `getPortalRoot`
+  helper:
+  - SSR-safe lazy mount: the first render (SSR pass + first
+    client render) returns `null` so the canonical
+    `document is not defined` crash and the hydration
+    mismatch warning never fire. The portal target is
+    resolved inside `useEffect` and the second client render
+    materialises the children.
+  - `disabled` opt-out: when `disabled={true}` is passed, the
+    children render inline (no `createPortal` call). Useful
+    for tests that want to assert against a specific
+    container and for progressive enhancement when the portal
+    target is intentionally unavailable.
+- Props:
+  - `children: ReactNode` -- required, the subtree to portal.
+  - `containerId?: PortalRootId` -- named portal target
+    (`'toast-root'`, `'dialog-root'`, `'popover-root'`,
+    `'dropdown-root'`, `'app-portal-root'`, or any string).
+    Defaults to `'app-portal-root'`. Created lazily on first
+    call and reused on subsequent calls (idempotent via
+    `getPortalRoot`).
+  - `container?: HTMLElement | null` -- explicit DOM target,
+    takes precedence over `containerId`. Escape hatch for
+    tests, Shadow DOM mounts, or callers that have computed
+    their own target. `null` is honoured as a "not yet"
+    state and defers the mount.
+  - `disabled?: boolean` -- inline-render opt-out.
+- Re-exported from `web/src/components/ui/index.ts`.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed Toast container, CommandPalette,
+  Drawer, and Tooltip as adoption sites. Threading the new
+  `Portal` primitive into those call sites is a follow-up
+  per-component patch -- the primitive ships first so the
+  per-page swaps can land independently and not blow up the
+  blast radius of this commit. Affected files (each can
+  drop the `createPortal` import + the `getPortalRoot` call
+  in favour of `<Portal containerId="...">{node}</Portal>`):
+  `web/src/components/Toast.tsx`,
+  `web/src/components/ui/toast.tsx`,
+  `web/src/components/ui/command-palette.tsx`,
+  `web/src/components/ui/drawer.tsx`,
+  `web/src/components/ui/dialog.tsx`,
+  `web/src/components/ui/popover.tsx`,
+  `web/src/components/ui/context-menu.tsx`.
+
+### Tests
+
+- `web/src/components/ui/portal.test.tsx` -- 14 vitest cases
+  covering:
+  - SSR-safe lazy mount (first synchronous render before
+    effects = empty; after effects = portal mounted).
+  - Default canonical `app-portal-root` materialisation
+    with `data-portal-root="true"` attribute.
+  - Reuse of the same portal root across multiple Portal
+    instances (idempotent `getPortalRoot`).
+  - Custom `containerId` ('toast-root') routes to a distinct
+    DOM target.
+  - Explicit `container` HTMLElement escape hatch (mounts
+    into the supplied node, skips `app-portal-root` creation).
+  - `container={null}` defers the mount (no children rendered
+    yet).
+  - `disabled={true}` renders children inline at the Portal's
+    location, with no portal root creation.
+  - `disabled` flip from true -> false moves children from
+    inline to portal target.
+  - Props update propagation (children content changes).
+  - `containerId` switch moves the subtree between named
+    targets.
+  - Clean unmount: subtree removed from the portal root.
+  - Stable `displayName` for devtools.
+  - Multiple children via implicit fragment.
+  - `data-portal-root` attribute selector for e2e.
+  All 14 green.
+
+### Versions
+
+- 1.11.317 -> 1.11.318 across root + web package.json + both
+  lockfiles. CHANGELOG.md entry under `## [1.11.318]`.
+
 ## [1.11.317] - 2026-05-17 -- UI: AspectRatio primitive (TODO 11.299)
 
 New `AspectRatio` primitive at
