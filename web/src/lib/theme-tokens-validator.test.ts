@@ -128,3 +128,69 @@ describe('theme-tokens-validator (integration: components/ui)', () => {
     expect(violations.length).toBe(0);
   });
 });
+
+// (v1.11.344, TODO 11.326) Pages integration scan. Same
+// design-token contract as `components/ui/` but extended
+// to cover every page in `web/src/pages/*.tsx`. Pages are
+// the next-largest surface area for theme regressions:
+// they compose primitives + their own conditional
+// branches and can easily slip in a `style={{ color:
+// '#abc' }}` override that then breaks the dark-mode
+// palette.
+describe('theme-tokens-validator (integration: pages)', () => {
+  it('every web/src/pages/*.tsx file references design tokens (no raw hex / rgb / hsl)', () => {
+    const pagesDir = resolve(__dirname, '..', 'pages');
+    const files = readdirSync(pagesDir)
+      .filter((name) => name.endsWith('.tsx') && !name.endsWith('.test.tsx'))
+      .map((name) => join(pagesDir, name));
+    expect(files.length).toBeGreaterThan(5);
+
+    const violations = scanFilesForViolations(files);
+    if (violations.length > 0) {
+      const summary = `\nDesign-token policy violations in pages (${violations.length}):\n${formatViolations(violations)}`;
+      throw new Error(summary);
+    }
+    expect(violations.length).toBe(0);
+  });
+});
+
+// (v1.11.344, TODO 11.326) New scanner heuristics.
+describe('theme-tokens-validator (heuristics)', () => {
+  it('does NOT flag a 3-digit hex inside English content like "todo #142 to worker"', () => {
+    const source = `'Dispatched todo #142 to worker auto-w17',`;
+    const v = scanSourceForViolations('Notifications.tsx', source);
+    expect(v.length).toBe(0);
+  });
+
+  it('does NOT flag hsl(var(--token)) -- canonical alpha-overlay pattern', () => {
+    const source = `style={{ background: 'hsl(var(--primary) / 0.35)' }}`;
+    const v = scanSourceForViolations('foo.tsx', source);
+    expect(v.length).toBe(0);
+  });
+
+  it('does NOT flag rgba(var(--token)) either', () => {
+    const source = `style={{ background: 'rgba(var(--bg) / 0.5)' }}`;
+    const v = scanSourceForViolations('foo.tsx', source);
+    expect(v.length).toBe(0);
+  });
+
+  it('still flags hsl(220 18% 8%) with raw HSL components', () => {
+    const source = `className="bg-[hsl(220_18%_8%)]"`;
+    const v = scanSourceForViolations('foo.tsx', source);
+    expect(v.length).toBe(1);
+    expect(v[0]?.rule).toBe('hsl-fn');
+  });
+
+  it('still flags rgb(10, 20, 30) without var()', () => {
+    const source = `style={{ background: 'rgb(10, 20, 30)' }}`;
+    const v = scanSourceForViolations('foo.tsx', source);
+    expect(v.length).toBe(1);
+    expect(v[0]?.rule).toBe('rgb-fn');
+  });
+
+  it('flags a 6-digit hex even when followed by trailing whitespace + uppercase / non-letter', () => {
+    const source = `const x = '#abcdef';`;
+    const v = scanSourceForViolations('foo.tsx', source);
+    expect(v.length).toBe(1);
+  });
+});

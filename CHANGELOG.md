@@ -4,6 +4,105 @@
 
 (no entries -- next release window)
 
+## [1.11.344] - 2026-05-18 -- UI: Dark mode parity audit (TODO 11.326)
+
+Audits the design-token compliance contract for the
+`web/src/pages` surface and the storybook-style demo
+route under both light + dark themes. Extends the
+v1.11.324 `theme-tokens-validator` scanner with new
+heuristics so the existing regex-based scan can run
+cleanly across pages without false positives. Adds a
+dual-theme render smoke test for `UIDemoRoute` so the
+gallery has explicit dark-mode coverage.
+
+### Added
+
+- Pages-integration scan in
+  `theme-tokens-validator.test.ts`. Walks every
+  `web/src/pages/*.tsx` file and asserts no raw hex,
+  rgb, or hsl literals slip in. Same regex contract as
+  the existing `components/ui/` integration scan, just
+  pointed at the pages directory.
+- Dual-theme render coverage in
+  `UIDemoRoute.test.tsx`. Three new cases:
+  - the full gallery mounts under the dark theme
+    (verifies `applyTheme('dark')` adds the `.dark`
+    class on `<html>` AND the gallery root + every
+    section data attribute survive);
+  - the full gallery mounts under the light theme
+    (the `.dark` class is removed; same render
+    contract);
+  - the gallery root resolves a non-empty
+    `backgroundColor` under the dark theme (sanity
+    check that `getComputedStyle` does not throw and
+    returns a string -- enough to catch a "tokens.css
+    stripped" regression even though jsdom does not
+    resolve Tailwind class colors to RGB values).
+- Six new validator heuristics tests:
+  - skips a 3-digit hex inside English content
+    (`"todo #142 to worker"`);
+  - allows `hsl(var(--primary) / 0.35)` (canonical
+    alpha-overlay pattern);
+  - allows `rgba(var(--bg) / 0.5)`;
+  - still flags raw `hsl(220 18% 8%)`;
+  - still flags raw `rgb(10, 20, 30)`;
+  - flags a 6-digit hex in a normal string-literal
+    context.
+
+### Changed
+
+- `theme-tokens-validator.ts` -- scanner heuristics
+  tightened:
+  - `RE_HEX` regex extended to capture the trailing
+    line content after each match. Combined with a new
+    `looksLikeNaturalLanguageTail()` check
+    (regex `/^\s+[a-z]/`), the scanner now skips a hex
+    literal when it is followed by a space + a
+    lowercase letter -- the natural signature of an
+    English sentence ("todo #142 to worker" /
+    "id #abc not found"), distinct from a CSS context
+    where the hex is followed by `'`, `"`, `` ` ``,
+    `,`, `;`, `}`, `)`, or end-of-line.
+  - `RE_RGB` and `RE_HSL` regexes extended to capture
+    the inner argument list. A new `isVarReference()`
+    check skips matches whose arguments contain
+    `var(...)`. The canonical
+    `hsl(var(--primary) / 0.35)` alpha-overlay
+    pattern is now an explicit pass, not a
+    false-positive flag.
+  - The `match:` field in the emitted violation
+    record for `rgb-fn` / `hsl-fn` reverts to the
+    prefix-only literal (`rgb(` / `hsl(`) for the
+    `formatViolations()` output, matching the prior
+    contract.
+
+### Pages audit result
+
+- All `web/src/pages/*.tsx` files pass the
+  design-token contract with zero violations as of
+  v1.11.344. Notifications.tsx mock data contains
+  `#142` / `#143` style content references; the new
+  natural-language-tail heuristic correctly skips
+  them.
+- The `App.tsx` shell (outside the page surface)
+  retains its v1.11.134 `from-[hsl(220_18%_8%)]`
+  gradient as documented technical debt -- the
+  comment in App.tsx explicitly tracks the swap to
+  CSS-variable values when `tokens.css` lands. That
+  file is outside this patch's audit scope (the
+  dispatch targets "every UI primitive + every
+  page"); a follow-up will tokenise the gradient.
+
+### Tests
+
+- `theme-tokens-validator.test.ts` -- 16 prior cases
+  unchanged; 6 new heuristics cases + 1 new
+  pages-integration case. 23/23 pass.
+- `UIDemoRoute.test.tsx` -- 6 prior cases unchanged;
+  3 new dual-theme cases. 9/9 pass.
+- Combined: 31/31 cases pass against vitest 4.1.5 +
+  jsdom 29.1.1.
+
 ## [1.11.343] - 2026-05-18 -- UI: AppShell consolidation (TODO 11.325)
 
 Introduces a reusable application shell primitive that
