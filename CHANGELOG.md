@@ -4,6 +4,182 @@
 
 (no entries -- next release window)
 
+## [1.11.393] - 2026-05-18 -- UI: virtualized table primitive (TODO 11.375)
+
+New `web/src/components/ui/virtual-table.tsx`
+composes `<VirtualizedList>` (11.333 /
+v1.11.351) with the multi-column sort +
+type-aware filter helpers from
+`lib/data-table-state.ts` (11.355 / v1.11.373)
+into one declarative primitive for 10k+ row
+tables.
+
+### Dispatch features
+
+- **Header sticky** -- the header row uses
+  `position: sticky; top: 0; z: 10` within
+  the wrapping container so it pins as the
+  body scrolls vertically. Opt out via
+  `stickyHeader={false}`.
+- **Horizontal scroll sync** -- header and
+  body live inside the SAME wrapper that
+  owns `overflow-x: auto`. Both use the same
+  `gridTemplateColumns` string, so cells
+  stay perfectly aligned regardless of
+  horizontal scroll position.
+- **Row selection** -- opt-in via
+  `selectable={true}`. When on, a leading
+  36px column hosts the per-row checkbox
+  plus a tri-state select-all in the header
+  that toggles every VISIBLE row
+  (post-filter, post-sort). Tri-state
+  surfaces via the native `indeterminate`
+  property + `data-indeterminate` attr.
+
+### API
+
+```tsx
+import { VirtualTable, type VirtualTableColumn } from './components/ui/virtual-table';
+
+interface Row { id: string; name: string; age: number }
+
+const columns: VirtualTableColumn<Row>[] = [
+  { key: 'name', label: 'Name', sortable: true, width: '200px' },
+  { key: 'age',  label: 'Age',  sortable: true, width: '80px', align: 'right' },
+];
+
+<VirtualTable
+  columns={columns}
+  rows={rows}
+  rowKey={(r) => r.id}
+  rowHeight={36}
+  height={480}
+  sortBy={sortBy}
+  onSortByChange={setSortBy}
+  filters={filters}
+  selectable
+  selectedIds={selectedIds}
+  onSelectionChange={setSelectedIds}
+  ariaLabel="Users"
+/>
+```
+
+### Column-template helpers
+
+Two pure helpers are exported for tests +
+custom hosts that need to render the same
+grid manually:
+
+- `buildGridTemplate(columns, selectable)`
+  -- joins column widths into one
+  `grid-template-columns` string, prepending
+  `36px` when `selectable=true`.
+- `applyTableTransforms({ rows, filters?,
+  sortBy?, filterAccessor, sortAccessor })`
+  -- runs `applyFilters` then `applyMultiSort`
+  in the canonical order.
+
+### Sort UX
+
+- Plain click on a sortable header
+  toggles asc -> desc -> clear.
+- Shift-click APPENDS to the sort list
+  (multi-column sort).
+- Active sort column shows the direction
+  glyph (↑ / ↓) and a priority badge when
+  the sort list has more than one column.
+- The header cell exposes `aria-sort` per
+  the WAI-ARIA grid pattern.
+
+### Selection UX
+
+- `selectable=false` (default) drops the
+  entire selection chrome (no leading
+  column, no checkboxes).
+- Per-row checkbox toggles the row key
+  in/out of the `selectedIds` set.
+- Select-all toggles every visible row;
+  shows indeterminate when some-but-not-
+  all are selected.
+- `data-row-selected` on the body row
+  mirrors the per-row selection state for
+  CSS hooks.
+
+### Data attributes
+
+Wrapper: `data-section="virtual-table"`,
+`data-row-count`. Header row:
+`-header`, `-header-cell`, `-header-sort`,
+`-select-all`, `-sort-indicator`,
+`-sort-priority`. Body row: `-row`,
+`-row-key`, `-row-selected`. Cell:
+`-cell`, `-column`. Selection:
+`-row-select`.
+
+### Tests + types
+
+- `virtual-table.test.tsx`: 28 cases.
+  Covers `buildGridTemplate` (3),
+  `applyTableTransforms` (2), wrapper
+  attrs (1), sticky header default + opt-out
+  (2), grid template alignment header-vs-row
+  (1), select column + tri-state +
+  select-all toggle on/off (4), per-row
+  checkbox toggle on/off (2), sortable
+  header button + direction glyph (1),
+  click + shift-click sort dispatch (2),
+  aria-sort attr (1), priority badge with
+  multi-column sort (1), non-sortable
+  header (1), filters pass-through (1),
+  empty rows (1), custom render (1),
+  className forwarding (1), horizontal
+  scroll wrapper (1), stable displayName
+  (1), selectable=false drops chrome (1).
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Pairs with existing primitives
+
+- `<VirtualizedList>` (11.333) -- backing
+  body row virtualizer. Unchanged.
+- `lib/data-table-state.ts` (11.355) --
+  sort + filter helpers. Unchanged.
+- `<DataTable>` (11.355) -- non-virtual
+  table primitive. Reach for that when the
+  row count fits in <500 rows. Reach for
+  `<VirtualTable>` when the count breaks
+  10k or the host needs sticky headers.
+- `<Pagination>` -- complementary
+  primitive. Paginated table is one option
+  for big tables; virtualization is the
+  other. Hosts can pick per surface.
+
+### Out of scope
+
+- **Pagination integration.** Adopters wrap
+  the table with `<Pagination>` and slice
+  rows themselves. Built-in pagination is
+  a separate primitive.
+- **Column resize.** Width is declarative
+  via `column.width`; drag-to-resize is a
+  follow-on with its own pointer story.
+- **Frozen columns / row headers.** The
+  current grid template treats all columns
+  as scrollable. Sticky-first-column is a
+  follow-on (needs `position: sticky;
+  left: 0` and z-stacking).
+- **Cell editing.** Out of scope; the
+  primitive renders read-only cells.
+- **Inline filter row beneath the header.**
+  `<DataTable>` ships an in-band filter
+  row; `<VirtualTable>` keeps the filter
+  story external for now (host UI drives
+  `filters` prop). Adding the in-band row
+  needs a second sticky offset and a
+  scrollable header story.
+
 ## [1.11.392] - 2026-05-18 -- UI: file upload progress (TODO 11.374)
 
 New `web/src/components/ui/file-upload-progress.tsx`
