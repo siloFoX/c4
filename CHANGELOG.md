@@ -4,6 +4,179 @@
 
 (no entries -- next release window)
 
+## [1.11.412] - 2026-05-18 -- UI: theme-customizer primitive (TODO 11.394)
+
+New `web/src/components/ui/theme-customizer.tsx`
+ships `<ThemeCustomizer>` -- a runtime
+CSS-variable editor with three canonical
+knobs (radius / hue / contrast), a live
+preview, copy-to-clipboard export, and
+opt-in localStorage persistence.
+
+### API
+
+```tsx
+<ThemeCustomizer
+  initialConfig={{ radius: 8, hue: 264, contrast: 50 }}
+  storageKey="c4:theme-customizer"
+  target="scope"          // or 'root'
+  exportFormat="css"      // or 'json'
+  onChange={(config) => console.log(config)}
+  onExport={(text, format) => save(text)}
+  ariaLabel="Theme customizer"
+/>
+```
+
+### Three knobs (matches arps-design-system-v1)
+
+- **radius** (0..24 px) -- drives the
+  full --radius-{sm,md,lg,xl,2xl} ladder;
+  child scales derive proportionally
+  (`sm = base/4`, `md = base/2`,
+  `lg = base*3/4`, `xl = base`,
+  `2xl = base*1.5`).
+- **hue** (0..360) -- HSL hue threaded
+  into the --brand family
+  (`--brand`, `--brand-hover`,
+  `--brand-pressed`, `--brand-subtle`).
+  Saturation + lightness stay at the
+  design-system canonical values
+  (80% / 65% / 72% / 58% / 22%).
+- **contrast** (0..100) -- lightness
+  shift for the --text-*  and
+  --border-default series. 0 = low
+  contrast (text-primary at 75% L);
+  100 = max contrast (100% L).
+
+### Two host modes
+
+- `target='scope'` (default) -- inline
+  `style` on the wrapper div applies the
+  CSS vars to descendants only. Safe to
+  mount multiple instances without
+  bleeding into the surrounding page.
+- `target='root'` --
+  `document.documentElement.style.setProperty`
+  for the full-document "skin the whole
+  app" mode. Reversible via the exported
+  `clearThemeCustomizerRoot()` helper.
+
+### Persistence + export
+
+- `storageKey?` reads + writes a JSON
+  serialization of the current config.
+  Malformed / missing stored value
+  cleanly falls back to `initialConfig`
+  -> `DEFAULT_THEME_CONFIG`.
+- "Copy" button writes the serialized
+  CSS (or JSON when `exportFormat='json'`)
+  via `navigator.clipboard.writeText`,
+  flips its label to "Copied!" for
+  `copyFeedbackMs` (default 1500ms).
+- `onExport(text, format)` fires
+  alongside the clipboard write (useful
+  in headless tests and for routing the
+  text into a downstream pipeline).
+
+### Pure helpers (exported)
+
+- `normalizeThemeConfig(input)` --
+  clamps to bounds, fills missing
+  fields, treats NaN as min.
+- `themeConfigToCssVars(config)` -- 13
+  CSS-var map matching the tokens.css
+  HSL-triplet shape ("H S% L%").
+- `serializeThemeConfigCss(config)` --
+  `:root { ... }` block.
+- `serializeThemeConfigJson(config)` --
+  2-space pretty JSON (normalized).
+- `clearThemeCustomizerRoot()` --
+  removes the 13 root-scoped vars.
+- `DEFAULT_THEME_CONFIG`,
+  `THEME_CONFIG_BOUNDS`,
+  `THEME_CUSTOMIZER_DEFAULT_STORAGE_KEY`
+  exposed for adopters.
+
+### ARIA + data attributes
+
+- Root: `<div role="region">` +
+  `aria-label`; `data-section`,
+  `data-target`, `data-radius`,
+  `data-hue`, `data-contrast`.
+- Control row: `<label>` +
+  `data-section="theme-customizer-control"`
+  + `data-control-key={radius|hue|contrast}`;
+  inner native `<input type="range">`
+  has `aria-label` + `data-control-input`.
+- Value badge: `data-control-value` per
+  control.
+- Preview: `data-section="theme-customizer-preview"`
+  + `-preview-brand|-label|-button`.
+- Buttons: `data-section="theme-customizer-export|-reset"`;
+  export adds `data-copied="true|false"`.
+
+### Tests
+
+44 cases in `theme-customizer.test.tsx`:
+
+- normalizeThemeConfig (7): undefined,
+  null, partial, over-range clamp,
+  under-range clamp, NaN -> min,
+  mid-range pass-through.
+- themeConfigToCssVars (5): 13-key
+  surface, hue family, radius ladder,
+  contrast text + border ramp,
+  normalize-before-emit.
+- serializeThemeConfigCss / Json (2):
+  :root block format, JSON normalization.
+- clearThemeCustomizerRoot (1):
+  documentElement scrub.
+- Component (29): region + aria-label,
+  three sliders, default state,
+  initialConfig override, localStorage
+  read, malformed-stored fallback,
+  missing-key fallback, slider change
+  per axis (3), onChange fires after
+  change, no onChange on mount, scope
+  inline-style application, root
+  documentElement application,
+  localStorage write on change, reset
+  button, clipboard CSS write, JSON
+  variant, onExport callback, copied
+  label flip, clipboard-undefined
+  fallback to onExport, preview swatch
+  + label + button, data-target,
+  data-control-key per row, data-
+  control-input per input, value
+  badge per slider, displayName,
+  default storage key constant,
+  over-range slider clamp.
+
+44/44 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Out of scope (deferred)
+
+- Saturation control (the brand
+  family stays at canonical
+  saturation; saturation belongs in
+  a separate token-set knob).
+- Dark / light theme toggle. The
+  tokens.css is dark-themed; a
+  light-mode swap belongs to a
+  follow-on.
+- Per-component overrides (radius for
+  buttons only, etc.). Belongs in a
+  granular "advanced" surface.
+- Import-from-clipboard parser.
+- Cross-tab sync via `storage` event.
+- Adoption sweep through existing
+  components. The token-using
+  components already consume the
+  vars, so a `target='root'` mount
+  already "themes" them; opting in
+  per page is a separate dispatch.
+
 ## [1.11.411] - 2026-05-18 -- UI: toaster utility (TODO 11.393)
 
 New `web/src/lib/toaster.ts` ships the
