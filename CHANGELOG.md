@@ -4,6 +4,193 @@
 
 (no entries -- next release window)
 
+## [1.11.405] - 2026-05-18 -- UI: menubar primitive (TODO 11.387)
+
+New `web/src/components/ui/menubar.tsx` ships
+`<Menubar>` -- a horizontal menu strip with
+top-level triggers (File / Edit / View / etc.)
+each opening a dropdown sub-menu. Implements
+the full WAI-ARIA menubar pattern with roving
+tabindex + cross-trigger arrow navigation.
+
+### API
+
+```ts
+interface MenubarMenu {
+  id: string;
+  label: ReactNode;
+  items: MenubarMenuItem[];
+  disabled?: boolean;
+}
+
+interface MenubarMenuItem {
+  id: string;
+  label: ReactNode;
+  icon?: ReactNode;
+  disabled?: boolean;
+  danger?: boolean;
+  onSelect?: () => void;
+  separator?: boolean;
+}
+
+interface MenubarProps {
+  menus: MenubarMenu[];
+  ariaLabel?: string;     // default 'Menu bar'
+  className?: string;
+}
+```
+
+```tsx
+<Menubar
+  ariaLabel="Main menu"
+  menus={[
+    {
+      id: 'file',
+      label: 'File',
+      items: [
+        { id: 'new', label: 'New', onSelect: handleNew },
+        { id: 'open', label: 'Open', onSelect: handleOpen },
+        { id: 'sep', label: '', separator: true },
+        { id: 'quit', label: 'Quit', onSelect: handleQuit, danger: true },
+      ],
+    },
+    {
+      id: 'edit',
+      label: 'Edit',
+      items: [
+        { id: 'cut', label: 'Cut', onSelect: handleCut },
+        { id: 'copy', label: 'Copy', onSelect: handleCopy },
+      ],
+    },
+  ]}
+/>
+```
+
+### Keyboard contract
+
+| key | location | effect |
+| --- | --- | --- |
+| ArrowRight / ArrowLeft | on trigger | move focus between top-level triggers (with wrap; skips disabled) |
+| ArrowDown / Enter / Space | on trigger | open the dropdown |
+| Home | on trigger | jump to first enabled trigger |
+| End | on trigger | jump to last enabled trigger |
+| ArrowDown / ArrowUp | in open dropdown | move highlight |
+| Home / End | in open dropdown | jump to first/last selectable |
+| Enter | in open dropdown | fire onSelect + close |
+| ArrowLeft / ArrowRight | in open dropdown | move to prev/next trigger + open its menu |
+| Escape | anywhere | close dropdown + restore focus to trigger |
+| Tab | in open dropdown | close dropdown (Tab exits the menubar) |
+
+### Behaviour
+
+- **Single open menu at a time.** Opening
+  one trigger's dropdown closes any other.
+- **Roving tabindex.** Only the focused (or
+  first if none focused) trigger has
+  `tabindex=0`; the rest have `-1`.
+- **Hover-swap.** Once ANY dropdown is open,
+  hovering a sibling trigger opens its
+  dropdown without an extra click. Hover
+  with no menu open does NOT auto-open
+  (click affordance is preserved).
+- **Click-outside dismiss.** Closes the
+  open dropdown when the user clicks
+  outside the menubar root.
+- **Disabled triggers** drop out of the
+  ArrowLeft/Right cycle.
+
+### ARIA
+
+- Root: `role="menubar"` +
+  `aria-orientation="horizontal"` +
+  `aria-label`.
+- Trigger: `role="menuitem"` +
+  `aria-haspopup="menu"` +
+  `aria-expanded="true|false"` +
+  `aria-controls=<panel-id>`.
+- Dropdown panel: `role="menu"` +
+  `aria-orientation="vertical"` +
+  `aria-labelledby=<trigger-id>`.
+- Dropdown item: `role="menuitem"` +
+  `aria-disabled` when applicable.
+- Separator: `role="separator"`.
+
+### Data attributes
+
+- `data-section="menubar"` on the root.
+- `data-section="menubar-menu"` +
+  `data-menubar-menu=<id>` +
+  `data-menubar-open` per top-level entry.
+- `data-section="menubar-trigger"` +
+  `data-menubar-trigger=<id>` per trigger.
+- `data-section="menubar-panel"` per open
+  dropdown.
+- `data-section="menubar-item"` +
+  `data-menubar-item=<id>` per dropdown
+  item.
+- `data-section="menubar-separator"`.
+
+### Tests + types
+
+- `menubar.test.tsx`: 30 cases. Covers
+  role + ariaLabel default + custom,
+  one trigger per menu, aria-haspopup +
+  aria-expanded, roving tabindex,
+  click open / toggle close / swap,
+  hover-swap behaviour, hover does NOT
+  open without one already open,
+  ArrowRight / ArrowLeft + wrap, Home /
+  End on trigger, ArrowDown / Enter
+  open, Escape close + restore focus,
+  ArrowDown inside dropdown, Enter +
+  Home + End on dropdown items,
+  ArrowLeft / ArrowRight inside open
+  dropdown swaps menus, item click +
+  onSelect, click-outside closes,
+  separator role, disabled trigger does
+  NOT open, ArrowRight skips disabled,
+  all data-section attrs,
+  data-menubar-open per menu, stable
+  displayName.
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Pairs with existing primitives
+
+- `<DropdownMenu>` (11.362) -- single
+  trigger + rich item types. Use when
+  there's a lone dropdown anchor (not a
+  full menu strip).
+- `<ContextMenu>` (11.386) -- right-
+  click triggered menu with nested
+  sub-menus. Use for surface-anchored
+  shortcuts (right-click a row to act
+  on it).
+- `<Tabs>` -- horizontal selection
+  list without the dropdown semantics.
+
+### Out of scope
+
+- Per-page adoption of the menubar.
+  Additive; no existing surface is
+  forced onto the new primitive.
+- Sub-sub-menus (level-2 dropdowns).
+  Single-level dropdowns only; deeper
+  trees belong in `<ContextMenu>` (which
+  supports sub-menus).
+- Type-ahead (jump to trigger / item
+  starting with a typed letter).
+  Belongs in a separate patch with its
+  own debounce story.
+- Mega-menu / multi-column dropdown
+  layout. Belongs in a navigation-menu
+  primitive (TODO 11.388).
+- Trigger icons. Top-level labels are
+  text only by convention; icons are
+  reserved for dropdown items.
+
 ## [1.11.404] - 2026-05-18 -- UI: context-menu primitive (TODO 11.386)
 
 `<ContextMenu>` already shipped right-click
