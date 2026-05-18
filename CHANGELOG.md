@@ -4,6 +4,159 @@
 
 (no entries -- next release window)
 
+## [1.11.423] - 2026-05-18 -- UI: page-header responsive layout + size variants (TODO 11.405)
+
+`<PageHeader>` (11.249 / v1.11.267)
+already shipped title / subtitle /
+breadcrumb / actions / back-button
+slots + sticky positioning. This
+patch closes the dispatched
+"responsive layout with mobile
+collapse" and adds a typography
+ramp.
+
+### New props
+
+```ts
+collapseActionsOnMobile?: boolean;  // default true
+size?: 'sm' | 'md' | 'lg';          // default 'md'
+```
+
+### Mobile collapse
+
+When `collapseActionsOnMobile` is
+`true` (default) AND `actions` is
+provided:
+
+- The inner row container becomes
+  `flex-col md:flex-row`. On mobile
+  (`< md`) the lead block (back +
+  breadcrumb / title / subtitle)
+  stacks ABOVE the actions row.
+- The actions row gains
+  `mt-2 w-full md:mt-0 md:w-auto
+  md:shrink-0 md:justify-end` so
+  it spans full width on mobile
+  and tucks back to the right at
+  `md+`.
+
+When `collapseActionsOnMobile` is
+`false`, the legacy `flex-row`
+layout applies at all breakpoints
+(actions stay in the right-side
+flex container, wrapping if they
+overflow).
+
+The `flex-col` modifier only
+attaches when actions exist --
+title-only headers never gain the
+breakpoint flip.
+
+### Size ramp
+
+| size | title | subtitle |
+| --- | --- | --- |
+| `sm` | `text-base md:text-lg` | `text-[11px]` |
+| `md` (default) | `text-lg md:text-xl` | `text-xs` |
+| `lg` | `text-xl md:text-2xl` | `text-sm` |
+
+`md` keeps the legacy byte-identical
+title + subtitle classes; `sm` is a
+dense variant for sidebar / modal
+headers, `lg` is a hero variant
+for landing / dashboard surfaces.
+
+### Data attributes
+
+New on the root `<header>`:
+
+- `data-size` ('sm' / 'md' / 'lg')
+- `data-collapse-actions`
+  ('true' / 'false')
+
+New on inner blocks (each gets a
+`data-section`):
+
+- `data-section="page-header-lead"`
+  -- back + title-block wrapper
+- `data-section="page-header-text"`
+  -- title + subtitle wrapper
+- `data-section="page-header-title"`
+  -- the `<h1>`
+- `data-section="page-header-subtitle"`
+  -- the `<p>`
+- `data-section="page-header-actions"`
+  -- actions row (data-testid
+  unchanged for back-compat)
+
+### Tests
+
+12 new test cases in
+`page-header.test.tsx` (32 total
+= 20 legacy + 12 new):
+
+- root data-size + data-collapse-
+  actions attrs
+- default flex-col md:flex-row on
+  inner row when actions present
+- collapseActionsOnMobile=false
+  keeps flex-row at all breakpoints
+- responsive classes only kick in
+  when actions exist
+- actions row gets responsive
+  w-full + md:w-auto + md:shrink-0
+- actions row stays shrink-0 with
+  collapse disabled
+- size="sm" applies compact
+  title + subtitle classes
+- size="md" applies legacy
+  classes (default)
+- size="lg" applies hero classes
+- data-size mirrors prop on
+  rerender
+- data-section on title /
+  subtitle / lead / text inner
+  blocks
+- data-section="page-header-
+  actions" on actions block
+
+32/32 pass under vitest 4.1.5;
+TypeScript clean for touched
+files. Legacy 20 tests pass
+byte-identical (no surface
+breakage).
+
+### Pairs with existing primitives
+
+- `<Breadcrumbs>` (11.240) --
+  consumed via the existing
+  `breadcrumbs` prop.
+- `<Button>` (canonical) -- used
+  for the back glyph.
+- ThemeCustomizer (11.394) -- the
+  header reads token-based
+  Tailwind classes so it auto-
+  themes.
+
+### Out of scope (deferred)
+
+- Per-page adoption sweep
+  (callers still pass actions as
+  inline children; nothing breaks).
+- Custom mobile breakpoint
+  override (currently fixed at
+  Tailwind `md`).
+- Icon slot to the left of the
+  title. The back glyph is the
+  only canonical left affordance.
+- Tab / segmented filter row
+  underneath the title. Belongs
+  in a separate composition.
+- Collapsing the breadcrumb row
+  on mobile (it already wraps
+  via `<Breadcrumbs>`'s
+  responsive truncation).
+
 ## [1.11.422] - 2026-05-18 -- UI: search-input primitive (TODO 11.404)
 
 New `web/src/components/ui/search-input.tsx`

@@ -192,4 +192,144 @@ describe('<PageHeader>', () => {
     expect(screen.getByTestId('page-header-back')).toBeInTheDocument();
     expect(screen.getByTestId('page-header-actions')).toBeInTheDocument();
   });
+
+  // -- v1.11.423 (TODO 11.405) extensions ---------------------------
+
+  it('exposes data-size and data-collapse-actions on the root', () => {
+    const { container } = render(
+      <PageHeader title="Settings" actions={<button>Save</button>} />,
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.getAttribute('data-size')).toBe('md');
+    expect(root.getAttribute('data-collapse-actions')).toBe('true');
+  });
+
+  it('default collapseActionsOnMobile=true adds flex-col md:flex-row to inner row', () => {
+    const { container } = render(
+      <PageHeader title="X" actions={<button>A</button>} />,
+    );
+    const inner = container.querySelector(
+      '[data-section="page-header"] > div',
+    ) as HTMLElement;
+    expect(inner.className).toContain('flex-col');
+    expect(inner.className).toContain('md:flex-row');
+  });
+
+  it('collapseActionsOnMobile=false keeps flex-row at all breakpoints', () => {
+    const { container } = render(
+      <PageHeader
+        title="X"
+        actions={<button>A</button>}
+        collapseActionsOnMobile={false}
+      />,
+    );
+    const inner = container.querySelector(
+      '[data-section="page-header"] > div',
+    ) as HTMLElement;
+    expect(inner.className).not.toContain('flex-col');
+  });
+
+  it('collapseActionsOnMobile only kicks in when actions are present', () => {
+    const { container } = render(<PageHeader title="X" />);
+    const inner = container.querySelector(
+      '[data-section="page-header"] > div',
+    ) as HTMLElement;
+    expect(inner.className).not.toContain('flex-col');
+  });
+
+  it('actions row gets responsive classes when collapse is enabled', () => {
+    render(
+      <PageHeader title="X" actions={<button>A</button>} />,
+    );
+    const actions = screen.getByTestId('page-header-actions');
+    expect(actions.className).toContain('w-full');
+    expect(actions.className).toContain('md:w-auto');
+    expect(actions.className).toContain('md:shrink-0');
+  });
+
+  it('actions row stays shrink-0 when collapse is disabled', () => {
+    render(
+      <PageHeader
+        title="X"
+        actions={<button>A</button>}
+        collapseActionsOnMobile={false}
+      />,
+    );
+    const actions = screen.getByTestId('page-header-actions');
+    expect(actions.className).toContain('shrink-0');
+    expect(actions.className).not.toContain('md:w-auto');
+  });
+
+  it('size="sm" applies compact title + subtitle classes', () => {
+    render(
+      <PageHeader title="X" subtitle="Y" size="sm" />,
+    );
+    const title = screen.getByRole('heading', { level: 1 });
+    expect(title.className).toContain('text-base');
+    expect(title.className).toContain('md:text-lg');
+    const subtitle = screen.getByText('Y');
+    expect(subtitle.className).toContain('text-[11px]');
+  });
+
+  it('size="md" applies legacy title + subtitle classes (default)', () => {
+    render(
+      <PageHeader title="X" subtitle="Y" />,
+    );
+    const title = screen.getByRole('heading', { level: 1 });
+    expect(title.className).toContain('text-lg');
+    expect(title.className).toContain('md:text-xl');
+    const subtitle = screen.getByText('Y');
+    expect(subtitle.className).toContain('text-xs');
+  });
+
+  it('size="lg" applies hero title + subtitle classes', () => {
+    render(
+      <PageHeader title="X" subtitle="Y" size="lg" />,
+    );
+    const title = screen.getByRole('heading', { level: 1 });
+    expect(title.className).toContain('text-xl');
+    expect(title.className).toContain('md:text-2xl');
+    const subtitle = screen.getByText('Y');
+    expect(subtitle.className).toContain('text-sm');
+  });
+
+  it('data-size mirrors the size prop', () => {
+    const { container, rerender } = render(
+      <PageHeader title="X" />,
+    );
+    expect(
+      (container.firstChild as HTMLElement).getAttribute('data-size'),
+    ).toBe('md');
+    rerender(<PageHeader title="X" size="lg" />);
+    expect(
+      (container.firstChild as HTMLElement).getAttribute('data-size'),
+    ).toBe('lg');
+  });
+
+  it('exposes data-section on title + subtitle + lead + text', () => {
+    const { container } = render(
+      <PageHeader title="X" subtitle="Y" />,
+    );
+    expect(
+      container.querySelector('[data-section="page-header-title"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-section="page-header-subtitle"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-section="page-header-lead"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-section="page-header-text"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('actions block carries data-section="page-header-actions"', () => {
+    const { container } = render(
+      <PageHeader title="X" actions={<button>A</button>} />,
+    );
+    expect(
+      container.querySelector('[data-section="page-header-actions"]'),
+    ).toBeInTheDocument();
+  });
 });
