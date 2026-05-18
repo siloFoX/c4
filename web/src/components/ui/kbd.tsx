@@ -19,7 +19,20 @@ import { cn } from '../../lib/cn';
 // Reference: /root/c4/arps-design-system-v1/ "keyboard chip" pattern.
 
 const KBD_BASE =
-  'inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono';
+  'inline-flex items-center rounded border bg-muted text-muted-foreground font-mono';
+
+// (v1.11.396, TODO 11.378) Size scale. Default `md` matches
+// the legacy 11.250 layout byte-for-byte (`px-1.5 text-xs`).
+// `sm` is a denser inline chip for menu rows / command
+// palette suggestions; `lg` is a hero-strip chip for
+// shortcut-overlay pages.
+export type KbdSize = 'sm' | 'md' | 'lg';
+
+const SIZE_CLASS: Record<KbdSize, string> = {
+  sm: 'px-1 text-[10px]',
+  md: 'px-1.5 text-xs',
+  lg: 'px-2 py-0.5 text-sm',
+};
 
 export type KbdPlatform = 'mac' | 'other';
 
@@ -100,6 +113,9 @@ export interface KbdProps
   separator?: ReactNode;
   // Test / story override. Defaults to `detectPlatform()`.
   platform?: KbdPlatform;
+  // (v1.11.396, TODO 11.378) Size scale. Default `md` keeps
+  // legacy byte-identical render.
+  size?: KbdSize;
   className?: string;
 }
 
@@ -109,10 +125,12 @@ export function Kbd({
   combo,
   separator,
   platform,
+  size = 'md',
   className,
   ...rest
 }: KbdProps) {
   const resolvedPlatform = platform ?? detectPlatform();
+  const sizeClass = SIZE_CLASS[size];
   // (v1.11.268) Mac uses no separator between glyphs (system menus
   // render the modifiers tightly). Non-mac defaults to a thin "+"
   // separator. Callers can override with the `separator` prop.
@@ -132,7 +150,12 @@ export function Kbd({
         : null;
   if (tokens && tokens.length > 0) {
     return (
-      <span data-kbd data-platform={resolvedPlatform} {...rest}>
+      <span
+        data-kbd
+        data-platform={resolvedPlatform}
+        data-size={size}
+        {...rest}
+      >
         {tokens.map((key, i) => (
           <Fragment key={`${key}-${i}`}>
             {i > 0 && resolvedSeparator !== '' ? (
@@ -140,14 +163,24 @@ export function Kbd({
                 {resolvedSeparator}
               </span>
             ) : null}
-            <kbd className={cn(KBD_BASE, className)}>{key}</kbd>
+            <kbd
+              data-size={size}
+              className={cn(KBD_BASE, sizeClass, className)}
+            >
+              {key}
+            </kbd>
           </Fragment>
         ))}
       </span>
     );
   }
   return (
-    <kbd data-kbd className={cn(KBD_BASE, className)} {...rest}>
+    <kbd
+      data-kbd
+      data-size={size}
+      className={cn(KBD_BASE, sizeClass, className)}
+      {...rest}
+    >
       {children}
     </kbd>
   );

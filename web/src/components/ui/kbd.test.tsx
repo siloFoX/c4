@@ -214,4 +214,63 @@ describe('<Kbd>', () => {
     expect(kbds[0]!.textContent).toBe('⌘');
     expect(kbds[1]!.textContent).toBe('P');
   });
+
+  // -- v1.11.396 size scale (TODO 11.378) -------------------------
+
+  it('default size="md" applies the legacy px-1.5 text-xs classes', () => {
+    const { container } = render(<Kbd>K</Kbd>);
+    const kbd = container.querySelector('kbd') as HTMLElement;
+    expect(kbd.className).toContain('px-1.5');
+    expect(kbd.className).toContain('text-xs');
+    expect(kbd.getAttribute('data-size')).toBe('md');
+  });
+
+  it('size="sm" applies the dense px-1 text-[10px] classes', () => {
+    const { container } = render(<Kbd size="sm">K</Kbd>);
+    const kbd = container.querySelector('kbd') as HTMLElement;
+    expect(kbd.className).toContain('px-1');
+    expect(kbd.className).toContain('text-[10px]');
+    expect(kbd.getAttribute('data-size')).toBe('sm');
+  });
+
+  it('size="lg" applies the hero-strip px-2 py-0.5 text-sm classes', () => {
+    const { container } = render(<Kbd size="lg">K</Kbd>);
+    const kbd = container.querySelector('kbd') as HTMLElement;
+    expect(kbd.className).toContain('px-2');
+    expect(kbd.className).toContain('py-0.5');
+    expect(kbd.className).toContain('text-sm');
+    expect(kbd.getAttribute('data-size')).toBe('lg');
+  });
+
+  it('size applies to every kbd token inside a combo', () => {
+    const { container } = render(
+      <Kbd combo="Mod+K" platform="other" size="sm" />,
+    );
+    const kbds = container.querySelectorAll('kbd');
+    expect(kbds.length).toBe(2);
+    kbds.forEach((k) => {
+      expect((k as HTMLElement).getAttribute('data-size')).toBe('sm');
+      expect(k.className).toContain('px-1');
+      expect(k.className).toContain('text-[10px]');
+    });
+  });
+
+  it('size data-size attr mirrors on the outer wrapper for combos', () => {
+    const { container } = render(
+      <Kbd combo="Ctrl+S" platform="other" size="lg" />,
+    );
+    const wrapper = container.querySelector('[data-kbd]') as HTMLElement;
+    expect(wrapper.getAttribute('data-size')).toBe('lg');
+  });
+
+  it('size composes with custom className without losing the size class', () => {
+    const { container } = render(
+      <Kbd size="lg" className="ring-1">
+        K
+      </Kbd>,
+    );
+    const kbd = container.querySelector('kbd') as HTMLElement;
+    expect(kbd.className).toContain('ring-1');
+    expect(kbd.className).toContain('text-sm');
+  });
 });

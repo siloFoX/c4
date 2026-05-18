@@ -4,6 +4,80 @@
 
 (no entries -- next release window)
 
+## [1.11.396] - 2026-05-18 -- UI: kbd primitive (TODO 11.378)
+
+`<Kbd>` (11.250 / v1.11.268) already shipped
+the dispatched core: Cmd / Ctrl / Shift /
+Alt mac glyph mapping (⌘ / ⌃ / ⇧ / ⌥),
+platform-aware `Mod` alias (⌘ on mac /
+Ctrl elsewhere), `combo="Cmd+K"` parsing,
+`keys=[]` array form, literal children
+form, custom separator. This patch closes
+the remaining dispatched bullet -- **size
+variants** -- so dense menu rows /
+shortcut-overlay surfaces fit the right
+density.
+
+### Size scale
+
+| size | padding | text | use case |
+| --- | --- | --- | --- |
+| `sm` | `px-1` | `text-[10px]` | dense menu rows, command palette suggestions |
+| `md` (default) | `px-1.5` | `text-xs` | legacy byte-identical |
+| `lg` | `px-2 py-0.5` | `text-sm` | hero shortcut-overlay strip |
+
+Default `md` keeps the legacy 11.250 layout
+byte-for-byte; every existing call site
+stays identical.
+
+The size class applies to:
+- the lone `<kbd>` in the literal-children
+  call shape;
+- every per-token `<kbd>` inside the combo
+  / keys-array call shape (the wrapping
+  `<span>` also carries `data-size` for
+  outer-selector branching).
+
+### Data attributes
+
+`data-size` mirrors the prop on both the
+outer wrapper (for combo / keys-array
+calls) and every `<kbd>` token. Combined
+with the existing `data-platform` mac/other
+flag, downstream tests can branch on size
+and platform without parsing class lists.
+
+### Tests + types
+
+- `kbd.test.tsx`: +6 new cases (33 total).
+  Covers default md = legacy byte-identical,
+  sm dense classes, lg hero classes, size
+  applied to every kbd inside a combo,
+  data-size on the outer wrapper, size
+  composes with caller className without
+  losing the size class.
+- 27 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files.
+
+### Out of scope
+
+- Per-page adoption (`sm` / `lg` rollout).
+  All three sizes are additive; every
+  existing call site stays byte-identical
+  at `md`.
+- A 4th size (`xs`). The 10px text floor
+  in `sm` already hits the readability
+  threshold; below that goes to icon-only
+  modifiers.
+- Themed palette overrides. The legacy
+  `bg-muted text-muted-foreground` palette
+  stays.
+- Per-token size override. Size is
+  applied uniformly across a combo; mixed
+  sizes inside one chip would muddle the
+  shortcut rhythm.
+
 ## [1.11.395] - 2026-05-18 -- UI: timeline primitive (TODO 11.377)
 
 `<Timeline>` (11.149 / v1.11.167) already
