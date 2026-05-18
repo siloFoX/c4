@@ -4,6 +4,114 @@
 
 (no entries -- next release window)
 
+## [1.11.367] - 2026-05-18 -- UI: suspense boundary wrapper (TODO 11.349)
+
+Builds the canonical `<SuspenseWrapper>` primitive
+-- a `Suspense` + `UIErrorBoundary` composite with
+an anti-flash skeleton fallback and a route-aware
+error surface -- so adoption sites can wrap async
+subtrees in one declarative element.
+
+### `web/src/components/ui/suspense-wrapper.tsx`
+
+Public surface:
+
+```tsx
+<SuspenseWrapper
+  name="history detail"          // drives default labels
+  skeletonRows={3}               // default fallback row count
+  fallback={undefined}           // override the default skeleton
+  errorFallback={undefined}      // override the default error UI
+  onError={(err, info) => ...}   // telemetry hook
+  resetKeys={[topView]}          // reset-on-route-change
+  showAfterMs={120}              // anti-flash gate
+  minDisplayMs={300}             // minimum visible duration
+  className="..."                // forwarded to default skeleton
+  data-testid="..."              // forwarded to default skeleton
+>
+  {children}
+</SuspenseWrapper>
+```
+
+Behaviour:
+
+- The default skeleton fallback renders nothing
+  for the first `showAfterMs` (default 120) so
+  fast suspense resolutions never flash a
+  skeleton; after the gate it paints
+  `skeletonRows` of `Skeleton` rows inside a
+  `role="status"` container labelled
+  `"Loading <name>"` (or just `"Loading"` when
+  no name is set).
+- The default error fallback delegates to
+  `UIErrorBoundary` which renders the canonical
+  `ErrorState` with a "Could not load <name>"
+  title and a Retry button wired to the
+  boundary's reset.
+- `resetKeys` flips clear a captured error so a
+  route change recovers without a hard reload.
+- `errorFallback` accepts the same `ReactNode |
+  (error, retry) => ReactNode` shape as
+  UIErrorBoundary.
+- `fallback={null}` disables the Suspense
+  fallback entirely (use when an outer container
+  is already painting a skeleton).
+- `minDisplayMs` is reserved -- present in the
+  surface for forward-compat. The Suspense
+  primitive unmounts the fallback the instant a
+  child resolves; a future patch can plumb a
+  Promise-resolved delay through the gate.
+
+The component is wired into the `components/ui`
+barrel so any adopter can
+`import { SuspenseWrapper } from '../components/ui'`.
+
+### Tests
+
+`web/src/components/ui/suspense-wrapper.test.tsx`
+-- 12 cases:
+
+- Static child render-through (no fallback).
+- Default skeleton appears after the
+  `showAfterMs` gate.
+- Default skeleton aria-label routes through
+  `name`; absent name -> generic "Loading".
+- Custom `fallback` overrides the default
+  skeleton.
+- `skeletonRows` controls the row count.
+- Default error fallback renders the
+  ErrorState "Could not load <name>" title.
+- `onError` fires on a thrown child.
+- Custom `errorFallback` factory yields a
+  custom render.
+- `resetKeys` change clears a captured error.
+- `className` passes through to the default
+  skeleton container.
+- Custom `data-testid` propagates to the
+  default skeleton.
+- `displayName` exposed for debug.
+
+12/12 pass under vitest 4.1.5. TypeScript clean
+for `suspense-wrapper.tsx`.
+
+### Out of scope
+
+- Per-page adoption at History / Snapshots /
+  Audit pages. The primitive ships standalone;
+  the dispatch language "Standardize async
+  boundary pattern across History / Snapshots
+  / Audit views" is best served by a follow-up
+  per-page adoption patch so each migration can
+  pair with the page's own loading-state
+  refactor.
+- Promise-backed `minDisplayMs` enforcement.
+  The gate prevents flash-of-skeleton; a
+  minimum-display ladder would require a
+  Suspense-cache wrapper not yet in scope.
+- Telemetry / fallback presentation in browser
+  visual tests. The unit tests assert behaviour;
+  Playwright coverage is a separate patch.
+
 ## [1.11.366] - 2026-05-18 -- UI: scroll position restoration (TODO 11.348)
 
 Builds `web/src/lib/scroll-restore.ts` -- per-route

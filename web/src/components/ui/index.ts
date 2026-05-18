@@ -93,3 +93,4 @@ export * from './link';
 export * from './virtualized-list';
 export * from './error-boundary';
 export * from './infinite-scroll';
+export * from './suspense-wrapper';
