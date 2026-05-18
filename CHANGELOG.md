@@ -4,6 +4,133 @@
 
 (no entries -- next release window)
 
+## [1.11.362] - 2026-05-18 -- UI: PWA manifest + service worker (TODO 11.344)
+
+Ships an offline-capable Progressive Web App
+foundation: a `manifest.webmanifest` so the
+dashboard can be installed to the home screen /
+taskbar with the ARPS dark canvas as its splash
+theme, plus a custom service worker that caches the
+app shell + static assets and falls back to the
+cached shell when the network is offline.
+
+### New files
+
+- `web/public/manifest.webmanifest` -- W3C manifest
+  declaring `name`, `short_name`, `start_url`,
+  `display: standalone` (with
+  `window-controls-overlay` + `minimal-ui`
+  override fallback), ARPS dark canvas
+  (`#0D1B2A`) for both `theme_color` and
+  `background_color`, two icons (favicon.svg
+  any-purpose, logo.svg maskable), two operator
+  shortcuts (Queue at `/?view=autonomous`, Workers
+  at `/?view=workers`), and
+  `prefer_related_applications: false` so the PWA
+  is the canonical install target.
+
+- `web/src/sw.ts` -- pure-TS service worker. Route
+  classifier (`api` / `navigation` / `static` /
+  `opaque`); network-first for `/api/*` GETs with
+  cache fallback (POST/PUT/DELETE pass through);
+  cache-first with background revalidate for
+  same-origin JS/CSS/SVG/font; network-first +
+  cached-shell fallback for navigation; passthrough
+  for cross-origin. Three versioned caches
+  (`c4-shell-v1`, `c4-runtime-v1`, `c4-api-v1`) so
+  the activate handler prunes stale `c4-*` caches
+  from prior releases. Handlers exported as pure
+  functions so vitest drives them in jsdom against
+  fake `Cache` / `CacheStorage` implementations
+  rather than spinning up a real SW. Bottom of the
+  file wires the runtime listeners only when the
+  global scope quacks like a `ServiceWorkerGlobalScope`
+  (probes for `skipWaiting` + `registration` -- the
+  jsdom test runner does not satisfy this guard so
+  importing the module under test is a no-op).
+
+- `web/src/lib/sw-register.ts` -- registration
+  helper. `registerServiceWorker({ scriptUrl, scope,
+  disabled, onUpdateAvailable, onError })` is
+  idempotent (a second call returns the in-flight
+  promise) and never throws -- a missing
+  `navigator.serviceWorker`, an explicit `disabled`,
+  or a registration rejection each return a typed
+  `{ registered: false, reason: '...' }` so the
+  app boot continues. Pairs with
+  `attachUpdateListener` (fires
+  `onUpdateAvailable` only when a *new* installed
+  worker arrives, not on the first install) and
+  `activateWaitingServiceWorker` (posts
+  `SKIP_WAITING` so the user can take the new
+  version without a hard reload).
+
+### Tests
+
+- `web/src/sw.test.ts` -- 23 cases covering the
+  classifier (api / navigation / static / opaque /
+  custom apiPrefix), `networkFirst`
+  (cache-on-success, fall-back-on-offline,
+  throw-when-cold, POST passthrough, 5xx not
+  cached), `cacheFirst` (cache hit / cold fetch +
+  store), `navigationHandler` (shell fallback +
+  cold-cache throw), `handleFetch` (cross-engine
+  routing), `handleInstall` (shell cache populate),
+  `handleActivate` (prune `c4-*` only, respect
+  custom keep list), and a frozen-shell sanity
+  check.
+
+- `web/src/lib/sw-register.test.ts` -- 10 cases:
+  disabled / unsupported / register-success /
+  idempotency / error-via-onError /
+  onError-throws-suppressed for
+  `registerServiceWorker`; first-install-skip,
+  update-available-fires, updatefound-rebinding,
+  empty-installing-noop for `attachUpdateListener`;
+  posts-SKIP_WAITING / returns-false-when-empty for
+  `activateWaitingServiceWorker`.
+
+- `web/src/lib/manifest.test.ts` -- 9 cases:
+  parses as JSON, required PWA fields present,
+  ARPS dark canvas, any + maskable icons, every
+  icon points at `/`, manifest path in
+  `APP_SHELL`, dev shortcuts present, scope = `/`,
+  `prefer_related_applications=false`.
+
+All 42 (sw) + 10 (sw-register) + 9 (manifest) =
+44 new cases pass under vitest 4.1.5; full suite
+TS clean.
+
+### Wiring
+
+- `web/index.html` adds the manifest `<link>`,
+  `apple-touch-icon`, `apple-mobile-web-app-*`
+  meta tags, and `mobile-web-app-capable` /
+  `application-name` so Chrome / Safari / Edge
+  recognise the install candidate.
+
+### Reference
+
+- ARPS dark canvas `#0D1B2A` chosen so the splash
+  screen matches the `--surface-canvas` token from
+  `/root/c4/arps-design-system-v1/tokens.css` (HSL
+  220 18% 8%, hex equivalent).
+
+### Out of scope
+
+- Vite-side build hook that emits `sw.js` from
+  `src/sw.ts`. The TS source is the source of
+  truth; a follow-up patch will add the build step
+  + register the SW from `main.tsx` after
+  validating offline behaviour end-to-end.
+- Workbox / runtime cache TTL eviction. The
+  cache-first revalidate handles freshness for now;
+  a future patch can add LRU pruning if the cache
+  ever bloats.
+- Background sync for queued `/api/` POSTs while
+  offline. Out of scope for the first install --
+  the SW only buffers reads, never writes.
+
 ## [1.11.361] - 2026-05-18 -- UI: Tailwind preflight audit (TODO 11.343)
 
 Audits Tailwind preflight overrides in

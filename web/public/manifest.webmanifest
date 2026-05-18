@@ -1,0 +1,51 @@
+{
+  "name": "C4 Dashboard",
+  "short_name": "C4",
+  "description": "C4 (Claude Code Code) multi-worker orchestration dashboard.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0D1B2A",
+  "theme_color": "#0D1B2A",
+  "categories": ["developer", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open queue",
+      "short_name": "Queue",
+      "description": "Jump to the autonomous queue editor.",
+      "url": "/?view=autonomous",
+      "icons": [
+        { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+      ]
+    },
+    {
+      "name": "Open workers",
+      "short_name": "Workers",
+      "description": "Open the worker list.",
+      "url": "/?view=workers",
+      "icons": [
+        { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}
