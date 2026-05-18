@@ -4,6 +4,107 @@
 
 (no entries -- next release window)
 
+## [1.11.353] - 2026-05-18 -- UI: Loading skeleton orchestration (TODO 11.335)
+
+Ships a shared `useLoadingSkeleton(loading, opts?)`
+hook that orchestrates two gates around the naive
+`loading ? <Skeleton /> : <Content />` pattern:
+
+- `showAfterMs` (default 120) -- only start showing
+  the skeleton if loading is STILL true after this
+  delay. Sub-120ms responses never flash a skeleton.
+- `minDisplayMs` (default 300) -- once shown, keep
+  showing for at least this many ms even if loading
+  becomes false. Prevents the skeleton from blinking
+  out the moment it appeared.
+
+The two gates together defeat both flash modes
+(flash-of-skeleton on fast responses,
+flash-of-content on slow-then-fast responses).
+
+### Added
+
+- `web/src/lib/use-loading-skeleton.ts` -- the hook
+  + `LOADING_SKELETON_DEFAULT_SHOW_AFTER_MS` /
+  `LOADING_SKELETON_DEFAULT_MIN_DISPLAY_MS`
+  constants. Returns a boolean
+  `showSkeleton` that consumers gate their skeleton
+  rendering on:
+  ```tsx
+  const showSkeleton = useLoadingSkeleton(loading);
+  return showSkeleton ? <Skeleton /> : <Content />;
+  ```
+- `web/src/lib/use-loading-skeleton.test.ts` -- 12
+  unit cases:
+  - returns `false` on the first render;
+  - default delays exposed via constants;
+  - fast responses (<showAfterMs) never show the
+    skeleton;
+  - loading past `showAfterMs` flips the skeleton on;
+  - `minDisplayMs` holds the skeleton visible after
+    loading clears;
+  - hides immediately when loading clears AFTER the
+    min-display window has elapsed;
+  - caller-supplied `showAfterMs` / `minDisplayMs`
+    overrides;
+  - mid-window flip up (loading toggles back during
+    `minDisplay`) cancels the pending hide;
+  - mid-window flip down (loading drops during
+    `showAfter`) cancels the pending show;
+  - consecutive loading cycles each gate
+    independently;
+  - unmount clears pending timers (no
+    setState-after-unmount warning).
+
+### Adoption pattern
+
+The simplest adoption is a direct swap:
+
+```tsx
+// Before:
+return loading ? <Skeleton /> : <Content />;
+
+// After:
+const showSkeleton = useLoadingSkeleton(loading);
+return showSkeleton ? <Skeleton /> : <Content />;
+```
+
+For pages where the skeleton-show condition is a
+compound predicate (e.g.,
+`loading && items.length === 0`), pass the same
+compound to the hook:
+
+```tsx
+const showSkeleton = useLoadingSkeleton(
+  loading && items.length === 0,
+);
+```
+
+### Deferred (adoptions)
+
+The dispatch lists HistoryView, Workers, Sessions,
+Templates as adoption sites. Each adoption is
+straightforward (a single one-line swap), but the
+existing test suites for these pages assert the
+skeleton appears synchronously after `loading=true`
+-- the new hook waits `showAfterMs` (default 120ms)
+before flipping the skeleton on. Adopting requires
+the per-page test to either (a) advance fake timers
+past the gate, or (b) pass `showAfterMs: 0` for the
+adopter that wants the legacy synchronous shape.
+
+The hook is shipped and ready; per-page adoption is
+deferred to follow-up patches so each page's test
+update can be reviewed alongside the swap. The
+`showAfterMs: 0` escape hatch keeps the migration
+optional per-page.
+
+### Tests
+
+- `use-loading-skeleton.test.ts` -- 12/12 pass
+  against vitest 4.1.5 + jsdom 29.1.1 with fake
+  timers.
+
 ## [1.11.352] - 2026-05-18 -- UI: Error boundary primitive (TODO 11.334)
 
 Adds a route-level error boundary primitive (`UIErrorBoundary`)
