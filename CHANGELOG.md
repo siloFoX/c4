@@ -4,6 +4,99 @@
 
 (no entries -- next release window)
 
+## [1.11.335] - 2026-05-18 -- UI: Profiles page redesign (TODO 11.317)
+
+Refactors `web/src/pages/Profiles.tsx` to use the Tabs
+primitive for source grouping, swap the inline
+not-implemented Remove handler for a ConfirmDialog
+flow, and add a per-profile role RadioGroup picker
+inside the expanded panel. Component-scope only, no
+daemon or CLI surface change.
+
+### Added
+
+- Source-grouping Tabs (`all` / `builtin` / `custom`)
+  above the profile list. Each tab label carries a
+  count chip showing how many profiles match the
+  active filter. `all` is default-selected so the
+  first-glance surface stays byte-identical with
+  prior behaviour. Tabs filter the visible rows in
+  addition to the existing fuzzy search filter, so
+  the two compose.
+- ConfirmDialog for the destructive Remove action.
+  Clicking a row's Remove button now opens a
+  scoped confirmation dialog instead of firing the
+  not-implemented toast directly. Cancel closes the
+  dialog without firing the action; Confirm
+  continues to fire the not-implemented toast
+  until the daemon's profile remove endpoint
+  lands. Dialog uses `destructive=true` and
+  `initialFocus="cancel"` so a quick Enter on the
+  newly-opened modal does not accidentally trigger
+  the destructive action.
+- RadioGroup role picker inside the expanded panel
+  (admin / manager / worker). `worker` is the
+  default. Operator-local until the daemon's
+  profile schema accepts a role field; the picker
+  captures the intent inline so the operator does
+  not have to context-switch to the RBAC page.
+- Data attributes for the new surfaces:
+  `data-section="profiles-list"` on the row list,
+  `data-testid="profiles-tabs"` on the tab strip,
+  `data-testid="profiles-remove-<name>"` on each
+  remove button, `data-testid="profiles-role-<name>"`
+  on each role RadioGroup.
+
+### Changed
+
+- `<RadioGroup>` and `<Tabs>`/`<TabsPanel>`/`<ConfirmDialog>`
+  imports added. The page still uses Panel + ListItem
+  for the row body; only the wrappers changed.
+- The Remove button's `onClick` switched from
+  `notImplemented` to `requestDelete(name)`. The
+  daemon-side write goes through the same path
+  once the endpoint lands -- the dialog acts as
+  the destructive gate.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed FormField wrappers and
+  TagInput as required items. Both were already
+  delivered in earlier patches (FormField in
+  v1.11.303, TagInput in v1.11.291) and are
+  preserved here.
+- The role RadioGroup captures the operator's
+  intent locally; threading the value into a
+  daemon write (and reading it back from the
+  profile schema) is a follow-up patch once the
+  schema accepts a role field.
+
+### Tests
+
+- `web/src/pages/Profiles.test.tsx` -- 9 new vitest
+  cases on top of the existing 36 (45 total).
+  - source-grouping Tabs (5): three tabs render,
+    All default shows everything, Built-in filters
+    to source=builtin, Custom filters to non-
+    builtin, count chips on labels match the
+    filtered count.
+  - Remove ConfirmDialog flow (2): clicking Remove
+    opens the destructive dialog; Cancel closes
+    without firing the toast.
+  - Role RadioGroup picker (2): three radios
+    render (admin / manager / worker); worker is
+    the default checked option.
+  - Existing "fires a not-implemented toast on
+    Remove" test updated to click Remove ->
+    confirm dialog button -> assert toast.
+  All 45 green.
+
+### Versions
+
+- 1.11.334 -> 1.11.335 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.335]`.
+
 ## [1.11.334] - 2026-05-18 -- UI: Sessions page polish (TODO 11.316)
 
 New `web/src/pages/Sessions.tsx` feature page with the

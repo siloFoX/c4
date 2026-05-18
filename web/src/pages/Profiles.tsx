@@ -2,9 +2,10 @@ import { useCallback, useMemo, useState } from 'react';
 import { ListChecks, RefreshCw, ShieldCheck } from 'lucide-react';
 import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
 import Toast from '../components/Toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, FileDrop, FormField, HeroCard, ListItem, NumberInput, PageHeader, Panel, SearchBar, TagInput, Tooltip } from '../components/ui';
+import { Badge, Button, CopyButton, EmptyState, ExportButton, FieldGroup, FileDrop, FormField, HeroCard, ListItem, NumberInput, PageHeader, Panel, RadioGroup, SearchBar, Tabs, TabsPanel, TagInput, Tooltip, type TabsItem } from '../components/ui';
 import { EmptyQueueIllustration } from '../components/illustrations';
 import { cn } from '../lib/cn';
 import { fuzzyFilter } from '../lib/fuzzyFilter';
@@ -20,11 +21,21 @@ import { useProfiles } from '../lib/use-profiles';
 // (v1.10.722) Toast slot adopted from lib/use-toast (shared infra).
 // (v1.10.746) Fetch + state machine moved to lib/use-profiles.
 
+type ProfilesTabKey = 'all' | 'builtin' | 'custom';
+
 export default function Profiles() {
   useLocale();
   const { items, loading, error, refresh } = useProfiles();
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<ProfilesTabKey>('all');
+  // (v1.11.335, TODO 11.317) Deletion confirm dialog state.
+  // The daemon's profile remove endpoint doesn't exist yet
+  // (the dispatched action toasts "Not implemented"), but
+  // the ConfirmDialog flow already gives the operator the
+  // confirmation surface they would expect once the endpoint
+  // lands.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
 
   const toggle = useCallback((name: string) => {
@@ -41,8 +52,50 @@ export default function Profiles() {
     [items, filter],
   );
 
+  // (v1.11.335, TODO 11.317) Source-based grouping. Built-in
+  // profiles ship with the daemon (source === 'builtin'),
+  // custom profiles are operator-defined. The Tabs let the
+  // operator focus on one side at a time without typing a
+  // filter.
+  const isBuiltin = (source: string | undefined | null) =>
+    (source ?? '').toLowerCase() === 'builtin';
+
+  const tabFiltered = useMemo(() => {
+    if (activeTab === 'builtin') return filtered.filter((p) => isBuiltin(p.source));
+    if (activeTab === 'custom') return filtered.filter((p) => !isBuiltin(p.source));
+    return filtered;
+  }, [filtered, activeTab]);
+
+  const tabCounts = useMemo(
+    () => ({
+      all: filtered.length,
+      builtin: filtered.filter((p) => isBuiltin(p.source)).length,
+      custom: filtered.filter((p) => !isBuiltin(p.source)).length,
+    }),
+    [filtered],
+  );
+
+  const tabItems: TabsItem[] = [
+    { value: 'all', label: `All (${tabCounts.all})` },
+    { value: 'builtin', label: `Built-in (${tabCounts.builtin})` },
+    { value: 'custom', label: `Custom (${tabCounts.custom})` },
+  ];
+
   const notImplemented = () =>
     showToast(t('profiles.toast.notImplemented'), 'info');
+
+  const requestDelete = useCallback((name: string) => {
+    setPendingDelete(name);
+  }, []);
+  const cancelDelete = useCallback(() => setPendingDelete(null), []);
+  const confirmDelete = useCallback(() => {
+    // Daemon endpoint not implemented yet -- close the dialog
+    // and surface the same "Not implemented" toast the prior
+    // path used. When the endpoint lands, this is where the
+    // DELETE /api/profiles/<name> call goes.
+    setPendingDelete(null);
+    notImplemented();
+  }, []);
 
   return (
     <PageFrame
@@ -129,18 +182,30 @@ export default function Profiles() {
       />
       {error && <ErrorPanel message={error} />}
       {loading && items.length === 0 ? <LoadingSkeleton rows={3} /> : null}
-      {!loading && filtered.length === 0 ? (
-        <EmptyState
-          icon={
-            <span data-testid="profiles-empty-illustration">
-              <EmptyQueueIllustration size={160} />
-            </span>
-          }
-          title={t('profiles.empty')}
-        />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {filtered.map((p) => {
+      {/* (v1.11.335, TODO 11.317) Source-grouping Tabs. Active
+          tab filters the list to its subset; count chips on
+          each tab label give the operator a heads-up on how
+          many profiles live in each bucket. */}
+      <Tabs
+        value={activeTab}
+        onChange={(v) => setActiveTab(v as ProfilesTabKey)}
+        items={tabItems}
+        ariaLabel="Profile groups"
+        data-testid="profiles-tabs"
+      >
+        <TabsPanel value={activeTab} className="mt-3">
+          {!loading && tabFiltered.length === 0 ? (
+            <EmptyState
+              icon={
+                <span data-testid="profiles-empty-illustration">
+                  <EmptyQueueIllustration size={160} />
+                </span>
+              }
+              title={t('profiles.empty')}
+            />
+          ) : (
+            <ul className="flex flex-col gap-2" data-section="profiles-list">
+              {tabFiltered.map((p) => {
             const isOpen = expanded.has(p.name);
             const allow = Array.isArray(p.allow) ? p.allow : [];
             const deny = Array.isArray(p.deny) ? p.deny : [];
@@ -217,7 +282,20 @@ export default function Profiles() {
                       <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
                         {t('profiles.action.edit')}
                       </Button>
-                      <Button type="button" variant="ghost" size="sm" onClick={notImplemented}>
+                      {/* (v1.11.335, TODO 11.317) Remove flow now
+                          opens a ConfirmDialog instead of firing the
+                          notImplemented toast directly. The actual
+                          DELETE wires up once the daemon endpoint
+                          lands; the confirmation surface ships now
+                          so the operator sees the destructive
+                          intent path. */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => requestDelete(p.name)}
+                        data-testid={`profiles-remove-${p.name}`}
+                      >
                         {t('profiles.action.remove')}
                       </Button>
                     </div>
@@ -226,8 +304,30 @@ export default function Profiles() {
               </li>
             );
           })}
-        </ul>
-      )}
+            </ul>
+          )}
+        </TabsPanel>
+      </Tabs>
+
+      {/* (v1.11.335, TODO 11.317) Shared ConfirmDialog for the
+          destructive "Remove profile" action. The dialog is
+          rendered at the page level so the open/closed state
+          is owned by Profiles and not by each row. */}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Remove profile"
+        description={
+          pendingDelete
+            ? `This will remove the "${pendingDelete}" profile and any workers that inherit from it will fall back to the default allow/deny set.`
+            : ''
+        }
+        confirmLabel={t('profiles.action.remove')}
+        cancelLabel={t('common.cancel') || 'Cancel'}
+        destructive
+        initialFocus="cancel"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
 
       <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">
         {toast && (
@@ -256,6 +356,13 @@ export default function Profiles() {
 function ProfileBudgetRow({ name }: { name: string }) {
   const [budget, setBudget] = useState<number | undefined>(undefined);
   const [labels, setLabels] = useState<string[]>([]);
+  // (v1.11.335, TODO 11.317) Per-profile role picker.
+  // Operator-local until the daemon's profile schema accepts a
+  // role field; in the meantime the picker captures the
+  // intent ("which actor inherits this profile?") inline so
+  // the operator does not have to context-switch to the RBAC
+  // page.
+  const [role, setRole] = useState<string>('worker');
   return (
     <div
       className="mt-3 flex flex-col gap-3"
@@ -290,6 +397,29 @@ function ProfileBudgetRow({ name }: { name: string }) {
           placeholder="Add label..."
           data-testid={`profiles-labels-${name}`}
           normalize={(raw) => raw.trim().toLowerCase()}
+        />
+      </FormField>
+      {/* (v1.11.335, TODO 11.317) RadioGroup picker for the
+          actor role that inherits this profile. Three options
+          map to the canonical c4 roles (admin / manager /
+          worker). The picker is operator-local until the
+          daemon's profile schema accepts a role field. */}
+      <FormField
+        label="Inherits to role"
+        helperText="Which role inherits the profile's allow/deny set."
+      >
+        <RadioGroup
+          name={`profiles-role-${name}`}
+          value={role}
+          onChange={setRole}
+          ariaLabel={`Inheriting role for profile ${name}`}
+          data-testid={`profiles-role-${name}`}
+          orientation="horizontal"
+          items={[
+            { value: 'admin', label: 'Admin' },
+            { value: 'manager', label: 'Manager' },
+            { value: 'worker', label: 'Worker' },
+          ]}
         />
       </FormField>
     </div>
