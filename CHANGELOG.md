@@ -4,6 +4,121 @@
 
 (no entries -- next release window)
 
+## [1.11.390] - 2026-05-18 -- UI: switch + toggle primitives (TODO 11.372)
+
+Closes the dispatched pair:
+
+- `<Switch>` (11.287 / v1.11.305) already
+  shipped the full contract: `role="switch"`
+  + `aria-checked`, on/off states (`checked`
+  prop), motion-safe thumb transform with
+  reduced-motion fallback, size variants
+  (`sm` / `md`), inline label slot. **No
+  changes**.
+- New `<Toggle>` primitive
+  (`web/src/components/ui/toggle.tsx`): a
+  button that carries pressed state via
+  WAI-ARIA's `aria-pressed`. Pairs with
+  Switch -- Switch for "this setting is
+  on/off"; Toggle for "this format/mode
+  applies to the next action" (text-editor
+  bold, view-mode chip, filter pin).
+
+### Toggle API
+
+```tsx
+import { Toggle } from './components/ui/toggle';
+
+// Controlled
+<Toggle pressed={isBold} onPressedChange={setIsBold} aria-label="Bold">
+  B
+</Toggle>
+
+// Uncontrolled
+<Toggle defaultPressed aria-label="Italic">I</Toggle>
+
+// Icon + label
+<Toggle
+  icon={<BoldIcon />}
+  aria-label="Bold"
+  variant="outline"
+  size="lg"
+>
+  Bold
+</Toggle>
+```
+
+### Props
+
+| prop | type | default | notes |
+| --- | --- | --- | --- |
+| `pressed` | `boolean?` | undefined | controlled state |
+| `defaultPressed` | `boolean?` | `false` | uncontrolled seed (ignored when `pressed` is set) |
+| `onPressedChange` | `(next: boolean) => void` | undefined | fires after every commit |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | h-7/9/11 px-2/3/4 text-xs/sm/base |
+| `variant` | `'default' \| 'outline'` | `'default'` | pressed bg vs pressed border |
+| `icon` | `ReactNode?` | undefined | leading slot, aria-hidden |
+| `children` | `ReactNode?` | undefined | label slot |
+| `disabled` | `boolean?` | false | click + keyboard no-op |
+| `type` | `'button' \| 'submit' \| 'reset'` | `'button'` | inherited from `<button>` |
+
+`onPressedChange` and the caller's `onClick`
+both fire on click; `onPressedChange`
+commits first, then `onClick` runs.
+Native `<button>` Space/Enter synthesis
+flips the pressed state without extra
+keyboard handling.
+
+### Data attributes
+
+`data-section="toggle"`, `data-pressed`,
+`data-size`, `data-variant`,
+`data-section="toggle-icon"`,
+`data-section="toggle-label"`.
+
+### Tests + types
+
+- `toggle.test.tsx`: 28 cases. Covers
+  role + aria-pressed, controlled +
+  uncontrolled, defaultPressed seeding,
+  mixed `pressed` wins, Space/Enter
+  toggles, disabled no-op, all three
+  sizes, both variants (pressed +
+  unpressed states), icon + label slots
+  + their aria-hidden, omitting either
+  slot, className forwarding, arbitrary
+  HTML attributes, `data-pressed` mirror,
+  default `type="button"` does not
+  submit a form, override to
+  `type="submit"`, stable displayName,
+  caller `onClick` runs after
+  `onPressedChange`, disabled +
+  outline composition.
+- `switch.test.tsx`: unchanged.
+- 51/51 pass across toggle + switch
+  tests.
+- `npx tsc --noEmit` clean for touched
+  files.
+- Exported via `components/ui/index.ts`
+  barrel.
+
+### Out of scope
+
+- ToggleGroup. The single Toggle is the
+  baseline; a `ToggleGroup` for
+  radio-or-checkbox-style rows belongs
+  in a follow-on patch (need to settle
+  the single-vs-multi mode API
+  alongside MultiSelect).
+- Toolbar integration. `<Toolbar>`
+  (existing) can host `<Toggle>` rows
+  directly; no rewiring shipped.
+- Animated pressed transition (e.g.,
+  scale-on-press). The pressed state is
+  visual-only via the variant palette;
+  motion can be added on a future
+  per-surface tuning patch.
+
 ## [1.11.389] - 2026-05-18 -- UI: combobox primitive (TODO 11.371)
 
 `<Combobox>` (11.275 / v1.11.293) already
