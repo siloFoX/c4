@@ -42,6 +42,30 @@ export interface ComboboxOption<V extends string = string> {
   disabled?: boolean;
 }
 
+// (v1.11.389, TODO 11.371) Adapter from `<Select>`'s
+// `SelectOption` shape to `ComboboxOption` so the two
+// primitives can share an options array. SelectOption has
+// `{ value, label, disabled? }` where label is a string;
+// ComboboxOption has the same plus an optional `hint`
+// ReactNode. The adapter just widens the label type and
+// passes the rest through.
+export function selectOptionsToComboboxOptions<V extends string = string>(
+  options: ReadonlyArray<{
+    value: V;
+    label: string;
+    disabled?: boolean;
+  }>,
+): ComboboxOption<V>[] {
+  return options.map((o) => {
+    const out: ComboboxOption<V> = {
+      value: o.value,
+      label: o.label,
+    };
+    if (o.disabled !== undefined) out.disabled = o.disabled;
+    return out;
+  });
+}
+
 export type ComboboxSize = 'sm' | 'md';
 
 export interface ComboboxProps<V extends string = string> {
@@ -55,9 +79,19 @@ export interface ComboboxProps<V extends string = string> {
   // type a new name" flows.
   allowFreeText?: boolean;
   // Fires on every input keystroke. The host page can use this
-  // to drive a remote autocomplete (with its own debounce). The
-  // primitive does NOT debounce on its own.
+  // to drive a remote autocomplete. When `debounceMs > 0` the
+  // primitive debounces internally; otherwise the host owns
+  // the debounce.
   onQueryChange?: (query: string) => void;
+  // (v1.11.389, TODO 11.371) Built-in debounce window for
+  // `onQueryChange`. When > 0, `onQueryChange` only fires
+  // after `debounceMs` ms of no further input. The internal
+  // filter (when no host-side `onQueryChange` is wired) still
+  // recomputes on every keystroke so the dropdown stays
+  // responsive; the debounce only gates the host callback.
+  // Default 0 keeps legacy "fire every keystroke" behaviour
+  // byte-identical.
+  debounceMs?: number;
   // Visual loading state for the dropdown. When true, an
   // "Loading..." row replaces the option list (or appears
   // above it when both `loading` and `options.length > 0`).
@@ -112,6 +146,7 @@ export const Combobox = forwardRef(function Combobox<
     ariaLabel,
     allowFreeText = false,
     onQueryChange,
+    debounceMs = 0,
     loading = false,
     noOptionsContent,
     size = 'md',
@@ -183,10 +218,35 @@ export const Combobox = forwardRef(function Combobox<
     [onChange],
   );
 
+  // (v1.11.389, TODO 11.371) Debounce window for onQueryChange.
+  // The timer ref is initialised to null and cleared on every
+  // new keystroke + on unmount. When debounceMs is 0 (legacy
+  // default), the host callback fires synchronously like before.
+  const queryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (queryDebounceRef.current !== null) {
+        clearTimeout(queryDebounceRef.current);
+        queryDebounceRef.current = null;
+      }
+    };
+  }, []);
+
   const onInputChange = (next: string) => {
     setQuery(next);
     if (!open) setOpen(true);
-    onQueryChange?.(next);
+    if (!onQueryChange) return;
+    if (debounceMs <= 0) {
+      onQueryChange(next);
+      return;
+    }
+    if (queryDebounceRef.current !== null) {
+      clearTimeout(queryDebounceRef.current);
+    }
+    queryDebounceRef.current = setTimeout(() => {
+      queryDebounceRef.current = null;
+      onQueryChange(next);
+    }, debounceMs);
   };
 
   const onInputFocus = () => {
@@ -248,6 +308,28 @@ export const Combobox = forwardRef(function Combobox<
         if (open) {
           e.preventDefault();
           setOpen(false);
+        }
+        break;
+      }
+      case 'Home': {
+        // (v1.11.389, TODO 11.371) Jump to first enabled
+        // option in the visible list.
+        if (!open || filtered.length === 0) break;
+        e.preventDefault();
+        const idx = filtered.findIndex((o) => !o.disabled);
+        if (idx >= 0) setActiveIndex(idx);
+        break;
+      }
+      case 'End': {
+        // (v1.11.389, TODO 11.371) Jump to last enabled
+        // option in the visible list.
+        if (!open || filtered.length === 0) break;
+        e.preventDefault();
+        for (let i = filtered.length - 1; i >= 0; i -= 1) {
+          if (!filtered[i]!.disabled) {
+            setActiveIndex(i);
+            break;
+          }
         }
         break;
       }
