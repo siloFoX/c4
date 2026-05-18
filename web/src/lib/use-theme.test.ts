@@ -168,4 +168,69 @@ describe('useTheme', () => {
     expect(mq.removeEventListener).toHaveBeenCalledTimes(1);
     expect(mq.removeEventListener.mock.calls[0][1]).toBe(registered);
   });
+
+  // (v1.11.371, TODO 11.353) Cross-tab sync.
+
+  function dispatchStorage(
+    key: string,
+    newValue: string | null,
+    oldValue: string | null = null,
+  ): void {
+    window.dispatchEvent(
+      new StorageEvent('storage', { key, newValue, oldValue }),
+    );
+  }
+
+  it('mirrors a theme set by another tab via the storage event', () => {
+    window.localStorage.setItem(THEME_KEY, 'dark');
+    const { result } = renderHook(() => useTheme());
+    expect(result.current.theme).toBe('dark');
+    act(() => {
+      window.localStorage.setItem(THEME_KEY, 'light');
+      dispatchStorage(THEME_KEY, 'light', 'dark');
+    });
+    expect(result.current.theme).toBe('light');
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+
+  it('ignores storage events for unrelated keys', () => {
+    window.localStorage.setItem(THEME_KEY, 'dark');
+    const { result } = renderHook(() => useTheme());
+    act(() => {
+      dispatchStorage('some.other.key', 'whatever');
+    });
+    expect(result.current.theme).toBe('dark');
+  });
+
+  it('ignores storage events carrying an invalid theme value', () => {
+    window.localStorage.setItem(THEME_KEY, 'dark');
+    const { result } = renderHook(() => useTheme());
+    act(() => {
+      dispatchStorage(THEME_KEY, 'neon');
+    });
+    expect(result.current.theme).toBe('dark');
+  });
+
+  it('falls back to the read-from-storage default when newValue is null (localStorage.clear)', () => {
+    window.localStorage.setItem(THEME_KEY, 'light');
+    const { result } = renderHook(() => useTheme());
+    expect(result.current.theme).toBe('light');
+    act(() => {
+      window.localStorage.clear();
+      dispatchStorage(THEME_KEY, null, 'light');
+    });
+    // readTheme returns the default 'dark' when
+    // nothing is stored.
+    expect(result.current.theme).toBe('dark');
+  });
+
+  it('removes the storage listener on unmount', () => {
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+    const { unmount } = renderHook(() => useTheme());
+    unmount();
+    const storageRemovals = removeSpy.mock.calls.filter(
+      (call) => call[0] === 'storage',
+    );
+    expect(storageRemovals.length).toBeGreaterThan(0);
+  });
 });
