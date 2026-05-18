@@ -11,6 +11,7 @@ import {
   FileDrop,
   Input,
   Pagination,
+  SegmentedControl,
   Skeleton,
   TimeAgo,
   Toolbar,
@@ -18,6 +19,8 @@ import {
   UndoToast,
   VisuallyHidden,
 } from '../components/ui';
+import Toast from '../components/Toast';
+import { useToast } from '../lib/use-toast';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
@@ -51,6 +54,22 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// (v1.11.337, TODO 11.319) Age-bucket filter keys for the
+// SegmentedControl. Recent = <=24h, Week = <=7d, Older =
+// everything else. `all` is the no-filter pass-through.
+type SnapshotsAgeFilter = 'all' | 'recent' | 'week' | 'older';
+
+function classifyAge(iso: string | null | undefined): SnapshotsAgeFilter {
+  if (!iso) return 'older';
+  const created = new Date(iso).getTime();
+  if (Number.isNaN(created)) return 'older';
+  const ageMs = Date.now() - created;
+  const day = 24 * 60 * 60 * 1000;
+  if (ageMs <= day) return 'recent';
+  if (ageMs <= 7 * day) return 'week';
+  return 'older';
+}
+
 export default function Snapshots() {
   useLocale();
   const [items, setItems] = useState<SnapshotMeta[] | null>(null);
@@ -63,6 +82,16 @@ export default function Snapshots() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // (v1.11.337, TODO 11.319) Age-bucket filter state. Default
+  // is 'all' so the first-glance surface matches the previous
+  // behaviour.
+  const [ageFilter, setAgeFilter] = useState<SnapshotsAgeFilter>('all');
+  // (v1.11.337, TODO 11.319) Toast feedback for save (take)
+  // and other actions. Delete already uses the UndoToast
+  // (v1.11.262) so the new toast slot covers the success
+  // path of take + the legacy success surfaces that previously
+  // had no UI confirmation.
+  const { toast, showToast, dismissToast } = useToast();
 
   const [takeOpen, setTakeOpen] = useState(false);
   const [takeLabel, setTakeLabel] = useState('');
@@ -101,6 +130,17 @@ export default function Snapshots() {
       try {
         await apiPost('/api/snapshots', { label: takeLabel });
         setTakeOpen(false);
+        // (v1.11.337, TODO 11.319) Success toast on save so
+        // the operator gets explicit confirmation of the
+        // take action. Failure paths still surface through
+        // the AlertBanner (actionError) for higher
+        // visibility.
+        showToast(
+          takeLabel
+            ? `Snapshot "${takeLabel}" saved.`
+            : 'Snapshot saved.',
+          'success',
+        );
         setTakeLabel('');
         await refresh();
       } catch (e) {
@@ -109,7 +149,7 @@ export default function Snapshots() {
         setBusy(false);
       }
     },
-    [takeLabel, refresh],
+    [takeLabel, refresh, showToast],
   );
 
   const handleRestoreConfirm = useCallback(async () => {
@@ -257,6 +297,48 @@ export default function Snapshots() {
       ) : null}
 
       {!loading && !error && items && items.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          {/* (v1.11.337, TODO 11.319) Age-bucket filter
+              SegmentedControl. Counts come from the active
+              items list so the operator sees how many
+              snapshots fall into each bucket before
+              clicking. */}
+          <div
+            className="flex items-center justify-between gap-3"
+            data-section="snapshots-filter-bar"
+          >
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+              Age filter
+            </span>
+            <SegmentedControl
+              size="sm"
+              value={ageFilter}
+              onChange={setAgeFilter}
+              ariaLabel="Filter snapshots by age"
+              data-testid="snapshots-age-filter"
+              options={[
+                { value: 'all', label: `All (${items.length})` },
+                {
+                  value: 'recent',
+                  label: `<=24h (${
+                    items.filter((s) => classifyAge(s.createdAt) === 'recent').length
+                  })`,
+                },
+                {
+                  value: 'week',
+                  label: `<=7d (${
+                    items.filter((s) => classifyAge(s.createdAt) === 'week').length
+                  })`,
+                },
+                {
+                  value: 'older',
+                  label: `Older (${
+                    items.filter((s) => classifyAge(s.createdAt) === 'older').length
+                  })`,
+                },
+              ]}
+            />
+          </div>
         <div className="overflow-x-auto rounded-md border border-border">
           <table
             data-testid="snapshots-table"
@@ -274,12 +356,25 @@ export default function Snapshots() {
             <tbody className="divide-y divide-border">
               {(() => {
                 const PAGE_SIZE = 10;
-                const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+                // (v1.11.337, TODO 11.319) Apply the age
+                // filter before paginating so the row
+                // count + pagination both reflect the
+                // active bucket.
+                const ageFiltered =
+                  ageFilter === 'all'
+                    ? items
+                    : items.filter(
+                        (s) => classifyAge(s.createdAt) === ageFilter,
+                      );
+                const totalPages = Math.max(
+                  1,
+                  Math.ceil(ageFiltered.length / PAGE_SIZE),
+                );
                 // Clamp the current page so a delete that drops
                 // below the current slot does not strand the
                 // table on an empty page.
                 const safePage = Math.min(Math.max(1, page), totalPages);
-                const slice = items.slice(
+                const slice = ageFiltered.slice(
                   (safePage - 1) * PAGE_SIZE,
                   safePage * PAGE_SIZE,
                 );
@@ -395,21 +490,30 @@ export default function Snapshots() {
               the snapshots table. Hidden when the list fits in
               one page. Shows First / Last + Jump-to-page for
               long lists. */}
-          {items.length > 10 ? (
-            <div
-              className="flex justify-center border-t border-border bg-card/40 px-3 py-2"
-              data-testid="snapshots-pagination"
-            >
-              <Pagination
-                page={Math.min(Math.max(1, page), Math.max(1, Math.ceil(items.length / 10)))}
-                totalPages={Math.max(1, Math.ceil(items.length / 10))}
-                onPageChange={setPage}
-                ariaLabel="Snapshots pagination"
-                showFirstLast
-                showJumpToPage
-              />
-            </div>
-          ) : null}
+          {(() => {
+            const ageFiltered =
+              ageFilter === 'all'
+                ? items
+                : items.filter((s) => classifyAge(s.createdAt) === ageFilter);
+            if (ageFiltered.length <= 10) return null;
+            const totalPages = Math.max(1, Math.ceil(ageFiltered.length / 10));
+            return (
+              <div
+                className="flex justify-center border-t border-border bg-card/40 px-3 py-2"
+                data-testid="snapshots-pagination"
+              >
+                <Pagination
+                  page={Math.min(Math.max(1, page), totalPages)}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  ariaLabel="Snapshots pagination"
+                  showFirstLast
+                  showJumpToPage
+                />
+              </div>
+            );
+          })()}
+        </div>
         </div>
       ) : null}
 
@@ -556,6 +660,20 @@ export default function Snapshots() {
           undoLabel="Undo delete"
         />
       ) : null}
+
+      {/* (v1.11.337, TODO 11.319) Success-path toast slot.
+          Delete uses its own UndoToast above; this slot
+          surfaces the take-snapshot success message. */}
+      <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">
+        {toast && (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onDismiss={dismissToast}
+          />
+        )}
+      </div>
     </PageFrame>
   );
 }

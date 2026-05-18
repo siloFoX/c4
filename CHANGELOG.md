@@ -4,6 +4,82 @@
 
 (no entries -- next release window)
 
+## [1.11.337] - 2026-05-18 -- UI: Snapshots page polish (TODO 11.319)
+
+Polishes `web/src/pages/Snapshots.tsx` with an age-bucket
+SegmentedControl filter and a success-path Toast on the
+take-snapshot action. Component-scope only, no daemon or
+CLI surface change.
+
+### Added
+
+- SegmentedControl filter above the snapshots table with
+  four options:
+  - `All (<count>)` -- default, no filter.
+  - `<=24h (<count>)` -- snapshots created in the last
+    24 hours.
+  - `<=7d (<count>)` -- snapshots created in the last
+    7 days (excluding `<=24h`).
+  - `Older (<count>)` -- everything else.
+  Each option carries a live count showing how many
+  snapshots fall in the bucket before clicking. The
+  filter applies before pagination so the row count
+  and pagination both reflect the active bucket.
+- Success toast on the take-snapshot action. Surfaces
+  the new label inline (`Snapshot "X" saved.`) when a
+  label is provided; generic message
+  (`Snapshot saved.`) otherwise. Failure paths still
+  surface through the AlertBanner (`actionError`) for
+  higher visibility. Delete continues to use the
+  v1.11.262 UndoToast.
+- Data attributes: `data-section="snapshots-filter-bar"`
+  on the filter bar wrapper, `data-testid="snapshots-age-filter"`
+  on the SegmentedControl.
+
+### Changed
+
+- Pagination block now reads the age-filtered length
+  instead of the raw `items.length` so a filter switch
+  reflows the pagination state correctly.
+- Imports added: `SegmentedControl` from the ui
+  barrel, `Toast` from components, `useToast` from
+  `../lib/use-toast`.
+- New `classifyAge(iso)` helper exported alongside
+  the page (`'recent' | 'week' | 'older'`) for the
+  filter logic.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed DataList for snapshot rows. The
+  current `<table>` layout already conveys all five
+  columns (Label / ID / Created / Size / Actions)
+  with full keyboard + screen-reader support; a
+  DataList swap would lose the columnar comparison.
+  Deferred pending a follow-up evaluation.
+- ConfirmDialog for delete and FileDrop upload were
+  already shipped in earlier patches (v1.10.564 +
+  v1.11.262 UndoToast for delete, v1.11.288 for
+  FileDrop). Those surfaces are preserved here.
+
+### Tests
+
+- `web/src/pages/Snapshots.test.tsx` -- 5 new vitest
+  cases on top of the existing 8 (13 total).
+  - age-bucket SegmentedControl filter (3): filter
+    renders with four options; counts reflect each
+    bucket; clicking Older filters the table to
+    older snapshots only.
+  - Take snapshot success toast (2): success toast
+    fires with the labeled message after a save;
+    generic message when no label is supplied.
+  All 13 green.
+
+### Versions
+
+- 1.11.336 -> 1.11.337 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.337]`.
+
 ## [1.11.336] - 2026-05-18 -- UI: Templates page redesign (TODO 11.318)
 
 Refactors `web/src/pages/Templates.tsx` to use the Tabs

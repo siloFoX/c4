@@ -183,4 +183,123 @@ describe('<Snapshots>', () => {
       );
     });
   });
+
+  // (v1.11.337, TODO 11.319) Redesign polish coverage.
+
+  describe('age-bucket SegmentedControl filter', () => {
+    it('renders the filter with All / <=24h / <=7d / Older options', async () => {
+      apiGetMock.mockResolvedValueOnce({
+        snapshots: [makeSnap({ id: 'snap-a' })],
+      });
+      render(<Snapshots />);
+      await waitFor(() => {
+        expect(screen.getByTestId('snapshots-age-filter')).toBeInTheDocument();
+      });
+      const filter = screen.getByTestId('snapshots-age-filter');
+      const buttons = filter.querySelectorAll('button, [role="tab"]');
+      // SegmentedControl renders one button per option.
+      expect(buttons.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('counts show how many snapshots fall in each bucket', async () => {
+      const nowIso = new Date().toISOString();
+      const hourIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const weekIso = new Date(
+        Date.now() - 3 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const oldIso = new Date(
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      apiGetMock.mockResolvedValueOnce({
+        snapshots: [
+          makeSnap({ id: 'a', createdAt: nowIso }),
+          makeSnap({ id: 'b', createdAt: hourIso }),
+          makeSnap({ id: 'c', createdAt: weekIso }),
+          makeSnap({ id: 'd', createdAt: oldIso }),
+        ],
+      });
+      render(<Snapshots />);
+      await waitFor(() => {
+        expect(screen.getByTestId('snapshots-age-filter')).toBeInTheDocument();
+      });
+      // Two recent (<=24h), one week (<=7d), one older.
+      expect(screen.getByText(/All \(4\)/)).toBeInTheDocument();
+      expect(screen.getByText(/<=24h \(2\)/)).toBeInTheDocument();
+      expect(screen.getByText(/<=7d \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText(/Older \(1\)/)).toBeInTheDocument();
+    });
+
+    it('clicking Older filters the table to older snapshots only', async () => {
+      const recentIso = new Date().toISOString();
+      const oldIso = new Date(
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      apiGetMock.mockResolvedValueOnce({
+        snapshots: [
+          makeSnap({ id: 'recent-1', createdAt: recentIso, label: 'recent' }),
+          makeSnap({ id: 'old-1', createdAt: oldIso, label: 'old' }),
+        ],
+      });
+      const user = userEvent.setup();
+      render(<Snapshots />);
+      await waitFor(() => {
+        expect(screen.getByTestId('snapshots-age-filter')).toBeInTheDocument();
+      });
+      // Older button -- segmented controls render <button> per option.
+      const olderBtn = screen
+        .getByTestId('snapshots-age-filter')
+        .querySelector('button[aria-label*="older" i], [data-radio-value="older"], [aria-label*="Older" i]')
+        ?? Array.from(
+          screen
+            .getByTestId('snapshots-age-filter')
+            .querySelectorAll('button'),
+        ).find((b) => /Older/i.test(b.textContent ?? ''));
+      expect(olderBtn).toBeTruthy();
+      await user.click(olderBtn as HTMLElement);
+      expect(screen.getByTestId('snapshots-row-old-1')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('snapshots-row-recent-1'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('take snapshot success toast', () => {
+    it('fires a success toast after a successful save', async () => {
+      apiGetMock.mockResolvedValueOnce({ snapshots: [] });
+      apiPostMock.mockResolvedValueOnce({});
+      apiGetMock.mockResolvedValueOnce({
+        snapshots: [makeSnap({ id: 'fresh' })],
+      });
+      const user = userEvent.setup();
+      render(<Snapshots />);
+      await waitFor(() => {
+        expect(screen.getByTestId('snapshots-take-button')).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId('snapshots-take-button'));
+      const labelInput = screen.getByTestId(
+        'snapshots-label-input',
+      ) as HTMLInputElement;
+      await user.type(labelInput, 'baseline-x');
+      await user.click(screen.getByTestId('snapshots-take-confirm'));
+      await waitFor(() => {
+        expect(screen.getByText(/Snapshot "baseline-x" saved/i)).toBeInTheDocument();
+      });
+    });
+
+    it('emits the generic success message when no label is supplied', async () => {
+      apiGetMock.mockResolvedValueOnce({ snapshots: [] });
+      apiPostMock.mockResolvedValueOnce({});
+      apiGetMock.mockResolvedValueOnce({ snapshots: [makeSnap()] });
+      const user = userEvent.setup();
+      render(<Snapshots />);
+      await waitFor(() => {
+        expect(screen.getByTestId('snapshots-take-button')).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId('snapshots-take-button'));
+      await user.click(screen.getByTestId('snapshots-take-confirm'));
+      await waitFor(() => {
+        expect(screen.getByText(/Snapshot saved/i)).toBeInTheDocument();
+      });
+    });
+  });
 });
