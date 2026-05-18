@@ -1,9 +1,11 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useId,
   useRef,
+  useState,
   type ReactNode,
 } from 'react';
 import { cn } from '../../lib/cn';
@@ -46,9 +48,27 @@ export type TabsVariant = 'pill' | 'line';
 //     no horizontal room (e.g., narrow sidebar panels).
 export type TabsOverflow = 'scroll' | 'wrap';
 
+// (v1.11.386, TODO 11.368) Layout orientation.
+//   - 'horizontal' (default): tablist renders as a row;
+//     ArrowLeft / ArrowRight + Home / End drive keyboard nav;
+//     the 'line' variant draws an underline beneath the active
+//     tab.
+//   - 'vertical': tablist renders as a column; ArrowUp /
+//     ArrowDown drive nav; the 'line' variant draws a side
+//     indicator on the left edge of the active tab. Pair with
+//     `overflow="scroll"` for `overflow-y-auto` scrolling.
+export type TabsOrientation = 'horizontal' | 'vertical';
+
 export interface TabsProps {
-  value: string;
-  onChange: (value: string) => void;
+  // (v1.11.386, TODO 11.368) Controlled mode: pass `value` +
+  // `onChange`. Uncontrolled mode: pass `defaultValue`;
+  // `<Tabs>` keeps the active tab in internal state and still
+  // calls `onChange` when the user clicks if provided. Mixing
+  // `value` + `defaultValue` is allowed but `value` wins (the
+  // component runs in controlled mode).
+  value?: string;
+  defaultValue?: string;
+  onChange?: (value: string) => void;
   items: TabsItem[];
   className?: string;
   ariaLabel?: string;
@@ -64,6 +84,8 @@ export interface TabsProps {
   variant?: TabsVariant;
   // (v1.11.299, TODO 11.281)
   overflow?: TabsOverflow;
+  // (v1.11.386, TODO 11.368) Layout orientation.
+  orientation?: TabsOrientation;
   // (v1.11.299, TODO 11.281) Auto-scroll the active tab into
   // view inside its overflow container when `value` changes.
   // Default true. Set to false to opt out (e.g., when the host
@@ -92,10 +114,22 @@ function panelDomId(idBase: string, value: string): string {
 
 const TABLIST_BASE = 'flex shrink-0 text-xs';
 const TABLIST_PILL = 'rounded-md border border-border';
-const TABLIST_LINE = 'border-b border-border';
-const TABLIST_SCROLL =
+// (v1.11.386, TODO 11.368) `line` variant draws the underline
+// on the bottom edge in horizontal mode and on the right edge
+// in vertical mode -- so the border lives on `border-b`
+// (horizontal) or `border-r` (vertical).
+const TABLIST_LINE_HORIZONTAL = 'border-b border-border';
+const TABLIST_LINE_VERTICAL = 'border-r border-border';
+// (v1.11.386, TODO 11.368) Vertical tablists scroll on the Y
+// axis; horizontal ones keep the legacy X scroll.
+const TABLIST_SCROLL_X =
   'overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]';
+const TABLIST_SCROLL_Y =
+  'overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]';
 const TABLIST_WRAP = 'flex-wrap';
+// (v1.11.386, TODO 11.368) Vertical orientation flips the
+// tablist to a column.
+const TABLIST_VERTICAL = 'flex-col';
 
 const TAB_BASE_CLASSES =
   'relative inline-flex items-center gap-1.5 px-2 py-1.5 transition-colors sm:px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
@@ -108,7 +142,8 @@ const TAB_LINE_INACTIVE =
   'text-muted-foreground hover:text-foreground';
 
 export function Tabs({
-  value,
+  value: valueProp,
+  defaultValue,
   onChange,
   items,
   className,
@@ -117,19 +152,41 @@ export function Tabs({
   onPrefetch,
   variant = 'pill',
   overflow = 'scroll',
+  orientation = 'horizontal',
   scrollOnFocus = true,
 }: TabsProps) {
   const idBase = useId();
   const tablistRef = useRef<HTMLDivElement | null>(null);
 
+  // (v1.11.386, TODO 11.368) Controlled vs uncontrolled
+  // resolution. When `value` is undefined, we keep the active
+  // tab in internal state seeded from `defaultValue` (or the
+  // first item's value as a final fallback so the panel always
+  // has something to render). When `value` is defined, the
+  // component runs in controlled mode and the parent owns the
+  // state.
+  const isControlled = valueProp !== undefined;
+  const [internalValue, setInternalValue] = useState<string>(
+    defaultValue ?? items[0]?.value ?? '',
+  );
+  const value = isControlled ? (valueProp as string) : internalValue;
+
+  const handleChange = useCallback(
+    (next: string) => {
+      if (!isControlled) setInternalValue(next);
+      onChange?.(next);
+    },
+    [isControlled, onChange],
+  );
+
   const { handleKeyDown } = useFocusCycle({
     containerRef: tablistRef,
     itemSelector: '[role=tab]:not([disabled])',
-    orientation: 'horizontal',
+    orientation,
     wrap: true,
     onSelect: (el) => {
-      const value = el.getAttribute('data-tab-value');
-      if (value) onChange(value);
+      const next = el.getAttribute('data-tab-value');
+      if (next) handleChange(next);
     },
   });
 
@@ -151,10 +208,28 @@ export function Tabs({
     }
   }, [value, scrollOnFocus]);
 
+  // (v1.11.386, TODO 11.368) Resolve tablist class matrix. The
+  // pill variant stays unchanged across orientations; the line
+  // variant flips its border edge to match the active-indicator
+  // edge. Overflow uses the matching axis.
+  const isVertical = orientation === 'vertical';
+  const variantClass =
+    variant === 'pill'
+      ? TABLIST_PILL
+      : isVertical
+        ? TABLIST_LINE_VERTICAL
+        : TABLIST_LINE_HORIZONTAL;
+  const overflowClass =
+    overflow === 'scroll'
+      ? isVertical
+        ? TABLIST_SCROLL_Y
+        : TABLIST_SCROLL_X
+      : TABLIST_WRAP;
   const tablistClass = cn(
     TABLIST_BASE,
-    variant === 'pill' ? TABLIST_PILL : TABLIST_LINE,
-    overflow === 'scroll' ? TABLIST_SCROLL : TABLIST_WRAP,
+    isVertical && TABLIST_VERTICAL,
+    variantClass,
+    overflowClass,
     className,
   );
 
@@ -163,10 +238,12 @@ export function Tabs({
       <div
         role="tablist"
         aria-label={ariaLabel ?? 'Tabs'}
+        aria-orientation={orientation}
         ref={tablistRef}
         data-section="tabs"
         data-variant={variant}
         data-overflow={overflow}
+        data-orientation={orientation}
         className={tablistClass}
       >
         {items.map((item) => {
@@ -191,7 +268,7 @@ export function Tabs({
               disabled={item.disabled}
               onClick={() => {
                 if (item.disabled) return;
-                onChange(item.value);
+                handleChange(item.value);
               }}
               // (v1.11.246, TODO 11.228) Prefetch on user-intent
               // signals. The active tab does not refire because
@@ -217,12 +294,21 @@ export function Tabs({
               {/* (v1.11.299, TODO 11.281) Underline indicator
                   for the 'line' variant. Sits flush with the
                   bottom of the button so it doubles as the
-                  tablist's border-b alignment. */}
+                  tablist's border-b alignment.
+                  (v1.11.386, TODO 11.368) In vertical
+                  orientation, the indicator becomes a side
+                  bar on the right edge, matching the
+                  tablist's `border-r`. */}
               {variant === 'line' && active ? (
                 <span
                   aria-hidden="true"
                   data-section="tab-underline"
-                  className="absolute inset-x-0 -bottom-px h-0.5 bg-primary"
+                  className={cn(
+                    'absolute bg-primary',
+                    isVertical
+                      ? 'inset-y-0 -right-px w-0.5'
+                      : 'inset-x-0 -bottom-px h-0.5',
+                  )}
                 />
               ) : null}
             </button>
