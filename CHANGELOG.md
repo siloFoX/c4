@@ -4,6 +4,267 @@
 
 (no entries -- next release window)
 
+## [1.11.421] - 2026-05-18 -- UI: rich-text editor primitive (TODO 11.403)
+
+New `web/src/components/ui/rich-text-editor.tsx`
+ships `<RichTextEditor>` -- a Slate-
+flavoured contract over native
+contentEditable with a toolbar
+(bold / italic / underline / bullet
+list / numbered list / link), paste
+sanitization, and URL allow-listing.
+The project's zero-new-dep budget is
+preserved -- no Slate / Lexical / TinyMCE
+runtime dependency.
+
+### API
+
+```tsx
+<RichTextEditor
+  value={html}
+  onChange={(next) => setHtml(next)}
+  placeholder="Write a comment..."
+  readOnly={false}
+  showToolbar={true}
+  allowedTags={['b', 'i', 'a', 'p']}
+  onLinkRequest={async () => promptForUrl()}
+  onPaste={(sanitized, raw) =>
+    track('paste', { rawBytes: raw.length })}
+  ariaLabel="Comment body"
+/>
+```
+
+```ts
+interface RichTextEditorProps {
+  value: string;
+  onChange?: (next: string) => void;
+  placeholder?: string;
+  readOnly?: boolean;
+  ariaLabel?: string;
+  className?: string;
+  allowedTags?: string[];
+  allowedAttrs?: Record<string, string[]>;
+  showToolbar?: boolean;
+  onLinkRequest?: () =>
+    Promise<string | null> | string | null;
+  onPaste?: (sanitized: string, raw: string) => void;
+}
+```
+
+### Behaviour
+
+- **Controlled HTML**: `value` is an
+  HTML string; the editor mirrors it
+  into the contentEditable
+  `innerHTML`. On every input event
+  the editor emits the new innerHTML
+  via `onChange`.
+- **Toolbar**: six buttons drive
+  `document.execCommand` -- bold /
+  italic / underline /
+  insertUnorderedList /
+  insertOrderedList / createLink.
+  Disabled when `readOnly` is set.
+- **Link insertion**: the link
+  button calls `onLinkRequest()` if
+  supplied, otherwise falls back to
+  `window.prompt('Link URL')`.
+  Returned URL passes through
+  `safeRichTextHref(url)`; if the
+  URL is unsafe (javascript: / data:
+  / vbscript: / file: / unknown
+  scheme) the operation is a no-op.
+- **Paste sanitization**:
+  `onPaste` intercepts the clipboard,
+  reads `text/html` (falls back to
+  `text/plain`), strips disallowed
+  tags + attributes via
+  `sanitizeHtmlForRichText`, and
+  inserts the cleaned HTML via
+  `execCommand('insertHTML', ...)`.
+  The `onPaste(sanitized, raw)`
+  callback fires for downstream
+  observation / metrics.
+- **Read-only**: `contentEditable`
+  flips to `false`, toolbar buttons
+  disable, paste handler short-
+  circuits.
+- **Placeholder**: rendered through
+  `data-placeholder` attr on the
+  editable; consumers can style with
+  `[data-empty="true"]::before
+  { content: attr(data-placeholder) }`.
+
+### Pure helpers (exported)
+
+```ts
+export function safeRichTextHref(url: string): string | null;
+
+export function sanitizeHtmlForRichText(
+  html: string,
+  options?: {
+    allowedTags?: string[];
+    allowedAttrs?: Record<string, string[]>;
+  },
+): string;
+
+export function extractRichTextLinks(html: string): string[];
+
+export const DEFAULT_RICH_TEXT_ALLOWED_TAGS: string[];
+export const DEFAULT_RICH_TEXT_ALLOWED_ATTRS: Record<string, string[]>;
+export const RICH_TEXT_TOOLBAR_COMMANDS: ReadonlyArray<{
+  command: RichTextCommand;
+  label: string;
+  shortcut?: string;
+}>;
+```
+
+`sanitizeHtmlForRichText` walks the
+parsed DOM:
+
+- Tags NOT in `allowedTags` are
+  inline-stripped (children survive,
+  wrapper removed). `script` /
+  `iframe` / `style` and any other
+  disallowed tag collapse.
+- Attributes NOT in `allowedAttrs[tag]`
+  are dropped. `onclick`, `onload`,
+  arbitrary `style`, etc. evaporate.
+- `<a href="...">` runs through
+  `safeRichTextHref`; rejects ->
+  the href is omitted. Survivors
+  receive a forced
+  `rel="noopener noreferrer"` +
+  `target="_blank"` (defensive
+  defaults for cross-origin links).
+
+### ARIA + data attributes
+
+Root (wrapper):
+
+- `data-section="rich-text-editor"`
+- `data-read-only` ('true'/'false')
+- `data-empty` ('true'/'false')
+
+Toolbar:
+
+- `role="toolbar"` +
+  `aria-label="Formatting"`
+- `data-section="rich-text-editor-toolbar"`
+- Per button:
+  `data-section="rich-text-editor-toolbar-button"`
+  + `data-command`
+
+Content:
+
+- `role="textbox"` + `aria-label` +
+  `aria-multiline="true"` +
+  `aria-readonly` (when readOnly)
+- `data-section="rich-text-editor-content"`
+- `data-placeholder`
+
+### Tests
+
+46 cases in `rich-text-editor.test.tsx`:
+
+- `safeRichTextHref` (6): empty,
+  http/https, mailto/tel,
+  javascript/data/vbscript/file
+  blocked, relative + fragment,
+  unknown scheme blocked.
+- `sanitizeHtmlForRichText` (8):
+  empty, allowed pass-through,
+  disallowed strip with content
+  surviving, iframe dropped,
+  attribute strip, javascript:
+  href dropped, forced rel +
+  target on cross-origin, custom
+  allowedTags override.
+- `extractRichTextLinks` (3):
+  empty, href extraction, no href
+  ignored.
+- `RICH_TEXT_TOOLBAR_COMMANDS` (1):
+  canonical order.
+- Component (28): textbox aria-
+  label default + custom, toolbar
+  by default, showToolbar=false
+  hides, 6 toolbar buttons,
+  controlled value renders,
+  rerender updates innerHTML,
+  input fires onChange, bold +
+  italic + underline + bullet +
+  numbered list + link via
+  execCommand, javascript: link
+  silently dropped, null link
+  no-op, readOnly disables
+  contentEditable + buttons,
+  readOnly skips execCommand,
+  paste sanitizes HTML, paste
+  fires onPaste(sanitized, raw),
+  paste falls back to text/plain,
+  data-placeholder attr, root
+  data-section/data-read-only/
+  data-empty, data-empty flips
+  on value, data-read-only flips
+  on readOnly, displayName, ref
+  forwarding, toolbar data-
+  command per button.
+
+46/46 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<MarkdownRenderer>` (11.400) --
+  read-side counterpart for the
+  same content domain. Pair when
+  you want a write-then-render
+  pattern (rich-text in / markdown
+  out via host conversion).
+- `<DiffEditor>` (11.399) --
+  code-flavoured editor with hunk
+  semantics. RichText covers
+  prose-flavoured input.
+- ThemeCustomizer (11.394) --
+  the editor reads token-based
+  Tailwind classes so it auto-
+  themes.
+
+### Out of scope (deferred)
+
+- True Slate / Lexical /
+  ProseMirror backend. The
+  primitive uses
+  `document.execCommand` (the
+  canonical native API) instead.
+  Migration to a structured
+  document model is a larger
+  follow-on; the surface
+  contract (value as HTML string)
+  is portable.
+- Mention / hashtag autocomplete
+  popovers. The host can layer
+  these over the textbox via the
+  `onChange` stream + selection
+  APIs.
+- Image / file uploads. Pure
+  text + inline formatting only
+  for v1.
+- Tables. Out of scope for v1.
+- Undo / redo stack on top of
+  the native browser undo. Belongs
+  in a follow-on once the document
+  model is structured.
+- Collaborative editing (OT /
+  CRDT). Out of scope.
+- Adoption sweep through existing
+  comment / chat composers.
+  RichTextEditor is the canonical
+  surface for new adopters; the
+  existing ad-hoc textareas
+  continue to ship until a
+  migration dispatch.
+
 ## [1.11.420] - 2026-05-18 -- UI: skeleton-set primitive (TODO 11.402)
 
 New `web/src/components/ui/skeleton-set.tsx`
