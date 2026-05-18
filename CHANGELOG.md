@@ -4,6 +4,98 @@
 
 (no entries -- next release window)
 
+## [1.11.348] - 2026-05-18 -- UI: Animation polish (TODO 11.330)
+
+Audits the UI primitive tree for animation classes that
+bypass the reduced-motion contract, ships a list-stagger
+helper for the canonical motion bundle, and lands a
+CI-runnable scanner that ratchets the violation count.
+The audit found zero unsafe `animate-in/out` uses in
+`web/src/components/ui/*.tsx` -- every primitive that
+animates already wraps the class with `motion-safe:` or
+imports `useReducedMotion` / `useMotionClass` to manage
+the gate manually. The scanner now guards against
+regressions.
+
+### Added
+
+- `web/src/lib/motion.ts` -- stagger primitives:
+  - `MOTION_STAGGER_STEP_MS = 40` (per-item delay in
+    milliseconds).
+  - `MOTION_STAGGER_MAX_MS = 320` (clamp ceiling so a
+    200-row list does not delay the last entrance by
+    8 seconds).
+  - `motionStaggerStyle(index, reducedMotion, step?)`
+    -- stateless picker. Returns
+    `{ animationDelay: '<N>ms' }` for index > 0 and
+    motion-allowed, `{}` for index 0 or
+    reduced-motion.
+  - `useMotionStaggerStyle(index, step?)` --
+    hook-friendly one-liner wired through
+    `useReducedMotion()`.
+- `web/src/lib/motion-audit.ts` -- new regex scanner:
+  - `scanSourceForMotionViolations(file, contents)` /
+    `scanFilesForMotionViolations(files)` /
+    `formatMotionViolations(violations)` public surface.
+  - Flags `animate-in` / `animate-out` usages NOT
+    inside a `motion-safe:` token AND NOT in a file
+    that imports `useReducedMotion` /
+    `useMotionClass` / calls `motionClass(...)`.
+  - Skips `animate-spin` / `animate-pulse` (essential
+    loading motion presets that bypass the
+    reduced-motion gate by design).
+  - Skips block + line comments before regex
+    matching.
+- `web/src/lib/motion-audit.test.ts` -- 14 unit tests
+  + 1 integration ratchet
+  (`MAX_KNOWN_UI_MOTION_VIOLATIONS = 0`). The
+  components/ui tree currently passes the audit with
+  zero violations.
+- `web/src/lib/motion.test.ts` -- 9 new cases covering
+  the stagger helpers (motionStaggerStyle: 6 cases,
+  useMotionStaggerStyle: 3 cases). 31/31 total tests
+  pass.
+
+### Audit results
+
+| layer | files scanned | unsafe animate-in/out |
+| --- | --- | --- |
+| `web/src/components/ui/*.tsx` | 80+ files | 0 |
+
+Existing patterns that the scanner correctly accepts:
+- `motion-safe:animate-in motion-safe:fade-in
+  motion-safe:duration-200` (Panel, Card, Drawer,
+  Toast, etc.).
+- `<button data-reduced-motion={rm ? 'true' :
+  'false'}>` (Switch primitive owns its own
+  transition gate via `useReducedMotion()`).
+- `useMotionClass('fadeIn')` adopters (Dialog,
+  Popover) -- the hook handles the gate.
+
+### Out of scope
+
+- **Migrating every `motion-safe:animate-*` call site
+  to `useMotionClass`.** Both forms are
+  motion-safe; the `motion-safe:` modifier is a
+  CSS-layer gate (browser drops the animation when
+  the OS-level flag is on), while `useMotionClass`
+  is a render-layer gate. Both satisfy the
+  reduced-motion contract. Standardising on one
+  form is a stylistic refactor with no functional
+  payoff; the scanner accepts both.
+- **Per-page stagger adoption.** The new
+  `useMotionStaggerStyle` helper is exported and
+  ready to drop into any list-rendering surface
+  (Queue rows, Notifications timeline, FeatureFlags
+  rows, etc.). The two existing list-stagger
+  patterns currently use ad-hoc inline delays;
+  follow-up patches can swap them to the helper
+  without changing the visual outcome.
+- **CSS transition audit.** Tailwind's `transition-*`
+  utilities honour `prefers-reduced-motion` at the
+  CSS layer automatically (the browser drops the
+  transition). The scanner does NOT flag them.
+
 ## [1.11.347] - 2026-05-18 -- UI: Responsive layout audit (TODO 11.329)
 
 Lands a vitest-runnable responsive smoke harness that
