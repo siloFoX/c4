@@ -1,10 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import PageFrame, { EmptyPanel, ErrorPanel, LoadingSkeleton } from './PageFrame';
+import PageFrame, { EmptyPanel, LoadingSkeleton } from './PageFrame';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
-import { Badge, Button, ColumnPicker, CopyButton, ExportButton, Pagination, Panel, ProgressBar, SegmentedControl, Sparkline, Switch, Table, Tooltip } from '../components/ui';
-import type { TableColumn } from '../components/ui';
+import {
+  Badge,
+  Button,
+  ColumnPicker,
+  CopyButton,
+  DataList,
+  ErrorState,
+  ExportButton,
+  Pagination,
+  Panel,
+  ProgressBar,
+  ScrollArea,
+  SegmentedControl,
+  Sparkline,
+  Switch,
+  Table,
+  Tooltip,
+} from '../components/ui';
+import type { DataListItem, TableColumn } from '../components/ui';
 import { useTokenUsage } from '../lib/use-token-usage';
 import { useTokenUsageBreakdowns, coerceTotal } from '../lib/use-token-usage-breakdowns';
 import { dateRange, formatNumber } from '../lib/format';
@@ -27,12 +44,37 @@ const DAY_OPTIONS = [1, 7, 30, 90] as const;
 type DayOption = (typeof DAY_OPTIONS)[number];
 const DAY_OPTION_VALUES = DAY_OPTIONS.map((d) => String(d)) as `${DayOption}`[];
 
+// (v1.11.341, TODO 11.323) Period selector keys. Extends the
+// numeric DAY_OPTION_VALUES with the synthetic 'all' value
+// which collapses the date filter (passes a 100-year window
+// to dateRange) so the operator can see every recorded day
+// regardless of age.
+const PERIOD_OPTION_VALUES = [...DAY_OPTION_VALUES, 'all'] as const;
+type PeriodOption = (typeof PERIOD_OPTION_VALUES)[number];
+
+// Effective day count for each period. 'all' maps to 36500
+// (~100 years) so dateRange's start cutoff is well before
+// any real recorded day.
+const PERIOD_TO_DAYS: Record<PeriodOption, number> = {
+  '1': 1,
+  '7': 7,
+  '30': 30,
+  '90': 90,
+  all: 36500,
+};
+
 // (v1.10.695) coerceTotal + perWorker / perDay memos
 // moved to lib/use-token-usage-breakdowns.
 
 export default function TokenUsage() {
   useLocale();
-  const [days, setDays] = useState<number>(7);
+  // (v1.11.341, TODO 11.323) Period state now lives in
+  // PeriodOption (string) so the new 'all' choice composes
+  // with the numeric day values without a separate branch.
+  // `days` is derived for the breakdown hook + the
+  // "last N days" description copy.
+  const [period, setPeriod] = useState<PeriodOption>('7');
+  const days = PERIOD_TO_DAYS[period];
   const [perTask, setPerTask] = useState<boolean>(false);
   const [perTaskPage, setPerTaskPage] = useState(1);
   // (v1.10.656) Token-usage + quota fetch moved to hook.
@@ -68,15 +110,18 @@ export default function TokenUsage() {
             showDelay={150}
             hideDelay={80}
           >
-            <SegmentedControl
+            <SegmentedControl<PeriodOption>
               data-testid="token-usage-range"
               ariaLabel={t('tokenUsage.range.label')}
               size="sm"
-              value={String(days) as `${DayOption}`}
-              options={DAY_OPTION_VALUES.map((dv) => {
-                const d = Number(dv) as DayOption;
+              value={period}
+              options={PERIOD_OPTION_VALUES.map((pv) => {
+                if (pv === 'all') {
+                  return { value: pv, label: 'All time' };
+                }
+                const d = Number(pv) as DayOption;
                 return {
-                  value: dv,
+                  value: pv,
                   label:
                     d === 1 ? t('tokenUsage.range.today')
                     : d === 7 ? t('tokenUsage.range.last7')
@@ -85,7 +130,7 @@ export default function TokenUsage() {
                     : tFormat('tokenUsage.range.lastN', { days: d }),
                 };
               })}
-              onChange={(v) => setDays(Number(v) as DayOption)}
+              onChange={(v) => setPeriod(v)}
             />
           </Tooltip>
           <Tooltip label={t('tokenUsage.tooltip.perTask')}>
@@ -123,7 +168,23 @@ export default function TokenUsage() {
         onOpenHelp={openHelpDrawer}
       />
       {loading && !data ? <LoadingSkeleton rows={4} /> : null}
-      {error && <ErrorPanel message={error} />}
+      {error && (
+        /* (v1.11.341, TODO 11.323) ErrorState replaces the
+           plain ErrorPanel banner. Retry button wires to the
+           hook's refresh callback so the operator can recover
+           without flipping to the header. role="alert" from
+           the underlying primitive is preserved so prior
+           `getByRole('alert')` assertions still hold. */
+        <ErrorState
+          title="Could not load /api/token-usage"
+          description="The daemon returned an error. Retry to re-fetch."
+          error={error}
+          onRetry={() => {
+            void refresh();
+          }}
+          data-testid="token-usage-error-state"
+        />
+      )}
       {data && (
         <div className="grid grid-cols-1 gap-3">
           <Panel className="p-3">
@@ -143,6 +204,78 @@ export default function TokenUsage() {
                 </span>
               )}
             </div>
+          </Panel>
+
+          {/* (v1.11.341, TODO 11.323) DataList breakdown of
+              the token totals + derived per-window averages.
+              Sits beside the main Total panel so the operator
+              has a single place to scan the headline numbers
+              instead of mixing total / input / output / avgs
+              across the page. Empty hook breakdowns collapse
+              the avg rows to "-" rather than rendering
+              spurious zeros. */}
+          <Panel
+            className="p-3"
+            data-testid="token-usage-breakdown-panel"
+          >
+            <DataList
+              items={[
+                {
+                  id: 'total',
+                  label: t('tokenUsagePage.total'),
+                  value: formatNumber(data.total),
+                },
+                ...(data.totalInput != null
+                  ? [
+                      {
+                        id: 'input',
+                        label: t('tokenUsagePage.input'),
+                        value: formatNumber(data.totalInput),
+                      } satisfies DataListItem,
+                    ]
+                  : []),
+                ...(data.totalOutput != null
+                  ? [
+                      {
+                        id: 'output',
+                        label: t('tokenUsagePage.output'),
+                        value: formatNumber(data.totalOutput),
+                      } satisfies DataListItem,
+                    ]
+                  : []),
+                {
+                  id: 'avg-per-day',
+                  label: 'Avg / day',
+                  value:
+                    perDay.length > 0
+                      ? formatNumber(
+                          Math.round(
+                            perDay.reduce((a, e) => a + e.total, 0) /
+                              perDay.length,
+                          ),
+                        )
+                      : '-',
+                },
+                {
+                  id: 'avg-per-worker',
+                  label: 'Avg / worker',
+                  value:
+                    perWorker.length > 0
+                      ? formatNumber(
+                          Math.round(
+                            perWorker.reduce((a, e) => a + e.total, 0) /
+                              perWorker.length,
+                          ),
+                        )
+                      : '-',
+                },
+                {
+                  id: 'period',
+                  label: 'Period',
+                  value: period === 'all' ? 'All time' : `Last ${days} day${days === 1 ? '' : 's'}`,
+                },
+              ]}
+            />
           </Panel>
 
           <Panel
@@ -265,7 +398,7 @@ interface PerTaskTableProps {
   onPageChange: (page: number) => void;
 }
 
-const PER_TASK_COLUMN_IDS = ['worker', 'task', 'total', 'input', 'output'] as const;
+const PER_TASK_COLUMN_IDS = ['worker', 'task', 'total', 'input', 'output', 'io'] as const;
 
 // (v1.11.258, TODO 11.240) Pure comparator so the sort logic is
 // testable in isolation and so the page never sorts in place
@@ -381,6 +514,32 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
       sortable: true,
       render: (e) => formatNumber(e.output),
     },
+    {
+      key: 'io',
+      label: 'I/O',
+      align: 'right',
+      // (v1.11.341, TODO 11.323) Per-task Sparkline column.
+      // The per-task payload does not carry a time series, so
+      // the visualization uses the two known data points
+      // [input, output] as a 2-bar mini chart. Quick visual
+      // sense of the I/O split (input-heavy vs output-heavy)
+      // alongside the absolute numbers in the prior columns.
+      render: (e) => {
+        const inp = Number(e.input) || 0;
+        const out = Number(e.output) || 0;
+        if (inp === 0 && out === 0) return '-';
+        return (
+          <Sparkline
+            data={[inp, out]}
+            variant="info"
+            size="sm"
+            width={48}
+            ariaLabel={`Input ${inp} Output ${out}`}
+            data-testid={`token-usage-task-spark-${e.worker ?? e.name ?? 'row'}`}
+          />
+        );
+      },
+    },
   ];
   const visibleSet = new Set(visibleCols);
   const columns = allColumns.filter((c) => visibleSet.has(String(c.key)));
@@ -397,13 +556,22 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
             { id: 'total', label: t('tokenUsagePage.tableHeader.total') },
             { id: 'input', label: t('tokenUsagePage.tableHeader.input') },
             { id: 'output', label: t('tokenUsagePage.tableHeader.output') },
+            { id: 'io', label: 'I/O' },
           ]}
           value={visibleCols}
           onChange={setVisibleCols}
           storageKey="c4:token-usage:columns"
         />
       </div>
-      <div className="max-h-64 overflow-y-auto">
+      {/* (v1.11.341, TODO 11.323) ScrollArea replaces the
+          inline <div max-h-64 overflow-y-auto> wrapper so the
+          per-task table picks up the primitive's consistent
+          scrollbar styling + e2e-friendly data-section. */}
+      <ScrollArea
+        axis="y"
+        data-testid="token-usage-per-task-scrollarea"
+        className="max-h-64"
+      >
         <Table<PerTaskRow>
           columns={columns}
           rows={slice}
@@ -413,7 +581,7 @@ function PerTaskTable({ rows, page, onPageChange }: PerTaskTableProps) {
           className="font-mono"
           ariaLabel={t('tokenUsagePage.perTaskHeading')}
         />
-      </div>
+      </ScrollArea>
       {sortedRows.length > PER_TASK_PAGE_SIZE && (
         <div className="mt-2 flex justify-center">
           {/* (v1.11.282, TODO 11.264) Pagination enhancements:

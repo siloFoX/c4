@@ -4,6 +4,86 @@
 
 (no entries -- next release window)
 
+## [1.11.341] - 2026-05-18 -- UI: TokenUsage page polish (TODO 11.323)
+
+Polishes `web/src/pages/TokenUsage.tsx` with a new
+"All time" period option, a DataList breakdown of the
+headline totals + averages, a per-task Sparkline column,
+a ScrollArea wrapper for the per-task table, and a
+Retry-capable ErrorState. Component-scope only, no
+daemon or CLI surface change.
+
+### Added
+
+- "All time" option on the period SegmentedControl. New
+  `PeriodOption` type (`'1' | '7' | '30' | '90' | 'all'`)
+  and a `PERIOD_TO_DAYS` map (with `all` -> 36500 days,
+  ~100 years) so the date filter collapses to "include
+  every recorded day" without a separate branch.
+- DataList "breakdown" panel directly under the headline
+  Total panel. Rows: `Total`, `Input` (when present),
+  `Output` (when present), `Avg / day`, `Avg / worker`,
+  and `Period` (the active range, e.g. `Last 7 days` or
+  `All time`). Empty per-day / per-worker breakdowns
+  collapse the avg rows to `-`.
+- Per-task Sparkline column ("I/O"). The per-task payload
+  does not carry a time series so the Sparkline plots the
+  two known data points (`[input, output]`) as a 2-bar
+  mini chart. Gives a quick visual sense of the I/O split
+  per task without scanning the absolute numbers in the
+  prior columns.
+- `ScrollArea` wrapper around the per-task table
+  (replaces the inline `<div max-h-64 overflow-y-auto>`)
+  so the surface picks up the primitive's consistent
+  scrollbar styling + e2e-friendly data attributes.
+- Data attributes for e2e:
+  - `data-testid="token-usage-breakdown-panel"` on the
+    DataList breakdown wrapper.
+  - `data-testid="token-usage-error-state"` on the
+    ErrorState wrapper.
+  - `data-testid="token-usage-per-task-scrollarea"` on
+    the ScrollArea wrapper around the per-task table.
+  - `data-testid="token-usage-task-spark-<key>"` on each
+    per-task Sparkline cell.
+
+### Changed
+
+- `ErrorPanel` (from `./PageFrame`) replaced by the
+  canonical `ErrorState` primitive on the error path.
+  Title: `"Could not load /api/token-usage"`. `role="alert"`
+  is preserved by the primitive so the prior
+  `getByRole('alert')` assertions still hold; adds a Retry
+  button wired to the hook's `refresh` callback.
+- `useState<number>(7)` for the day window replaced by
+  `useState<PeriodOption>('7')`. `days` derives from the
+  period via `PERIOD_TO_DAYS[period]` so existing
+  `useTokenUsageBreakdowns({ rangeStart, rangeEnd })`
+  signature is unchanged.
+- ColumnPicker registers the new `io` column so the
+  operator can hide the I/O Sparkline if they prefer the
+  numeric-only view. Default visibility: all six columns.
+- Imports: added `DataList`, `ErrorState`, `ScrollArea`
+  and the `DataListItem` type from the ui barrel; removed
+  the `ErrorPanel` import from `./PageFrame`.
+
+### Tests
+
+- `web/src/pages/TokenUsage.test.tsx` -- existing 30 cases
+  remain (three text-presence cases updated from
+  `getByText` to `getAllByText` because the Total / Input /
+  Output values now appear in both the headline panel AND
+  the breakdown DataList; one dash-placeholder case scoped
+  via `within(scrollArea)` to avoid collision with the
+  DataList's avg rows). Six new cases:
+  - "All time" period tab exists;
+  - clicking the "All time" tab flips its `aria-selected`;
+  - ErrorState shows a Retry button that fires `refresh`;
+  - breakdown DataList renders avg-per-day, avg-per-worker,
+    and Period rows;
+  - per-task table wraps in a ScrollArea;
+  - per-task table includes a Sparkline cell per row.
+- 39/39 cases pass against vitest 4.1.5 + jsdom 29.1.1.
+
 ## [1.11.340] - 2026-05-18 -- UI: Health page polish (TODO 11.322)
 
 Polishes `web/src/pages/Health.tsx` with category-aware

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
 import type {
@@ -253,8 +253,12 @@ describe('<TokenUsage>', () => {
   it('renders the total stat when data is present', () => {
     hookState = { ...hookState, data: makeData({ total: 12345 }) };
     render(<TokenUsage />);
-    expect(screen.getByText('Total')).toBeInTheDocument();
-    expect(screen.getByText('12,345')).toBeInTheDocument();
+    // (v1.11.341, TODO 11.323) Total is now also surfaced in
+    // the breakdown DataList; the headline panel still shows
+    // it as a font-mono span. Use getAllByText to assert that
+    // at least one occurrence is present.
+    expect(screen.getAllByText('Total').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('12,345').length).toBeGreaterThan(0);
   });
 
   it('renders the input total when totalInput is present', () => {
@@ -263,8 +267,9 @@ describe('<TokenUsage>', () => {
       data: makeData({ totalInput: 1234 }),
     };
     render(<TokenUsage />);
-    expect(screen.getByText(/input/)).toBeInTheDocument();
-    expect(screen.getByText(/1,234/)).toBeInTheDocument();
+    // (v1.11.341, TODO 11.323) Same dual-render as above.
+    expect(screen.getAllByText(/input/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1,234/).length).toBeGreaterThan(0);
   });
 
   it('renders the output total when totalOutput is present', () => {
@@ -273,8 +278,8 @@ describe('<TokenUsage>', () => {
       data: makeData({ totalInput: undefined, totalOutput: 567 }),
     };
     render(<TokenUsage />);
-    expect(screen.getByText(/output/)).toBeInTheDocument();
-    expect(screen.getByText(/567/)).toBeInTheDocument();
+    expect(screen.getAllByText(/output/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/567/).length).toBeGreaterThan(0);
   });
 
   it('renders the by-worker panel header with the count', () => {
@@ -387,7 +392,12 @@ describe('<TokenUsage>', () => {
     const user = userEvent.setup();
     render(<TokenUsage />);
     await user.click(screen.getByLabelText('Per-task'));
-    expect(screen.getByText('-')).toBeInTheDocument();
+    // (v1.11.341, TODO 11.323) Dash now also appears in the
+    // breakdown DataList for empty avg-per-day / avg-per-worker.
+    // Scope to the per-task scroll wrapper so the assertion
+    // targets the cell-level dash placeholder.
+    const scrollArea = screen.getByTestId('token-usage-per-task-scrollarea');
+    expect(within(scrollArea).getByText('-')).toBeInTheDocument();
   });
 
   it('does NOT render the tier quota panel when quota is null', () => {
@@ -437,5 +447,105 @@ describe('<TokenUsage>', () => {
       setLocale('ko');
     });
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  // (v1.11.341, TODO 11.323) Period tab strip exposes a new
+  // 'All time' option that maps to a 100-year window so
+  // every recorded day shows up regardless of age.
+  it('exposes an "All time" period tab', () => {
+    render(<TokenUsage />);
+    expect(
+      screen.getByRole('tab', { name: 'All time' }),
+    ).toBeInTheDocument();
+  });
+
+  it('flips the active period to "All time" when its tab is clicked', async () => {
+    const user = userEvent.setup();
+    render(<TokenUsage />);
+    const tab = screen.getByRole('tab', { name: 'All time' });
+    expect(tab.getAttribute('aria-selected')).toBe('false');
+    await user.click(tab);
+    expect(
+      screen.getByRole('tab', { name: 'All time' }).getAttribute('aria-selected'),
+    ).toBe('true');
+  });
+
+  // (v1.11.341, TODO 11.323) Error path renders the
+  // ErrorState primitive with a Retry button that fires the
+  // hook's refresh callback. role=alert is preserved.
+  it('renders the ErrorState with a Retry button on the error path', async () => {
+    hookState = { ...hookState, error: 'boom' };
+    const user = userEvent.setup();
+    render(<TokenUsage />);
+    expect(screen.getByTestId('token-usage-error-state')).toBeInTheDocument();
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    expect(retry).toBeInTheDocument();
+    await user.click(retry);
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+  });
+
+  // (v1.11.341, TODO 11.323) Breakdown DataList shows total
+  // + input + output + per-day / per-worker averages + the
+  // active period label.
+  it('renders the breakdown DataList with avg-per-day, avg-per-worker, and period rows', () => {
+    hookState = { ...hookState, data: makeData({ total: 100 }) };
+    breakdowns = {
+      ...breakdowns,
+      perWorker: [
+        { name: 'a', total: 60 },
+        { name: 'b', total: 40 },
+      ],
+      perDay: [
+        { date: '2026-05-12', total: 70 },
+        { date: '2026-05-11', total: 30 },
+      ],
+      workerMax: 60,
+      dayMax: 70,
+    };
+    render(<TokenUsage />);
+    const panel = screen.getByTestId('token-usage-breakdown-panel');
+    expect(within(panel).getByText('Avg / day')).toBeInTheDocument();
+    expect(within(panel).getByText('Avg / worker')).toBeInTheDocument();
+    expect(within(panel).getByText('Period')).toBeInTheDocument();
+    expect(within(panel).getByText(/Last 7 days/)).toBeInTheDocument();
+  });
+
+  // (v1.11.341, TODO 11.323) Per-task table wraps in
+  // ScrollArea (data-testid="token-usage-per-task-scrollarea").
+  it('wraps the per-task table in a ScrollArea', async () => {
+    hookState = {
+      ...hookState,
+      data: makeData({
+        perTask: [
+          { worker: 'w1', task: 't1', total: 5, input: 2, output: 3 },
+        ],
+      }),
+    };
+    const user = userEvent.setup();
+    render(<TokenUsage />);
+    await user.click(screen.getByLabelText('Per-task'));
+    expect(
+      screen.getByTestId('token-usage-per-task-scrollarea'),
+    ).toBeInTheDocument();
+  });
+
+  // (v1.11.341, TODO 11.323) Per-task table includes an I/O
+  // Sparkline column. The Sparkline renders its own
+  // data-testid per row so the assertion stays cell-scoped.
+  it('renders a Sparkline per per-task row showing the input/output split', async () => {
+    hookState = {
+      ...hookState,
+      data: makeData({
+        perTask: [
+          { worker: 'w1', task: 't1', total: 5, input: 2, output: 3 },
+        ],
+      }),
+    };
+    const user = userEvent.setup();
+    render(<TokenUsage />);
+    await user.click(screen.getByLabelText('Per-task'));
+    expect(
+      screen.getByTestId('token-usage-task-spark-w1'),
+    ).toBeInTheDocument();
   });
 });
