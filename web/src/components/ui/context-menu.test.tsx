@@ -184,4 +184,310 @@ describe('<ContextMenu>', () => {
     expect(ref.current).toBeInstanceOf(HTMLButtonElement);
     expect(ref.current?.textContent).toBe('Target');
   });
+
+  // -- v1.11.404 sections + sub-menus + Home/End (TODO 11.386) ---
+
+  it('renders a section heading row when sectionHeading=true', () => {
+    const items: ContextMenuItem[] = [
+      { id: 'h-edit', label: 'Edit', sectionHeading: true },
+      { id: 'cut', label: 'Cut' },
+      { id: 'copy', label: 'Copy' },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    expect(
+      document.querySelector('[data-section="context-menu-section-heading"]'),
+    ).toHaveTextContent('Edit');
+  });
+
+  it('section heading is not selectable via keyboard nav', () => {
+    const items: ContextMenuItem[] = [
+      { id: 'h-edit', label: 'Edit', sectionHeading: true },
+      { id: 'cut', label: 'Cut' },
+    ];
+    const { container: _c } = render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    // Highlight starts on first SELECTABLE (skips heading).
+    // ArrowDown wraps -> should also skip heading.
+    const items_buttons = document.querySelectorAll('[role="menuitem"]');
+    // Section heading does NOT render a menuitem button.
+    expect(items_buttons.length).toBe(1);
+  });
+
+  it('Home jumps to first selectable item', () => {
+    const items: ContextMenuItem[] = [
+      { id: 'h', label: 'H', sectionHeading: true },
+      { id: 'a', label: 'A' },
+      { id: 'b', label: 'B' },
+      { id: 'c', label: 'C' },
+    ];
+    const onSelectA = vi.fn();
+    items[1]!.onSelect = onSelectA;
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'ArrowDown' });
+    fireEvent.keyDown(document, { key: 'ArrowDown' });
+    fireEvent.keyDown(document, { key: 'Home' });
+    fireEvent.keyDown(document, { key: 'Enter' });
+    expect(onSelectA).toHaveBeenCalled();
+  });
+
+  it('End jumps to last selectable item', () => {
+    const onSelectC = vi.fn();
+    const items: ContextMenuItem[] = [
+      { id: 'a', label: 'A' },
+      { id: 'b', label: 'B' },
+      { id: 'c', label: 'C', onSelect: onSelectC },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'End' });
+    fireEvent.keyDown(document, { key: 'Enter' });
+    expect(onSelectC).toHaveBeenCalled();
+  });
+
+  it('parent item with `items` renders a trailing chevron', () => {
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        items: [
+          { id: 'a', label: 'A' },
+        ],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    expect(
+      document.querySelector('[data-section="context-menu-submenu-chevron"]'),
+    ).not.toBeNull();
+  });
+
+  it('parent item exposes aria-haspopup="menu" + aria-expanded', () => {
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        items: [{ id: 'a', label: 'A' }],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    const parentBtn = document.querySelector(
+      '[data-context-menu-item="more"] [role="menuitem"]',
+    ) as HTMLElement;
+    expect(parentBtn.getAttribute('aria-haspopup')).toBe('menu');
+    expect(parentBtn.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('ArrowRight on a parent item opens the sub-menu', () => {
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        items: [
+          { id: 'a', label: 'A' },
+          { id: 'b', label: 'B' },
+        ],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'ArrowRight' });
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).not.toBeNull();
+  });
+
+  it('Enter on a parent item also opens the sub-menu (does not fire onSelect)', () => {
+    const onSelect = vi.fn();
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        onSelect,
+        items: [{ id: 'a', label: 'A' }],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'Enter' });
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).not.toBeNull();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('ArrowLeft closes the sub-menu and returns focus to parent', () => {
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        items: [{ id: 'a', label: 'A' }],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'ArrowRight' });
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).not.toBeNull();
+    fireEvent.keyDown(document, { key: 'ArrowLeft' });
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).toBeNull();
+  });
+
+  it('Enter on a sub-menu item fires onSelect + closes ALL menus', () => {
+    const onSelectInner = vi.fn();
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        items: [
+          { id: 'a', label: 'A', onSelect: onSelectInner },
+        ],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'ArrowRight' });
+    fireEvent.keyDown(document, { key: 'Enter' });
+    expect(onSelectInner).toHaveBeenCalled();
+    expect(
+      document.querySelector('[data-section="context-menu"]'),
+    ).toBeNull();
+  });
+
+  it('hovering a parent item auto-opens its sub-menu', () => {
+    const items: ContextMenuItem[] = [
+      { id: 'first', label: 'First' },
+      {
+        id: 'more',
+        label: 'More',
+        items: [{ id: 'a', label: 'A' }],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    const parentBtn = document.querySelector(
+      '[data-context-menu-item="more"] [role="menuitem"]',
+    ) as HTMLElement;
+    fireEvent.mouseEnter(parentBtn);
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).not.toBeNull();
+  });
+
+  it('hovering a non-parent item closes any active sub-menu', () => {
+    const items: ContextMenuItem[] = [
+      { id: 'first', label: 'First' },
+      {
+        id: 'more',
+        label: 'More',
+        items: [{ id: 'a', label: 'A' }],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    // Open submenu via hover.
+    const parentBtn = document.querySelector(
+      '[data-context-menu-item="more"] [role="menuitem"]',
+    ) as HTMLElement;
+    fireEvent.mouseEnter(parentBtn);
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).not.toBeNull();
+    // Now hover the leaf item -> submenu should close.
+    const leafBtn = document.querySelector(
+      '[data-context-menu-item="first"] [role="menuitem"]',
+    ) as HTMLElement;
+    fireEvent.mouseEnter(leafBtn);
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).toBeNull();
+  });
+
+  it('separator inside sub-menu still renders as role=separator', () => {
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        items: [
+          { id: 'a', label: 'A' },
+          { id: 'sep', label: '', separator: true },
+          { id: 'b', label: 'B' },
+        ],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'ArrowRight' });
+    const sub = document.querySelector(
+      '[data-section="context-menu-submenu"]',
+    ) as HTMLElement;
+    expect(sub.querySelector('[role="separator"]')).not.toBeNull();
+  });
+
+  it('clicking outside both root + sub-menu closes everything', () => {
+    const items: ContextMenuItem[] = [
+      {
+        id: 'more',
+        label: 'More',
+        items: [{ id: 'a', label: 'A' }],
+      },
+    ];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    fireEvent.keyDown(document, { key: 'ArrowRight' });
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).not.toBeNull();
+    fireEvent.mouseDown(document.body);
+    expect(
+      document.querySelector('[data-section="context-menu"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[data-section="context-menu-submenu"]'),
+    ).toBeNull();
+  });
+
+  it('data-section="context-menu" on the root portal panel', () => {
+    const items: ContextMenuItem[] = [{ id: 'a', label: 'A' }];
+    render(
+      <ContextMenu trigger={<button>Target</button>} items={items} />,
+    );
+    openMenu();
+    expect(
+      document.querySelector('[data-section="context-menu"]'),
+    ).not.toBeNull();
+  });
 });

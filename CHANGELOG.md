@@ -4,6 +4,132 @@
 
 (no entries -- next release window)
 
+## [1.11.404] - 2026-05-18 -- UI: context-menu primitive (TODO 11.386)
+
+`<ContextMenu>` already shipped right-click
+trigger, separator items, ArrowUp/Down +
+Enter keyboard navigation, click-outside
+dismiss, Escape via focus-trap, portal
+rendering, danger / icon / disabled flags.
+This patch closes the remaining dispatched
+bullets:
+
+- **Sections** via `sectionHeading?: boolean`
+  flag on items. Renders a non-interactive
+  uppercase label row above the items that
+  follow.
+- **Sub-menu support** via `items?:
+  ContextMenuItem[]` on a parent item. The
+  parent renders with a trailing
+  ChevronRight glyph; ArrowRight or hover
+  opens a nested menu positioned to the
+  right of the parent.
+- **Home / End** keyboard navigation jumps
+  to the first / last selectable item.
+
+### Item shape additions
+
+```ts
+interface ContextMenuItem {
+  // ... existing
+  sectionHeading?: boolean;
+  items?: ContextMenuItem[];
+}
+```
+
+### Sub-menu keyboard contract
+
+When the sub-menu is open, document-level
+keydowns route into the sub-menu's nav:
+
+| key | effect |
+| --- | --- |
+| ArrowDown / ArrowUp | move highlight inside sub-menu |
+| Home / End | jump to first / last enabled |
+| Enter | fire onSelect + close ALL menus |
+| ArrowLeft / Escape | close sub-menu, return focus to parent |
+
+When the parent menu is open (no sub-menu):
+
+| key | effect |
+| --- | --- |
+| ArrowDown / ArrowUp | move parent highlight |
+| Home / End | jump to first / last enabled |
+| ArrowRight | open sub-menu (when highlighted item has children) |
+| Enter | open sub-menu (parent) OR fire onSelect + close (leaf) |
+| Escape | close (via focus-trap) |
+
+### ARIA
+
+- Section heading row: `role="presentation"`
+  (non-interactive).
+- Parent item: `aria-haspopup="menu"` +
+  `aria-expanded="true|false"`.
+- Sub-menu panel: `role="menu"` +
+  `aria-orientation="vertical"` +
+  `aria-label="<parent label>"`.
+
+### Data attributes
+
+- `data-section="context-menu"` on the
+  root portal panel.
+- `data-section="context-menu-submenu"` +
+  `data-parent="<parent-id>"` on the
+  sub-menu panel.
+- `data-section="context-menu-item"` +
+  `data-context-menu-item="<id>"` per
+  rendered item li.
+- `data-section="context-menu-separator"`.
+- `data-section="context-menu-section-heading"`.
+- `data-section="context-menu-submenu-chevron"`
+  on the trailing chevron svg.
+
+### Tests + types
+
+- `context-menu.test.tsx`: +15 new cases
+  (27 total). Covers section heading
+  render, section heading is NOT
+  selectable (not a menuitem), Home /
+  End jumps, parent chevron render,
+  aria-haspopup + aria-expanded, ArrowRight
+  opens sub-menu, Enter on parent opens
+  sub-menu (does NOT fire onSelect),
+  ArrowLeft closes sub-menu, Enter on
+  sub-menu item closes ALL menus,
+  hover-open / hover-close-onto-leaf,
+  separator inside sub-menu,
+  click-outside closes everything,
+  data-section attr on root.
+- 12 legacy cases unchanged in behaviour.
+- `npx tsc --noEmit` clean for touched
+  files (removed an unused
+  `handleItemClick` local that the
+  refactor superseded).
+
+### Out of scope
+
+- Per-page adoption of `sectionHeading`
+  or `items` (sub-menus). Additive;
+  every existing call site stays
+  byte-identical at the legacy item
+  shape.
+- Nested-nested sub-menus (level 3+).
+  Current implementation supports one
+  level of nesting; deeper trees need a
+  recursive panel render with a shared
+  open-path stack.
+- ArrowLeft on the root menu (no
+  parent to return to). The current
+  contract only handles ArrowLeft when
+  a sub-menu is active.
+- Type-ahead (jump to item starting with
+  typed letter). Belongs in a separate
+  patch with its own debounce story.
+- Custom sub-menu positioning. Defaults
+  to right-of-parent at the parent
+  item's top-right corner; auto-flips
+  handled by browser-side overflow.
+
 ## [1.11.403] - 2026-05-18 -- UI: hover-card primitive (TODO 11.385)
 
 New `web/src/components/ui/hover-card.tsx`
