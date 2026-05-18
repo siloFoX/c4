@@ -4,6 +4,114 @@
 
 (no entries -- next release window)
 
+## [1.11.347] - 2026-05-18 -- UI: Responsive layout audit (TODO 11.329)
+
+Lands a vitest-runnable responsive smoke harness that
+sweeps the four canonical breakpoints (375 / 768 /
+1280 / 1920 px) and asserts no inline-style overflow.
+The helper installs a matchMedia mock so responsive
+hooks (`useIsDesktop`, `useEffectiveCollapsed`, etc.)
+flip their state per width, then renders the page at
+each breakpoint and scans the resulting DOM for
+hardcoded pixel widths that exceed the active
+viewport.
+
+Pixel-perfect layout audits stay out of scope -- jsdom
+does NOT compute layout, so geometry-level overflow
+checks (e.g., `scrollWidth > clientWidth`) cannot run
+here. A Playwright-based follow-up can re-evaluate
+real geometry; the smoke helper catches the classes of
+regression that ARE evaluable in jsdom (responsive
+hook didn't fire, hardcoded `style="width:..."` busts
+the viewport).
+
+### Added
+
+- `web/src/test-utils/responsive.ts` -- public surface:
+  - `RESPONSIVE_BREAKPOINTS` constant
+    (`mobile=375`, `tablet=768`, `desktop=1280`,
+    `wide=1920`).
+  - `installResponsiveHarness()` -- swaps in a
+    matchMedia mock that evaluates `(min-width:Npx)`
+    / `(max-width:Npx)` queries against the current
+    width; `setWidth(N)` flips the value, fires every
+    registered MQL change listener, updates
+    `window.innerWidth`, and dispatches a synthetic
+    resize event. `restore()` puts the previous
+    matchMedia + innerWidth descriptor back.
+  - `findInlineOverflow(root, viewportWidth)` --
+    scans the rendered subtree for elements whose
+    inline `width:<Npx>` or `min-width:<Npx>`
+    declaration exceeds the viewport.
+    Utility-class widths (`w-64`, `max-w-md`) are
+    intentionally NOT evaluated because jsdom does
+    not load the Tailwind stylesheet.
+  - `runResponsiveSmoke({ render, breakpoints? })` --
+    iterates over breakpoints, installs the harness,
+    invokes the caller's `render(width, name)`
+    callback at each step, captures
+    `{ width, name, ok, inlineOverflows,
+    errorMessage? }`, and restores the harness
+    afterwards. Render exceptions are captured into
+    `errorMessage` rather than thrown so a single
+    width failure does not poison the rest of the
+    sweep.
+  - `formatResponsiveReports(reports)` -- one-line
+    summary per width, plus inline-overflow rows.
+  - `expectAllResponsiveOk(reports)` -- throws a
+    human-readable Error when any report failed.
+- `web/src/test-utils/responsive.test.ts` -- 21
+  unit tests for the helper.
+- `web/src/pages/UIDemoRoute.responsive.test.tsx` --
+  integration smoke pass over the storybook gallery
+  at all four widths.
+- `web/src/pages/FeatureFlags.responsive.test.tsx` --
+  same smoke pass over the FeatureFlags admin page
+  (a real data-driven surface, no daemon round-trip).
+
+### Adoption pattern
+
+```ts
+const reports = runResponsiveSmoke({
+  render: () => {
+    const { container, unmount } = render(<MyPage />);
+    const snapshot = container.cloneNode(true) as Element;
+    unmount();
+    return snapshot;
+  },
+});
+expectAllResponsiveOk(reports);
+```
+
+The `cloneNode(true) + unmount()` pattern snapshots
+the rendered DOM before the React tree is torn down,
+so the next iteration starts from a clean DOM state.
+
+### Tests
+
+- `responsive.test.ts` -- 21 cases (breakpoint
+  constant, matchMedia min/max evaluation, cached
+  MQL, resize dispatch, innerWidth update, restore,
+  inline-overflow detection, runResponsiveSmoke
+  contract, formatter / expectAll helpers).
+- `UIDemoRoute.responsive.test.tsx` -- 1 case
+  (gallery passes at all 4 widths).
+- `FeatureFlags.responsive.test.tsx` -- 1 case
+  (admin passes at all 4 widths).
+- 23/23 pass against vitest 4.1.5 + jsdom 29.1.1.
+
+### Out of scope
+
+- **Pixel-perfect geometry assertion.** jsdom does
+  not layout content; `getBoundingClientRect()` is a
+  zero rectangle. A Playwright follow-up can sample
+  real geometry against the same four breakpoints.
+- **Per-page responsive smoke for every page.** The
+  helper is ready to drop into any existing page
+  test; UIDemoRoute + FeatureFlags are the first two
+  adopters. Follow-up patches can add per-page
+  responsive smoke incrementally.
+
 ## [1.11.346] - 2026-05-18 -- UI: i18n coverage audit (TODO 11.328)
 
 Lands an i18n hardcoded-copy scanner + CI integration
