@@ -4,6 +4,61 @@
 
 (no entries -- next release window)
 
+## [1.11.325] - 2026-05-18 -- UI: storybook-style demo route (TODO 11.307)
+
+New `web/src/pages/UIDemoRoute.tsx` -- a single `/ui-demo`
+feature page that renders every UI primitive with its main
+variants for visual QA. Behind a new dev-only feature
+flag. Component-scope only, no daemon or CLI surface
+change.
+
+### Added
+
+- `web/src/pages/UIDemoRoute.tsx` -- compact gallery
+  rendering nine primitive sections (Buttons, Badges and
+  Chips, Status, Avatars, Form controls, Feedback,
+  States, Layout helpers, Navigation and misc). Targeted
+  at one-shot screenshot diffs and theme sweeps where
+  the existing DesignSystem.tsx interactive demo is
+  overkill. Sections are non-interactive (no state
+  machines, no async loads) so the page renders
+  predictably for visual comparison.
+- New `uiDemoRoute` feature flag in
+  `web/src/lib/feature-flags.ts` (default `false`). When
+  the flag is off, the page renders a short
+  "enable the flag" message instead of the gallery so
+  the route can be enumerated by the feature registry
+  without exposing the primitives surface to production
+  users.
+- Registered in `web/src/pages/registry.ts` under the
+  `diagnostics` category with the `LayoutGrid` icon.
+  i18n entries added under `feature.uiDemo.label` and
+  `feature.uiDemo.description` (en + ko locales,
+  lockstep preserved).
+- Data-attribute selectors for e2e: `data-section="ui-demo-root"`,
+  `data-section="ui-demo-section"`, `data-section="ui-demo-disabled"`,
+  `data-demo-section="<title>"`, `data-demo-enabled="true"`.
+
+### Tests
+
+- `web/src/pages/UIDemoRoute.test.tsx` -- 5 vitest cases:
+  - Renders the disabled state when the flag is off.
+  - Renders the primitive gallery when the flag is on
+    (root + `data-demo-enabled="true"`).
+  - All 9 documented sections are present in the gallery
+    via `data-demo-section="..."` selectors.
+  - Page title renders regardless of flag state.
+  - Every section in the gallery carries
+    `data-section="ui-demo-section"` (>=9 sections).
+  All 5 green. Existing 9 feature-flags tests also
+  green against the new `uiDemoRoute` key.
+
+### Versions
+
+- 1.11.324 -> 1.11.325 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.325]`.
+
 ## [1.11.324] - 2026-05-18 -- UI: theme tokens validator (TODO 11.306)
 
 New theme-token policy enforcer at

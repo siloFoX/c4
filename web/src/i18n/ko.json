@@ -1132,6 +1132,8 @@
   "feature.config.description": "라이브 데몬 config (시크릿 제외); 디스크에서 리로드.",
   "feature.designSystem.label": "Design System",
   "feature.designSystem.description": "UI 프리미티브의 변형 매트릭스와 코드 스니펫을 포함한 라이브 데모.",
+  "feature.uiDemo.label": "UI Demo",
+  "feature.uiDemo.description": "Storybook-style gallery of every UI primitive for visual QA. Gated by the uiDemoRoute feature flag.",
   "feature.decisionLog.label": "Decision Log",
   "feature.decisionLog.description": "ADR 스타일 의사결정 로그 -- 각 결정의 컨텍스트, 결정 내용, 결과를 기록.",
   "feature.commandHistory.label": "Command History",
