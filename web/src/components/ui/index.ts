@@ -116,3 +116,4 @@ export * from './markdown-renderer';
 export * from './list-virtualizer';
 export * from './skeleton-set';
 export * from './rich-text-editor';
+export * from './search-input';
