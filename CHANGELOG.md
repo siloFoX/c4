@@ -4,6 +4,112 @@
 
 (no entries -- next release window)
 
+## [1.11.359] - 2026-05-18 -- UI: Web Vitals monitoring (TODO 11.341)
+
+Adds Core Web Vitals reporting via the `web-vitals`
+library. `initWebVitals()` registers LCP / INP / CLS /
+TTFB listeners; dev builds log each metric to the
+devtools console; production builds stay quiet unless
+a host wires `onReport`. App.tsx calls the hook once
+on mount.
+
+### Added
+
+- `web-vitals` (`^5.2.0`) as a runtime dependency.
+- `web/src/lib/web-vitals.ts` -- thin reporter glue:
+  - `initWebVitals(options?)` -- registers metric
+    callbacks. Idempotent (a second call is a
+    no-op); HMR / test-driven re-mounts do not
+    double-register.
+  - `WebVitalsReport` interface: `name`, `value`,
+    `id`, `rating`, `delta`, `navigationType`.
+  - Options:
+    - `onReport?: (report) => void` -- production
+      reporter. Errors thrown FROM the reporter are
+      swallowed so a buggy sink cannot crash the
+      page.
+    - `forceDevLog?: boolean` -- force console.log
+      regardless of `import.meta.env.DEV`.
+    - `forceQuiet?: boolean` -- suppress the console
+      log (still fires `onReport`).
+  - `__resetWebVitalsForTest()` test-only escape
+    hatch so per-test cleanup can re-run the
+    initialiser.
+- `web/src/lib/web-vitals.test.ts` -- 11 unit cases
+  with `vi.mock('web-vitals')` that captures the
+  registered callbacks so tests can fire synthetic
+  metrics:
+  - handlers registered for LCP / INP / CLS / TTFB;
+  - idempotent (second init is a no-op);
+  - `onReport` invoked for every metric;
+  - report payload shape;
+  - reporter throws swallowed;
+  - `forceDevLog=true` -> console log appears;
+  - `forceQuiet=true` -> console log suppressed but
+    `onReport` still fires;
+  - runs with no options without throwing;
+  - dev-log message includes `name=value.toFixed(2)
+    (rating)`;
+  - `__resetWebVitalsForTest()` allows
+    re-initialisation.
+- `web/src/App.tsx` -- `useEffect(() => {
+  initWebVitals(); }, [])` at the top of the App
+  component so the metrics start collecting the
+  moment the app mounts.
+
+### Why FID is missing
+
+`web-vitals` v5 dropped `onFID` -- INP replaces it as
+the canonical input-responsiveness Core Web Vital.
+The dispatch mentions FID for backwards compat; this
+patch honours the spirit (input-latency reporting)
+via INP and skips FID since the library no longer
+exports it. The companion test explicitly documents
+the absence so future operators do not search for
+the missing handler.
+
+### Adoption pattern
+
+Default (dev-log only):
+
+```tsx
+useEffect(() => {
+  initWebVitals();
+}, []);
+```
+
+Production with a remote reporter:
+
+```tsx
+useEffect(() => {
+  initWebVitals({
+    onReport: (report) => {
+      void fetch('/api/rum', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(report),
+      });
+    },
+  });
+}, []);
+```
+
+### Tests
+
+- `web-vitals.test.ts` -- 11/11 pass against vitest
+  4.1.5 + jsdom 29.1.1.
+
+### Out of scope
+
+- **Remote RUM endpoint.** The `onReport` hook is
+  documented; the production reporter wires it
+  when the deployment has a metrics destination.
+  The default dev-log is the only built-in sink.
+- **Bundle-budget impact accounting.** `web-vitals`
+  ships as ~3KB gzipped, which fits comfortably
+  inside the v1.11.358 vendor budget. No budget
+  bump needed.
+
 ## [1.11.358] - 2026-05-18 -- UI: Bundle size budget (TODO 11.340)
 
 Adds a CI-runnable `npm run bundle-budget` script that
