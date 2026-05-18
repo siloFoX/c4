@@ -27,6 +27,7 @@ const WorkflowEditor = lazy(() => import('./components/WorkflowEditor'));
 const SettingsView = lazy(() => import('./components/SettingsView'));
 import PageTransition from './components/PageTransition';
 import AppHeader from './components/layout/AppHeader';
+import { AppShell } from './components/layout/AppShell';
 import Sidebar from './components/layout/Sidebar';
 import DetailTabs from './components/layout/DetailTabs';
 import EmptyState from './components/layout/EmptyState';
@@ -260,37 +261,47 @@ export default function App() {
 
   return (
     <AnnounceRegion>
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <HelpUIRoot onNavigateTopView={setTopView} />
-      {/* (v1.11.295, TODO 11.277) Cmd+K command palette. The
-          shortcut hook is registered above; this mount renders
-          the modal portal when paletteOpen flips true. */}
-      <CommandPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        commands={paletteCommands}
-      />
-      {/* (v1.11.134) Subtle gradient backdrop behind the header.
-          Stops sourced from the ARPS design system tokens.css:
-          --surface-canvas (220 18% 8%) -> --surface-panel (220 15% 12%).
-          The values are inlined as HSL because the daemon web bundle
-          does not import tokens.css yet -- using `hsl(var(--...))`
-          here would resolve to nothing. When tokens.css lands the
-          arbitrary values can be swapped for the CSS variables. */}
-      <div
-        className="bg-gradient-to-b from-[hsl(220_18%_8%)] to-[hsl(220_15%_12%)]"
-        data-testid="app-top-bar-gradient"
-      >
-        <AppHeader
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((open) => !open)}
-          topView={topView}
-          onTopViewChange={setTopView}
-          authed={authState === 'authed' || authState === 'disabled'}
-          onLogout={handleLogout}
-          onOpenPreferences={() => setTopView('settings')}
-        />
-      </div>
+    <HelpUIRoot onNavigateTopView={setTopView} />
+    {/* (v1.11.295, TODO 11.277) Cmd+K command palette. The
+        shortcut hook is registered above; this mount renders
+        the modal portal when paletteOpen flips true. The
+        palette is a portal-based modal -- mounting it
+        outside AppShell keeps the shell's <main> landmark
+        free of modal content. */}
+    <CommandPalette
+      open={paletteOpen}
+      onOpenChange={setPaletteOpen}
+      commands={paletteCommands}
+    />
+    {/* (v1.11.350, TODO 11.332) AppShell adoption. The outer
+        flex column + h-screen + bg-background rhythm now flows
+        through the AppShell primitive so the header + main
+        landmarks come from one source. mainScroll="inherit"
+        preserves the existing per-view scroll discipline (each
+        topView branch manages its own `overflow-hidden` and
+        `min-h-0` chain). headerClassName overrides AppShell's
+        default border-b + bg-card/40 so the v1.11.134 gradient
+        backdrop survives unchanged. */}
+    <AppShell
+      mainScroll="inherit"
+      headerClassName="p-0 border-0 bg-gradient-to-b from-[hsl(220_18%_8%)] to-[hsl(220_15%_12%)]"
+      header={
+        <div
+          className="flex w-full"
+          data-testid="app-top-bar-gradient"
+        >
+          <AppHeader
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen((open) => !open)}
+            topView={topView}
+            onTopViewChange={setTopView}
+            authed={authState === 'authed' || authState === 'disabled'}
+            onLogout={handleLogout}
+            onOpenPreferences={() => setTopView('settings')}
+          />
+        </div>
+      }
+    >
       {/* MetricsBar polls /api/metrics every 5s and renders a thin strip
           of daemon RSS/heap/loadavg + worker CPU/RSS totals just below
           the header. Component returns null until the first response,
@@ -410,7 +421,7 @@ export default function App() {
       )}
       </PageTransition>
       </Suspense>
-    </div>
+    </AppShell>
     </AnnounceRegion>
   );
 }

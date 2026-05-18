@@ -103,7 +103,7 @@ export interface AppShellProps {
   // the landmark is skipped entirely when omitted.
   footer?: ReactNode;
   // Main content. Rendered inside `<main role="main">`,
-  // wrapped in a vertical `ScrollArea`.
+  // wrapped in a vertical `ScrollArea` by default.
   children: ReactNode;
   className?: string;
   // Per-region class overrides. Useful when the caller
@@ -113,6 +113,18 @@ export interface AppShellProps {
   sidebarClassName?: string;
   mainClassName?: string;
   footerClassName?: string;
+  // (v1.11.350, TODO 11.332) Main-region scroll discipline.
+  // `'auto'` (default) wraps the children in a vertical
+  // `ScrollArea` so long content scrolls inside its own
+  // shell. `'inherit'` skips the wrapper and lets the
+  // caller manage scroll -- needed by hosts whose body
+  // contains per-view flex layouts with their own
+  // `overflow` semantics (terminal panes, chat surfaces,
+  // multi-pane editors). The shell's `<main>` keeps the
+  // `flex min-w-0 flex-1 flex-col` rhythm in either mode
+  // so the children's `flex-1 min-h-0` chains continue to
+  // work.
+  mainScroll?: 'auto' | 'inherit';
 }
 
 // Default sidebar widths. The expanded width matches the
@@ -238,6 +250,7 @@ export function AppShell({
   sidebarClassName,
   mainClassName,
   footerClassName,
+  mainScroll = 'auto',
 }: AppShellProps) {
   // Uncontrolled mobile-open fallback for hosts that just
   // want the Drawer to manage itself. The controlled props
@@ -371,19 +384,31 @@ export function AppShell({
 
         <main
           data-section="app-shell-main"
+          data-main-scroll={mainScroll}
           role="main"
           className={cn(
             'flex min-w-0 flex-1 flex-col',
             mainClassName,
           )}
         >
-          <ScrollArea
-            axis="y"
-            className="flex-1"
-            data-testid="app-shell-main-scroll"
-          >
-            {children}
-          </ScrollArea>
+          {/* (v1.11.350, TODO 11.332) mainScroll="inherit"
+              skips the default ScrollArea wrap so callers
+              whose body manages its own scroll (terminal
+              panes, chat surfaces, multi-pane editors)
+              can opt out. The "auto" default keeps the
+              v1.11.343 contract for pages that want the
+              shell to own the scroll. */}
+          {mainScroll === 'inherit' ? (
+            children
+          ) : (
+            <ScrollArea
+              axis="y"
+              className="flex-1"
+              data-testid="app-shell-main-scroll"
+            >
+              {children}
+            </ScrollArea>
+          )}
         </main>
       </div>
 
