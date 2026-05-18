@@ -1,8 +1,221 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { Copy, WrapText } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { copyTextToClipboard } from '../../hooks/use-copy';
+
+// (v1.11.397, TODO 11.379) Built-in syntax highlighter.
+//
+// Plug-in story: callers pass `highlight={(code, language) =>
+// ReactNode}` to render their own highlighter (shiki, hljs,
+// prism). Pass `highlight={false}` to opt out entirely and
+// render plain text.
+//
+// When `highlight` is undefined and a `language` is supplied,
+// the built-in regex tokeniser handles JSON / JavaScript /
+// TypeScript / bash. Unknown languages fall through to plain
+// text. Keep the tokeniser intentionally small -- adopters who
+// need full grammar accuracy plug in shiki via the callback.
+//
+// Token classes resolve to semantic Tailwind tokens so the
+// palette tracks the theme:
+//   - keyword:   text-info       (e.g. const, let, if, for)
+//   - string:    text-success    (single/double-quoted runs)
+//   - number:    text-warning    (numeric literals incl. floats)
+//   - comment:   text-muted-foreground italic (line comments)
+//   - boolean:   text-info       (true / false / null)
+//   - variable:  text-foreground (bash $foo / ${foo})
+
+export type CodeBlockTokenType =
+  | 'plain'
+  | 'keyword'
+  | 'string'
+  | 'number'
+  | 'comment'
+  | 'boolean'
+  | 'variable';
+
+export interface CodeBlockToken {
+  type: CodeBlockTokenType;
+  text: string;
+}
+
+const TOKEN_CLASS: Record<CodeBlockTokenType, string> = {
+  plain: 'text-foreground',
+  keyword: 'text-info',
+  string: 'text-success',
+  number: 'text-warning',
+  comment: 'italic text-muted-foreground',
+  boolean: 'text-info',
+  variable: 'text-foreground',
+};
+
+// (v1.11.397, TODO 11.379) Per-language keyword sets. Lower-
+// case keys; the tokeniser matches case-sensitive but the
+// keyword regex is built from these arrays.
+const JS_KEYWORDS = [
+  'const', 'let', 'var', 'function', 'return', 'if', 'else',
+  'for', 'while', 'do', 'switch', 'case', 'break', 'continue',
+  'new', 'class', 'extends', 'super', 'this', 'typeof',
+  'instanceof', 'in', 'of', 'try', 'catch', 'finally', 'throw',
+  'async', 'await', 'export', 'import', 'from', 'as', 'default',
+  'void', 'delete', 'yield', 'static', 'public', 'private',
+  'protected', 'readonly', 'abstract', 'interface', 'enum',
+  'implements', 'declare', 'namespace',
+];
+
+const TS_KEYWORDS = [
+  ...JS_KEYWORDS,
+  'type', 'keyof', 'satisfies', 'is', 'never', 'unknown',
+  'infer', 'asserts',
+];
+
+const BASH_KEYWORDS = [
+  'if', 'then', 'else', 'elif', 'fi', 'case', 'esac', 'for',
+  'while', 'until', 'do', 'done', 'in', 'function', 'return',
+  'export', 'echo', 'cd', 'pwd', 'ls', 'rm', 'cp', 'mv', 'mkdir',
+  'touch', 'cat', 'grep', 'sed', 'awk', 'find', 'set', 'unset',
+  'source', 'alias',
+];
+
+function escapeRegexAlt(words: readonly string[]): string {
+  return words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+}
+
+// Generic tokeniser: walks the source character by character,
+// trying each rule in priority order. Returns the longest match
+// or a single-character plain token.
+interface Rule {
+  type: CodeBlockTokenType;
+  re: RegExp;
+}
+
+function tokenize(source: string, rules: Rule[]): CodeBlockToken[] {
+  const out: CodeBlockToken[] = [];
+  let i = 0;
+  let buffer = '';
+  while (i < source.length) {
+    const rest = source.slice(i);
+    let matched: { rule: Rule; text: string } | null = null;
+    for (const r of rules) {
+      r.re.lastIndex = 0;
+      const m = r.re.exec(rest);
+      if (m && m.index === 0 && m[0].length > 0) {
+        matched = { rule: r, text: m[0] };
+        break;
+      }
+    }
+    if (matched) {
+      if (buffer.length > 0) {
+        out.push({ type: 'plain', text: buffer });
+        buffer = '';
+      }
+      out.push({ type: matched.rule.type, text: matched.text });
+      i += matched.text.length;
+    } else {
+      buffer += source[i];
+      i += 1;
+    }
+  }
+  if (buffer.length > 0) out.push({ type: 'plain', text: buffer });
+  return out;
+}
+
+const COMMON_STRING = /^"(?:\\.|[^"\\])*"|^'(?:\\.|[^'\\])*'/;
+const COMMON_NUMBER = /^-?\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b/i;
+
+function rulesForJs(language: 'javascript' | 'typescript'): Rule[] {
+  const keywords =
+    language === 'typescript' ? TS_KEYWORDS : JS_KEYWORDS;
+  const kwRe = new RegExp(`^\\b(?:${escapeRegexAlt(keywords)})\\b`);
+  return [
+    { type: 'comment', re: /^\/\/[^\n]*/ },
+    { type: 'comment', re: /^\/\*[\s\S]*?\*\// },
+    { type: 'string', re: COMMON_STRING },
+    { type: 'string', re: /^`(?:\\.|[^`\\])*`/ },
+    { type: 'boolean', re: /^\b(?:true|false|null|undefined)\b/ },
+    { type: 'number', re: COMMON_NUMBER },
+    { type: 'keyword', re: kwRe },
+  ];
+}
+
+function rulesForJson(): Rule[] {
+  return [
+    { type: 'string', re: COMMON_STRING },
+    { type: 'boolean', re: /^\b(?:true|false|null)\b/ },
+    { type: 'number', re: COMMON_NUMBER },
+  ];
+}
+
+function rulesForBash(): Rule[] {
+  const kwRe = new RegExp(`^\\b(?:${escapeRegexAlt(BASH_KEYWORDS)})\\b`);
+  return [
+    { type: 'comment', re: /^#[^\n]*/ },
+    { type: 'string', re: COMMON_STRING },
+    { type: 'variable', re: /^\$\{[^}]*\}/ },
+    { type: 'variable', re: /^\$[A-Za-z_][A-Za-z0-9_]*/ },
+    { type: 'number', re: COMMON_NUMBER },
+    { type: 'keyword', re: kwRe },
+  ];
+}
+
+// (v1.11.397, TODO 11.379) Language alias map. Operators write
+// `language="js"` / `language="ts"` / `language="sh"` more
+// often than the canonical names; resolve aliases here.
+const LANGUAGE_ALIAS: Record<string, string> = {
+  js: 'javascript',
+  jsx: 'javascript',
+  ts: 'typescript',
+  tsx: 'typescript',
+  sh: 'bash',
+  shell: 'bash',
+  zsh: 'bash',
+};
+
+// (v1.11.397, TODO 11.379) Pure helper exported for unit
+// testing. Returns the token list for the given code +
+// language; falls back to a single `plain` token when the
+// language is unsupported.
+export function highlightCode(
+  code: string,
+  language?: string,
+): CodeBlockToken[] {
+  if (!code) return [];
+  const raw = (language ?? '').toLowerCase();
+  const lang = LANGUAGE_ALIAS[raw] ?? raw;
+  let rules: Rule[] | null = null;
+  if (lang === 'javascript' || lang === 'typescript') {
+    rules = rulesForJs(lang);
+  } else if (lang === 'json') {
+    rules = rulesForJson();
+  } else if (lang === 'bash') {
+    rules = rulesForBash();
+  }
+  if (!rules) return [{ type: 'plain', text: code }];
+  return tokenize(code, rules);
+}
+
+// (v1.11.397, TODO 11.379) The set of languages the built-in
+// highlighter knows about. Useful for tests + downstream
+// "show supported languages" listings.
+export const CODE_BLOCK_SUPPORTED_LANGUAGES: readonly string[] = [
+  'javascript', 'typescript', 'json', 'bash',
+];
+
+function renderTokens(tokens: CodeBlockToken[]): ReactNode {
+  return (
+    <>
+      {tokens.map((t, i) => {
+        if (t.type === 'plain') return <Fragment key={i}>{t.text}</Fragment>;
+        return (
+          <span key={i} data-token={t.type} className={TOKEN_CLASS[t.type]}>
+            {t.text}
+          </span>
+        );
+      })}
+    </>
+  );
+}
 
 export interface CodeBlockProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
@@ -27,6 +240,15 @@ export interface CodeBlockProps
   // gutter row so the operator can quote "line 23 is the problem"
   // without losing visual anchor.
   showLineNumbers?: boolean;
+  // (v1.11.397, TODO 11.379) Syntax highlighter plug-in.
+  //   - `undefined` (default): use the built-in tokeniser when
+  //     `language` matches `CODE_BLOCK_SUPPORTED_LANGUAGES`,
+  //     else render plain text.
+  //   - `false`: skip highlighting entirely.
+  //   - `(code, language?) => ReactNode`: caller-supplied
+  //     highlighter (shiki, hljs, prism). The return value
+  //     replaces the code body verbatim.
+  highlight?: false | ((code: string, language?: string) => ReactNode);
 }
 
 function resolveText(children: ReactNode, code: string | undefined): string {
@@ -47,6 +269,7 @@ export function CodeBlock({
   className,
   filename,
   showLineNumbers,
+  highlight,
   ...rest
 }: CodeBlockProps) {
   const isControlledWrap = typeof wrap === 'boolean';
@@ -76,8 +299,32 @@ export function CodeBlock({
 
   const codeRef = useRef<HTMLElement | null>(null);
 
-  const content = code != null ? code : children;
-  const copyTextFallback = resolveText(children, code);
+  // (v1.11.397, TODO 11.379) Resolve the body content. Order of
+  // precedence:
+  //   1. `highlight={false}` -> plain text (legacy path).
+  //   2. `highlight={fn}` + string `code` -> caller-supplied
+  //      highlighter output.
+  //   3. `language` matches a built-in tokeniser + string `code`
+  //      -> built-in `highlightCode()` output.
+  //   4. otherwise -> raw `code` or `children` ReactNode.
+  const rawText = resolveText(children, code);
+  let content: ReactNode;
+  if (highlight === false) {
+    content = code != null ? code : children;
+  } else if (typeof highlight === 'function' && typeof rawText === 'string' && rawText.length > 0) {
+    content = highlight(rawText, language);
+  } else if (
+    typeof code === 'string' &&
+    language &&
+    CODE_BLOCK_SUPPORTED_LANGUAGES.includes(
+      (LANGUAGE_ALIAS[language.toLowerCase()] ?? language.toLowerCase()),
+    )
+  ) {
+    content = renderTokens(highlightCode(code, language));
+  } else {
+    content = code != null ? code : children;
+  }
+  const copyTextFallback = rawText;
 
   const onCopy = () => {
     const text = codeRef.current?.textContent ?? copyTextFallback;
@@ -99,7 +346,6 @@ export function CodeBlock({
   // the first line). Copy + wrap buttons move into the header
   // when the bar is present; otherwise they keep the prior
   // absolute-positioned layout.
-  const hasHeader = Boolean(filename) || (language && (filename !== undefined));
   const headerShown = Boolean(filename) || language !== undefined;
 
   // Resolve the code text for line-number gutter. Falls back to
