@@ -4,6 +4,106 @@
 
 (no entries -- next release window)
 
+## [1.11.387] - 2026-05-18 -- UI: accordion primitive (TODO 11.369)
+
+`<Accordion>` (11.272 / v1.11.290) already
+shipped the full dispatched contract -- single
+/ multi expanded mode, ArrowUp / ArrowDown +
+Home / End keyboard nav, max-height
+transition + chevron rotation with
+`useReducedMotion` gating, full
+ARIA disclosure pattern (`aria-expanded` /
+`aria-controls` / `role="region"` /
+`aria-labelledby`). This patch ships three
+additive ergonomics that round out the
+adoption surface without touching legacy
+behaviour:
+
+- `headerLevel?: 'h2' | 'h3' | 'h4' | 'h5' | 'h6'`
+  -- pick the heading tag that wraps the
+  trigger row. Default `'h3'` matches the
+  legacy markup byte-for-byte. Useful when
+  the accordion nests under an existing h3
+  (drop to h4) or hosts a hero FAQ at the
+  top of a page (raise to h2).
+- `renderMode?: 'always' | 'lazy'` -- when
+  set to `'lazy'`, a panel does not mount
+  its `content` until the first time the
+  item opens. Once mounted it stays
+  mounted (so re-closing does NOT unmount).
+  Default `'always'` keeps the legacy
+  byte-identical behaviour. Useful when a
+  panel hosts an expensive widget (chart,
+  virtualized list, fetch-on-mount form).
+- `collapsible?: boolean` (single mode only)
+  -- `false` blocks closing the active
+  item, so the accordion always has exactly
+  one panel open. Default `true` preserves
+  the legacy click-to-toggle-closed
+  behaviour. Multi mode ignores the flag
+  (multi-open accordions can always close
+  every panel).
+
+### API
+
+```tsx
+<Accordion
+  items={ITEMS}
+  mode="single"
+  headerLevel="h2"
+  collapsible={false}
+  renderMode="lazy"
+/>
+```
+
+### Mounted-state attribute
+
+Each `<section data-accordion-item>` now also
+exposes `data-accordion-item-mounted="true"`
+once its content has rendered (always
+`"true"` in `renderMode="always"`; lifts to
+`"true"` the first time the item opens in
+`"lazy"`). Useful for downstream tests and
+storyshots that want to assert lazy mount
+without parsing the children tree.
+
+### Tests + types
+
+- `accordion.test.tsx`: +16 new cases (47
+  total). Covers `headerLevel` default and
+  override (h2-h6), `data-header-level` attr,
+  `renderMode="always"` mounting every panel,
+  `renderMode="lazy"` deferring mount until
+  open, lazy keeping a once-opened panel
+  mounted after collapse, lazy seeding
+  defaultOpen items as mounted, single +
+  `collapsible=true` allows closing the
+  active item, single + `collapsible=false`
+  blocks closing the active item, single +
+  `collapsible=false` still allows switching
+  the active item, multi mode ignores the
+  collapsible flag, `data-collapsible` attr,
+  `data-render-mode` attr,
+  `data-accordion-item-mounted` toggling per
+  item in lazy mode.
+- `npx tsc --noEmit` clean for touched files.
+
+### Out of scope
+
+- Per-page swap of legacy accordions to the
+  new ergonomics. All three new props are
+  additive; every existing call site stays
+  byte-identical at the default values.
+- Animated content height measurement
+  (replacing `max-h-[1000px]`). The 1000px
+  ceiling stays for now -- the height-measure
+  story belongs in a separate patch with its
+  own perf budget.
+- A `vertical` orientation. Accordions are
+  always vertical by convention; the
+  horizontal equivalent is `<Tabs
+  orientation="horizontal">`.
+
 ## [1.11.386] - 2026-05-18 -- UI: tabs primitive (TODO 11.368)
 
 Closes the dispatched tabs contract:

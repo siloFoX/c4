@@ -352,4 +352,175 @@ describe('<Accordion>', () => {
       'transition-transform',
     );
   });
+
+  // -- v1.11.387 headerLevel + renderMode + collapsible (TODO 11.369) --
+
+  it('default headerLevel="h3" wraps the trigger row', () => {
+    const { container } = render(<Accordion items={makeItems()} />);
+    expect(container.querySelectorAll('h3').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('h2').length).toBe(0);
+  });
+
+  it('headerLevel="h2" renders triggers wrapped in h2', () => {
+    const { container } = render(
+      <Accordion items={makeItems()} headerLevel="h2" />,
+    );
+    expect(container.querySelectorAll('h2').length).toBe(3);
+    expect(container.querySelectorAll('h3').length).toBe(0);
+  });
+
+  it('headerLevel="h4" renders triggers wrapped in h4', () => {
+    const { container } = render(
+      <Accordion items={makeItems()} headerLevel="h4" />,
+    );
+    expect(container.querySelectorAll('h4').length).toBe(3);
+  });
+
+  it('data-header-level reflects the headerLevel prop', () => {
+    render(<Accordion items={makeItems()} headerLevel="h5" />);
+    const root = document.querySelector('[data-section="accordion"]')!;
+    expect(root.getAttribute('data-header-level')).toBe('h5');
+  });
+
+  it('renderMode="always" mounts every panel content from the start', () => {
+    render(<Accordion items={makeItems()} />);
+    // All three panel bodies are in the DOM, even though only
+    // the default-open is visible.
+    expect(screen.getByText('alpha body')).toBeInTheDocument();
+    expect(screen.getByText('beta body')).toBeInTheDocument();
+    expect(screen.getByText('gamma body')).toBeInTheDocument();
+  });
+
+  it('renderMode="lazy" does NOT mount closed panel content on first render', () => {
+    render(<Accordion items={makeItems()} renderMode="lazy" />);
+    // No defaultOpen on any item, so no content mounts.
+    expect(screen.queryByText('alpha body')).toBeNull();
+    expect(screen.queryByText('beta body')).toBeNull();
+    expect(screen.queryByText('gamma body')).toBeNull();
+  });
+
+  it('renderMode="lazy" mounts panel content the first time the item opens', async () => {
+    const user = userEvent.setup();
+    render(<Accordion items={makeItems()} renderMode="lazy" />);
+    expect(screen.queryByText('beta body')).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Beta/ }));
+    expect(screen.getByText('beta body')).toBeInTheDocument();
+  });
+
+  it('renderMode="lazy" keeps a once-opened panel mounted after collapse', async () => {
+    const user = userEvent.setup();
+    render(<Accordion items={makeItems()} renderMode="lazy" mode="multi" />);
+    await user.click(screen.getByRole('button', { name: /Alpha/ }));
+    expect(screen.getByText('alpha body')).toBeInTheDocument();
+    // Close it again
+    await user.click(screen.getByRole('button', { name: /Alpha/ }));
+    // The panel container hides, but the content stays mounted
+    // in the DOM (just inside a hidden div).
+    expect(screen.getByText('alpha body')).toBeInTheDocument();
+  });
+
+  it('renderMode="lazy" seeds defaultOpen items as mounted on first render', () => {
+    const items: AccordionItem[] = [
+      { id: 'a', title: 'Alpha', content: <span>alpha body</span> },
+      { id: 'b', title: 'Beta', content: <span>beta body</span>, defaultOpen: true },
+    ];
+    render(<Accordion items={items} renderMode="lazy" />);
+    expect(screen.queryByText('alpha body')).toBeNull();
+    expect(screen.getByText('beta body')).toBeInTheDocument();
+  });
+
+  it('mode="single" + collapsible=true (default) allows closing the active item', async () => {
+    const user = userEvent.setup();
+    render(<Accordion items={makeItems()} defaultOpenIds={['a']} />);
+    const trigger = screen.getByRole('button', { name: /Alpha/ });
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    await user.click(trigger);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('mode="single" + collapsible=false prevents closing the active item', async () => {
+    const user = userEvent.setup();
+    render(
+      <Accordion items={makeItems()} defaultOpenIds={['a']} collapsible={false} />,
+    );
+    const trigger = screen.getByRole('button', { name: /Alpha/ });
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    await user.click(trigger);
+    // Click on the active item is a no-op when collapsible=false
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('mode="single" + collapsible=false still allows switching the active item', async () => {
+    const user = userEvent.setup();
+    render(
+      <Accordion items={makeItems()} defaultOpenIds={['a']} collapsible={false} />,
+    );
+    await user.click(screen.getByRole('button', { name: /Beta/ }));
+    expect(
+      screen.getByRole('button', { name: /Beta/ }).getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(
+      screen.getByRole('button', { name: /Alpha/ }).getAttribute('aria-expanded'),
+    ).toBe('false');
+  });
+
+  it('mode="multi" + collapsible=false still allows closing every panel (multi ignores the flag)', async () => {
+    const user = userEvent.setup();
+    render(
+      <Accordion
+        items={makeItems()}
+        mode="multi"
+        defaultOpenIds={['a']}
+        collapsible={false}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: /Alpha/ }));
+    expect(
+      screen.getByRole('button', { name: /Alpha/ }).getAttribute('aria-expanded'),
+    ).toBe('false');
+  });
+
+  it('data-collapsible attr reflects the collapsible flag', () => {
+    const { rerender } = render(<Accordion items={makeItems()} />);
+    expect(
+      document.querySelector('[data-section="accordion"]')!.getAttribute(
+        'data-collapsible',
+      ),
+    ).toBe('true');
+    rerender(<Accordion items={makeItems()} collapsible={false} />);
+    expect(
+      document.querySelector('[data-section="accordion"]')!.getAttribute(
+        'data-collapsible',
+      ),
+    ).toBe('false');
+  });
+
+  it('data-render-mode attr reflects the renderMode prop', () => {
+    const { rerender } = render(<Accordion items={makeItems()} />);
+    expect(
+      document.querySelector('[data-section="accordion"]')!.getAttribute(
+        'data-render-mode',
+      ),
+    ).toBe('always');
+    rerender(<Accordion items={makeItems()} renderMode="lazy" />);
+    expect(
+      document.querySelector('[data-section="accordion"]')!.getAttribute(
+        'data-render-mode',
+      ),
+    ).toBe('lazy');
+  });
+
+  it('data-accordion-item-mounted attr toggles per item in lazy mode', async () => {
+    const user = userEvent.setup();
+    render(<Accordion items={makeItems()} renderMode="lazy" />);
+    const items = document.querySelectorAll('[data-accordion-item]');
+    items.forEach((it) => {
+      expect(it.getAttribute('data-accordion-item-mounted')).toBe('false');
+    });
+    await user.click(screen.getByRole('button', { name: /Beta/ }));
+    const beta = document.querySelector(
+      '[data-accordion-item="b"]',
+    ) as HTMLElement;
+    expect(beta.getAttribute('data-accordion-item-mounted')).toBe('true');
+  });
 });
