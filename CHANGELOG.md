@@ -4,6 +4,98 @@
 
 (no entries -- next release window)
 
+## [1.11.398] - 2026-05-18 -- UI: alert primitive (TODO 11.380)
+
+`<Alert>` already shipped info / success /
+warning / error / neutral variants, title /
+description / action slots, dismiss button,
+ARIA `role=alert` for error (assertive)
+and `role=status` for everything else
+(polite), explicit role override. This patch
+closes the dispatched "with icon" hint plus
+adds a size scale and ergonomic data hooks:
+
+### What changed
+
+- **Per-variant auto-icons.** Each signal-
+  bearing variant (info / success / warning
+  / error) now renders a leading icon by
+  default when `icon` is not explicitly
+  passed -- Info / CheckCircle2 /
+  AlertTriangle / XCircle from `lucide-react`.
+  Neutral stays icon-less so the existing
+  icon-less neutral usage is byte-identical.
+  Caller-supplied `icon={...}` wins over the
+  auto-icon; `icon={false}` opts out entirely.
+- **Size scale.** New `size: 'sm' | 'md' |
+  'lg'` prop. Default `md` matches the
+  legacy `p-3 text-sm gap-3` layout
+  byte-for-byte. `sm` is a dense inline
+  banner (`p-2 text-xs gap-2`); `lg` is a
+  hero strip (`p-4 text-base gap-4`). The
+  dismiss button scales in lockstep
+  (h-5/h-6/h-7).
+- **Data attributes** on every inner block:
+  `data-section="alert"` (root) plus
+  `-icon`, `-title`, `-description`,
+  `-action`, `-dismiss`. `data-variant` +
+  `data-size` mirror props on the root.
+
+### API additions
+
+```ts
+interface AlertProps {
+  // ... existing
+  icon?: ReactNode | false;  // false opts out of auto-icon
+  size?: 'sm' | 'md' | 'lg';
+}
+```
+
+### AlertBanner change
+
+`alert-banner.tsx` now destructures + spreads
+`size` conditionally so `<AlertBanner>`
+inherits the new size scale through the
+underlying Alert (which it already wraps).
+Byte-identical default behaviour.
+
+### Tests + types
+
+- `alert.test.tsx`: +10 new cases (27
+  total). Updated one legacy case (the
+  "omits icon when not provided" assertion
+  flipped to the new auto-icon contract;
+  added explicit `icon={false}` opt-out
+  case + neutral-variant icon-less case).
+  Covers auto-icon per signal variant,
+  caller icon wins over auto, size sm/md/lg
+  + data-size attr, dismiss button scales,
+  all data-section + data-variant attrs.
+- 17 legacy cases unchanged in behaviour.
+- `npx tsc --noEmit` clean for touched
+  files. (Two pre-existing errors in
+  `alert-banner.tsx`'s `...rest` spread
+  and `UIDemoRoute.tsx`'s `"danger"`
+  variant token are present on main BEFORE
+  this patch -- unchanged by the patch.)
+
+### Out of scope
+
+- Per-page adoption (`sm` / `lg` rollout).
+  Additive; every existing call site stays
+  byte-identical at `md`.
+- A 6th variant or a per-variant icon
+  override map. Adopters that need a
+  custom icon set `icon={<...>}` per
+  instance.
+- Inline action callouts (the existing
+  `action` slot keeps its multi-button row
+  layout; a "primary CTA" variant is a
+  separate primitive).
+- Animated mount / dismiss transitions.
+  Visual-only motion belongs in a future
+  per-surface tuning patch.
+
 ## [1.11.397] - 2026-05-18 -- UI: code block primitive (TODO 11.379)
 
 `<CodeBlock>` (11.253 / v1.11.271) already
