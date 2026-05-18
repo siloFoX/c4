@@ -14,11 +14,30 @@ export type FeatureFlagKey =
   | 'reducedMotion'
   | 'uiDemoRoute';
 
+// (v1.11.339, TODO 11.321) Category buckets for the
+// FeatureFlags admin page. Drives the Tabs filter strip so
+// the operator can narrow long flag lists by intent rather
+// than scanning every row. The set is intentionally small --
+// new flags should pick the closest fit instead of inventing
+// new categories. Add a new category here only when none of
+// the existing buckets capture the new flag's intent.
+export type FeatureFlagCategory = 'motion' | 'navigation' | 'developer';
+
+export const CATEGORY_LABELS: Record<FeatureFlagCategory, string> = {
+  motion: 'Motion',
+  navigation: 'Navigation',
+  developer: 'Developer',
+};
+
 export interface FeatureFlagDef {
   key: FeatureFlagKey;
   label: string;
   description: string;
   defaultValue: boolean;
+  // (v1.11.339, TODO 11.321) Category bucket. Required so
+  // the FeatureFlags page can always sort every flag into a
+  // tab; unknown values would break the Tabs filter contract.
+  category: FeatureFlagCategory;
 }
 
 export const FLAGS: readonly FeatureFlagDef[] = [
@@ -28,12 +47,14 @@ export const FLAGS: readonly FeatureFlagDef[] = [
     description:
       'Show the 12-column grid + breakpoint pills overlay (dev only).',
     defaultValue: false,
+    category: 'developer',
   },
   {
     key: 'routeProgress',
     label: 'Route Progress Bar',
     description: 'Top-of-page progress indicator while a route is loading.',
     defaultValue: true,
+    category: 'navigation',
   },
   {
     key: 'pageTransitions',
@@ -41,12 +62,14 @@ export const FLAGS: readonly FeatureFlagDef[] = [
     description:
       'Animate between feature pages using the View Transitions API.',
     defaultValue: true,
+    category: 'motion',
   },
   {
     key: 'motion',
     label: 'Motion / Animations',
     description: 'Master toggle for all UI animations.',
     defaultValue: true,
+    category: 'motion',
   },
   {
     key: 'reducedMotion',
@@ -54,6 +77,7 @@ export const FLAGS: readonly FeatureFlagDef[] = [
     description:
       'Force reduced-motion treatment regardless of the OS-level preference.',
     defaultValue: false,
+    category: 'motion',
   },
   // (v1.11.325, TODO 11.307) Gate the storybook-style /ui-demo
   // route. Off by default so the per-page rollout stays a
@@ -64,6 +88,7 @@ export const FLAGS: readonly FeatureFlagDef[] = [
     description:
       'Enable the /ui-demo gallery page that renders every UI primitive with its main variants. Dev/visual-QA only.',
     defaultValue: false,
+    category: 'developer',
   },
 ] as const;
 
