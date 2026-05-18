@@ -4,6 +4,90 @@
 
 (no entries -- next release window)
 
+## [1.11.333] - 2026-05-18 -- UI: HistoryDetailPane polish (TODO 11.315)
+
+Polishes `web/src/components/HistoryDetailPane.tsx` --
+adds three Tabs (Task / Output / Metrics), swaps the
+ad-hoc date strings for TimeAgo, and renders commit
+hashes via the canonical CopyButton primitive (which
+wraps a Tooltip + clipboard + "Copied!" pulse).
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- Detail body now wraps in a Tabs primitive (v1.11.299)
+  with three sections:
+  - **Task** -- the past-tasks list with pagination
+    (default-active so the operator's first glance
+    lands on the same content as before).
+  - **Output** -- the raw scrollback `<pre>` block.
+  - **Metrics** -- a new record breakdown via
+    DataList: total records, completed / merged,
+    errors / failures, pending / busy, other /
+    unknown, commits recorded.
+- TimeAgo (v1.11.247) replaces the inline
+  `formatDate(iso)` helper for record timestamps.
+  The short variant renders a human "5 min ago"
+  string; the absolute ISO timestamp lands on
+  `title=` for hover. The `<time dateTime="...">`
+  element exposes the ISO timestamp for e2e
+  selectors.
+- CopyButton (v1.11.255) replaces the raw
+  `<code>{hash}</code>` for commit-sha rows. Visible
+  label shows the first 7 characters of the hash;
+  clicking the icon copies the full SHA to the
+  clipboard; the Tooltip + "Copied!" pulse comes
+  for free. The per-row data-testid is
+  `history-record-commit-<short>` so e2e tests can
+  target a specific commit.
+- Data-attribute selectors throughout for e2e:
+  `data-section="history-detail-body" | "history-detail-task" | "history-detail-output" | "history-detail-metrics" | "history-record-started" | "history-record-completed" | "history-record-commits"`.
+
+### Changed
+
+- Removed the inline `formatDate` helper -- its only
+  callers were the two timestamp spans that now flow
+  through TimeAgo.
+- Past-tasks pagination stays inside the Task tab
+  (was already there; this is unchanged behaviour,
+  just relocated to be tab-scoped).
+- Module header expanded to document the polish
+  rationale alongside the prior v1.10.564 /
+  v1.10.779 / v1.11.301 / v1.11.300 lineage.
+
+### Tests
+
+- `web/src/components/HistoryDetailPane.test.tsx` --
+  6 new vitest cases on top of the existing 45 (51
+  total).
+  - `detail body tabs` (4):
+    - Three tabs (Task / Output / Metrics) render.
+    - Task tab is active by default and surfaces
+      `[data-section="history-detail-task"]`.
+    - Clicking Metrics surfaces the record
+      breakdown.
+    - Tablist has the expected accessible name.
+  - `commit-sha CopyButton` (2):
+    - A CopyButton renders per commit row with the
+      short-hash data-testid hook.
+    - Visible label is the short SHA (slice 0..7).
+  - Existing tests updated for the new structure:
+    - Date assertions migrated from formatted-string
+      to `dateTime` attribute on the `<time>`
+      element (TimeAgo).
+    - Scrollback tests now click the Output tab
+      first.
+    - Empty-commits assertion targets
+      `[data-section="history-record-commits"]`
+      instead of `<code>` count.
+  - All 51 green.
+
+### Versions
+
+- 1.11.332 -> 1.11.333 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.333]`.
+
 ## [1.11.332] - 2026-05-18 -- UI: Workers page hero (TODO 11.314)
 
 New `web/src/pages/Workers.tsx` feature page with a

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
 import type {
   HistoryCommit,
@@ -264,8 +265,14 @@ describe('<HistoryDetailPane>', () => {
     expect(screen.queryByText('feature-x')).not.toBeInTheDocument();
   });
 
-  it('renders the formatted startedAt date for a record', () => {
-    render(
+  it('renders the startedAt timestamp via TimeAgo (with dateTime attr) for a record', () => {
+    // (v1.11.333, TODO 11.315) Timestamps now render through
+    // the TimeAgo primitive. The `<time>` element carries the
+    // ISO timestamp in its `dateTime` attribute; the absolute
+    // string lands on `title=` for hover. We assert against
+    // the dateTime attribute because the relative text
+    // changes with the wall clock.
+    const { container } = render(
       <HistoryDetailPane
         detail={makeDetail({
           records: [
@@ -274,7 +281,11 @@ describe('<HistoryDetailPane>', () => {
         })}
       />,
     );
-    expect(screen.getByText('2026-05-12 03:04:05')).toBeInTheDocument();
+    const started = container.querySelector(
+      '[data-section="history-record-started"] time',
+    );
+    expect(started).not.toBeNull();
+    expect(started?.getAttribute('datetime')).toBe('2026-05-12T03:04:05.000Z');
   });
 
   it('renders the ? placeholder when startedAt is null', () => {
@@ -288,8 +299,12 @@ describe('<HistoryDetailPane>', () => {
     expect(screen.getByText('?')).toBeInTheDocument();
   });
 
-  it('renders the completedAt date with an arrow prefix when set', () => {
-    render(
+  it('renders the completedAt timestamp via TimeAgo with an arrow prefix when set', () => {
+    // (v1.11.333, TODO 11.315) Completed timestamp now
+    // renders via TimeAgo + a leading "->" glyph in a
+    // sibling span. We assert on the section selector and
+    // the dateTime attribute.
+    const { container } = render(
       <HistoryDetailPane
         detail={makeDetail({
           records: [
@@ -301,7 +316,13 @@ describe('<HistoryDetailPane>', () => {
         })}
       />,
     );
-    expect(screen.getByText(/-> 2026-05-12 01:02:03/)).toBeInTheDocument();
+    const completed = container.querySelector(
+      '[data-section="history-record-completed"]',
+    );
+    expect(completed).not.toBeNull();
+    expect(completed?.textContent).toContain('->');
+    const timeEl = completed?.querySelector('time');
+    expect(timeEl?.getAttribute('datetime')).toBe('2026-05-12T01:02:03.000Z');
   });
 
   it('hides the completedAt span when null', () => {
@@ -344,16 +365,27 @@ describe('<HistoryDetailPane>', () => {
         })}
       />,
     );
-    const codes = container.querySelectorAll('code');
-    expect(codes.length).toBe(0);
+    // (v1.11.333, TODO 11.315) Commit rows now render via the
+    // CopyButton primitive (which contains a <code> inside).
+    // Empty commits means no [data-section="history-record-commits"]
+    // section AND no commit-specific data-testid.
+    const commitsSection = container.querySelector(
+      '[data-section="history-record-commits"]',
+    );
+    expect(commitsSection).toBeNull();
   });
 
-  it('renders the scrollback header', () => {
+  it('renders the scrollback header (Output tab)', async () => {
+    // (v1.11.333, TODO 11.315) Scrollback lives under the
+    // Output tab now. Click it first.
+    const user = userEvent.setup();
     render(<HistoryDetailPane detail={makeDetail()} />);
+    await user.click(screen.getByRole('tab', { name: /Output/i }));
     expect(screen.getByText('Scrollback')).toBeInTheDocument();
   });
 
-  it('renders the scrollback content when present', () => {
+  it('renders the scrollback content when present (Output tab)', async () => {
+    const user = userEvent.setup();
     render(
       <HistoryDetailPane
         detail={makeDetail({
@@ -361,12 +393,15 @@ describe('<HistoryDetailPane>', () => {
         })}
       />,
     );
+    await user.click(screen.getByRole('tab', { name: /Output/i }));
     expect(screen.getByText(/line 1/)).toBeInTheDocument();
     expect(screen.getByText(/line 2/)).toBeInTheDocument();
   });
 
-  it('renders the scrollback empty placeholder when null', () => {
+  it('renders the scrollback empty placeholder when null (Output tab)', async () => {
+    const user = userEvent.setup();
     render(<HistoryDetailPane detail={makeDetail({ scrollback: null })} />);
+    await user.click(screen.getByRole('tab', { name: /Output/i }));
     expect(
       screen.getByText('No live scrollback (worker not running).'),
     ).toBeInTheDocument();
@@ -434,7 +469,8 @@ describe('<HistoryDetailPane>', () => {
     expect(lists.length).toBeGreaterThan(0);
   });
 
-  it('exposes the scrollback pre block as an element so it can be focused for paste', () => {
+  it('exposes the scrollback pre block as an element so it can be focused for paste (Output tab)', async () => {
+    const user = userEvent.setup();
     const { container } = render(
       <HistoryDetailPane
         detail={makeDetail({
@@ -442,6 +478,7 @@ describe('<HistoryDetailPane>', () => {
         })}
       />,
     );
+    await user.click(screen.getByRole('tab', { name: /Output/i }));
     expect(container.querySelector('pre')).not.toBeNull();
   });
 
@@ -449,6 +486,10 @@ describe('<HistoryDetailPane>', () => {
     const { container } = render(
       <HistoryDetailPane detail={makeDetail({ scrollback: null })} />,
     );
+    // (v1.11.333, TODO 11.315) The Output tab is no longer
+    // mounted by default; clicking it would expose the empty
+    // placeholder but no <pre>. The bare-mount assertion
+    // still holds.
     expect(container.querySelector('pre')).toBeNull();
   });
 
@@ -501,5 +542,91 @@ describe('<HistoryDetailPane>', () => {
     expect(
       within(container).queryByRole('code'),
     ).not.toBeInTheDocument();
+  });
+
+  // (v1.11.333, TODO 11.315) Detail polish coverage.
+
+  describe('detail body tabs', () => {
+    it('renders three tabs (Task / Output / Metrics)', () => {
+      render(<HistoryDetailPane detail={makeDetail()} />);
+      expect(screen.getByRole('tab', { name: /Task/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Output/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Metrics/i })).toBeInTheDocument();
+    });
+
+    it('Task tab is active by default and shows the past-tasks header', () => {
+      render(<HistoryDetailPane detail={makeDetail()} />);
+      expect(
+        document.querySelector('[data-section="history-detail-task"]'),
+      ).not.toBeNull();
+    });
+
+    it('clicking the Metrics tab surfaces the record breakdown table', async () => {
+      const user = userEvent.setup();
+      render(
+        <HistoryDetailPane
+          detail={makeDetail({
+            records: [
+              makeRecord({ status: 'OK', commits: [makeCommit({ hash: 'aaaa111' })] }),
+              makeRecord({ status: 'error' }),
+              makeRecord({ status: 'pending' }),
+            ],
+          })}
+        />,
+      );
+      await user.click(screen.getByRole('tab', { name: /Metrics/i }));
+      expect(
+        document.querySelector('[data-section="history-detail-metrics"]'),
+      ).not.toBeNull();
+      expect(screen.getByText('Completed / merged')).toBeInTheDocument();
+      expect(screen.getByText('Errors / failures')).toBeInTheDocument();
+      expect(screen.getByText('Commits recorded')).toBeInTheDocument();
+    });
+
+    it('tab strip renders as a tablist with the expected accessible name', () => {
+      render(<HistoryDetailPane detail={makeDetail()} />);
+      const tablist = screen.getByRole('tablist', {
+        name: /History detail sections/i,
+      });
+      expect(tablist).toBeInTheDocument();
+    });
+  });
+
+  describe('commit-sha CopyButton', () => {
+    it('renders a CopyButton per commit row with the short hash', () => {
+      render(
+        <HistoryDetailPane
+          detail={makeDetail({
+            records: [
+              makeRecord({
+                commits: [
+                  makeCommit({ hash: 'abcdef1234567', message: 'msg-a' }),
+                ],
+              }),
+            ],
+          })}
+        />,
+      );
+      expect(
+        screen.getByTestId('history-record-commit-abcdef1'),
+      ).toBeInTheDocument();
+    });
+
+    it('the visible label is the short SHA (slice 0..7)', () => {
+      render(
+        <HistoryDetailPane
+          detail={makeDetail({
+            records: [
+              makeRecord({
+                commits: [
+                  makeCommit({ hash: 'abcdef1234567', message: 'msg-a' }),
+                ],
+              }),
+            ],
+          })}
+        />,
+      );
+      expect(screen.getByText('abcdef1')).toBeInTheDocument();
+    });
   });
 });
