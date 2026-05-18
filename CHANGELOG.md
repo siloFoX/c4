@@ -4,6 +4,157 @@
 
 (no entries -- next release window)
 
+## [1.11.411] - 2026-05-18 -- UI: toaster utility (TODO 11.393)
+
+New `web/src/lib/toaster.ts` ships the
+programmatic `toast` namespace that any
+module (React or not) can import to push
+notifications without owning a hook
+handle:
+
+```ts
+import { toast } from '@/lib/toaster';
+
+toast.success('Saved');
+toast.error('Failed to save', {
+  durationMs: 10_000,
+  action: { label: 'Retry', onClick: retry },
+});
+toast.info('Queued');
+toast.warning('Disk almost full');
+
+toast.promise(savePayload(), {
+  loading: 'Saving...',
+  success: (id) => `Saved as ${id}`,
+  error: (err) => `Failed: ${(err as Error).message}`,
+});
+```
+
+### Store contract
+
+`createToaster(config?)` builds an
+isolated store (used by tests + for
+multi-host hosting). Module top exports
+a singleton; `import { toast }` resolves
+through it.
+
+- `push(kind, message, opts?) -> id`
+  -- canonical write. `opts.id` reuses
+  an existing entry id (replace in
+  place, used by `promise()` to morph
+  the loading toast into success /
+  error without re-stacking).
+- `dismiss(id)` / `clear()` -- cancel
+  per-entry / all timers.
+- `update(id, patch)` -- mutate kind /
+  message / description / action /
+  durationMs (timer reschedules when
+  `durationMs` is in the patch).
+- `subscribe(listener) -> unsubscribe`
+  -- fires initial snapshot on
+  subscribe; fires the new entry array
+  on every mutation. Hosts (e.g., the
+  `<ToastProvider>` in 11.280) wire
+  themselves through this.
+
+### Behaviour
+
+- **Default duration**: 5000ms across
+  kinds, except `error` at 8000ms (a
+  longer default for fail states so an
+  operator does not miss them on a
+  busy screen). Overridable via
+  `defaultDurationMs` config or
+  per-call `opts.durationMs`.
+- **Sticky**: `durationMs: Infinity` or
+  any non-positive value (0 / negative)
+  is a sticky toast -- no auto-dismiss
+  timer. Used by `promise()` for the
+  pending phase.
+- **Visible limit**: 100 by default,
+  configurable via `visibleLimit`.
+  Floor 1 (zero / negative coerces to
+  1). FIFO overflow -- older entries
+  drop and their timers cancel.
+- **Id reuse**: passing `opts.id`
+  matching an existing entry replaces
+  in place, cancels the prior timer,
+  and reschedules with the new
+  duration. Position in the queue is
+  preserved.
+- **Timer host injection**: `config.now`
+  / `setTimer` / `clearTimer` are
+  swappable for deterministic tests.
+
+### `toast.promise(p, messages)`
+
+Sonner-compatible flow:
+1. Push a sticky `info` loading entry.
+2. On resolve: replace in place with
+   `success` (`message` is the resolved
+   value or `messages.success(data)`).
+3. On reject: replace in place with
+   `error` (`messages.error(err)`).
+4. Returns the inner promise so the
+   caller can `await` data / rethrow.
+
+### Tests
+
+41 cases in `toaster.test.ts`:
+
+- store (26): empty start, push +
+  notify, subscribe initial snapshot,
+  unsubscribe, default duration per
+  kind, explicit duration override,
+  sticky on Infinity / zero / negative,
+  auto-dismiss timer, dismiss + timer
+  cancel, dismiss unknown id no-op,
+  clear + timer cancel, clear no-op
+  when empty, id reuse replace in
+  place, visibleLimit FIFO drop,
+  visibleLimit floor 1, action + click
+  callback, description option,
+  update + reschedule, update unknown
+  id false, immutable list() snapshot,
+  unique ids on rapid push, custom
+  now() for createdAt, constants
+  exposed.
+- toast api facade (9): kind routing
+  (success / error / info / warning),
+  opts forwarding, dismiss, clear,
+  promise loading sticky, promise
+  resolve in-place + return value,
+  promise reject in-place + rethrow,
+  promise.success function arg only on
+  resolve, promise.durationMs applied.
+- singleton (6): toast.success +
+  getToasterEntries, warning kind,
+  subscribeToaster push, subscribeToaster
+  initial snapshot, resetToaster clear,
+  toast.dismiss isolated entry.
+
+41/41 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Out of scope (deferred)
+
+- Rendering host. The existing
+  `<ToastProvider>` (11.280) and a
+  future `<Toaster>` adapter will
+  subscribe via `subscribeToaster`; the
+  visual layer is intentionally out of
+  this patch.
+- Position config (top-right / bottom-
+  center). Belongs in the render host.
+- Custom render slot. `toast.custom`
+  belongs in the render host signature.
+- Cross-tab sync. Sonner / hot-toast
+  do not sync across tabs by default
+  either; the singleton is per-tab.
+- React-router event glue (clear on
+  navigate). The host can opt into this
+  cheaply with subscribe + clear.
+
 ## [1.11.410] - 2026-05-18 -- UI: resizable layout primitive (TODO 11.392)
 
 New `web/src/components/ui/resizable.tsx`
