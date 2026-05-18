@@ -4,6 +4,7 @@ import { Archive, Copy, RotateCcw, Save, Trash2 } from 'lucide-react';
 import PageFrame from './PageFrame';
 import {
   AlertBanner,
+  Breadcrumbs,
   Button,
   Dialog,
   EmptyState,
@@ -19,6 +20,10 @@ import {
   UndoToast,
   VisuallyHidden,
 } from '../components/ui';
+import {
+  useHashRoute,
+  makeBreadcrumbNavigator,
+} from '../lib/use-hash-route';
 import Toast from '../components/Toast';
 import { useToast } from '../lib/use-toast';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
@@ -72,6 +77,11 @@ function classifyAge(iso: string | null | undefined): SnapshotsAgeFilter {
 
 export default function Snapshots() {
   useLocale();
+  // (v1.11.377, TODO 11.359) Hash-routed
+  // breadcrumb that points back to the
+  // Workers root.
+  const { navigate } = useHashRoute();
+  const breadcrumbNav = makeBreadcrumbNavigator(navigate);
   const [items, setItems] = useState<SnapshotMeta[] | null>(null);
   // (v1.11.282, TODO 11.264) Pagination state for the grid. The
   // snapshots list can grow into the hundreds once an operator
@@ -248,6 +258,25 @@ export default function Snapshots() {
         </Tooltip>
       }
     >
+      {/* (v1.11.377, TODO 11.359) Hash-routed
+          breadcrumb above the snapshots table.
+          Returning to Workers is one click; the
+          current page label is the last
+          (non-link) item. */}
+      <Breadcrumbs
+        className="mb-2"
+        maxLabelLength={32}
+        data-testid="snapshots-breadcrumbs"
+        items={[
+          {
+            id: 'workers',
+            label: 'Workers',
+            href: '#feature=workers',
+            onClick: breadcrumbNav('#feature=workers'),
+          },
+          { id: 'snapshots', label: 'Snapshots' },
+        ]}
+      />
       {actionError ? (
         // (v1.11.275, TODO 11.257) The action-error Alert is now
         // an AlertBanner with severity="danger". The dispatch's
