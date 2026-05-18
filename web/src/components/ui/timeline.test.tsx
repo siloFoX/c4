@@ -128,8 +128,143 @@ describe('<Timeline>', () => {
     const rows = container.querySelectorAll('[data-timeline-item]');
     expect(rows).toHaveLength(3);
     const last = rows[rows.length - 1];
-    expect(last.querySelector('[data-timeline-connector]')).toBeNull();
+    expect(last!.querySelector('[data-timeline-connector]')).toBeNull();
     const first = rows[0];
-    expect(first.querySelector('[data-timeline-connector]')).not.toBeNull();
+    expect(first!.querySelector('[data-timeline-connector]')).not.toBeNull();
+  });
+
+  // -- v1.11.395 variants (TODO 11.377) ---------------------------
+
+  it('default variant maps to legacy classes byte-identical', () => {
+    const { container } = render(<Timeline items={baseItems} />);
+    const root = container.querySelector('[data-timeline]') as HTMLElement;
+    expect(root.getAttribute('data-variant')).toBe('default');
+    const row = container.querySelector(
+      '[data-timeline-item]',
+    ) as HTMLElement;
+    expect(row.className).toContain('pb-4');
+    expect(row.className).toContain('pl-6');
+    expect(row.className).toContain('gap-3');
+    const title = row.querySelector(
+      '[data-timeline-title]',
+    ) as HTMLElement;
+    expect(title.className).toContain('text-sm');
+  });
+
+  it('compact variant uses tighter spacing + smaller dot', () => {
+    const { container } = render(
+      <Timeline items={baseItems} variant="compact" />,
+    );
+    const root = container.querySelector('[data-timeline]') as HTMLElement;
+    expect(root.getAttribute('data-variant')).toBe('compact');
+    const row = container.querySelector(
+      '[data-timeline-item]',
+    ) as HTMLElement;
+    expect(row.className).toContain('pb-2');
+    expect(row.className).toContain('pl-5');
+    expect(row.className).toContain('gap-2');
+    const dot = container.querySelector(
+      '[data-timeline-dot]',
+    ) as HTMLElement;
+    expect(dot.className).toContain('h-3');
+    expect(dot.className).toContain('w-3');
+    const title = container.querySelector(
+      '[data-timeline-title]',
+    ) as HTMLElement;
+    expect(title.className).toContain('text-xs');
+  });
+
+  it('compact variant still renders the description block', () => {
+    const items = [
+      {
+        id: 'a',
+        timestamp: '2026-05-18T10:00:00Z',
+        title: 'Alpha',
+        description: 'first event',
+      },
+    ];
+    const { container } = render(
+      <Timeline items={items} variant="compact" />,
+    );
+    expect(
+      container.querySelector('[data-timeline-description]'),
+    ).toHaveTextContent('first event');
+  });
+
+  it('dense variant collapses to a single line + drops description block', () => {
+    const items = [
+      {
+        id: 'a',
+        timestamp: '2026-05-18T10:00:00Z',
+        title: 'Alpha',
+        description: 'never visible',
+      },
+    ];
+    const { container } = render(
+      <Timeline items={items} variant="dense" />,
+    );
+    const root = container.querySelector('[data-timeline]') as HTMLElement;
+    expect(root.getAttribute('data-variant')).toBe('dense');
+    const row = container.querySelector(
+      '[data-timeline-item]',
+    ) as HTMLElement;
+    expect(row.className).toContain('pb-1');
+    expect(row.className).toContain('items-center');
+    // Description block is omitted in dense mode.
+    expect(
+      container.querySelector('[data-timeline-description]'),
+    ).toBeNull();
+    // Title + timestamp still render side-by-side as spans.
+    expect(
+      container.querySelector('[data-timeline-title]'),
+    ).toHaveTextContent('Alpha');
+    expect(
+      container.querySelector('[data-timeline-timestamp]'),
+    ).not.toBeNull();
+  });
+
+  it('dense variant suppresses the icon inside the dot', () => {
+    const items = [
+      {
+        id: 'a',
+        timestamp: '2026-05-18T10:00:00Z',
+        title: 'Alpha',
+        icon: <span data-testid="my-icon">*</span>,
+      },
+    ];
+    const { container } = render(
+      <Timeline items={items} variant="dense" />,
+    );
+    // Dense drops the icon visually (the 8px dot is too
+    // small to host a glyph).
+    expect(container.querySelector('[data-testid="my-icon"]')).toBeNull();
+  });
+
+  it('variant prop carries through to grouped mode', () => {
+    const items = [
+      { id: '1', timestamp: '2026-05-18T10:00:00Z', title: 'A' },
+      { id: '2', timestamp: '2026-05-19T10:00:00Z', title: 'B' },
+    ];
+    const { container } = render(
+      <Timeline items={items} groupByDay variant="compact" />,
+    );
+    const root = container.querySelector('[data-timeline]') as HTMLElement;
+    expect(root.getAttribute('data-grouped')).toBe('day');
+    expect(root.getAttribute('data-variant')).toBe('compact');
+    const rows = container.querySelectorAll('[data-timeline-item]');
+    rows.forEach((row) => {
+      expect((row as HTMLElement).getAttribute('data-variant')).toBe('compact');
+    });
+  });
+
+  it('per-row data-variant attr mirrors the prop', () => {
+    const { container, rerender } = render(<Timeline items={baseItems} />);
+    let row = container.querySelector(
+      '[data-timeline-item]',
+    ) as HTMLElement;
+    expect(row.getAttribute('data-variant')).toBe('default');
+    rerender(<Timeline items={baseItems} variant="dense" />);
+    row = container.querySelector('[data-timeline-item]') as HTMLElement;
+    expect(row.getAttribute('data-variant')).toBe('dense');
   });
 });

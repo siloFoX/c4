@@ -4,6 +4,102 @@
 
 (no entries -- next release window)
 
+## [1.11.395] - 2026-05-18 -- UI: timeline primitive (TODO 11.377)
+
+`<Timeline>` (11.149 / v1.11.167) already
+shipped the dispatched core: vertical
+timeline, timestamp / title / description
+slots, custom dot/icon, tones,
+`groupByDay` mode. This patch closes the
+remaining dispatched bullet -- **variants
+(default / compact / dense)** -- so dense
+activity logs and sidebar timelines fit the
+right density.
+
+### Variants
+
+| variant | row padding | dot size | title text | description |
+| --- | --- | --- | --- | --- |
+| `default` (legacy) | `pb-4` + `pl-6` | `h-4 w-4` | `text-sm` | block below title |
+| `compact` | `pb-2` + `pl-5` | `h-3 w-3` | `text-xs` | block below title |
+| `dense` | `pb-1` + `pl-4` | `h-2 w-2` | `text-xs` (inline) | hidden |
+
+- `default` keeps the legacy 11.149 layout
+  byte-for-byte. Existing call sites stay
+  identical.
+- `compact` halves vertical rhythm + shrinks
+  the dot for sidebar / nested panel usage.
+- `dense` collapses the row to a single
+  baseline-aligned line (timestamp + title
+  side-by-side), drops the description
+  block, and suppresses the in-dot icon.
+  Use for huge activity logs (audit pane,
+  build history strip).
+
+### Data attributes
+
+- `data-variant` mirrors the prop on both
+  the root `<ol>` and every `<li>` so CSS
+  hooks + downstream tests can branch.
+- New per-row inner sections:
+  `data-timeline-title`,
+  `data-timeline-timestamp`,
+  `data-timeline-description`. Replaces the
+  prior class-only branching so tests can
+  assert by attribute.
+
+### Grouped mode
+
+`variant` threads through `groupByDay`
+mode -- every per-day bucket renders its
+rows with the same density.
+
+### Tests + types
+
+- `timeline.test.tsx`: +7 new cases (17
+  total). Covers default = legacy
+  byte-identical, compact tighter
+  spacing + smaller dot + smaller title
+  text, compact still renders the
+  description, dense single-line layout +
+  dropped description, dense suppresses
+  in-dot icon, variant carries through
+  grouped mode, per-row data-variant
+  attr mirroring.
+- 10 legacy cases unchanged.
+- `npx tsc --noEmit` clean for touched
+  files (2 pre-existing test errors on
+  legacy `headers[0]` access are
+  unchanged from before the patch).
+
+### Pairs with existing primitives
+
+- `<Stepper>` -- wizard-style sequential
+  timeline with progress semantics.
+- `<List>` / `<ActivityRow>` -- non-
+  connector vertical lists.
+- `<DataTable>` -- tabular alternative
+  when timeline rows are uniform fields
+  rather than narrative.
+
+### Out of scope
+
+- Per-page adoption swap (`compact` /
+  `dense` rollout). All three variants are
+  additive; every existing call site stays
+  byte-identical at `default`.
+- Horizontal timeline orientation. Vertical-
+  only by convention; horizontal feels are
+  better served by `<Stepper
+  orientation="horizontal">`.
+- Per-row variant override. Variant is
+  applied at the timeline level; mixed
+  density inside one timeline is rare and
+  belongs in a separate primitive.
+- Animated row stagger. The connector +
+  dot rendering is static; reveal motion
+  belongs in a per-surface tuning patch.
+
 ## [1.11.394] - 2026-05-18 -- UI: stepper primitive (TODO 11.376)
 
 `<Stepper>` (11.252 / v1.11.270) already
