@@ -98,3 +98,4 @@ export * from './suspense-wrapper';
 export * from './data-table';
 export * from './toggle';
 export * from './slider';
+export * from './file-upload-progress';
