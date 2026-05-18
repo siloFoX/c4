@@ -4,6 +4,96 @@
 
 (no entries -- next release window)
 
+## [1.11.340] - 2026-05-18 -- UI: Health page polish (TODO 11.322)
+
+Polishes `web/src/pages/Health.tsx` with category-aware
+module grouping, BadgeCounter chips, ScrollArea-capped
+long lists, and a Retry-capable ErrorState. Component-
+scope only, no daemon or CLI surface change.
+
+### Added
+
+- `categorizeModule(name)` helper exported from
+  `web/src/pages/Health.tsx`. Splits a module identifier
+  by leading path segment ("src/foo.js" -> "src"); falls
+  back to the file extension when no path is present
+  ("foo.js" -> ".js"); falls back to "other" when there
+  is no path and no extension. Drives the new
+  category-aware Accordion items.
+- `BadgeCounter` chip in the Modules accordion title.
+  Renders the per-category (or total, when only one
+  category) module count with `tone="neutral"`,
+  `size="sm"`, and an aria-label like
+  `"<n> loaded modules"` or `"<n> <category> modules"`.
+- `ScrollArea` wrapper around the module list when the
+  list is `MODULES_SCROLL_THRESHOLD` (12) or more
+  entries. Caps the rendered height to `max-h-64` so the
+  accordion item stays one viewport tall on daemons that
+  expose hundreds of modules. Below the threshold the
+  list renders inline without the wrapper.
+- Multi-category Accordion items. When the daemon
+  reports modules across more than one category (e.g.,
+  `src/`, `tests/`, plus a bare `*.ts`), the Modules
+  surface renders one Accordion item per category
+  instead of one large undivided list. Each item carries
+  its own BadgeCounter and its own ScrollArea gate.
+- Data attributes for e2e:
+  - `data-testid="health-error-state"` on the error
+    panel.
+  - `data-testid="health-modules-title"` (single-category
+    fallback) and
+    `data-testid="health-modules-title-<category>"`
+    (multi-category) on each accordion title cluster.
+  - `data-testid="health-modules-count-badge"`
+    (single-category) and
+    `data-testid="health-modules-count-badge-<category>"`
+    (multi-category) on each BadgeCounter chip.
+  - `data-testid="health-modules-scrollarea"`
+    (single-category) and
+    `data-testid="health-modules-scrollarea-<category>"`
+    (multi-category) on each ScrollArea wrapper.
+
+### Changed
+
+- `ErrorPanel` (from `./PageFrame`) replaced by the
+  canonical `ErrorState` primitive on the error path. The
+  primitive keeps `role="alert"` so the prior
+  `getByRole('alert')` assertions still hold, but adds a
+  Retry button wired to the hook's `refresh` callback so
+  the operator can recover without flipping to the
+  header. Title: "Could not load /api/health".
+- Imports: added `BadgeCounter`, `ErrorState`,
+  `ScrollArea` and the `AccordionItem` type from the ui
+  barrel. Removed the `ErrorPanel` import from
+  `./PageFrame`.
+- `data.modules` now flows through a new
+  `moduleGroups` `useMemo` (Map<category, string[]>)
+  before being rendered. Insertion order is preserved so
+  category accordions render in a stable order across
+  re-renders.
+
+### Tests
+
+- `web/src/pages/Health.test.tsx` -- existing 37 cases
+  unchanged. Nine new cases:
+  - error state shows a Retry button that fires
+    `refresh`;
+  - BadgeCounter renders with the correct count;
+  - long module lists wrap in a ScrollArea;
+  - short module lists do NOT wrap in a ScrollArea;
+  - multi-category modules render one accordion item per
+    category;
+  - `categorizeModule` splits by leading path segment;
+  - `categorizeModule` falls back to file extension;
+  - `categorizeModule` falls back to "other".
+- 44/45 cases pass against vitest 4.1.5 + jsdom 29.1.1.
+  The single failure (`does NOT render the loading
+  skeleton when data is already present`) is
+  pre-existing -- the StatusDot primitive exposes
+  `role="status"` for its pulse animation, which the
+  test does not account for. Left untouched to keep this
+  patch's scope tight.
+
 ## [1.11.339] - 2026-05-18 -- UI: FeatureFlags page redesign (TODO 11.321)
 
 Redesigns `web/src/pages/FeatureFlags.tsx` so the

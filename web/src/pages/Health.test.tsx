@@ -32,7 +32,7 @@ vi.mock('../components/HelpUIRoot', () => ({
   openHelpDrawer: vi.fn(),
 }));
 
-import Health from './Health';
+import Health, { categorizeModule } from './Health';
 
 function makeHealth(over: Partial<HealthPayload> = {}): HealthPayload {
   return {
@@ -367,5 +367,108 @@ describe('<Health>', () => {
       setLocale('ko');
     });
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  // (v1.11.340, TODO 11.322) The error path renders the
+  // ErrorState primitive with a Retry button that fires the
+  // hook's refresh callback. role="alert" is preserved so
+  // the prior assertion still holds.
+  it('shows a Retry button on the error state and wires it to the hook refresh', async () => {
+    hookState = { ...hookState, error: 'boom', data: null };
+    const user = userEvent.setup();
+    render(<Health />);
+    expect(screen.getByTestId('health-error-state')).toBeInTheDocument();
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    expect(retry).toBeInTheDocument();
+    await user.click(retry);
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+  });
+
+  // (v1.11.340, TODO 11.322) The single-category fallback
+  // renders one Modules accordion item with a BadgeCounter
+  // alongside the "Loaded modules (n)" title.
+  it('renders the BadgeCounter chip with the module count', () => {
+    hookState = {
+      ...hookState,
+      data: makeHealth({ modules: ['alpha.js', 'beta.js'] }),
+    };
+    render(<Health />);
+    const badge = screen.getByTestId('health-modules-count-badge');
+    expect(badge.textContent || '').toContain('2');
+  });
+
+  // (v1.11.340, TODO 11.322) When modules cross the scroll
+  // threshold, the list is wrapped in a ScrollArea so the
+  // accordion item stays one viewport tall.
+  it('wraps the modules list in a ScrollArea when there are MODULES_SCROLL_THRESHOLD or more entries', () => {
+    const many = Array.from({ length: 20 }, (_, i) => `m${i}.js`);
+    hookState = {
+      ...hookState,
+      data: makeHealth({ modules: many }),
+    };
+    render(<Health />);
+    expect(
+      screen.getByTestId('health-modules-scrollarea'),
+    ).toBeInTheDocument();
+  });
+
+  // (v1.11.340, TODO 11.322) Below the scroll threshold the
+  // module list renders inline (no ScrollArea wrapper).
+  it('does NOT wrap a short modules list in a ScrollArea', () => {
+    hookState = {
+      ...hookState,
+      data: makeHealth({ modules: ['a.js', 'b.js'] }),
+    };
+    render(<Health />);
+    expect(
+      screen.queryByTestId('health-modules-scrollarea'),
+    ).not.toBeInTheDocument();
+  });
+
+  // (v1.11.340, TODO 11.322) categorizeModule contract.
+  it('categorizeModule splits by leading path segment when present', () => {
+    expect(categorizeModule('src/foo.js')).toBe('src');
+    expect(categorizeModule('tests/bar/baz.ts')).toBe('tests');
+    expect(categorizeModule('/abs/path/x.js')).toBe('abs');
+  });
+
+  it('categorizeModule falls back to the file extension when no path is present', () => {
+    expect(categorizeModule('foo.js')).toBe('.js');
+    expect(categorizeModule('bar.ts')).toBe('.ts');
+    expect(categorizeModule('config.json')).toBe('.json');
+  });
+
+  it('categorizeModule falls back to "other" when there is no path and no extension', () => {
+    expect(categorizeModule('m1')).toBe('other');
+    expect(categorizeModule('plain-name')).toBe('other');
+    expect(categorizeModule('')).toBe('other');
+  });
+
+  // (v1.11.340, TODO 11.322) With multiple module categories
+  // (path-prefix + extension-suffix mix), the accordion
+  // renders one item per category.
+  it('renders one accordion item per module category when modules span multiple categories', () => {
+    hookState = {
+      ...hookState,
+      data: makeHealth({
+        modules: ['src/a.js', 'src/b.js', 'tests/c.js', 'd.ts'],
+      }),
+    };
+    render(<Health />);
+    expect(
+      screen.getByTestId('health-modules-title-src'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('health-modules-title-tests'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('health-modules-title-.ts'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('health-modules-count-badge-src').textContent || '',
+    ).toContain('2');
+    expect(
+      screen.getByTestId('health-modules-count-badge-tests').textContent || '',
+    ).toContain('1');
   });
 });
