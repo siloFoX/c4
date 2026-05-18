@@ -4,6 +4,248 @@
 
 (no entries -- next release window)
 
+## [1.11.417] - 2026-05-18 -- UI: diff editor primitive (TODO 11.399)
+
+New `web/src/components/ui/diff-editor.tsx`
+ships `<DiffEditor>` -- a Monaco-flavoured
+diff editor with per-hunk accept / reject
+buttons, inline edit mode, hunk
+navigation, and optional syntax
+highlighting. Reuses the diff engine
+(`computeLineDiff` / `findDiffChangeBlocks`
+/ `groupDiffHunks`) from `<SnapshotDiff>`
+(11.396) so the two primitives stay
+strictly in sync.
+
+### API
+
+```tsx
+<DiffEditor
+  before={oldText}
+  after={newText}
+  onAfterChange={(next) => setNewText(next)}
+  language="ts"
+  contextLines={3}
+  showLineNumbers
+  onAcceptHunk={(range) => log('accept', range)}
+  onRejectHunk={(range) => log('reject', range)}
+  onDecisionsChange={(map) => setDecisions(map)}
+  decisions={decisions}
+  readOnly={false}
+  defaultEditMode={false}
+  acceptLabel="Accept"
+  rejectLabel="Reject"
+  editLabel="Edit"
+  doneLabel="Done"
+/>
+```
+
+### Behaviour
+
+- **Hunk navigation**: Prev / Next
+  buttons + keyboard `n` /
+  `Alt+ArrowDown` (next), `p` /
+  `Alt+ArrowUp` (prev). Counter shows
+  `<idx+1> / <N>` ("1 / 2") or
+  "0 / 0" when no changes.
+- **Accept / Reject per hunk**:
+  buttons attached to the last line
+  of every change block. Click
+  records the decision (uncontrolled
+  internal Map, or controlled via
+  `decisions` prop) and fires
+  `onAcceptHunk(range)` /
+  `onRejectHunk(range)` +
+  `onDecisionsChange(map)`. Rejected
+  rows render with `line-through` +
+  `opacity-60` so the operator can
+  see at a glance which hunks they
+  have backed out.
+- **Inline edit**: not readOnly ->
+  header gets an Edit button. Toggle
+  swaps the diff body for a
+  `<textarea>` bound to the `after`
+  prop; typing fires
+  `onAfterChange(next)`. Done flips
+  back. The diff recomputes
+  automatically as `after` changes.
+- **Folding**: long unchanged
+  regions collapse to a one-line
+  click-to-expand row (same contract
+  as snapshot-diff;
+  `defaultExpandedFolds=true`
+  mounts everything open).
+- **Read-only mode**: hides Edit +
+  Accept + Reject controls;
+  data-read-only="true".
+
+### Pure helper
+
+```ts
+export function applyHunkDecisions(
+  before: string,
+  after: string,
+  decisions: Map<number, 'accept' | 'reject'>,
+): string;
+```
+
+Projects the accept / reject map
+onto the after string. Decision
+matrix per line:
+
+| line type | decision | included? |
+| --- | --- | --- |
+| equal | (any) | yes (verbatim) |
+| add | accept (default) | yes |
+| add | reject | no (revert) |
+| remove | accept (default) | no |
+| remove | reject | yes (restore before-side) |
+
+Lines outside any block default to
+'accept'. The host can call this
+helper to batch-apply decisions
+without per-click `onAfterChange`
+churn.
+
+### Hunk navigation helpers
+
+```ts
+export function nextHunkIndex(current: number, total: number): number;
+export function prevHunkIndex(current: number, total: number): number;
+```
+
+Wrap-around indices used by the
+component; exported so hosts can
+build their own nav UI on top.
+
+### ARIA + data attributes
+
+Root (`role="region"`, `tabIndex={0}`,
+`aria-label`):
+
+- `data-section="diff-editor"`
+- `data-language`
+- `data-change-count`
+- `data-active-hunk-index`
+- `data-edit-mode` (true/false)
+- `data-read-only` (true/false)
+
+Sub-nodes:
+
+- `data-section="diff-editor-header"`
+- `data-section="diff-editor-summary"`
+  ("+N -M")
+- `data-section="diff-editor-nav"`,
+  `-prev`, `-next`, `-counter`,
+  `-edit-toggle`
+- `data-section="diff-editor-body"`
+- `data-section="diff-editor-textarea"`
+  (edit mode)
+- `data-section="diff-editor-unified"`
+  (table)
+- `data-section="diff-editor-row"` +
+  `data-line-type` +
+  `data-line-index` +
+  `data-block-index` +
+  `data-decision` +
+  `data-active`
+- `data-section="diff-editor-line-number"`
+  + `data-side`
+- `data-section="diff-editor-line-prefix"`
+  (" " / "+" / "-")
+- `data-section="diff-editor-line-content"`
+- `data-section="diff-editor-line-actions"`
+- `data-section="diff-editor-accept"` +
+  `data-block-index`
+- `data-section="diff-editor-reject"` +
+  `data-block-index`
+- `data-section="diff-editor-fold"`
+  + `data-fold-id` + `data-fold-count`
+- `data-section="diff-editor-fold-button"`
+
+### Tests
+
+49 cases in `diff-editor.test.tsx`:
+
+- `applyHunkDecisions` (8): no
+  decisions -> after; reject one
+  hunk; accept idempotent; reject
+  one of multiple; reject all ->
+  before; pure additions; pure
+  deletions; no change blocks.
+- `nextHunkIndex` / `prevHunkIndex`
+  (5): wrap, increment, wrap to
+  last, decrement, total<=0.
+- Component (36): aria-label
+  default + custom, root data-attrs,
+  summary, prev/next disabled
+  without changes, Next advances,
+  Prev wraps, controlled
+  activeHunkIndex, counter "1 / N",
+  counter "0 / 0", Edit button
+  default visible, readOnly hides
+  Edit, click Edit -> textarea,
+  textarea value, typing ->
+  onAfterChange, Done flips back,
+  Accept + Reject buttons per
+  change block, Accept fires
+  onAcceptHunk with range, Reject
+  fires onRejectHunk, rejected
+  rows get data-decision="reject"
+  + visual flag, onDecisionsChange
+  fires with new Map, controlled
+  decisions prop, readOnly hides
+  Accept + Reject, line numbers
+  default on / off, renderText
+  override, per-row data-line-
+  type, active hunk highlight,
+  Alt+ArrowDown advances, n key
+  next, p key prev, fold rendered
+  for long unchanged regions, fold
+  expand on click, displayName,
+  ref forwarding, custom Accept /
+  Reject labels.
+
+49/49 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<SnapshotDiff>` (11.396) -- the
+  read-only sibling. DiffEditor
+  reuses its diff engine +
+  fold contract.
+- `<CodeBlock>` (11.379) --
+  single-block code. Pair with
+  `renderText` to plug Prism /
+  Shiki for highlighted code.
+- ThemeCustomizer (11.394) --
+  DiffEditor reads token-based
+  Tailwind classes (text-foreground,
+  border-border, etc) so it auto-
+  themes with the customizer.
+
+### Out of scope (deferred)
+
+- Side-by-side mode for the editor.
+  Unified is the canonical edit
+  surface; side-by-side belongs to
+  the read-only viewer. A follow-on
+  can add it.
+- Inline word-level diff. Line-level
+  only for v1.
+- Save / Discard buttons. The host
+  owns the after string; submit
+  UX belongs in the host.
+- Three-way merge. Two-way only.
+- Conflict markers (<<<<<<<<). Out
+  of scope; belongs to a merge-
+  specific primitive.
+- Imperative scroll-to-hunk API.
+  The host can compute the hunk
+  row by `data-block-index` and
+  scroll into view itself.
+
 ## [1.11.416] - 2026-05-18 -- UI: cmd-history component (TODO 11.398)
 
 New `web/src/components/ui/cmd-history.tsx`
