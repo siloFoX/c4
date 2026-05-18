@@ -218,6 +218,18 @@ export const FEATURES: FeatureDef[] = [
     Icon: Palette,
     load: () => import('./DesignSystem'),
   },
+  // (v1.11.325, TODO 11.307) Storybook-style demo route
+  // for visual QA. Gated by the `uiDemoRoute` feature
+  // flag; the page itself renders a disabled-state
+  // message when the flag is off.
+  {
+    id: 'ui-demo',
+    labelKey: 'feature.uiDemo.label',
+    descriptionKey: 'feature.uiDemo.description',
+    category: 'diagnostics',
+    Icon: LayoutGrid,
+    load: () => import('./UIDemoRoute'),
+  },
   {
     id: 'decision-log',
     labelKey: 'feature.decisionLog.label',

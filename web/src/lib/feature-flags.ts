@@ -11,7 +11,8 @@ export type FeatureFlagKey =
   | 'routeProgress'
   | 'pageTransitions'
   | 'motion'
-  | 'reducedMotion';
+  | 'reducedMotion'
+  | 'uiDemoRoute';
 
 export interface FeatureFlagDef {
   key: FeatureFlagKey;
@@ -52,6 +53,16 @@ export const FLAGS: readonly FeatureFlagDef[] = [
     label: 'Reduced Motion Override',
     description:
       'Force reduced-motion treatment regardless of the OS-level preference.',
+    defaultValue: false,
+  },
+  // (v1.11.325, TODO 11.307) Gate the storybook-style /ui-demo
+  // route. Off by default so the per-page rollout stays a
+  // dev-only affordance until the operator explicitly opts in.
+  {
+    key: 'uiDemoRoute',
+    label: 'UI Demo Route',
+    description:
+      'Enable the /ui-demo gallery page that renders every UI primitive with its main variants. Dev/visual-QA only.',
     defaultValue: false,
   },
 ] as const;
