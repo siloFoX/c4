@@ -4,6 +4,86 @@
 
 (no entries -- next release window)
 
+## [1.11.346] - 2026-05-18 -- UI: i18n coverage audit (TODO 11.328)
+
+Lands an i18n hardcoded-copy scanner + CI integration
+test that ratchets the violation count down over time.
+Companion to the existing
+`web/src/i18n/i18n-keys.test.ts` (which asserts every
+`t(key)` reference resolves); the new scanner detects
+the opposite drift -- user-facing copy that bypasses
+the `t()` / `tFormat()` pipeline entirely.
+
+### Added
+
+- `web/src/lib/i18n-coverage.ts` -- regex-based scanner
+  that walks page-level source files and flags
+  hardcoded English copy:
+  - `jsx-text` rule: JSX text nodes
+    (`<Button>Save changes</Button>`).
+  - `aria-label` / `title` / `alt` / `placeholder` /
+    `label` rules: string-valued user-facing
+    attributes.
+  - `looksLikeEnglishCopy()` heuristic: requires
+    `>= 6` chars, `>= 2` words, `>= 2` hyphen-free
+    words, no `${}` interpolation placeholder, no
+    pure-class-list shape, no entry in the
+    `TECHNICAL_TOKENS` set. Skips line + block
+    comments before regex matching.
+  - Public API: `scanSourceForI18nViolations(file,
+    contents)`, `scanFilesForI18nViolations(files)`,
+    `formatI18nViolations(violations)`,
+    `filterAllowed(violations, allowList)`,
+    `I18nCoverageViolation` + `I18nAllowEntry`
+    interfaces.
+- `web/src/lib/i18n-coverage.test.ts` -- 17 unit
+  cases + 3 `filterAllowed` cases + 1 integration
+  case = 21 tests total.
+- Integration ratchet: `MAX_KNOWN_PAGES_VIOLATIONS =
+  194` (current count). The integration test fails
+  when the violation count grows beyond the baseline;
+  follow-up patches that migrate strings to `t()`
+  should lower the constant. The full pages migration
+  is too large for one patch -- the ratchet is the
+  CI-runnable lever.
+
+### Heuristics
+
+| signal | decision |
+| --- | --- |
+| length `< 6` chars | skip |
+| no ASCII letter | skip |
+| `< 2` words | skip |
+| `< 2` hyphen-free words | skip (Tailwind class list shape) |
+| `${...}` or `{{...}}` interpolation | skip |
+| line or block comment | skip |
+| entry in `TECHNICAL_TOKENS` set | skip |
+| inside `import` / `export` / `type` / `interface` line | skip |
+| `title` / `aria-label` / `placeholder` / `label` attribute with no space | skip (short single-word value) |
+
+### Pages baseline
+
+The scanner currently surfaces 194 hardcoded-copy
+sites across `web/src/pages/*.tsx`. Each one is a
+real follow-up: replace the literal with a `t(key)`
+call and add a matching entry to
+`web/src/i18n/en.json` + `ko.json`. The baseline is
+encoded as the `MAX_KNOWN_PAGES_VIOLATIONS` export
+so per-migration patches can lower the floor by one
+edit.
+
+### Tests
+
+- `i18n-coverage.test.ts` -- 21 cases pass.
+  - 17 unit cases (jsx-text flag, aria-label flag,
+    title flag, placeholder flag, label flag,
+    skip-on-i18n-wrapping, skip-on-class-list,
+    skip-on-template-literal, skip-on-comment, etc.).
+  - 3 `filterAllowed` cases (no-op when empty,
+    text-match drop, pathSuffix scoping).
+  - 1 integration ratchet case (count <=
+    `MAX_KNOWN_PAGES_VIOLATIONS`).
+
 ## [1.11.345] - 2026-05-18 -- UI: Accessibility audit + fixes (TODO 11.327)
 
 Lands a CI-runnable axe-core helper plus an audit
