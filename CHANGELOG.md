@@ -4,6 +4,69 @@
 
 (no entries -- next release window)
 
+## [1.11.324] - 2026-05-18 -- UI: theme tokens validator (TODO 11.306)
+
+New theme-token policy enforcer at
+`web/src/lib/theme-tokens-validator.ts` + companion test
+that walks every `web/src/components/ui/*.tsx` file and
+asserts zero raw hex / rgb / hsl color literals.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/lib/theme-tokens-validator.ts` -- synchronous
+  scanner that takes source contents and returns a list
+  of `ThemeViolation` objects. Three rules enforced:
+  - `hex-color`: 3 / 4 / 6 / 8 digit hex literals like
+    `#fff`, `#1a1a1aff`. 5 / 7 digit hex sequences are
+    skipped (not valid CSS colors -- almost always a
+    build hash or content id).
+  - `rgb-fn`: `rgb(...)` and `rgba(...)` calls.
+  - `hsl-fn`: `hsl(...)` and `hsla(...)` calls.
+- Skip rules:
+  - `// line comments` are stripped before scanning.
+  - `/* block comments */` (including multi-line JSDoc)
+    are stripped before scanning.
+  - URL fragments (`href="#anchor"`), id selectors
+    (`'#main-id'`), and other non-color hex-like
+    substrings are filtered via a non-word-character
+    look-behind on the `#`.
+- Exported helpers:
+  - `scanSourceForViolations(filePath, contents)` ->
+    `ThemeViolation[]`.
+  - `scanFilesForViolations(files: readonly string[])`
+    -> `ThemeViolation[]` (reads each file from disk).
+  - `formatViolations(violations)` -> string. Yields a
+    human-readable `file:line:col [rule] match` report
+    used by the integration test failure message.
+
+### Tests
+
+- `web/src/lib/theme-tokens-validator.test.ts` -- 16
+  vitest cases:
+  - Unit (15): flags `#rrggbb`, `#rgb`, `#rrggbbaa` hex
+    literals; ignores `href="#anchor"`; ignores 5/7-digit
+    hex; flags `rgb()` and `rgba()`; flags `hsl()` and
+    `hsla()`; ignores hex inside line comments; ignores
+    hex inside block comments; allows `var(--token)`;
+    allows `currentColor` / `transparent` / `none`;
+    reports file/line/column; `formatViolations`
+    behaviour with and without violations.
+  - Integration (1): walks every
+    `web/src/components/ui/*.tsx` non-test file (>10
+    files) and asserts the scanner returns zero
+    violations. The integration test currently passes:
+    the UI tree is byte-clean (zero raw hex / rgb /
+    hsl literals); the test now guards against future
+    regressions.
+  All 16 green.
+
+### Versions
+
+- 1.11.323 -> 1.11.324 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.324]`.
+
 ## [1.11.323] - 2026-05-18 -- UI: motion utilities bundle (TODO 11.305)
 
 Consolidates the motion utilities into a single canonical
