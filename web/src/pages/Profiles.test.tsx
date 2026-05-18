@@ -295,12 +295,25 @@ describe('<Profiles>', () => {
     expect(screen.getByTestId('toast')).toBeInTheDocument();
   });
 
-  it('fires a not-implemented toast when the Remove action is clicked after expand', async () => {
+  it('fires a not-implemented toast when the Remove action is clicked and confirmed', async () => {
+    // (v1.11.335, TODO 11.317) Remove flow now opens a
+    // ConfirmDialog before firing the daemon (or, today, the
+    // not-implemented toast). The test clicks Remove ->
+    // confirms the destructive dialog -> asserts the toast.
     hookState = { ...hookState, items: [makeProfile({ name: 'web' })] };
     const user = userEvent.setup();
     render(<Profiles />);
     await user.click(screen.getByRole('button', { name: /web/ }));
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await user.click(screen.getByTestId('profiles-remove-web'));
+    // Confirm dialog opens. The destructive confirm button
+    // shares the localized "Remove" label, but it lives
+    // inside a role=dialog so we scope the lookup to avoid
+    // the row-button.
+    const dialog = await screen.findByRole('dialog');
+    const confirmButton = within(dialog).getByRole('button', {
+      name: 'Remove',
+    });
+    await user.click(confirmButton);
     expect(screen.getByTestId('toast')).toBeInTheDocument();
   });
 
@@ -435,5 +448,150 @@ describe('<Profiles>', () => {
       setLocale('ko');
     });
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  // (v1.11.335, TODO 11.317) Redesign polish coverage.
+
+  describe('source-grouping Tabs', () => {
+    it('renders three tabs (All / Built-in / Custom)', () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeProfile({ name: 'web', source: 'builtin' }),
+          makeProfile({ name: 'custom-a', source: 'custom' }),
+        ],
+      };
+      render(<Profiles />);
+      expect(
+        screen.getByRole('tab', { name: /All/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Built-in/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Custom/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('All tab is default and shows every profile', () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeProfile({ name: 'web', source: 'builtin' }),
+          makeProfile({ name: 'mine', source: 'custom' }),
+        ],
+      };
+      render(<Profiles />);
+      expect(screen.getByText('web')).toBeInTheDocument();
+      expect(screen.getByText('mine')).toBeInTheDocument();
+    });
+
+    it('Built-in tab filters to source=builtin', async () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeProfile({ name: 'web', source: 'builtin' }),
+          makeProfile({ name: 'mine', source: 'custom' }),
+        ],
+      };
+      const user = userEvent.setup();
+      render(<Profiles />);
+      await user.click(screen.getByRole('tab', { name: /Built-in/i }));
+      expect(screen.getByText('web')).toBeInTheDocument();
+      expect(screen.queryByText('mine')).not.toBeInTheDocument();
+    });
+
+    it('Custom tab filters to non-builtin sources', async () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeProfile({ name: 'web', source: 'builtin' }),
+          makeProfile({ name: 'mine', source: 'custom' }),
+        ],
+      };
+      const user = userEvent.setup();
+      render(<Profiles />);
+      await user.click(screen.getByRole('tab', { name: /Custom/i }));
+      expect(screen.getByText('mine')).toBeInTheDocument();
+      expect(screen.queryByText('web')).not.toBeInTheDocument();
+    });
+
+    it('tab labels include the current count chip', () => {
+      hookState = {
+        ...hookState,
+        items: [
+          makeProfile({ name: 'web', source: 'builtin' }),
+          makeProfile({ name: 'a', source: 'custom' }),
+          makeProfile({ name: 'b', source: 'custom' }),
+        ],
+      };
+      render(<Profiles />);
+      // All (3) / Built-in (1) / Custom (2)
+      expect(
+        screen.getByRole('tab', { name: /All \(3\)/ }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Built-in \(1\)/ }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: /Custom \(2\)/ }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('Remove ConfirmDialog flow', () => {
+    it('clicking Remove opens the destructive confirm dialog', async () => {
+      hookState = { ...hookState, items: [makeProfile({ name: 'web' })] };
+      const user = userEvent.setup();
+      render(<Profiles />);
+      await user.click(screen.getByRole('button', { name: /web/ }));
+      await user.click(screen.getByTestId('profiles-remove-web'));
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+      expect(
+        within(dialog).getByText(/Remove profile/i),
+      ).toBeInTheDocument();
+    });
+
+    it('Cancel closes the dialog without firing the action', async () => {
+      hookState = { ...hookState, items: [makeProfile({ name: 'web' })] };
+      const user = userEvent.setup();
+      render(<Profiles />);
+      await user.click(screen.getByRole('button', { name: /web/ }));
+      await user.click(screen.getByTestId('profiles-remove-web'));
+      const dialog = await screen.findByRole('dialog');
+      const cancelBtn = within(dialog).getByRole('button', {
+        name: /Cancel/i,
+      });
+      await user.click(cancelBtn);
+      // After cancel, no toast and dialog is gone.
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('role RadioGroup picker', () => {
+    it('renders a RadioGroup with admin / manager / worker options', async () => {
+      hookState = { ...hookState, items: [makeProfile({ name: 'web' })] };
+      const user = userEvent.setup();
+      render(<Profiles />);
+      await user.click(screen.getByRole('button', { name: /web/ }));
+      expect(screen.getByTestId('profiles-role-web')).toBeInTheDocument();
+      const group = screen.getByTestId('profiles-role-web');
+      const radios = within(group).getAllByRole('radio');
+      expect(radios.length).toBe(3);
+    });
+
+    it('worker is the default checked option', async () => {
+      hookState = { ...hookState, items: [makeProfile({ name: 'web' })] };
+      const user = userEvent.setup();
+      render(<Profiles />);
+      await user.click(screen.getByRole('button', { name: /web/ }));
+      const group = screen.getByTestId('profiles-role-web');
+      const workerRadio = within(group)
+        .getAllByRole('radio')
+        .find((r) => r.getAttribute('data-radio-value') === 'worker');
+      expect(workerRadio?.getAttribute('aria-checked')).toBe('true');
+    });
   });
 });
