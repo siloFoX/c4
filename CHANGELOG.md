@@ -4,6 +4,122 @@
 
 (no entries -- next release window)
 
+## [1.11.360] - 2026-05-18 -- UI: Focus visible polish (TODO 11.342)
+
+Centralises the canonical focus-visible ring class
+strings into `web/src/lib/focus-ring.ts` and lands a
+CI-runnable scanner that asserts every focusable
+surface in `web/src/components/ui` and `web/src/pages`
+carries a `focus-visible:` ring. Audit findings: the
+codebase is already well-disciplined -- only 1 known
+violation in the canonical baseline. The scanner now
+guards against regressions.
+
+### Added
+
+- `web/src/lib/focus-ring.ts` -- canonical class
+  string constants:
+  - `FOCUS_RING_DEFAULT` -- 2px primary ring +
+    2px offset against the background. The
+    canonical contract for buttons, links, inputs,
+    cards, and most focusable surfaces.
+  - `FOCUS_RING_INSET` -- 2px primary ring, no
+    offset. For dense rows / sticky headers where
+    the outset offset would overflow a parent.
+  - `FOCUS_RING_SUBTLE` -- 1px half-opacity primary
+    ring + 1px offset. For surfaces with heavy
+    chrome where the full ring would compete.
+  - `APP_SHELL_FOCUS_RING` -- compatibility alias
+    for the v1.11.343 export. Equal to
+    `FOCUS_RING_DEFAULT`. Lets existing imports keep
+    working during the rollout.
+- `web/src/lib/focus-ring-audit.ts` -- regex scanner
+  that flags focusable elements without a
+  `focus-visible:` prefixed class:
+  - Native focusable tags: `<button>`, `<a>`,
+    `<input>`, `<select>`, `<textarea>`.
+  - Custom elements with focusable roles: `button`,
+    `link`, `menuitem`, `tab`, `switch`, `option`,
+    `checkbox`, `radio`, `searchbox`, `textbox`.
+  - Skip list: `type="hidden"`, `hidden`,
+    `aria-hidden="true"`, `tabIndex={-1}` /
+    `tabIndex="-1"`.
+  - Block + line comments stripped before regex
+    matching.
+  - Native + role double-count guard: a
+    `<button role="button">` reports once, not
+    twice.
+- `web/src/lib/focus-ring.test.ts` -- 5 cases (ring
+  shape assertions + the alias contract).
+- `web/src/lib/focus-ring-audit.test.ts` -- 17 unit
+  cases + 1 integration ratchet:
+  - empty source / native-tag flag / focus-visible
+    pass / four-tag enumeration / hidden-input skip
+    / aria-hidden skip / tabIndex=-1 skip /
+    custom-role flag / role + focus-visible pass /
+    double-count guard / four-role enumeration /
+    comment skips / file-line-column report /
+    import-export-type skip / formatter empty /
+    formatter populated;
+  - integration ratchet
+    `MAX_KNOWN_FOCUS_RING_VIOLATIONS = 1` against
+    `web/src/components/ui/*.tsx` +
+    `web/src/pages/*.tsx`.
+
+### Audit findings
+
+| layer | files scanned | violations |
+| --- | --- | --- |
+| `web/src/components/ui/*.tsx` + `web/src/pages/*.tsx` | 130+ | 1 |
+
+The codebase has very strong baseline coverage --
+most primitives already use the canonical
+`focus-visible:outline-none focus-visible:ring-2
+ focus-visible:ring-primary focus-visible:ring-offset-2
+ focus-visible:ring-offset-background` class string
+or one of its variants. The single remaining
+violation is documented as the baseline; when a
+follow-up patch fixes it, lower the constant to 0.
+
+### Adoption pattern
+
+Reach for the constant when starting a new primitive:
+
+```tsx
+import { FOCUS_RING_DEFAULT } from '../../lib/focus-ring';
+import { cn } from '../../lib/cn';
+
+<button className={cn('rounded-md bg-primary px-3 py-1', FOCUS_RING_DEFAULT)}>
+  Save
+</button>
+```
+
+Existing primitives that inline the class string are
+NOT required to migrate -- both forms satisfy the
+audit. The constant is the path of least resistance
+for new code.
+
+### Out of scope
+
+- **Tailwind plugin to enforce focus-visible
+  globally.** The dispatch mentions "tailwind plugin
+  or shared utility". This patch ships the shared
+  utility; a plugin that intercepts every focusable
+  selector would be a deeper invasive change with
+  edge cases (custom `tabindex` elements, polymorphic
+  components). The scanner serves the same gate
+  function.
+- **Migrating inline class strings to the constants.**
+  The two forms produce identical CSS. A follow-up
+  cosmetic patch could swap them, but neither the
+  audit nor the runtime cares.
+
+### Tests
+
+- `focus-ring.test.ts` -- 5/5 pass.
+- `focus-ring-audit.test.ts` -- 18/18 pass (17 unit
+  + 1 integration ratchet).
+
 ## [1.11.359] - 2026-05-18 -- UI: Web Vitals monitoring (TODO 11.341)
 
 Adds Core Web Vitals reporting via the `web-vitals`
