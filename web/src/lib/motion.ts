@@ -79,6 +79,64 @@ export const motion = {
 
 export type MotionKey = keyof typeof motion;
 
+// (v1.11.348, TODO 11.330) Stagger animation primitives.
+// When a list animates in (filter results, dropdown
+// suggestions, drawer rows), staggering the per-item
+// entrance by a small delay reads as "the list assembled
+// itself" rather than "everything popped at once". The
+// pattern is a single base motion class
+// (`fadeIn` / `slideInRight` / etc.) plus an inline
+// `animation-delay` value derived from the row index.
+//
+// jsdom does not parse Tailwind's JIT-compiled
+// `animate-in` keyframes, so the visible animation
+// only fires in a real browser; the helpers below
+// still return the right inline style + class so the
+// markup remains test-stable.
+
+// Default per-item delay in milliseconds. 40 ms reads as
+// a smooth wave when 5-10 items animate in together; for
+// longer lists callers can scale via `step` override.
+export const MOTION_STAGGER_STEP_MS = 40;
+
+// Maximum delay (in milliseconds) the helper will emit.
+// Beyond this the stagger effect adds latency without
+// adding readability; the helper clamps to this cap so a
+// 200-row list does not delay the last entrance by 8s.
+export const MOTION_STAGGER_MAX_MS = 320;
+
+export interface MotionStaggerStyle {
+  animationDelay: string;
+}
+
+// (v1.11.348, TODO 11.330) Stateless picker. Returns an
+// inline-style object carrying the per-index
+// `animation-delay` value. The picker honours the
+// `reducedMotion` flag and returns an empty object when
+// reduced-motion is in effect.
+export function motionStaggerStyle(
+  index: number,
+  reducedMotion: boolean,
+  step: number = MOTION_STAGGER_STEP_MS,
+): MotionStaggerStyle | Record<string, never> {
+  if (reducedMotion) return {};
+  if (!Number.isFinite(index) || index < 0) return {};
+  const delay = Math.min(index * step, MOTION_STAGGER_MAX_MS);
+  if (delay === 0) return {};
+  return { animationDelay: `${delay}ms` };
+}
+
+// (v1.11.348, TODO 11.330) Hook-friendly one-liner.
+// Returns the inline style payload for the supplied row
+// index, gated on the user's reduced-motion preference.
+export function useMotionStaggerStyle(
+  index: number,
+  step: number = MOTION_STAGGER_STEP_MS,
+): MotionStaggerStyle | Record<string, never> {
+  const reducedMotion = useReducedMotion();
+  return motionStaggerStyle(index, reducedMotion, step);
+}
+
 // Stateless picker. Returns the Tailwind class string
 // for the given motion key when motion is allowed, or
 // the fallback when reduced. Callers that have the

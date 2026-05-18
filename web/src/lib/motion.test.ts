@@ -2,9 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, cleanup } from '@testing-library/react';
 import {
+  MOTION_STAGGER_MAX_MS,
+  MOTION_STAGGER_STEP_MS,
   motion,
   motionClass,
+  motionStaggerStyle,
   useMotionClass,
+  useMotionStaggerStyle,
   useReducedMotion,
 } from './motion';
 
@@ -142,6 +146,68 @@ describe('useMotionClass', () => {
       const { result } = renderHook(() => useMotionClass(key));
       expect(result.current).toBe(motionClass(key, false));
     }
+  });
+});
+
+// (v1.11.348, TODO 11.330) Stagger helpers.
+
+describe('motionStaggerStyle', () => {
+  it('returns an empty object when reducedMotion is true', () => {
+    expect(motionStaggerStyle(0, true)).toEqual({});
+    expect(motionStaggerStyle(5, true)).toEqual({});
+  });
+
+  it('returns an empty object for index 0 (no delay on the first item)', () => {
+    expect(motionStaggerStyle(0, false)).toEqual({});
+  });
+
+  it('returns a per-index animation-delay when reducedMotion is false', () => {
+    const out = motionStaggerStyle(3, false);
+    expect(out).toEqual({ animationDelay: `${3 * MOTION_STAGGER_STEP_MS}ms` });
+  });
+
+  it('honours a caller-supplied step value', () => {
+    expect(motionStaggerStyle(2, false, 100)).toEqual({
+      animationDelay: '200ms',
+    });
+  });
+
+  it('clamps the delay to MOTION_STAGGER_MAX_MS', () => {
+    const out = motionStaggerStyle(1000, false);
+    expect(out).toEqual({ animationDelay: `${MOTION_STAGGER_MAX_MS}ms` });
+  });
+
+  it('returns an empty object for negative or NaN indexes (defensive)', () => {
+    expect(motionStaggerStyle(-1, false)).toEqual({});
+    expect(motionStaggerStyle(Number.NaN, false)).toEqual({});
+    expect(motionStaggerStyle(Number.POSITIVE_INFINITY, false)).toEqual({});
+  });
+});
+
+describe('useMotionStaggerStyle', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    cleanup();
+  });
+
+  it('returns the staggered delay when prefers-reduced-motion is OFF', () => {
+    setMatchMedia(false);
+    const { result } = renderHook(() => useMotionStaggerStyle(2));
+    expect(result.current).toEqual({
+      animationDelay: `${2 * MOTION_STAGGER_STEP_MS}ms`,
+    });
+  });
+
+  it('returns an empty object when prefers-reduced-motion is ON', () => {
+    setMatchMedia(true);
+    const { result } = renderHook(() => useMotionStaggerStyle(3));
+    expect(result.current).toEqual({});
+  });
+
+  it('honours a caller-supplied step', () => {
+    setMatchMedia(false);
+    const { result } = renderHook(() => useMotionStaggerStyle(1, 80));
+    expect(result.current).toEqual({ animationDelay: '80ms' });
   });
 });
 
