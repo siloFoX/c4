@@ -1,7 +1,9 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -62,6 +64,15 @@ export interface FileDropProps {
   // copy / illustration. When omitted the canonical
   // "Drop files here or click to browse" copy renders.
   bodyContent?: ReactNode;
+  // (v1.11.370, TODO 11.352) Preview thumbnails for
+  // image-type staged files. When `true` (default),
+  // image files render an inline thumbnail next to
+  // the row -- the URL is created via
+  // `URL.createObjectURL` and revoked on unmount /
+  // file remove to avoid leaking blob URLs. Set to
+  // `false` to fall back to the canonical
+  // FileText icon for every row.
+  previewThumbnails?: boolean;
   className?: string;
 }
 
@@ -117,6 +128,7 @@ export const FileDrop = forwardRef<HTMLDivElement, FileDropProps>(
       progressVariant = 'default',
       showProgress = false,
       bodyContent,
+      previewThumbnails = true,
       className,
     },
     ref,
@@ -138,6 +150,69 @@ export const FileDrop = forwardRef<HTMLDivElement, FileDropProps>(
     const stagedFiles: File[] = isControlled
       ? selectedFiles
       : internalFiles;
+
+    // (v1.11.370, TODO 11.352) Preview thumbnails
+    // for image-type files. Each image gets one
+    // `URL.createObjectURL` per identity key
+    // (`name + size + lastModified`) so a re-render
+    // does not generate a new blob URL on every
+    // pass. Revoke happens (a) when the file leaves
+    // the staged list and (b) on full unmount.
+    const previewMapRef = useRef<Map<string, string>>(new Map());
+    const previewUrls = useMemo<Array<string | null>>(() => {
+      if (!previewThumbnails) {
+        return stagedFiles.map(() => null);
+      }
+      const next = new Map<string, string>();
+      const out: Array<string | null> = [];
+      for (const f of stagedFiles) {
+        if (!f.type.startsWith('image/')) {
+          out.push(null);
+          continue;
+        }
+        const key = `${f.name}|${f.size}|${(f as File & { lastModified?: number }).lastModified ?? ''}`;
+        const cached = previewMapRef.current.get(key);
+        if (cached) {
+          next.set(key, cached);
+          out.push(cached);
+          continue;
+        }
+        try {
+          const url = URL.createObjectURL(f);
+          next.set(key, url);
+          out.push(url);
+        } catch {
+          out.push(null);
+        }
+      }
+      // Revoke URLs that no longer belong to any
+      // staged file so the blob references drop.
+      for (const [key, url] of previewMapRef.current) {
+        if (!next.has(key)) {
+          try {
+            URL.revokeObjectURL(url);
+          } catch {
+            // ignore
+          }
+        }
+      }
+      previewMapRef.current = next;
+      return out;
+    }, [stagedFiles, previewThumbnails]);
+
+    useEffect(() => {
+      const map = previewMapRef.current;
+      return () => {
+        for (const url of map.values()) {
+          try {
+            URL.revokeObjectURL(url);
+          } catch {
+            // ignore
+          }
+        }
+        map.clear();
+      };
+    }, []);
 
     const openPicker = useCallback(() => {
       if (disabled) return;
@@ -328,17 +403,31 @@ export const FileDrop = forwardRef<HTMLDivElement, FileDropProps>(
             data-section="file-drop-staged"
             className="flex flex-col gap-1 rounded-md border border-border bg-card/40 p-2"
           >
-            {stagedFiles.map((f, i) => (
+            {stagedFiles.map((f, i) => {
+              const previewUrl = previewUrls[i];
+              return (
               <li
                 key={`${f.name}-${f.size}-${i}`}
                 data-section="file-drop-staged-row"
                 data-file-name={f.name}
                 className="flex items-center gap-2 text-xs text-foreground"
               >
-                <FileText
-                  aria-hidden="true"
-                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                />
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt=""
+                    aria-hidden="true"
+                    decoding="async"
+                    loading="lazy"
+                    data-section="file-drop-thumbnail"
+                    className="h-8 w-8 shrink-0 rounded-sm border border-border object-cover"
+                  />
+                ) : (
+                  <FileText
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                  />
+                )}
                 <span className="min-w-0 flex-1 truncate font-mono">
                   {f.name}
                 </span>
@@ -359,7 +448,8 @@ export const FileDrop = forwardRef<HTMLDivElement, FileDropProps>(
                   <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : null}
         {hasProgress ? (
