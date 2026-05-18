@@ -22,6 +22,7 @@ import {
   type TabsItem,
 } from './ui';
 import { t, tFormat, useLocale } from '../lib/i18n';
+import { useHashRoute, makeBreadcrumbNavigator } from '../lib/use-hash-route';
 import type { HistoryWorkerDetail } from './HistoryView';
 
 // (v1.10.564) Extracted from HistoryView. The right-pane detail
@@ -96,6 +97,13 @@ function deriveMetrics(detail: HistoryWorkerDetail): MetricsBreakdown {
 
 export default function HistoryDetailPane({ detail }: Props) {
   useLocale();
+  // (v1.11.377, TODO 11.359) Hash-routed
+  // breadcrumb adapter. The History root crumb
+  // is now clickable; selecting it navigates
+  // back to the History route via hash without a
+  // full page reload.
+  const { navigate } = useHashRoute();
+  const breadcrumbNav = makeBreadcrumbNavigator(navigate);
   const [recordsPage, setRecordsPage] = useState(1);
   const [activeTab, setActiveTab] = useState<DetailTabKey>('task');
   const recordsTotal = detail.records.length;
@@ -128,7 +136,12 @@ export default function HistoryDetailPane({ detail }: Props) {
           className="mb-2"
           maxLabelLength={24}
           items={[
-            { id: 'history', label: t('history.sidebar.title') },
+            {
+              id: 'history',
+              label: t('history.sidebar.title'),
+              href: '#feature=history',
+              onClick: breadcrumbNav('#feature=history'),
+            },
             { id: 'worker', label: detail.name },
           ]}
         />

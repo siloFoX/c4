@@ -4,6 +4,122 @@
 
 (no entries -- next release window)
 
+## [1.11.377] - 2026-05-18 -- UI: breadcrumbs router integration (TODO 11.359)
+
+The `<Breadcrumbs>` primitive itself shipped in
+11.283 (v1.11.301) with accessible nav landmark,
+custom separator, `maxItems` collapse, and
+`maxLabelLength` truncate-middle. This patch
+ships the missing router-integration piece: a
+minimal hash-routing helper + breadcrumb
+navigator + adoption at HistoryDetailPane and
+Snapshots.
+
+### `lib/use-hash-route.ts` (new)
+
+```ts
+const { hash, navigate } = useHashRoute();
+const handler = makeBreadcrumbNavigator(navigate);
+// handler('#feature=workers') -> click handler
+// that preventDefaults + navigates.
+
+parseHashParams('#feature=workers&worker=auto-w42');
+// -> { feature: 'workers', worker: 'auto-w42' }
+```
+
+- `useHashRoute()` returns the current
+  `location.hash` and re-renders on every
+  `hashchange` event. SSR-safe via `typeof
+  window` guards.
+- `navigate(target)` normalises a leading `#`
+  and forces a `hashchange` emit when the
+  target equals the current hash (so the
+  Breadcrumbs onClick handler still flips
+  the route).
+- `parseHashParams(hash)` -- pure helper that
+  splits `#feature=workers&worker=auto-w42`
+  into a `Record<string, string>` (URL-decoded
+  values).
+- `makeBreadcrumbNavigator(navigate)` factory
+  -- returns `(target) => (event) => void`
+  that preventDefaults the click + calls
+  navigate. Survives events without
+  `preventDefault`. Adopters compose it with
+  the `Breadcrumbs.items[].onClick` slot.
+
+### Adoption
+
+- `web/src/components/HistoryDetailPane.tsx` --
+  the "History" root crumb now carries an
+  `href="#feature=history"` + an `onClick`
+  built from `makeBreadcrumbNavigator`. Middle-
+  click + screen-reader behaviour still work
+  via the real `href`; primary-click navigates
+  via the hash without a full page reload.
+- `web/src/pages/Snapshots.tsx` -- adds a new
+  Breadcrumbs above the table:
+  Workers > Snapshots. The Workers crumb is
+  hash-routed; the Snapshots crumb is the
+  current page (no link).
+  `data-testid="snapshots-breadcrumbs"` for
+  the e2e selector.
+
+### Tests
+
+`web/src/lib/use-hash-route.test.ts` -- 15
+cases:
+
+- `parseHashParams`: empty -> {}, single
+  key=value, multiple separated by &,
+  URL-decoded values, skips malformed
+  segments (no key / no =), missing leading
+  `#`.
+- `useHashRoute`: initial hash on mount,
+  updates on hashchange, navigate writes to
+  location.hash with normalisation, accepts
+  pre-#'d target, removes listener on
+  unmount.
+- `makeBreadcrumbNavigator`: returns a
+  function that calls navigate(target),
+  preventDefaults the event, survives events
+  without preventDefault.
+
+15/15 pass under vitest 4.1.5. TypeScript clean
+for the new lib + the two adopted files.
+
+### Pairs with existing primitives
+
+- `components/ui/breadcrumbs.tsx` (11.283)
+  unchanged. The new lib slots into the
+  existing `items[].onClick` contract.
+- `App.tsx` hash routing remains the
+  app-level navigation pattern; the new lib
+  shares the same hash format
+  (`#feature=<name>`).
+- `lib/scroll-restore.ts` (11.348) -- the
+  popstate-based scroll restore composes
+  cleanly with hash navigation since
+  hashchange does NOT fire popstate.
+
+### Out of scope
+
+- React Router integration. The c4 app has
+  no Router today; the `navigate` shape
+  matches react-router's
+  `useNavigate()` closely enough that a
+  future migration can swap them with a
+  small adapter.
+- Per-page Breadcrumbs adoption beyond the
+  two cited surfaces. The legacy
+  `PageHeader.breadcrumbs[]` shape is the
+  alternate path; per-page migration is a
+  follow-up.
+- Replace-vs-push history semantics
+  (`navigate(target, { replace: true })`).
+  Hash routing always pushes; an explicit
+  `replaceState` adapter can land alongside
+  if needed.
+
 ## [1.11.376] - 2026-05-18 -- UI: empty state variants (TODO 11.358)
 
 The `<EmptyState>` primitive itself shipped in
