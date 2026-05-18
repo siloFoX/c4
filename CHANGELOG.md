@@ -4,6 +4,94 @@
 
 (no entries -- next release window)
 
+## [1.11.321] - 2026-05-18 -- UI: useA11yIds helper bundle (TODO 11.303)
+
+New `useA11yIds` hook at `web/src/hooks/use-a11y-ids.ts`.
+Component-scope only, no daemon or CLI surface change.
+
+### Added
+
+- `web/src/hooks/use-a11y-ids.ts` -- bundles the four
+  canonical accessibility ids that every labelled form
+  control needs (control + label + helper + warning +
+  error) plus derives the matching `aria-describedby`
+  string and an `aria-invalid` boolean. Replaces the
+  4-useId + ad-hoc id-suffix + ad-hoc describedBy join
+  pattern that currently repeats across FormField,
+  RadioGroup, Checkbox, NativeSelect, TagInput,
+  NumberInput.
+- Hook surface:
+  - Input options (all optional):
+    - `id?: string` -- caller-provided id (overrides
+      the `useId` fallback). When omitted, the hook
+      uses React's `useId` so server / client output
+      matches without manual coordination.
+    - `helper?: string | boolean | null | undefined` --
+      truthy means the helper message is present and
+      should be referenced from `aria-describedby`.
+    - `warning?: string | boolean | null | undefined` --
+      same for the warning slot.
+    - `error?: string | boolean | null | undefined` --
+      same for the error slot. Also flips
+      `ariaInvalid` to `true`.
+    - `describedBy?: string` -- upstream
+      `aria-describedby` value that should be merged
+      with the helper/warning/error ids.
+  - Result:
+    - `controlId: string` -- the form control's id.
+    - `labelId: string` -- `${controlId}-label`.
+    - `helperId: string` -- `${controlId}-helper`.
+    - `warningId: string` -- `${controlId}-warning`.
+    - `errorId: string` -- `${controlId}-error`.
+    - `ariaDescribedBy: string | undefined` --
+      precedence-aware space-joined sequence; never an
+      empty string (axe-core would warn). Order:
+      upstream describedBy, then helper, warning,
+      error.
+    - `ariaInvalid: true | undefined` -- `true` when
+      error is active, otherwise undefined.
+    - `state: 'ok' | 'warning' | 'error'` -- precedence
+      error > warning > ok. Useful for `data-state` on
+      the form-field wrapper.
+- Memoised: stable identity across renders when inputs
+  do not change.
+- Empty string / `false` / `null` are all treated as
+  "no message" so callers can pass raw prop values
+  without coercing.
+
+### Deferred (dispatch follow-ups)
+
+- Existing call sites that re-derive the same id shapes
+  by hand (`form-field.tsx`, `radio-group.tsx`,
+  `checkbox.tsx`, `select.tsx` NativeSelect,
+  `tag-input.tsx`, `number-input.tsx`) can each migrate
+  to `useA11yIds` in its own per-component patch. The
+  hook ships first so the migrations can land
+  independently and not balloon the blast radius of
+  this commit.
+
+### Tests
+
+- `web/src/hooks/use-a11y-ids.test.tsx` -- 17 vitest
+  cases covering: stable controlId from `useId`,
+  explicit id override, four-id derivation prefix,
+  no-message ariaDescribedBy omitted, helper-only,
+  warning-only, error-only (ariaInvalid + state),
+  helper+error precedence, error>warning>ok precedence,
+  empty-string / false / null treated as no-message,
+  upstream describedBy merge, describedBy-only,
+  memoisation stability across no-op renders, new
+  object on input change, truthy `true` boolean
+  counts as active, `useId` uniqueness across hook
+  instances, documented suffix shape (`-label`,
+  `-helper`, `-warning`, `-error`). All 17 green.
+
+### Versions
+
+- 1.11.320 -> 1.11.321 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.321]`.
+
 ## [1.11.320] - 2026-05-18 -- UI: useRovingTabindex helper (TODO 11.302)
 
 New `useRovingTabindex` hook at
