@@ -64,9 +64,31 @@ describe('<Alert>', () => {
     expect(screen.getByTestId('icon')).toBeInTheDocument();
   });
 
-  it('omits icon slot when not provided', () => {
+  it('renders the auto-icon for the default (info) variant when icon is omitted', () => {
+    // v1.11.398 (TODO 11.380): signal-bearing variants get an
+    // auto-icon by default. Use icon={false} to opt out.
     const { container } = render(<Alert title="t">body</Alert>);
-    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(
+      container.querySelector('[data-section="alert-icon"]'),
+    ).not.toBeNull();
+  });
+
+  it('omits the icon slot for the neutral variant by default', () => {
+    const { container } = render(
+      <Alert variant="neutral" title="t">body</Alert>,
+    );
+    expect(
+      container.querySelector('[data-section="alert-icon"]'),
+    ).toBeNull();
+  });
+
+  it('icon={false} opts out of the auto-icon entirely', () => {
+    const { container } = render(
+      <Alert icon={false} title="t">body</Alert>,
+    );
+    expect(
+      container.querySelector('[data-section="alert-icon"]'),
+    ).toBeNull();
   });
 
   it('renders action slot when provided', () => {
@@ -129,5 +151,111 @@ describe('<Alert>', () => {
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper).toHaveClass('my-alert');
     expect(wrapper.className).toContain('rounded-md');
+  });
+
+  // -- v1.11.398 auto-icons + size scale (TODO 11.380) -----------
+
+  it('auto-icon renders for each signal-bearing variant', () => {
+    const variants = ['info', 'success', 'warning', 'error'] as const;
+    for (const v of variants) {
+      const { container, unmount } = render(<Alert variant={v}>x</Alert>);
+      expect(
+        container.querySelector('[data-section="alert-icon"]'),
+        `auto-icon missing for variant=${v}`,
+      ).not.toBeNull();
+      unmount();
+    }
+  });
+
+  it('caller-supplied icon wins over the auto-icon', () => {
+    const { container } = render(
+      <Alert variant="success" icon={<span data-testid="custom" />}>
+        x
+      </Alert>,
+    );
+    const icon = container.querySelector('[data-section="alert-icon"]');
+    expect(icon).not.toBeNull();
+    expect(icon!.querySelector('[data-testid="custom"]')).not.toBeNull();
+    // Default success icon is a lucide svg; with custom passed,
+    // no lucide-circle-check svg should render.
+    expect(icon!.querySelector('svg.lucide-circle-check')).toBeNull();
+  });
+
+  it('default size="md" applies the legacy p-3 text-sm gap-3 classes', () => {
+    const { container } = render(<Alert>x</Alert>);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper.className).toContain('p-3');
+    expect(wrapper.className).toContain('text-sm');
+    expect(wrapper.className).toContain('gap-3');
+    expect(wrapper.getAttribute('data-size')).toBe('md');
+  });
+
+  it('size="sm" applies dense padding + smaller text', () => {
+    const { container } = render(<Alert size="sm">x</Alert>);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper.className).toContain('p-2');
+    expect(wrapper.className).toContain('text-xs');
+    expect(wrapper.className).toContain('gap-2');
+    expect(wrapper.getAttribute('data-size')).toBe('sm');
+  });
+
+  it('size="lg" applies hero padding + larger text', () => {
+    const { container } = render(<Alert size="lg">x</Alert>);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper.className).toContain('p-4');
+    expect(wrapper.className).toContain('text-base');
+    expect(wrapper.className).toContain('gap-4');
+    expect(wrapper.getAttribute('data-size')).toBe('lg');
+  });
+
+  it('dismiss button scales with size', () => {
+    const { container, rerender } = render(
+      <Alert size="sm" dismissible>x</Alert>,
+    );
+    let btn = container.querySelector(
+      '[data-section="alert-dismiss"]',
+    ) as HTMLElement;
+    expect(btn.className).toContain('h-5');
+    expect(btn.className).toContain('w-5');
+    rerender(<Alert size="lg" dismissible>x</Alert>);
+    btn = container.querySelector(
+      '[data-section="alert-dismiss"]',
+    ) as HTMLElement;
+    expect(btn.className).toContain('h-7');
+    expect(btn.className).toContain('w-7');
+  });
+
+  it('data-section attrs on the root + inner blocks for tests', () => {
+    const { container } = render(
+      <Alert variant="warning" title="Heads up" action={<button type="button">go</button>} dismissible>
+        body text
+      </Alert>,
+    );
+    expect(
+      container.querySelector('[data-section="alert"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-section="alert-title"]'),
+    ).toHaveTextContent('Heads up');
+    expect(
+      container.querySelector('[data-section="alert-description"]'),
+    ).toHaveTextContent('body text');
+    expect(
+      container.querySelector('[data-section="alert-action"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-section="alert-dismiss"]'),
+    ).not.toBeNull();
+  });
+
+  it('data-variant attr mirrors the variant', () => {
+    const { container, rerender } = render(<Alert variant="error">x</Alert>);
+    expect(
+      (container.firstChild as HTMLElement).getAttribute('data-variant'),
+    ).toBe('error');
+    rerender(<Alert variant="success">x</Alert>);
+    expect(
+      (container.firstChild as HTMLElement).getAttribute('data-variant'),
+    ).toBe('success');
   });
 });

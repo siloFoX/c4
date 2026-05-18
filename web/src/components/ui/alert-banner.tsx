@@ -59,6 +59,7 @@ export function AlertBanner({
   action,
   dismissible,
   onDismiss,
+  size,
   className,
   ...rest
 }: AlertBannerProps): ReactNode {
@@ -80,6 +81,7 @@ export function AlertBanner({
       action={action}
       {...(dismissible !== undefined ? { dismissible } : {})}
       {...(onDismiss !== undefined ? { onDismiss } : {})}
+      {...(size !== undefined ? { size } : {})}
       data-section="alert-banner"
       data-severity={severity ?? (legacyVariant ?? 'info')}
       aria-live="polite"
