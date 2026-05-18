@@ -4,6 +4,86 @@
 
 (no entries -- next release window)
 
+## [1.11.320] - 2026-05-18 -- UI: useRovingTabindex helper (TODO 11.302)
+
+New `useRovingTabindex` hook at
+`web/src/hooks/use-roving-tabindex.ts`. Component-scope only,
+no daemon or CLI surface change.
+
+### Added
+
+- `web/src/hooks/use-roving-tabindex.ts` -- shared
+  roving-tabindex hook for composite widgets (Tabs,
+  Accordion, SegmentedControl, ActionMenu, Toolbar). The
+  WAI-ARIA roving tabindex pattern says: exactly one item
+  in a composite group is in the tab sequence at a time
+  (`tabIndex=0`); the rest are removed via `tabIndex=-1`;
+  Arrow keys + Home/End navigate inside the group; a single
+  Tab press enters / exits the whole group. The hook bundles
+  the state + key handler + ref management so any composite
+  widget can opt in with three lines.
+- Hook surface:
+  - Input options:
+    - `itemCount: number` -- required.
+    - `orientation?: 'horizontal' | 'vertical' | 'both'`
+      (default `'horizontal'`).
+    - `wrap?: boolean` (default `true`).
+    - `initialIndex?: number` (default `0`, clamped to
+      valid range).
+    - `onChange?: (idx: number) => void` -- fires when the
+      active index changes (Arrow / Home / End / direct
+      focus / programmatic `setActiveIndex`).
+    - `isItemDisabled?: (idx: number) => boolean` -- the
+      Arrow step skips disabled items; the active item is
+      still allowed to be a disabled one if the caller
+      forces it via `initialIndex`.
+  - Result:
+    - `activeIndex: number`.
+    - `setActiveIndex(idx)` -- programmatic setter (no
+      focus side-effect; for that, call `.focus()` on the
+      registered ref).
+    - `getItemProps(idx)` -- returns
+      `{ tabIndex, onKeyDown, onFocus, ref, 'data-roving-index' }`
+      to spread onto each item element.
+    - `itemRefs` -- the underlying `MutableRefObject<HTMLElement[]>`
+      exposed for callers that need to call `.focus()`
+      after a controlled state change.
+- Re-exported via existing
+  `web/src/hooks/use-roving-tabindex.ts` (not added to the
+  ui/index.ts barrel because hooks live in `hooks/`).
+
+### Deferred (dispatch follow-ups)
+
+- Existing Tabs (`tabs.tsx`), Accordion (`accordion.tsx`),
+  SegmentedControl (`segmented-control.tsx`), and
+  ActionMenu (`list-action-menu.tsx`) primitives implement
+  the roving-tabindex contract by hand (`tabIndex={active ? 0 : -1}`
+  + a per-component keydown handler). Migrating each to
+  `useRovingTabindex` is a follow-up per-primitive patch so
+  each migration can land with its own test refresh and the
+  blast radius of this commit stays minimal.
+
+### Tests
+
+- `web/src/hooks/use-roving-tabindex.test.tsx` -- 20 vitest
+  cases covering: initial tabIndex distribution, custom
+  `initialIndex`, out-of-range clamping, ArrowRight forward,
+  ArrowLeft backward, wraparound at last index, no-wrap
+  variant stays at end, Home / End jumps, vertical
+  orientation uses ArrowDown/Up, horizontal ignores
+  ArrowDown/Up, `'both'` orientation responds to all four
+  arrows, `onChange` fires only on index change, disabled
+  items are skipped during Arrow nav, Home/End respect
+  disabled ends, focus-on-item promotes it to active,
+  programmatic `setActiveIndex` updates without focusing,
+  `data-roving-index` selector, `itemCount=0` no-crash,
+  unrelated keys do not preventDefault. All 20 green.
+
+### Versions
+
+- 1.11.319 -> 1.11.320 across root + web package.json + both
+  lockfiles. CHANGELOG.md entry under `## [1.11.320]`.
+
 ## [1.11.319] - 2026-05-18 -- UI: FocusTrap primitive (TODO 11.301)
 
 New `FocusTrap` primitive at `web/src/components/ui/focus-trap.tsx`.
