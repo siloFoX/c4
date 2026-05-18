@@ -4,6 +4,78 @@
 
 (no entries -- next release window)
 
+## [1.11.331] - 2026-05-18 -- UI: Settings page redesign (TODO 11.313)
+
+Refactors `web/src/pages/Settings.tsx` to use the
+canonical RadioGroup primitive (v1.11.306) and adds
+consistent data-section markers for e2e targeting.
+Component-scope only, no daemon or CLI surface change.
+
+### Changed
+
+- `Settings.tsx` -- Locale picker now uses
+  `<RadioGroup>` instead of the manual `<Radio>`
+  loop. The arrow-key navigation, roving tabindex,
+  and standard `[data-section="radio-group"]`
+  e2e selectors come for free. Per-item radios are
+  selectable via `[role="radio"][data-radio-value="<locale>"]`.
+- Page is now wrapped in
+  `<div data-section="settings-page" className="contents">`
+  so the entire surface can be selected from e2e
+  tests without disturbing the layout (the
+  `contents` class makes the wrapper visually
+  transparent).
+- Locale panel is wrapped in
+  `<div data-settings-panel="locale">` for scoped
+  selectors; future panels can adopt the same
+  `data-settings-panel="<name>"` shape.
+- Existing `useState<Locale>` + `handleChange`
+  contract is preserved; the new RadioGroup
+  invocation only changes the rendered DOM, not the
+  storage behaviour.
+
+### Tests
+
+- `web/src/pages/Settings.test.tsx` -- updated the
+  Locale localStorage round-trip test to use the
+  new `[role="radio"][data-radio-value="..."]`
+  selectors instead of the legacy per-locale
+  `data-testid` hooks. Added 3 new cases:
+  - `data-section="settings-page"` wrapper is
+    present.
+  - Locale panel uses the RadioGroup primitive
+    (asserts `[data-section="radio-group"]` is
+    nested inside `[data-settings-panel="locale"]`
+    and there are >=2 role=radio items).
+  - Locale RadioGroup carries
+    `data-testid="settings-locale-radiogroup"` for
+    e2e.
+  Total: 9 vitest cases (6 original + 3 new). All
+  green.
+
+### Deferred (dispatch follow-ups)
+
+- The dispatch listed Tabs for sections (already
+  done in patch 11.199), FormField wrappers
+  (deferred -- the existing Panel + HelpTip shape
+  carries the label/hint semantics today; threading
+  FormField through every panel would require
+  re-shaping the Panel children contract), RadioGroup
+  for theme/density (deferred -- ThemeToggle and
+  DensityToggle already group their radios via the
+  v1.11.158 ToggleGroup; swapping them to
+  RadioGroup would change the visual surface and
+  needs a separate UX pass), Switch for toggles
+  (the page has no boolean toggles -- it has
+  selectors -- so this item is vacuously
+  applicable).
+
+### Versions
+
+- 1.11.330 -> 1.11.331 across root + web package.json +
+  both lockfiles. CHANGELOG.md entry under
+  `## [1.11.331]`.
+
 ## [1.11.330] - 2026-05-18 -- UI: Keyboard Shortcuts overlay enhancements (TODO 11.312)
 
 Enhances `web/src/components/KeyboardShortcutsModal.tsx`
