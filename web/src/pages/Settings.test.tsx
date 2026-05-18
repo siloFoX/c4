@@ -80,12 +80,23 @@ describe('Settings page', () => {
     render(<Settings />);
 
     await user.click(screen.getByRole('tab', { name: 'Locale' }));
-    const koRadio = screen.getByTestId('settings-locale-radio-ko');
-    await user.click(koRadio);
+    // (v1.11.331, TODO 11.313) Locale panel now uses the
+    // canonical RadioGroup primitive. Per-item radios are
+    // selected by `data-radio-value` instead of the
+    // legacy per-locale `data-testid`.
+    const koRadio = document.querySelector(
+      '[data-section="settings-page"] [role="radio"][data-radio-value="ko"]',
+    ) as HTMLElement | null;
+    expect(koRadio).not.toBeNull();
+    await user.click(koRadio!);
 
     expect(window.localStorage.getItem(LOCALE_KEY)).toBe('ko');
 
-    await user.click(screen.getByTestId('settings-locale-radio-en'));
+    const enRadio = document.querySelector(
+      '[data-section="settings-page"] [role="radio"][data-radio-value="en"]',
+    ) as HTMLElement | null;
+    expect(enRadio).not.toBeNull();
+    await user.click(enRadio!);
     expect(window.localStorage.getItem(LOCALE_KEY)).toBe('en');
   });
 
@@ -116,6 +127,40 @@ describe('Settings page', () => {
     await user.click(screen.getByRole('tab', { name: 'Notifications' }));
     expect(
       screen.getByText(/Lifecycle feed for dispatch/i),
+    ).toBeInTheDocument();
+  });
+
+  // (v1.11.331, TODO 11.313) Redesign markers.
+
+  it('page is wrapped in data-section="settings-page" for e2e targeting', () => {
+    render(<Settings />);
+    expect(
+      document.querySelector('[data-section="settings-page"]'),
+    ).not.toBeNull();
+  });
+
+  it('Locale panel uses the canonical RadioGroup with data-radio-value items', async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+    await user.click(screen.getByRole('tab', { name: 'Locale' }));
+    expect(
+      document.querySelector(
+        '[data-settings-panel="locale"] [data-section="radio-group"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      document.querySelectorAll(
+        '[data-settings-panel="locale"] [role="radio"]',
+      ).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it('Locale RadioGroup carries the data-testid hook for e2e selectors', async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+    await user.click(screen.getByRole('tab', { name: 'Locale' }));
+    expect(
+      screen.getByTestId('settings-locale-radiogroup'),
     ).toBeInTheDocument();
   });
 });

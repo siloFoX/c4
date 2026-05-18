@@ -15,7 +15,7 @@ import {
   AlertBanner,
   PageHeader,
   Panel,
-  Radio,
+  RadioGroup,
   SectionDivider,
   Tabs,
   TabsPanel,
@@ -221,10 +221,23 @@ function NotificationsPanel() {
 function LocalePanel() {
   const [locale, setLocaleLocal] = useState<Locale>(() => getLocale());
 
-  const handleChange = (next: Locale) => {
-    setLocaleLocal(next);
-    setLocale(next);
+  const handleChange = (next: string) => {
+    const v = next as Locale;
+    setLocaleLocal(v);
+    setLocale(v);
   };
+
+  // (v1.11.331, TODO 11.313) The locale picker now uses
+  // the canonical RadioGroup primitive (v1.11.306) so the
+  // arrow-key navigation, roving tabindex, and
+  // `data-section="radio-group"` selectors come for free.
+  // The pre-existing per-locale `data-testid` selectors
+  // are preserved via the items' `data-testid` hook on
+  // each radio control.
+  const items = LOCALES.map((loc) => ({
+    value: loc,
+    label: loc === 'en' ? 'English' : 'Korean',
+  }));
 
   return (
     <Panel
@@ -241,18 +254,15 @@ function LocalePanel() {
       }
       description="Display language for the dashboard. Persists in this browser."
     >
-      <div role="radiogroup" aria-label="Locale" className="flex flex-col gap-2">
-        {LOCALES.map((loc) => (
-          <Radio
-            key={loc}
-            name="settings-locale"
-            value={loc}
-            checked={locale === loc}
-            onChange={() => handleChange(loc)}
-            label={loc === 'en' ? 'English' : 'Korean'}
-            data-testid={`settings-locale-radio-${loc}`}
-          />
-        ))}
+      <div data-settings-panel="locale">
+        <RadioGroup
+          name="settings-locale"
+          value={locale}
+          onChange={handleChange}
+          ariaLabel="Locale"
+          items={items}
+          data-testid="settings-locale-radiogroup"
+        />
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
         Selection writes to <code className="font-mono">localStorage</code> via
@@ -294,6 +304,7 @@ export default function Settings() {
       title={t('feature.settingsPage.label')}
       description={t('feature.settingsPage.description')}
     >
+      <div data-section="settings-page" className="contents">
       {/* (v1.11.267, TODO 11.249) PageHeader bar with breadcrumb
           trail + back button. Sub-page surface; title stays in
           PageFrame. */}
@@ -400,6 +411,7 @@ export default function Settings() {
           <FeatureFlagsPanel />
         </TabsPanel>
       </Tabs>
+      </div>
     </PageFrame>
   );
 }
