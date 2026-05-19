@@ -4,6 +4,61 @@
 
 (no entries -- next release window)
 
+## [1.11.495] - 2026-05-19 -- UI: chart-streamgraph primitive (TODO 11.477)
+
+New **ChartStreamgraph** UI primitive
+in
+`web/src/components/ui/chart-streamgraph.tsx`:
+pure-SVG streamgraph (stacked-area
+variant) with smooth flow curves.
+Distinct from `<ChartStream>` (11.453)
+which is the simple centered variant;
+ChartStreamgraph adds first-class
+**baseline algorithms**
+(`silhouette`, `wiggle`, `expand`,
+`zero`), **curve interpolation choice**
+(`cardinal`, `catmullRom`, `linear`,
+`step`), an explicit x-axis label
+track with `xLabels` + `formatXLabel`,
+and a `tension` parameter for the
+cardinal curve so adopters can dial
+smoothness between piecewise-linear
+and full-Bezier. Layers tile cleanly:
+layer N's `topValue` always equals
+layer N+1's `baseValue` at every
+sample. Non-positive / non-finite raw
+values clamp to 0 so a series never
+inverts the stack. Hidden series
+(controlled or uncontrolled) drop
+from the layout entirely. Hover/focus
+dims other layers to opacity 0.3 and
+opens a tooltip with label, sum
+across all samples, and sample count.
+For more than 8 samples the x-axis
+auto-thins to ~8 tick positions
+(first + last index always preserved)
+so labels never overlap. Pure helpers
+exported: `getStreamgraphDefaultColor`,
+`getStreamgraphSampleCount`,
+`getStreamgraphTotals`,
+`computeStreamgraphBaseline`,
+`buildStreamgraphCurve`,
+`computeStreamgraphLayers`,
+`describeStreamgraphChart`. ARIA:
+root role=region + aria-label, SVG
+role=img with same label; per-area
+role=graphics-symbol + tabIndex=0 +
+"<label> stream layer" aria-label.
+data-section on every node; root
+mirrors data-series-count /
+data-visible-count / data-sample-count
+/ data-baseline / data-curve /
+data-animate; layer groups mirror
+series-id / index / color / hovered.
+Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 62 vitest cases pass.
+
 ## [1.11.494] - 2026-05-19 -- UI: chart-slope primitive (TODO 11.476)
 
 New **ChartSlope** UI primitive in
