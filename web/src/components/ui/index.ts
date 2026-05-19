@@ -183,3 +183,4 @@ export * from './chart-bubble';
 export * from './chart-calendar-heatmap';
 export * from './chart-error-bars';
 export * from './chart-histogram';
+export * from './chart-ridge';
