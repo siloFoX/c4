@@ -4,6 +4,66 @@
 
 (no entries -- next release window)
 
+## [1.11.492] - 2026-05-19 -- UI: chart-ridge primitive (TODO 11.474)
+
+New **ChartRidge** UI primitive in
+`web/src/components/ui/chart-ridge.tsx`:
+pure-SVG ridgeline (joy plot) chart
+stacking multiple Gaussian-KDE density
+curves vertically with configurable
+overlap. Each input series produces a
+smoothed density curve; the curves are
+arranged top-to-bottom with optional
+overlap so neighbouring rows visually
+overlap to highlight distribution
+shape differences. Distinct from
+`<ChartViolin>` (11.456) -- violin
+paints a mirrored density per category
+as side-by-side vertical "violins",
+whereas ridge stacks one-sided
+densities vertically for multi-series
+visual comparison along a shared x
+axis. Density estimation: Gaussian KDE
+per series; bandwidth defaults to
+Silverman's rule (`1.06 * std * n^-0.2`;
+falls back to 1 when std=0 or n<2);
+explicit `bandwidth` overrides.
+Normalisation: per-row peak by default
+(every ridge fills its rowHeight
+regardless of absolute density);
+`globalPeak=true` shares the maximum
+peak across rows for absolute-density
+comparisons. Layout: `rowHeight =
+(innerH / N) * (1 + overlap)` so
+overlap > 0 makes each curve taller
+than its own stride. Hover/focus dims
+other rows to opacity 0.25; tooltip
+shows label + finite-value count +
+peak density (formatted). Pure helpers
+exported: `getRidgeDefaultColor`,
+`getRidgeFiniteValues`,
+`silvermanBandwidth`,
+`computeRidgeDensity`,
+`getRidgeBounds`,
+`getRidgePeakDensity`,
+`getRidgeTicks`,
+`computeRidgeLayout`,
+`describeRidgeChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-line
+role=graphics-symbol + tabIndex=0 +
+"<label>: density curve over <count>
+values" aria-label. data-section on
+every node; root mirrors
+data-series-count / data-visible-count
+/ data-overlap / data-global-peak /
+data-animate; row groups mirror
+series-id / series-index / series-
+color / series-count / hovered. Mount
+fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 53 vitest cases pass.
+
 ## [1.11.491] - 2026-05-19 -- UI: chart-histogram primitive (TODO 11.473)
 
 New **ChartHistogram** UI primitive in
