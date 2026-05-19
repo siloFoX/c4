@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.520] - 2026-05-19 -- UI: chart-line-confidence primitive (TODO 11.502)
+
+New **ChartLineConfidence** UI
+primitive in
+`web/src/components/ui/chart-line-confidence.tsx`:
+pure-SVG multi-series line chart with
+**confidence band overlay**. Each
+series carries optional per-point
+`yLower` / `yUpper` bounds; the
+primitive paints a filled polygon
+between the two bound curves and
+overlays the central line on top.
+Per-point `hasBand` resolves to true
+only when both bounds are finite AND
+`yLower <= yUpper` (inverted bounds
+rejected). `buildLineConfidenceBandSegments`
+walks the points in input order and
+emits one closed polygon per
+contiguous run of `hasBand=true`
+points (`M low[0] ... L low[n-1] L
+up[n-1] ... L up[0] Z`); gaps split
+into separate polygons so partial /
+missing bounds still render cleanly.
+Series-level `showBand: false`
+disables the band so a single chart
+can mix forecast series (with band)
+and baseline series (line only).
+Tooltip adds a `band:` row only when
+the hovered dot has bounds; per-dot
+`data-has-band` lets adopters style
+accordingly. Distinct from
+`<ChartLine>` (no band),
+`<ChartLineZoom>` (11.501)
+(brush-to-zoom, no band),
+`<ChartLineMulti>` (11.500)
+(synchronised crosshair, no band),
+and `<ChartErrorBars>` (per-point
+vertical bars, not a filled
+polygon). Pure helpers exported:
+`getLineConfidenceDefaultColor`,
+`getLineConfidenceFinitePoints`,
+`getLineConfidenceBounds`,
+`getLineConfidenceTicks`,
+`buildLineConfidenceLinePath`,
+`buildLineConfidenceBandSegments`,
+`computeLineConfidenceLayout`,
+`describeLineConfidenceChart`. 70
+vitest cases pass under vitest
+4.1.5; TypeScript clean for touched
+files. Exported via `components/ui`
+barrel. Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.519] - 2026-05-19 -- UI: chart-line-zoom primitive (TODO 11.501)
 
 New **ChartLineZoom** UI primitive in

@@ -211,3 +211,4 @@ export * from './chart-line-smooth';
 export * from './chart-line-dashed';
 export * from './chart-line-multi';
 export * from './chart-line-zoom';
+export * from './chart-line-confidence';
