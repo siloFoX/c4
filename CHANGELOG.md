@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.530] - 2026-05-19 -- UI: chart-line-trend primitive (TODO 11.512)
+
+New **ChartLineTrend** UI primitive
+in
+`web/src/components/ui/chart-line-trend.tsx`:
+pure-SVG multi-series line chart
+with a **linear regression trend
+line overlay** computed via ordinary
+least-squares per series. The trend
+rule is drawn from the smallest
+finite x to the largest finite x of
+each series with a dashed stroke
+(`6 4` default; per-series override
+via `trendDashArray`). The legend
+optionally shows `(slope / R^2)`
+next to each series label so
+adopters can see the trend at a
+glance. Pure helpers
+`computeLineTrendRegression`
+(returns `{slope, intercept, r2,
+sampleCount, ok, meanX, meanY}`,
+ok=false on n<2 or all-x-equal,
+clamps r2 to [0,1], all-y-equal
+yields r2=1), `predictLineTrendY`,
+`getLineTrendXRange`,
+`computeLineTrendLayout`, and
+`describeLineTrendChart`. Hover
+tooltip surfaces the
+regression-predicted y and signed
+residual. Distinct from
+`<ChartLineBaseline>` (flat
+baseline reference) and
+`<ChartLineThreshold>` (horizontal
+thresholds). 69 vitest cases cover
+defaults, pure helpers, regression
+edge cases (vertical, single point,
+flat, non-finite drop), layout,
+ARIA, tooltip + residual, legend +
+toggling, callbacks, ref. (TODO
+11.512)
+
 ## [1.11.529] - 2026-05-19 -- UI: chart-line-comparison primitive (TODO 11.511)
 
 New **ChartLineComparison** UI
