@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.534] - 2026-05-19 -- UI: chart-line-band primitive (TODO 11.516)
+
+New **ChartLineBand** UI primitive
+in
+`web/src/components/ui/chart-line-band.tsx`:
+pure-SVG multi-series line chart
+with **horizontal reference bands**
+between two y-values, spanning the
+entire x range. Each band is a
+chart-wide rectangle anchored to
+`[yMin, yMax]` with a kind-driven
+default colour (safe / warning /
+critical / info / neutral / custom)
+and optional dashed top + bottom
+borders. Per-point band membership
+is computed and surfaced via the
+tooltip and a `data-in-bands`
+attribute. Multiple bands can stack
+or overlap (z-order by array
+index). Pure helpers
+`normaliseLineBandSpec` (validates
++ swaps inverted yMin/yMax + defaults
+kind / color / opacity / borders /
+label position),
+`isPointInLineBand`,
+`getLineBandMembership` (returns
+ids of bands containing y),
+`computeLineBandLayout`, and
+`describeLineBandChart`. Toggle
+visibility per band via the band
+legend (controlled + uncontrolled).
+Distinct from
+`<ChartLineThreshold>` (line + zone
+shading vs band-as-data),
+`<ChartLineBaseline>` (flat
+baseline + above/below
+classification),
+`<ChartLineConfidence>` (per-point
+bounds), `<ChartLinePercentile>`
+(percentile derived from sample
+groups), and `<ChartLineEvent>`
+(vertical event markers). 66 vitest
+cases cover defaults, six kinds,
+spec normalisation, membership
+math, layout, tooltip, legend,
+callbacks, ref. (TODO 11.516)
+
 ## [1.11.533] - 2026-05-19 -- UI: chart-line-event primitive (TODO 11.515)
 
 New **ChartLineEvent** UI primitive
