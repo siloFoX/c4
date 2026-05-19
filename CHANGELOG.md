@@ -4,6 +4,218 @@
 
 (no entries -- next release window)
 
+## [1.11.436] - 2026-05-19 -- UI: image-gallery primitive (TODO 11.418)
+
+New **ImageGallery** UI primitive in
+`web/src/components/ui/image-gallery.tsx`:
+a grid / masonry thumbnail layout
+with a portal-mounted lightbox modal
+for full-resolution viewing.
+Keyboard navigation between images,
+touch-friendly swipe gestures, and
+configurable wrap behaviour.
+
+### API
+
+```ts
+interface ImageGalleryItem {
+  src: string;
+  alt: string;
+  thumb?: string;
+  caption?: ReactNode;
+  width?: number;
+  height?: number;
+}
+
+interface ImageGalleryProps {
+  items: ImageGalleryItem[];
+  layout?: 'grid' | 'masonry'; // default 'grid'
+  columns?: number;            // default 3
+  gap?: number;                // px, default 8
+  defaultIndex?: number | null;
+  openIndex?: number | null;
+  onOpenChange?: (i: number | null) => void;
+  className?: string;
+  ariaLabel?: string;          // default 'Image gallery'
+  lazy?: boolean;              // default true
+  onSelect?: (i: number) => void;
+  swipeThreshold?: number;     // px, default 50
+  closeOnBackdropClick?: boolean; // default true
+  containerId?: string;        // portal root id
+  wrap?: boolean;              // default true
+}
+```
+
+### Behaviour
+
+- Grid layout: CSS grid with
+  `grid-template-columns: repeat(N, ...)`.
+- Masonry layout: CSS multi-column
+  (`column-count: N`) with
+  `break-inside: avoid` per item.
+- Thumbs are buttons; clicking
+  opens the lightbox at that index.
+- `thumb` per item overrides the
+  thumbnail source while the
+  lightbox still uses `src`.
+- Lightbox renders through a
+  portal (`app-portal-root` by
+  default; override via
+  `containerId`).
+- Body scroll lock while the
+  lightbox is open (toggles
+  `document.body.style.overflow`
+  with restore on close).
+- Auto-focus the lightbox root on
+  open so keyboard nav works
+  without a manual tab.
+- Keyboard nav: Arrow Right (next),
+  Arrow Left (prev), Home (first),
+  End (last), Escape (close).
+- Touch / pointer swipe:
+  pointer-down at clientX1,
+  pointer-up at clientX2.
+  `clientX2 - clientX1 <=
+  -threshold` -> next;
+  `>= threshold` -> prev.
+- Wrap by default: next-from-last
+  -> 0; prev-from-first -> last.
+  `wrap={false}` disables wrap and
+  visually disables the boundary
+  navigation button.
+- `closeOnBackdropClick` (default
+  true) closes only when the
+  click target equals the
+  backdrop (not a child).
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_GALLERY_COLUMNS = 3
+DEFAULT_GALLERY_GAP = 8
+DEFAULT_SWIPE_THRESHOLD = 50
+clampGalleryIndex(index, total)
+nextGalleryIndex(current, total, wrap?)
+prevGalleryIndex(current, total, wrap?)
+isSwipeLeft(dx, threshold?)
+isSwipeRight(dx, threshold?)
+```
+
+- `clampGalleryIndex` returns 0
+  for empty totals, clamps below
+  0 and above `total - 1`, and
+  floors fractional inputs so
+  every consumer sees an integer.
+- `nextGalleryIndex` /
+  `prevGalleryIndex` wrap by
+  default; pass `wrap=false` to
+  clamp at the boundary.
+- `isSwipeLeft` /
+  `isSwipeRight` are inclusive
+  at the threshold (a 50px swipe
+  with a 50px threshold counts).
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- Thumb button:
+  `aria-label="Open image N: ALT"`,
+  `data-section="image-gallery-item"`,
+  `data-index`.
+- Lightbox: `role="dialog"` +
+  `aria-modal="true"` +
+  `aria-label="<gallery label> lightbox"` +
+  `tabIndex={-1}`,
+  `data-section="image-gallery-lightbox"`,
+  `data-active-index`.
+- Region root: `data-section`,
+  `data-layout`, `data-columns`,
+  `data-lazy`, `data-item-count`.
+- Lightbox sub-nodes: data-section
+  per close button
+  (`image-gallery-close`), prev /
+  next nav buttons
+  (`image-gallery-prev` /
+  `-next`), figure + image +
+  caption + counter
+  (`image-gallery-figure` /
+  `-full` / `-caption` /
+  `-counter`).
+
+### Tests
+
+63 cases in
+`web/src/components/ui/image-gallery.test.tsx`,
+covering:
+
+- All five pure helpers across
+  empty totals, NaN, fractional,
+  wrap on / off, and threshold
+  edge cases.
+- Default + custom `ariaLabel`.
+- Grid layout default, masonry
+  layout swap, custom column
+  count, custom gap.
+- Thumb default = src; explicit
+  thumb override; lazy default +
+  eager swap.
+- Click thumb opens lightbox,
+  fires `onSelect`,
+  `onOpenChange`.
+- Controlled `openIndex`,
+  uncontrolled `defaultIndex`.
+- Lightbox renders inside the
+  portal target (not inline).
+- Close button + Escape +
+  backdrop click all close;
+  `closeOnBackdropClick=false`
+  blocks the backdrop path.
+- Arrow Right / Arrow Left /
+  Home / End nav. Next + Prev
+  buttons. Wrap on (default) +
+  wrap off (boundary buttons
+  disabled).
+- Pointer swipe left / swipe
+  right / under-threshold no-op.
+- Counter text ("2 / 3"). Caption
+  visibility. Empty items array.
+- All major data attrs (region,
+  buttons, lightbox).
+- Body overflow locks while
+  open + restores on close.
+- Stable `displayName` +
+  `forwardRef` to the region.
+
+### Pairs with existing primitives
+
+- `<ComparisonSlider>` (11.417)
+  for before/after pairs.
+- `<DiffEditor>` (11.399) for
+  text rather than image diffs.
+- `<Dialog>` underlies the
+  modal shell pattern; the
+  lightbox is a portal +
+  role=dialog without the
+  Dialog primitive's full
+  feature set.
+
+### Out of scope
+
+- Pinch / wheel zoom inside the
+  lightbox (host can wrap).
+- Drag-to-reorder (gallery is
+  read-only here).
+- Server-side rendering of the
+  lightbox (the portal lazy-
+  mounts after the first effect
+  per the canonical
+  `<Portal>` contract).
+- Virtualisation for very large
+  galleries (host can wrap with
+  `<VirtualizedList>` for
+  thousands of thumbs).
+
 ## [1.11.435] - 2026-05-19 -- UI: comparison-slider primitive (TODO 11.417)
 
 New **ComparisonSlider** UI primitive

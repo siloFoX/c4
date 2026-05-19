@@ -127,3 +127,4 @@ export * from './list-section';
 export * from './status-indicator';
 export * from './timeline-step';
 export * from './comparison-slider';
+export * from './image-gallery';
