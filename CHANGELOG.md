@@ -4,6 +4,65 @@
 
 (no entries -- next release window)
 
+## [1.11.518] - 2026-05-19 -- UI: chart-line-multi primitive (TODO 11.500)
+
+New **ChartLineMulti** UI primitive in
+`web/src/components/ui/chart-line-multi.tsx`:
+pure-SVG multi-series line chart with
+a **synchronised crosshair tooltip**
+that reads the y value of every
+visible series at the hovered x. A
+transparent overlay rect captures
+pointer events across the inner plot
+area; on move, the overlay snaps the
+crosshair to the nearest x in the
+union of all visible series' x
+values, draws a vertical dashed rule,
+highlights one marker per series, and
+opens a single tooltip listing the
+snapped x plus one row per series
+(swatch + label + value). Helpers:
+`collectLineMultiXValues` (sorted
+unique union, drops non-finite),
+`findNearestXIndex` (binary search,
+ties to lower), and
+`findNearestPointInSeries` (per-series
+nearest point so sparse / missing
+samples still contribute a tooltip
+row). `onCrosshairChange(info | null)`
+callback fires on every snap change
+and on pointer-leave for adopters
+that want to mirror the crosshair
+into a sibling chart or a separate
+detail panel. Distinct from
+`<ChartLine>` (one series per call,
+per-dot tooltip), `<ChartLineStep>`
+(11.497) (H+V step segments),
+`<ChartLineSmooth>` (11.498) (Bezier
+curves), and `<ChartLineDashed>`
+(11.499) (dash patterns). Per-point
+`data-crosshair-hit` exposes which
+dots are highlighted to test
+selectors. ARIA: root region + svg
+role=img + per-path graphics-symbol
+with tabIndex=0; data-section on
+every node. Pure helpers exported:
+`getLineMultiDefaultColor`,
+`getLineMultiFinitePoints`,
+`getLineMultiBounds`,
+`getLineMultiTicks`,
+`collectLineMultiXValues`,
+`findNearestXIndex`,
+`findNearestPointInSeries`,
+`buildLineMultiPath`,
+`computeLineMultiLayout`,
+`describeLineMultiChart`. 73 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.517] - 2026-05-19 -- UI: chart-line-dashed primitive (TODO 11.499)
 
 New **ChartLineDashed** UI primitive

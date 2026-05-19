@@ -209,3 +209,4 @@ export * from './chart-tornado';
 export * from './chart-line-step';
 export * from './chart-line-smooth';
 export * from './chart-line-dashed';
+export * from './chart-line-multi';
