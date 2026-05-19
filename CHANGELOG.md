@@ -4,6 +4,220 @@
 
 (no entries -- next release window)
 
+## [1.11.556] - 2026-05-19 -- UI: chart-line-kalman primitive (TODO 11.538)
+
+New **ChartLineKalman** UI
+primitive in
+`web/src/components/ui/chart-line-kalman.tsx`:
+pure-SVG **1D Kalman filter**
+smoothing overlay. Each series
+takes noisy observations
+`{x, y}`, runs a
+one-dimensional random-walk
+Kalman filter forward, and
+renders three coordinated
+elements on the same axes:
+the dimmed raw observations
+line, the smoothed estimate
+line in the series color, and
+an uncertainty band at the
+posterior `+/- kSigma *
+sqrt(P_k)`. Per-point dots are
+tinted along a gradient from
+`gainLowColor` (low gain --
+filter trusting its model) to
+`gainHighColor` (high gain --
+filter trusting the
+measurement). A Kalman-gain
+badge in the top-left calls
+out the final gain of the
+series with the strongest
+absolute gain. Filter
+equations per step k:
+**Predict**: x_pred =
+x_{k-1}, P_pred = P_{k-1} +
+Q; **Gain**: K = P_pred /
+(P_pred + R); **Update**: x_k
+= x_pred + K * (z_k -
+x_pred), P_k = (1 - K) *
+P_pred. The canonical
+recursive-Bayesian smoother
+used in sensor fusion, signal
+tracking, and any context
+where the question is "what
+is the underlying state given
+noisy observations?". Pure
+helper `runLineKalmanFilter`
+(canonical filter pass; sorts
+ascending; drops non-finite;
+returns per-point `{index, x,
+observation, predicted,
+predictedVariance, estimate,
+variance, gain, innovation,
+upper, lower}`; assumes a
+random-walk process model;
+empty / null -> []),
+`computeLineKalmanLayout` (
+returns per-series with obs,
+est, and band paths +
+projected pys; y range
+expanded to cover the upper /
+lower band; per-series gain
+stats incl. mean / max / min
+/ final + RMSE +
+finalEstimate + finalVariance),
+`normaliseLineKalmanNoise`
+(non-finite / negative ->
+fallback; zero allowed),
+`normaliseLineKalmanKSigma`
+(non-finite / non-positive ->
+default 2), and
+`describeLineKalmanChart`.
+Distinct from
+`<ChartLineMovingAvg>`
+(11.513; linear SMA smoothing
+with fixed window -- Kalman
+is recursive Bayesian
+filtering with posterior
+covariance that adapts each
+step),
+`<ChartLineConfidence>`
+(11.502; per-point bounds
+EXTERNAL -- Kalman's band is
+DERIVED from the filter's
+posterior variance P_k),
+`<ChartLineBollinger>`
+(11.537; rolling SMA +/-
+k*rolling_std over fixed
+window -- Kalman is recursive
+and depends on all past
+samples through Q/R model,
+not windowed),
+`<ChartLineControl>` (11.534;
+global mean +/- k*sigma --
+Kalman bounds are per-step
+adaptive shrinking as filter
+gains certainty),
+`<ChartLineAnomaly>` (11.524;
+per-point z-score outliers
+-- Kalman tracks the optimal
+Bayesian estimate; innovation
+is exposed per-point so
+callers can build their own
+outlier rules), and
+`<ChartLineForecast>` (11.519;
+historical/forecast split on
+time axis -- Kalman smooths
+observed data without
+splitting timeline). Behaviour:
+with **Q = 0** the posterior
+variance collapses
+asymptotically toward 0 and
+gain approaches 0 -- filter
+becomes running average; with
+**Q > 0** the variance
+reaches non-zero steady state
+and gain stabilises depending
+on Q/R ratio; the
+**innovation** `obs -
+predicted` is exposed
+per-point; when
+`initialEstimate` is
+unspecified the filter seeds
+with the first observation so
+`innovation[0] = 0` and first
+estimate equals first
+observation regardless of
+gain. Per-instance Q / R /
+P_0 / x_0 / k always beats
+chart-level defaults.
+Tooltip on dots shows label,
+x, `obs`, bold `est`, `var`,
+gain-coloured `gain`, and
+`innov` rows. Sign badge in
+top-left calls out final
+gain with icon `K` and
+strongest absolute series
+gain. Legend shows
+`Q <q>, R <r>; gain <mean
+gain>` per series. ARIA:
+root `role="region"` +
+`aria-describedby`; SVG
+`role="img"`; observation
+path + estimate path + every
+dot
+`role="graphics-symbol"
+tabIndex={0}`. Data-attrs:
+root `data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-process-noise`,
+`data-measurement-noise`,
+`data-initial-variance`,
+`data-k-sigma`,
+`data-dominant-gain`,
+`data-animate`; obs path
+`data-kind="observation"`;
+est path `data-kind="estimate"`;
+dots `data-observation`,
+`data-estimate`,
+`data-variance`,
+`data-gain`,
+`data-innovation`; series
+groups expose Q / R / P_0
+/ k / counts / gain stats /
+RMSE / final estimate +
+variance + gain. 60 vitest
+cases pass (defaults,
+helpers, runLineKalmanFilter
+incl. first estimate moves
+from initial toward
+observation by gain
+(verified Kalman math at
+Q=0, R=1, P_0=1 -> K=0.5,
+est=5) / gain decreases
+when prior variance shrinks
+/ Q>0 makes gain converge
+to non-zero steady state /
+constant observations
+converge to observed value
+/ initial estimate falls
+back to first observation /
+upper-lower from
+k*sqrt(variance) / sort
+ascending / drops non-finite
+/ innovation is obs -
+predicted,
+computeLineKalmanLayout
+incl. per-series paths +
+gain stats + RMSE + y
+range expands to bands +
+hidden + bounds + per-series
+noise override +
+visibleSeriesCount + per-
+point projected pys diverge
+after first sample,
+describeLineKalmanChart No
+data + Q + R + final est +
+gain, component render incl.
+empty / obs kind=observation
+/ est kind=estimate /
+uncertainty band + hide /
+hide obs path / dots with
+gain + variance + innovation
++ estimate + observation /
+hide dots / gain badge +
+omit / ARIA / root data-* /
+group data-* / tooltip obs +
+est + variance + gain +
+innovation rows + hide on
+leave + omit / onPointClick /
+legend Q + R + mean gain +
+toggle + omit / animate /
+ref / displayName).
+Implementation patch:
+`docs/patches/11.538-ui-chart-line-kalman.md`.
+
 ## [1.11.555] - 2026-05-19 -- UI: chart-line-bollinger primitive (TODO 11.537)
 
 New **ChartLineBollinger** UI
