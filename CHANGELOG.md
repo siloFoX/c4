@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.478] - 2026-05-19 -- UI: chart-mosaic primitive (TODO 11.460)
+
+New **ChartMosaic** UI primitive in
+`web/src/components/ui/chart-mosaic.tsx`:
+pure-SVG mosaic plot for 2D
+contingency tables. Each column's
+width is proportional to its
+marginal total; within each column,
+row cells stack with heights
+proportional to the conditional
+counts. Cell fill encodes the
+standardized chi-square residual
+`(O - E) / sqrt(E)` -- blue for
+positive (more than expected), red
+for negative (less than expected),
+with a configurable `residualClamp`
+that caps colour saturation. Hover
+tooltip surfaces count, expected
+count, residual, and percent of
+total. Per-cell click handler.
+Pure helpers exported:
+`getMosaicFirstSeen`,
+`getMosaicTotals`,
+`getMosaicExpectedCount`,
+`getMosaicResidual`,
+`buildMosaicLayout`,
+`getMosaicResidualColor`,
+`describeMosaicChart`. Reuses
+`interpolateColor` from
+`<ChartFunnel>` for the residual
+gradient. 57 vitest cases cover
+helpers (incl. layout invariants:
+column widths proportional to
+marginals, cell heights inside a
+column sum to inner height) + every
+render branch including row /
+column / legend label suppression,
+formatter shaping, click payload,
+custom colour overrides, ARIA
+description override, and ref
+forwarding.
+
 ## [1.11.477] - 2026-05-19 -- UI: chart-step primitive (TODO 11.459)
 
 New **ChartStep** UI primitive in
