@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.470] - 2026-05-19 -- UI: chart-radial-bar primitive (TODO 11.452)
+
+New **ChartRadialBar** UI primitive
+in
+`web/src/components/ui/chart-radial-bar.tsx`:
+pure-SVG concentric radial bar
+chart. Each series gets a dedicated
+ring at its own radius; an arc
+inside the ring is drawn
+proportional to the value
+(`0 -> max`). A background "track"
+arc behind each bar provides
+completion context. The center of
+the chart hosts an optional label
+slot (`centerLabel`) for an
+aggregate value or legend node.
+Hover / focus on an arc opens a
+tooltip with the series label +
+value + % of max. Per-series click
+handler. Default arc sweep goes
+from -90 deg (12 o'clock) to 270
+deg (full circle); both endpoints
+configurable for half-donut or
+gauge variants. Pure helpers
+exported: `getRadialBarMax`,
+`getRadialBarRatio`,
+`polarToCartesian`,
+`buildRadialArcPath`,
+`getRadialTickPositions`,
+`describeRadialBarChart`,
+`getDefaultRadialBarColor`. 60
+vitest cases cover helpers + every
+render branch including arc /
+track / tick visibility, centre
+slot rendering, formatter shaping
+(value + percent), click payload,
+ARIA description override, and ref
+forwarding.
+
 ## [1.11.469] - 2026-05-19 -- UI: chart-candlestick primitive (TODO 11.451)
 
 New **ChartCandlestick** UI primitive
