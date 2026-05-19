@@ -129,3 +129,4 @@ export * from './timeline-step';
 export * from './comparison-slider';
 export * from './image-gallery';
 export * from './video-player';
+export * from './countdown-timer';
