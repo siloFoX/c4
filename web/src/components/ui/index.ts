@@ -142,3 +142,4 @@ export * from './keyboard-shortcuts-overlay';
 export * from './data-export';
 export * from './data-import-wizard';
 export * from './api-response-viewer';
+export * from './log-stream';
