@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.544] - 2026-05-19 -- UI: chart-line-rolling-min-max primitive (TODO 11.526)
+
+New **ChartLineRollingMinMax** UI
+primitive in
+`web/src/components/ui/chart-line-rolling-min-max.tsx`:
+pure-SVG multi-series line chart
+that **shades the rolling
+min/max envelope** of the data
+over a sliding window. For each
+finite sample the chart computes
+the min and max of y values
+within a window of size W
+(default 5) using
+`trailing` / `centered` / `edge`
+modes (mirroring the SMA
+primitive 11.513) and paints a
+translucent band between them.
+Dashed envelope lines trace the
+min/max edges; the raw line
+overlays through the middle.
+Pure helpers `computeRollingMinMax`
+(canonical sliding helper with
+non-finite handling and three
+modes),
+`buildLineRollingMinMaxBandPaths`
+(one closed polygon per
+contiguous valid run),
+`buildLineRollingMinMaxEnvelopePath`
+(`M..L..` with null gap breaks),
+`computeLineRollingMinMaxLayout`,
+and `describeLineRollingMinMaxChart`.
+The canonical Donchian-channel /
+high-low envelope visualisation.
+Distinct from
+`<ChartLineMinMax>` (absolute
+extremes), `<ChartLineMovingAvg>`
+(windowed average),
+`<ChartLinePercentile>` (samples
+per x), `<ChartLineConfidence>`
+(external bounds),
+`<ChartLineAnomaly>` (z-score
+outliers), and external-reference
+primitives. 60 vitest cases cover
+defaults, rolling math + all
+three modes, gap-aware band /
+envelope builders, layout, ARIA,
+tooltip with n/a fallback,
+legend, callbacks, ref. (TODO
+11.526)
+
 ## [1.11.543] - 2026-05-19 -- UI: chart-line-residual primitive (TODO 11.525)
 
 New **ChartLineResidual** UI
