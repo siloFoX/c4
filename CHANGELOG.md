@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.524] - 2026-05-19 -- UI: chart-line-marker primitive (TODO 11.506)
+
+New **ChartLineMarker** UI primitive
+in `web/src/components/ui/chart-line-marker.tsx`:
+pure-SVG multi-series line chart
+with **configurable per-point
+markers**. Four built-in shapes ship
+out of the box (`'circle'`,
+`'square'`, `'triangle'`,
+`'diamond'`) plus `'none'` to omit
+the marker entirely. Series declare
+a default shape via `series.marker`;
+per-point overrides via
+`point.marker`. Resolution order
+(first match wins): point override
+> series default > circle fallback.
+`'none'` is honoured verbatim at
+either layer. All four real shapes
+emit closed `<path>` strings via
+`buildLineMarkerShapePath`: circle
+uses two semicircular arcs, square
+4 axis-aligned vertices, triangle
+an equilateral pointing up,
+diamond a cardinal rhombus. Markers
+fill at `series.markerFill` (defaults
+to series stroke color); tooltip
+adds a `marker:` row identifying
+the hovered shape; legend swatches
+show a line + the series's default
+marker so the combination is
+unmistakable. Pure helpers exported:
+`getLineMarkerDefaultColor`,
+`getLineMarkerFinitePoints`,
+`getLineMarkerBounds`,
+`getLineMarkerTicks`,
+`buildLineMarkerLinePath`,
+`resolveLineMarkerShape`,
+`buildLineMarkerShapePath`,
+`computeLineMarkerLayout`,
+`describeLineMarkerChart`; plus the
+`LINE_MARKER_SHAPES` canonical array.
+74 vitest cases pass under vitest
+4.1.5; TypeScript clean for touched
+files. Exported via `components/ui`
+barrel. Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.523] - 2026-05-19 -- UI: chart-line-area-stacked primitive (TODO 11.505)
 
 New **ChartLineAreaStacked** UI
