@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.532] - 2026-05-19 -- UI: chart-line-percentile primitive (TODO 11.514)
+
+New **ChartLinePercentile** UI
+primitive in
+`web/src/components/ui/chart-line-percentile.tsx`:
+pure-SVG multi-series line chart
+showing **percentile bands over
+time** (default p25/p50/p75).
+Each x-bucket carries multiple raw
+samples
+(`{x, values: number[]}`); the
+chart computes lower/mid/upper
+percentiles per bucket using the R
+type-7 linear-interpolation formula
+and renders a shaded band between
+lower and upper with a solid median
+line through the middle. Optional
+min/max dashed whiskers when
+`showWhiskers=true`. Pure helpers
+`computePercentileFromSorted`
+(R type 7: `rank = (p/100)*(n-1)`,
+linear interpolation between order
+statistics; clamps p to [0,100];
+empty -> NaN; n=1 returns the lone
+value), `computeLinePercentile`,
+`sortFiniteLinePercentileValues`,
+`normaliseLinePercentiles` (clamps,
+default-fills non-finite slots,
+sorts ascending),
+`buildLinePercentileBucket` (drops
+non-finite x or empty value
+groups), `computeLinePercentileLayout`,
+and `describeLinePercentileChart`.
+y range tightens to lower/upper
+when whiskers off; spans min/max
+when whiskers on. Distinct from
+`<ChartLineConfidence>` (per-point
+external bounds),
+`<ChartLineMovingAvg>` (single-y
+SMA), `<ChartLineTrend>` (global
+linear fit), `<ChartLineBaseline>`,
+`<ChartLineComparison>`. 69 vitest
+cases cover defaults, percentile
+math, layout, ARIA, tooltip,
+legend, callbacks, ref. (TODO
+11.514)
+
 ## [1.11.531] - 2026-05-19 -- UI: chart-line-moving-avg primitive (TODO 11.513)
 
 New **ChartLineMovingAvg** UI
