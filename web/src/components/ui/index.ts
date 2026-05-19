@@ -248,3 +248,4 @@ export * from './chart-line-burndown';
 export * from './chart-line-pareto';
 export * from './chart-line-bollinger';
 export * from './chart-line-kalman';
+export * from './chart-line-ewma';
