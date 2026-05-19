@@ -4,6 +4,299 @@
 
 (no entries -- next release window)
 
+## [1.11.459] - 2026-05-19 -- UI: chart-area primitive (TODO 11.441)
+
+New **ChartArea** UI primitive in
+`web/src/components/ui/chart-area.tsx`:
+pure-SVG area chart with multi-
+series support, an `overlaid` (each
+series fills from baseline 0) and
+`stacked` (cumulative-sum baseline)
+mode toggle, hover tooltip listing
+every series at the cursor, axis
+grid + optional tick labels, and a
+smooth-curve toggle.
+
+### API
+
+```ts
+type ChartAreaMode = 'overlaid' | 'stacked';
+
+interface ChartAreaDataPoint {
+  x: number;
+  y: number;
+}
+
+interface ChartAreaSeries {
+  id: string;
+  label: string;
+  data: readonly ChartAreaDataPoint[];
+  color?: string;
+}
+
+interface ChartAreaProps {
+  series: readonly ChartAreaSeries[];
+  mode?: ChartAreaMode;               // default 'overlaid'
+  width?: number;                     // default 520
+  height?: number;                    // default 280
+  padding?: number;                   // default 36
+  axisLabel?: { x?: string; y?: string };
+  smooth?: boolean;                   // default false
+  showGrid?: boolean;                 // default true
+  showTooltip?: boolean;              // default true
+  showAxisTicks?: boolean;            // default true
+  showLines?: boolean;                // default true
+  animate?: boolean;                  // default true
+  fillOpacity?: number;               // default 0.35
+  className?: string;
+  ariaLabel?: string;                 // default 'Area chart'
+  formatX?: (v: number) => string;
+  formatY?: (v: number) => string;
+  tickCount?: number;                 // default 4
+  xDomain?: [number, number];
+  yDomain?: [number, number];
+}
+```
+
+### Behaviour
+
+- `buildAreaStack` reshapes the
+  input series for the
+  configured mode:
+  - `overlaid`: every series
+    has `y0=0` + `y1=value`;
+    each filled area sits
+    directly on the x-axis.
+  - `stacked`: cumulative
+    baseline tracked per-x;
+    each series stacks on top
+    of the previous. Negative
+    values clamp to 0 so the
+    cumulative sum stays
+    monotonic.
+- Bounds derive from the
+  stacked top of every series.
+  Overlaid bounds use the
+  single-series max; stacked
+  bounds use the cumulative
+  top.
+- `smooth=true` builds the
+  top edge via a
+  Catmull-Rom-to-cubic-bezier
+  curve; `smooth=false`
+  (default) renders an
+  `M / L` polyline. The
+  bottom edge always traces
+  back along the per-point
+  baseline (`y0`).
+- `showLines=true` (default)
+  draws the top edge as a
+  separate stroke path so the
+  fill stays visually rooted.
+  `showLines=false` removes
+  the stroke and relies on
+  the fill alone.
+- Hover: mousemove resolves
+  the cursor's fractional x
+  position back to data-space,
+  picks the nearest point per
+  series via
+  `findNearestAreaIndex`, and
+  renders a vertical rule +
+  per-series hover dot. A
+  tooltip overlay lists each
+  series at the hovered x
+  with a color swatch + label
+  + formatted value.
+- `animate=true` applies the
+  `motion-safe:animate-fade-in`
+  utility per series group.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_CHART_AREA_WIDTH = 520
+DEFAULT_CHART_AREA_HEIGHT = 280
+DEFAULT_CHART_AREA_PADDING = 36
+DEFAULT_CHART_AREA_TICK_COUNT = 4
+DEFAULT_CHART_AREA_FILL_OPACITY = 0.35
+DEFAULT_CHART_AREA_MODE = 'overlaid'
+buildAreaStack(series, mode): ChartAreaStackedPoint[][]
+getChartAreaBounds(stack, xDomain?, yDomain?): ChartAreaBounds
+buildAreaPath(points, smooth?): string
+findNearestAreaIndex(data, xValue): number
+```
+
+- `buildAreaStack` collapses
+  NaN / non-finite y values
+  to 0 in both modes;
+  negatives clamp to 0 in
+  stacked mode so cumulative
+  sums never regress.
+- `getChartAreaBounds` treats
+  `yMin` as 0 by default
+  (`yDomain` override wins);
+  empty stack collapses to
+  `(0, 1)` on x; single-x
+  stack expands to
+  `xMin + 1` on x.
+- `buildAreaPath` produces a
+  closed shape: top edge
+  left -> right, bottom edge
+  right -> left, then `Z`.
+  Single-point input renders
+  a degenerate vertical
+  segment so the path
+  remains valid SVG.
+- `findNearestAreaIndex`
+  mirrors the line-chart
+  helper: smallest absolute
+  distance in x-space;
+  non-finite x values are
+  skipped.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- SVG: `role="img"` +
+  `aria-label`.
+- Per-series fill path:
+  `role="graphics-symbol"` +
+  `aria-label=<series.label>`.
+- Tooltip: `role="tooltip"`.
+- `data-section` on every
+  node: `chart-area` (root),
+  `chart-area-svg`,
+  `chart-area-axis-x`,
+  `chart-area-axis-y`,
+  `chart-area-grid-y`,
+  `chart-area-grid-x`,
+  `chart-area-tick-y`,
+  `chart-area-tick-x`,
+  `chart-area-series`,
+  `chart-area-fill`,
+  `chart-area-line`,
+  `chart-area-hover-layer`,
+  `chart-area-hover-rule`,
+  `chart-area-hover-dot`,
+  `chart-area-tooltip`,
+  `chart-area-tooltip-row`,
+  `chart-area-tooltip-swatch`,
+  `chart-area-tooltip-label`,
+  `chart-area-tooltip-value`,
+  `chart-area-axis-x-label`,
+  `chart-area-axis-y-label`.
+- Root mirrors `data-mode`,
+  `data-series-count`,
+  `data-smooth`,
+  `data-animate`. Series
+  groups mirror
+  `data-series-id` +
+  `data-series-color`. Hover
+  dots + tooltip rows mirror
+  `data-series-id`. Grid rows
+  mirror `data-tick-value`.
+
+### Tests
+
+44 cases in
+`web/src/components/ui/chart-area.test.tsx`,
+covering:
+
+- `buildAreaStack`: empty
+  input; overlaid (y0=0 +
+  y1=value); overlaid NaN
+  collapses to 0; stacked
+  cumulative baseline per x;
+  stacked negatives clamp.
+- `getChartAreaBounds`:
+  stacked vs overlaid yMax
+  differs; empty fallback to
+  (0,1); xDomain / yDomain
+  override wins; single-x
+  stack expansion.
+- `buildAreaPath`: empty;
+  single-point degenerate
+  vertical; straight (L)
+  path top + bottom + Z;
+  smooth path emits C
+  commands.
+- `findNearestAreaIndex`:
+  empty -> -1; closest by
+  absolute x.
+- Constants.
+- Component: region + default
+  + custom `ariaLabel`; one
+  series group per series;
+  mode toggle default +
+  stacked override.
+- Per-series fill has
+  role=graphics-symbol +
+  aria-label.
+- smooth=false straight path;
+  smooth=true cubic-bezier
+  path.
+- showLines default + opt-out.
+- fillOpacity prop applies.
+- showGrid=false hides grid;
+  y / x tick labels reflect
+  bounds; formatY + formatX
+  format every label.
+- Mouse move on the svg
+  shows hover layer +
+  tooltip; mouse leave
+  clears both.
+- showTooltip=false
+  suppresses the tooltip.
+- Axis title labels render
+  when supplied.
+- Per-series color override
+  applies.
+- Empty series renders
+  without crashing.
+- animate=false / smooth=true
+  data attrs reflect props.
+- Root `data-series-count`
+  mirrors series.length.
+- Stable `displayName` +
+  `forwardRef` to the root.
+- SVG viewBox respects width
+  + height.
+
+### Pairs with existing primitives
+
+- `<ChartLine>` (11.439) for
+  unfilled line charts; this
+  primitive re-uses
+  `getLinearScale` /
+  `getChartLineTicks` /
+  `formatChartLineTick` so
+  the two primitives share
+  axis + formatting
+  behaviour.
+- `<ChartBar>` (11.438) for
+  categorical series.
+- `<ChartPie>` (11.440) for
+  share-of-total displays.
+
+### Out of scope
+
+- Stream / streamgraph
+  ordering (host wraps with
+  a custom layout when
+  needed).
+- Annotation lines / band
+  highlights (host adds
+  custom SVG children
+  underneath).
+- Brush / range select (host
+  wraps in a brush primitive).
+- Tick algorithms like
+  d3-scale `nice()` -- the
+  built-in ticks divide the
+  range evenly.
+
 ## [1.11.458] - 2026-05-19 -- UI: chart-pie primitive (TODO 11.440)
 
 New **ChartPie** UI primitive in
