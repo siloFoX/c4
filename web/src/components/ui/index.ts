@@ -146,3 +146,4 @@ export * from './log-stream';
 export * from './env-badge';
 export * from './user-card';
 export * from './kbd-shortcut-recorder';
+export * from './text-diff';

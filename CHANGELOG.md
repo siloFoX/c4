@@ -4,6 +4,273 @@
 
 (no entries -- next release window)
 
+## [1.11.455] - 2026-05-19 -- UI: text-diff primitive (TODO 11.437)
+
+New **TextDiff** UI primitive in
+`web/src/components/ui/text-diff.tsx`:
+word-level inline diff with
+add / remove highlights and an
+opt-in line-by-line mode. A "Copy
+unified diff" affordance writes a
+standard `--- a / +++ b / @@ ...`
+patch to the clipboard so adopters
+can paste into their review tool of
+choice.
+
+### API
+
+```ts
+type TextDiffMode = 'inline-word' | 'line';
+type TextDiffOpKind = 'equal' | 'insert' | 'delete';
+
+interface TextDiffOp {
+  type: TextDiffOpKind;
+  text: string;
+}
+
+interface TextDiffLineOp {
+  type: TextDiffOpKind;
+  text: string;
+  beforeLine?: number;
+  afterLine?: number;
+}
+
+interface TextDiffProps {
+  before: string;
+  after: string;
+  mode?: TextDiffMode;             // controlled
+  defaultMode?: TextDiffMode;      // default 'inline-word'
+  onModeChange?: (m: TextDiffMode) => void;
+  showCopyDiff?: boolean;          // default true
+  onCopyDiff?: (text: string) => void;
+  ariaLabel?: string;              // default 'Text diff'
+  className?: string;
+  beforeLabel?: string;            // default 'a'
+  afterLabel?: string;             // default 'b'
+  contextLines?: number;           // default 3
+}
+```
+
+### Behaviour
+
+- Inline mode renders the diff as
+  a flat run of `<span>` tokens
+  with per-token classes:
+  green-with-bg for inserts,
+  red-with-bg-and-strikethrough
+  for deletes, plain text for
+  equals. Each token carries
+  `data-token-type` so adopters
+  can target individual diff
+  spans.
+- Line mode renders a numbered
+  list of `<li>` rows with a
+  leading sign column (`+` /
+  `-` / space), a before-line
+  number column, an after-line
+  number column, and the
+  per-line text body. Insert
+  rows colour green, delete
+  rows colour red-with-
+  strikethrough.
+- Mode toggle is a tiny
+  segmented control
+  (`role="radiogroup"` of two
+  `role="radio"` buttons) at
+  the top of the toolbar.
+- Toolbar summary chips show
+  `+<insertCount>` and
+  `-<deleteCount>` derived from
+  the word-level ops.
+- Copy button writes the
+  result of `toUnifiedDiff`
+  to `navigator.clipboard`
+  and fires `onCopyDiff`.
+  Hidden when `showCopyDiff=
+  false`.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_TEXT_DIFF_MODE = 'inline-word'
+DEFAULT_TEXT_DIFF_CONTEXT_LINES = 3
+tokenizeWords(text): string[]
+diffWords(before, after): TextDiffOp[]
+diffLines(before, after): TextDiffLineOp[]
+toUnifiedDiff(before, after, { beforeLabel?, afterLabel?, contextLines? }): string
+copyTextToClipboard(text): Promise<boolean>
+```
+
+- `tokenizeWords` splits on
+  whitespace + keeps separators
+  so the rendered diff
+  preserves the original
+  spacing.
+- `diffWords` runs the same
+  generic LCS as `diffLines`
+  -- consistent core,
+  different tokenizers.
+- `diffLines` attaches
+  `beforeLine` / `afterLine`
+  cursors per op so adopters
+  can render gutter line
+  numbers.
+- `toUnifiedDiff` outputs a
+  standard `--- / +++` patch
+  header plus per-hunk
+  `@@ -m,n +m,n @@` ranges and
+  per-line `+ / - / space`
+  signs; respects a custom
+  context-line count and the
+  configurable beforeLabel /
+  afterLabel slot. Identical
+  inputs return just the
+  headers (no hunks).
+- `copyTextToClipboard` swallows
+  permission failures + returns
+  `false` so the host never
+  crashes.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- Mode toggle:
+  `role="radiogroup"` +
+  `aria-label="Diff display mode"`;
+  each button is `role="radio"`
+  with `aria-checked`.
+- Copy button:
+  `aria-label="Copy unified diff"`.
+- `data-section` on every
+  node: `text-diff` (root),
+  `-toolbar`,
+  `-mode-toggle`,
+  `-mode-inline`,
+  `-mode-line`,
+  `-summary`,
+  `-summary-insert`,
+  `-summary-delete`,
+  `-copy`,
+  `-inline`,
+  `-token`,
+  `-lines`,
+  `-line`,
+  `-line-sign`,
+  `-line-number`,
+  `-line-number-after`,
+  `-line-text`.
+- Root mirrors `data-mode`,
+  `data-insert-count`,
+  `data-delete-count`. Each
+  inline token mirrors
+  `data-token-type`. Each line
+  row mirrors `data-line-type`,
+  `data-before-line`,
+  `data-after-line`. Mode
+  toggle buttons mirror
+  `data-active`.
+
+### Tests
+
+39 cases in
+`web/src/components/ui/text-diff.test.tsx`,
+covering:
+
+- `tokenizeWords` empty;
+  whitespace separator
+  preservation; consecutive
+  whitespace as a single token.
+- `diffWords`: identical input
+  all equal; insertion;
+  deletion; substitution;
+  empty before / empty after.
+- `diffLines`: per-op
+  before/after line numbers
+  for equal / insert / delete;
+  all-equal trivial case.
+- `toUnifiedDiff`: header-only
+  for no-op; hunk header +
+  per-line signs; custom
+  before / after label;
+  contextLines override.
+- `copyTextToClipboard`:
+  writes via clipboard mock;
+  returns false on rejection.
+- Constants -- default mode +
+  context lines.
+- Component: region + default
+  + custom `ariaLabel`;
+  start in inline-word mode;
+  inline mode renders
+  per-token kinds; summary
+  counts mirror op counts.
+- Mode toggle switches to line
+  mode + fires
+  `onModeChange`; controlled
+  `mode` pins state.
+- Line mode renders one `<li>`
+  per op; per-line
+  `data-line-type` reflects
+  kind; per-line before/after
+  numbers attached.
+- Toolbar `+N`/`-N` chips
+  render.
+- Copy button fires
+  `onCopyDiff` with the
+  unified diff text;
+  `showCopyDiff=false` hides
+  the button.
+- `beforeLabel` /
+  `afterLabel` reflect in
+  the copied diff.
+- Mode toggle exposes
+  `role="radio"` +
+  `aria-checked`.
+- Identical inputs report 0/0
+  in the toolbar.
+- Stable `displayName` +
+  `forwardRef` to the root.
+- `data-section` markers
+  present on root + toolbar +
+  mode toggle.
+
+### Pairs with existing primitives
+
+- `<DiffEditor>` (11.399) for
+  the per-hunk accept/reject
+  flow inside an editor
+  surface.
+- `<SnapshotDiff>` (11.396)
+  for the side-by-side
+  before/after pane.
+- `<ChangelogViewer>` (11.428)
+  for the human-readable
+  release timeline whose
+  bodies often embed text
+  diffs.
+
+### Out of scope
+
+- Per-character diff
+  (`tokenizeWords` is the
+  unit; adopters wrap with a
+  custom tokenizer if
+  per-glyph granularity is
+  needed).
+- Three-way merge / conflict
+  markers (host wraps with a
+  merge-specific primitive
+  when required).
+- Syntax-aware highlighting
+  inside the diff body (host
+  composes with a code editor
+  for code review surfaces).
+- Patch application (host
+  reads `toUnifiedDiff`
+  output + ships its own
+  apply / revert flow).
+
 ## [1.11.454] - 2026-05-19 -- UI: kbd-shortcut-recorder primitive (TODO 11.436)
 
 New **KbdShortcutRecorder** UI
