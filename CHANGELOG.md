@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.466] - 2026-05-19 -- UI: chart-treemap primitive (TODO 11.448)
+
+New **ChartTreemap** UI primitive in
+`web/src/components/ui/chart-treemap.tsx`:
+pure-SVG hierarchical treemap with a
+squarified layout (Bruls / Huijsen /
+van Wijk 1999). Each node renders as a
+rectangle whose area is proportional
+to its value; the squarified algorithm
+keeps aspect ratios close to 1 so
+labels stay legible. Click-to-drill
+descends into the hovered node; the
+drill path is fully controllable and
+emits `onDrillChange` so adopters can
+wire breadcrumbs or back buttons.
+Default colour-by-value gradient
+flows from light tint to deep brand
+blue across the value range; per-node
+colour and gradient endpoints both
+overridable. In-cell labels + values
+only render when the cell is large
+enough to read; tooltip surfaces the
+full label, value, and a drill hint
+on hover. Pure helpers exported:
+`getNodeValue`, `findNodeByPath`,
+`worstAspectRatio`, `squarifyTreemap`,
+`getTreemapColor`, `describeTreemap`.
+56 vitest cases cover helpers (incl.
+the layout invariants: cells fit
+inside the rect, total area equals
+rect area, areas are proportional to
+values) + every render branch
+including drill state, gradient
+endpoints, tooltip visibility, ARIA
+description override, click payload,
+and ref forwarding.
+
 ## [1.11.465] - 2026-05-19 -- UI: chart-funnel primitive (TODO 11.447)
 
 New **ChartFunnel** UI primitive in
