@@ -4,6 +4,69 @@
 
 (no entries -- next release window)
 
+## [1.11.548] - 2026-05-19 -- UI: chart-line-distribution primitive (TODO 11.530)
+
+New **ChartLineDistribution** UI
+primitive in
+`web/src/components/ui/chart-line-distribution.tsx`:
+pure-SVG multi-series line chart
+**with an inline marginal
+histogram on the right side**
+showing the distribution of the
+y values. Main panel takes the
+bulk of the canvas for the time
+series; the right panel renders
+a sideways histogram with shared
+y axis -- bin heights match bin
+widths in y space, bin bar
+widths scale to the counts.
+Each bin segments per-series so
+multiple series stack into the
+same bin with distinct colours.
+Mean + median reference lines
+span both panels for unambiguous
+central tendency. Pure helpers
+`computeLineDistributionBins`
+(equal-width bins,
+values-at-rangeMax fall in the
+last bin, out-of-range dropped,
+only non-zero perSeries emitted),
+`computeLineDistributionMean`,
+`computeLineDistributionMedian`,
+`normaliseLineDistributionBinCount`
+(>= 1; floor fractional;
+non-finite -> 1),
+`computeLineDistributionLayout`,
+and `describeLineDistributionChart`.
+The canonical "metric over time
++ what's the typical range"
+view. Distinct from
+`<ChartHistogram>` (standalone --
+this primitive EMBEDS as a
+marginal next to a line chart),
+`<ChartLinePercentile>` (samples
+per x), `<ChartLineConfidence>`
+(external bounds),
+`<ChartLineAnomaly>` (z-score
+outliers), `<ChartLineMinMax>`
+(extremes), and
+`<ChartLineSparkBar>` (sparkline
+form factor with bar+line for
+TWO metrics; distribution
+overlays a histogram of the
+LINE's y values). 67 vitest
+cases cover defaults, bin math
+(boundary, rangeMax inclusion,
+out-of-range, non-finite),
+mean/median (empty / non-finite
+/ even-n averaging), layout
+(track split, ratio clamp,
+hidden filter affects bins,
+combined stats), ARIA, dual
+tooltips (point + bin),
+legend, callbacks, ref. (TODO
+11.530)
+
 ## [1.11.547] - 2026-05-19 -- UI: chart-line-correlation primitive (TODO 11.529)
 
 New **ChartLineCorrelation** UI

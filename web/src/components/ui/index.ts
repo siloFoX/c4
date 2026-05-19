@@ -239,3 +239,4 @@ export * from './chart-line-rolling-min-max';
 export * from './chart-line-velocity';
 export * from './chart-line-acceleration';
 export * from './chart-line-correlation';
+export * from './chart-line-distribution';
