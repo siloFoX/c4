@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.537] - 2026-05-19 -- UI: chart-line-forecast primitive (TODO 11.519)
+
+New **ChartLineForecast** UI
+primitive in
+`web/src/components/ui/chart-line-forecast.tsx`:
+pure-SVG multi-series line chart
+that **splits each series into a
+historical solid line and a
+forecast dashed extension** at a
+configurable `forecastFrom`
+cutoff. A vertical dashed
+reference line marks the cutoff x
+with a "Forecast" label.
+Optional `yLower` / `yUpper`
+bounds on forecast samples drive
+a translucent confidence-band
+polygon painted under the dashed
+extension. Pure helpers
+`splitLineForecastPoints` (splits
+x-sorted finite series into
+`{historical, forecast, join}`;
+synthesises a join point at the
+interpolated `(cutoff, y)` plus
+interpolated `yLower`/`yUpper`
+when the cutoff lands strictly
+inside a segment, so the two
+paths render seamlessly),
+`isForecastPoint`,
+`buildLineForecastPath` (standard
+`M ... L ...` skipping non-finite),
+`buildLineForecastBandPath`
+(closed polygon walking upper
+then lower, skipping missing
+bounds),
+`computeLineForecastLayout`, and
+`describeLineForecastChart`.
+Distinct from
+`<ChartLineConfidence>` (band
+spans entire series),
+`<ChartLineDashed>` (per-segment
+dash, not a strict before/after
+split), `<ChartLineComparison>`
+(two curves), `<ChartLineAnnotated>`
+(vertical annotation without path
+styling split), and the horizontal-
+reference primitives. 66 vitest
+cases cover defaults, split math
+(including interpolation +
+bounds-aware join), path/band
+builders, layout, ARIA, tooltip,
+legend, callbacks, ref. (TODO
+11.519)
+
 ## [1.11.536] - 2026-05-19 -- UI: chart-line-target primitive (TODO 11.518)
 
 New **ChartLineTarget** UI primitive
