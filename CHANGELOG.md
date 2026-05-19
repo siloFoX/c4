@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.479] - 2026-05-19 -- UI: chart-parallel primitive (TODO 11.461)
+
+New **ChartParallel** UI primitive
+in
+`web/src/components/ui/chart-parallel.tsx`:
+pure-SVG parallel coordinates plot.
+Each dimension becomes a vertical
+axis; each row becomes a polyline
+crossing every axis at the value
+for that dimension. Drag on an
+axis to brush a y-range -- rows
+whose values fall within every
+active brush stay visible; the
+rest fade to 0.08 opacity but
+still render. Hovering a row
+highlights it and dims the others.
+Brushes are fully controllable via
+`brushes` + `onBrushesChange` for
+host-driven filter state.
+Double-click an axis to clear its
+brush. Pure helpers exported:
+`getParallelDimensionBounds`,
+`isRowInBrushes`, `applyBrushFilter`,
+`buildParallelRowPath`,
+`getParallelTicks`,
+`describeParallelChart`. Per-axis
+dim min / max props let host override
+each axis's range; per-dimension
+`format` shapes tick labels.
+50 vitest cases cover helpers (incl.
+brush AND-combination semantics +
+non-finite-value handling) + every
+render branch including controlled
+vs uncontrolled brushes, brush
+rectangle visibility, double-click
+clear, dim-on-hover, click payload,
+ARIA description override, and ref
+forwarding.
+
 ## [1.11.478] - 2026-05-19 -- UI: chart-mosaic primitive (TODO 11.460)
 
 New **ChartMosaic** UI primitive in
