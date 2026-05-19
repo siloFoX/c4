@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.498] - 2026-05-19 -- UI: chart-funnel-area primitive (TODO 11.480)
+
+New **ChartFunnelArea** UI primitive in
+`web/src/components/ui/chart-funnel-area.tsx`:
+pure-SVG **area-funnel** variant where
+each stage's vertical height is
+proportional to its value share and the
+funnel walls taper smoothly from the
+full width at the top to a configurable
+neck-ratio width at the bottom.
+Distinct from `<ChartFunnel>` (11.443)
+which sizes each trapezoid's *width*
+by value with equal heights; in
+ChartFunnelArea every stage is a wide
+band and its area (height x mean
+width) is proportional to value,
+matching the common "stage by share"
+reading common in analytics
+dashboards. Width tapers linearly with
+cumulative share so the previous
+stage's bottom width equals the next
+stage's top width (continuous funnel
+walls). `neckRatio` clamped to [0, 1]
+(0 -> point; 1 -> straight column).
+Conversion rate per stage `i > 0` is
+`value[i] / value[i-1]` (clamped to 0
+when previous is <= 0 or non-finite);
+first stage's conversion = 1, drop = 0.
+Optional in-trapezoid label + value
+text; optional conversion-rate badge
+to the right of each stage `i > 0`.
+Hover/focus dims other stages to 0.4
+and opens a tooltip with label, value,
+share, and conversion (omitted for
+first stage). Pure helpers exported:
+`getFunnelAreaDefaultColor`,
+`getFunnelAreaTotalValue`,
+`getFunnelAreaConversionRate`,
+`computeFunnelAreaLayout`,
+`describeFunnelAreaChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-path
+role=graphics-symbol + tabIndex=0 +
+"<label>: <value> (<percent> of
+total)" aria-label. data-section on
+every node; root mirrors data-stage-
+count / data-visible-count / data-
+total / data-neck-ratio / data-animate;
+stage groups mirror id / index / value
+/ share / color / conversion / drop /
+hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 57 vitest cases pass.
+
 ## [1.11.497] - 2026-05-19 -- UI: chart-treemap-squarified primitive (TODO 11.479)
 
 New **ChartTreemapSquarified** UI
