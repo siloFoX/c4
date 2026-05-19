@@ -4,6 +4,292 @@
 
 (no entries -- next release window)
 
+## [1.11.450] - 2026-05-19 -- UI: api-response-viewer primitive (TODO 11.432)
+
+New **ApiResponseViewer** UI
+primitive in
+`web/src/components/ui/api-response-viewer.tsx`:
+HTTP response card with a status
+badge, the request method + URL, a
+formatted JSON body tree with
+collapsible nodes + per-type syntax
+highlighting, and a "Copy as curl"
+affordance that writes a
+shell-ready `curl` command to the
+clipboard so adopters can reproduce
+the request locally.
+
+### API
+
+```ts
+interface ApiResponseViewerProps {
+  status?: number;
+  statusText?: string;
+  url?: string;
+  method?: string;                          // default 'GET'
+  requestHeaders?: Record<string, string>;
+  responseHeaders?: Record<string, string>;
+  body?: unknown;                           // JSON body
+  rawBody?: string;                         // non-JSON body
+  requestBody?: unknown;                    // for curl -d
+  copyAsCurl?: boolean;                     // default true
+  copyBody?: boolean;                       // default true
+  defaultCollapsed?: boolean;
+  maxInitialDepth?: number;                 // default 2
+  ariaLabel?: string;                       // default 'API response'
+  onCopy?: (text: string) => void;
+  emptyBody?: ReactNode;
+  durationMs?: number;
+}
+```
+
+### Behaviour
+
+- Header row renders (in order):
+  status badge (colour-coded by
+  2xx / 3xx / 4xx / 5xx / 1xx /
+  unknown), method chip, URL,
+  duration chip, and two
+  right-aligned action buttons
+  ("curl" and "Copy").
+- JSON body renders through an
+  internal recursive `JsonNode`:
+  scalars get per-type colour
+  classes (string -> success,
+  number -> warning, boolean ->
+  primary, null/undefined ->
+  muted italic) and a
+  `data-scalar-type` attribute;
+  containers (object / array)
+  expose a chevron toggle, a
+  collapsed-state summary
+  ("N keys" / "N items"), and a
+  `data-expanded` attr.
+- Each node opens by default up
+  to `maxInitialDepth` (default
+  2). `defaultCollapsed` forces
+  the root closed by clamping
+  the depth to 0.
+- `rawBody` (non-JSON) renders
+  as a preformatted `<pre>`
+  block tagged with
+  `data-section="api-response-viewer-raw"`.
+- Empty body (neither `body`
+  nor `rawBody`) renders the
+  `emptyBody` slot (default
+  `'No response body'`).
+- "Copy as curl" button calls
+  `buildCurlCommand(method, url,
+  requestHeaders, requestBody)`
+  and fires `onCopy(cmd)` then
+  writes to
+  `navigator.clipboard.writeText`.
+- "Copy" button copies the
+  pretty-printed JSON body (2-
+  space indent).
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_API_VIEWER_MAX_INITIAL_DEPTH = 2
+getStatusCodeKind(status?): StatusCodeKind
+getStatusCodeBadgeClass(kind): string
+getJsonNodeType(value): JsonNodeType
+formatJson(value, indent?): string
+buildCurlCommand(method?, url?, headers?, body?): string
+copyToClipboard(text): Promise<boolean>
+```
+
+- `getStatusCodeKind` maps
+  ranges to `info` / `success`
+  / `redirect` / `client-error`
+  / `server-error`;
+  out-of-band / undefined ->
+  `unknown`.
+- `buildCurlCommand` builds a
+  paste-safe `curl` string:
+  emits `-X` for non-GET
+  methods, `-H` per header,
+  `-d` for the body on
+  non-GET, and escapes
+  backslashes + double quotes
+  in every quoted value so
+  embedded `"` / `\` survive
+  shell parsing.
+- `copyToClipboard` returns
+  `true` on a successful
+  `clipboard.writeText` call;
+  swallows rejection and
+  returns `false` so the host
+  never crashes on permission
+  failures.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- Status badge text:
+  `${status} ${statusText}`.
+- Per-node toggle button:
+  `aria-expanded` mirrors
+  state +
+  `aria-label="Collapse node"
+  | "Expand node"`.
+- Copy buttons:
+  `aria-label="Copy as curl"`
+  / `aria-label="Copy response
+  body"`.
+- `data-section` on every
+  node: `api-response-viewer`
+  (root), `-header`,
+  `-status`, `-method`,
+  `-url`, `-duration`,
+  `-actions`, `-copy-curl`,
+  `-copy-body`, `-headers`,
+  `-header-row`, `-body`,
+  `-tree`, `-node`,
+  `-node-toggle`,
+  `-node-key`, `-node-summary`,
+  `-node-children`,
+  `-node-child`, `-scalar`,
+  `-raw`, `-body-empty`.
+- Root mirrors `data-status`,
+  `data-status-kind`,
+  `data-method`,
+  `data-has-body`. Status
+  badge mirrors `data-status-
+  kind`. Each container node
+  mirrors `data-node-type` +
+  `data-expanded`. Each scalar
+  mirrors `data-scalar-type`.
+  Tree wrapper mirrors
+  `data-default-collapsed`.
+  Each child `<li>` mirrors
+  `data-key`. Each response-
+  header row mirrors
+  `data-header-name`.
+
+### Tests
+
+51 cases in
+`web/src/components/ui/api-response-viewer.test.tsx`,
+covering:
+
+- `getStatusCodeKind` across
+  all five HTTP ranges +
+  unknown.
+- `getStatusCodeBadgeClass`
+  returns per-kind classes.
+- `getJsonNodeType` detects
+  every primitive + array +
+  object + undefined.
+- `formatJson` 2-space
+  default, custom indent,
+  cyclic fallback to
+  `String()`.
+- `buildCurlCommand`: basic
+  GET, non-GET `-X`,
+  per-header `-H`, `-d` for
+  non-GET body, GET body
+  skipped, shell escaping of
+  `"` / `\`, default method
+  is GET.
+- `copyToClipboard` writes
+  via the clipboard mock;
+  returns false on
+  rejection.
+- Default + custom
+  `ariaLabel`.
+- Status badge text + kind
+  class via `data-status-
+  kind`.
+- Method + URL render in
+  the header.
+- Duration chip renders when
+  supplied.
+- Copy as curl button
+  visibility (URL present /
+  absent / `copyAsCurl=
+  false`).
+- Copy as curl click fires
+  `onCopy` with the curl
+  command including method /
+  URL / headers / body.
+- Copy body button
+  visibility (body present /
+  absent / `copyBody=false`).
+- Copy body click fires
+  `onCopy` with the
+  pretty-printed JSON.
+- JSON tree renders one
+  child per top-level key.
+- Per-type colour classes
+  appear via
+  `data-scalar-type`.
+- Node toggle collapses +
+  expands; `aria-expanded`
+  mirrors state.
+- `defaultCollapsed=true`
+  starts the root closed.
+- `rawBody` renders the raw
+  preformatted block (no
+  JSON tree).
+- Empty body renders the
+  `emptyBody` slot.
+- Response headers section
+  renders when supplied;
+  omitted when empty.
+- Root data attrs mirror
+  state.
+- `data-has-body=false` when
+  neither body nor rawBody.
+- Stable `displayName` +
+  `forwardRef` to the root
+  region.
+- Collapsed container nodes
+  render the
+  "N items" / "N keys"
+  summary.
+- Root container node
+  mirrors `data-node-type`
+  (`array` / `object`).
+
+### Pairs with existing primitives
+
+- `<CodeBlock>` for inline
+  source snippets next to
+  the response.
+- `<CopyButton>` /
+  `<Clipboard>` underlie the
+  copy primitive; this
+  viewer ships its own
+  affordance for
+  tight curl-ergonomics.
+- `<Tabs>` if the host
+  wants to swap multiple
+  response panels.
+
+### Out of scope
+
+- Live request inspection /
+  network panel (host owns
+  the fetch lifecycle and
+  passes the response).
+- Streaming / SSE response
+  rendering (host parses
+  chunks; primitive renders
+  a static snapshot).
+- Diff between two
+  responses (host wraps
+  with `<DiffEditor>` for
+  side-by-side comparison).
+- Editing the response in
+  place (the viewer is
+  read-only; host wraps in
+  an editor primitive when
+  edit-and-replay is
+  needed).
+
 ## [1.11.449] - 2026-05-19 -- UI: data-import-wizard primitive (TODO 11.431)
 
 New **DataImportWizard** UI
