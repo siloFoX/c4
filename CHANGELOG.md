@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.513] - 2026-05-19 -- UI: chart-cleveland-dot primitive (TODO 11.495)
+
+New **ChartClevelandDot** UI primitive
+in
+`web/src/components/ui/chart-cleveland-dot.tsx`:
+pure-SVG **Cleveland dot plot** (also
+known as dumbbell chart). Each
+category has two values shown as a
+pair of filled circles on the same
+row (horizontal) or column (vertical),
+joined by a thin connector segment.
+Optimised for before/after, this/that,
+or any paired comparison across many
+categories. Distinct from
+`<ChartLollipop>` (11.494; one head +
+stick from baseline),
+`<ChartSlope>` (11.476; two values
+between two axes for rank change),
+`<ChartBar>` (one value per category),
+and the distribution viewers
+`<ChartStrip>` (11.492) /
+`<ChartBeeswarm>` (11.493). Direction
+classifier `getClevelandDotDirection`
+returns up / down / flat with
+configurable epsilon for noise-band
+tolerance. When `useDeltaColors=true`,
+the connector colours by direction
+(positive / negative / neutral); when
+false (default), connectors are
+neutral and direction lives only in
+the dot positions. `sortBy =
+'before' | 'after' | 'delta' |
+'absDelta'` plus `sortOrder` reorders
+items by any column. Per-dot
+`onItemClick({item, layout, series})`
+distinguishes which side was clicked.
+ARIA: root region + svg role=img +
+per-dot graphics-symbol with
+tabIndex=0; data-section on every
+node. Pure helpers exported:
+`getClevelandDotDirection`,
+`getClevelandDotFiniteItems`,
+`getClevelandDotBounds`,
+`getClevelandDotTicks`,
+`sortClevelandDotItems`,
+`computeClevelandDotLayout`,
+`describeClevelandDotChart`. 67 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.512] - 2026-05-19 -- UI: chart-lollipop primitive (TODO 11.494)
 
 New **ChartLollipop** UI primitive in
