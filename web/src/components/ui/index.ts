@@ -137,3 +137,4 @@ export * from './notification-bell';
 export * from './search-result-list';
 export * from './feature-tour';
 export * from './announcement-banner';
+export * from './changelog-viewer';
