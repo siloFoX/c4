@@ -4,6 +4,66 @@
 
 (no entries -- next release window)
 
+## [1.11.525] - 2026-05-19 -- UI: chart-line-segment primitive (TODO 11.507)
+
+New **ChartLineSegment** UI
+primitive in
+`web/src/components/ui/chart-line-segment.tsx`:
+pure-SVG multi-series line chart
+that **colours each line segment
+based on threshold matching**. Each
+series carries
+`thresholds: [{value, color, label?}]`
+plus a `classifyBy: 'max' | 'min' |
+'avg' | 'start' | 'end'` (default
+'max') that reduces each segment's
+two endpoint y values to a single
+representative value.
+`pickLineSegmentColor` walks the
+sorted thresholds top to bottom and
+returns the first threshold whose
+value is `<= effectiveValue`;
+exact equality counts as crossed.
+Consecutive segments sharing the
+same colour merge into a single
+SVG `<path>` so the DOM stays
+small even for long series with
+infrequent transitions. The
+canonical "SLO-coloured" line
+pattern: line goes red where the
+metric exceeds the critical
+threshold, yellow at warning, and
+neutral elsewhere. Distinct from
+`<ChartLineDashed>` (11.499)
+(per-segment dash patterns;
+chart-line-segment varies colour
+instead), `<ChartLineThreshold>`
+(11.503) (horizontal threshold
+rules + zone shading; chart-line-
+segment paints the line itself in
+the threshold colour), and
+`<ChartLineMarker>` (11.506)
+(per-point marker shape). Per-
+segment `onSegmentClick({series,
+segment})` callback for adopters
+who want to react to band hits at
+the segment level. Pure helpers
+exported:
+`getLineSegmentDefaultColor`,
+`getLineSegmentFinitePoints`,
+`getLineSegmentBounds`,
+`getLineSegmentTicks`,
+`classifyLineSegmentValue`,
+`pickLineSegmentColor`,
+`buildLineSegmentPath`,
+`computeLineSegmentLayout`,
+`describeLineSegmentChart`. 78
+vitest cases pass under vitest
+4.1.5; TypeScript clean for
+touched files. Exported via
+`components/ui` barrel. Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.524] - 2026-05-19 -- UI: chart-line-marker primitive (TODO 11.506)
 
 New **ChartLineMarker** UI primitive
