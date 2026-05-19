@@ -135,3 +135,4 @@ export * from './scroll-spy';
 export * from './back-to-top';
 export * from './notification-bell';
 export * from './search-result-list';
+export * from './feature-tour';
