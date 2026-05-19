@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.480] - 2026-05-19 -- UI: chart-chord primitive (TODO 11.462)
+
+New **ChartChord** UI primitive in
+`web/src/components/ui/chart-chord.tsx`:
+pure-SVG chord diagram. Categories
+sit as arcs around a ring; ribbons
+inside the ring connect pairs whose
+mutual flow value sets each ribbon's
+width at both endpoints. Ribbon fill
+colour encodes the source category.
+Hovering a ribbon highlights it and
+dims the others; hovering a category
+highlights every ribbon that touches
+it. Per-category and per-ribbon
+click handlers fire with full
+payloads. Layout: first arc at 12
+o'clock, sweep clockwise, sub-arcs
+sized per flow value; ribbons use a
+closed cubic-bezier with both
+control points at the chart centre
+so ribbons curve cleanly. Pure
+helpers exported:
+`getChordCategoryTotals`,
+`chordPolarToCartesian`,
+`buildChordArcPath` (closed annular
+arc), `buildChordRibbonPath` (closed
+bezier ribbon), `buildChordLayout`
+(angular allocation +
+sub-arc accounting), and
+`describeChordChart`. 52 vitest
+cases cover helpers (incl. layout
+invariants: arc sizes proportional
+to totals, ribbon sub-arcs within
+parent arcs, self-loops counted
+once, unknown ids dropped) + every
+render branch including highlight
+on category vs ribbon hover,
+custom colours, tooltip visibility,
+click payloads, ARIA description
+override, and ref forwarding.
+
 ## [1.11.479] - 2026-05-19 -- UI: chart-parallel primitive (TODO 11.461)
 
 New **ChartParallel** UI primitive
