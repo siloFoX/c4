@@ -170,3 +170,4 @@ export * from './chart-boxplot';
 export * from './chart-violin';
 export * from './chart-step';
 export * from './chart-mosaic';
+export * from './chart-parallel';
