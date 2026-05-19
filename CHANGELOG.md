@@ -4,6 +4,158 @@
 
 (no entries -- next release window)
 
+## [1.11.428] - 2026-05-19 -- UI: date-picker disabled-date predicate (TODO 11.410)
+
+`<DatePicker>` (11.176) already shipped
+the calendar grid with month/year nav,
+min/max constraints, and full keyboard
+navigation (Arrow / PageUp / PageDown
+/ Home / End / Enter). This patch
+closes the remaining dispatched
+"disabled-date predicate" bullet.
+
+### New prop
+
+```ts
+isDateDisabled?: (date: Date) => boolean;
+```
+
+Available on both `<DatePicker>` and
+`<DateRangePicker>`. The predicate
+receives a start-of-day `Date` and
+returns `true` to mark the cell
+unavailable. Combines with
+`min` / `max` -- a date is allowed
+only when it passes ALL three gates.
+
+### Pure helper (exported)
+
+```ts
+export function isDayAllowed(
+  d: Date,
+  min?: Date,
+  max?: Date,
+  isDateDisabled?: (date: Date) => boolean,
+): boolean;
+```
+
+Behaviour:
+
+- empty constraints -> true
+- below min / above max -> false
+- predicate returns true -> false
+- predicate returns false -> true
+  (when within min/max)
+- predicate throws -> false (cell
+  treated as disabled; predicate
+  errors do not crash the calendar
+  render)
+- compounds: ALL three gates must
+  pass.
+
+### Cell + interaction behaviour
+
+- Predicate-disabled cells render
+  with `disabled` attribute +
+  `aria-disabled="true"` +
+  `opacity-40` + pointer-events
+  stripped, identical to min/max
+  disabled cells.
+- Click on a disabled cell is a
+  no-op (no onChange fired).
+- Enter on a predicate-disabled
+  focused cell is a no-op (Arrow
+  nav still works -- the focus
+  can move TO a disabled cell so
+  the user sees it, but they
+  cannot SELECT it).
+- DateRangePicker honours the
+  predicate in both calendar
+  panes.
+
+### Tests
+
+15 new test cases in
+`date-picker.test.tsx` (**28
+total = 13 legacy + 15 new**):
+
+`isDayAllowed` helper (8):
+- no constraints -> true
+- below min -> false
+- above max -> false
+- within [min, max] -> true
+- predicate true -> false
+- predicate false -> true
+- predicate throw -> false
+  (swallowed)
+- compounds min/max + predicate
+
+`<DatePicker> isDateDisabled` (6):
+- cell where predicate true is
+  disabled + aria-disabled
+- cell where predicate false
+  stays enabled
+- click on disabled cell does
+  not fire onChange
+- Enter on predicate-disabled
+  focused cell is a no-op
+- predicate compounds with
+  min/max (all three gates
+  consulted)
+- predicate throws are
+  swallowed (cell disabled)
+
+`<DateRangePicker>
+ isDateDisabled` (1):
+- disables cells in both
+  calendar panes
+
+28/28 pass under vitest 4.1.5;
+TypeScript clean for touched
+files. Legacy 13 tests pass
+byte-identical (no surface
+breakage).
+
+### Pairs with existing primitives
+
+- `<TimePicker>` (11.409) --
+  partner for date+time host
+  composition.
+- `<Popover>` -- the calendar
+  panel hosts via the existing
+  popover primitive.
+- ThemeCustomizer (11.394) --
+  the picker reads token-based
+  Tailwind classes so it
+  auto-themes.
+
+### Out of scope (deferred)
+
+- Memoization across cells.
+  The predicate is called per
+  cell on each render. If a
+  caller hits a hot-loop they
+  can wrap with `useMemo`
+  themselves.
+- Async predicate (e.g.,
+  "check if this slot is
+  booked"). The predicate is
+  synchronous for v1. An
+  adopter that needs async
+  should fetch the disabled-
+  set upfront and capture it
+  in the predicate closure.
+- Multi-date selection. Single
+  date + range only for v1.
+- Year / decade picker
+  jump-views. The Prev/Next
+  year buttons handle the
+  common case; a year-picker
+  view is a follow-on.
+- Per-cell tooltip on disabled
+  cells. Belongs in the host
+  layer.
+
 ## [1.11.427] - 2026-05-19 -- UI: time-picker primitive (TODO 11.409)
 
 New `web/src/components/ui/time-picker.tsx`
