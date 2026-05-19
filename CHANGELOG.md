@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.504] - 2026-05-19 -- UI: chart-dendrogram primitive (TODO 11.486)
+
+New **ChartDendrogram** UI primitive in
+`web/src/components/ui/chart-dendrogram.tsx`:
+pure-SVG **dendrogram** (tree) chart
+with right-angle (elbow) links between
+parent and child nodes and leaf labels.
+Four orientations: `right` (root left,
+leaves right; default), `down` (root
+top, leaves bottom), `left` (root
+right, leaves left), `up` (root
+bottom, leaves top). Distinct from
+the other hierarchical primitives
+(`<ChartSunburst>` radial banded,
+`<ChartIcicle>` rectangular banded,
+`<ChartCirclePacking>` nested circles,
+`<ChartTreemap>` nested rectangles);
+this is the classic **node-link tree**
+used for taxonomies, clustering, and
+file-tree visualisations. Layout: walk
+tree DFS to assign leaves
+`leafIndex` (0..N-1); leaves at
+`leafIndex * leafStep` along the leaf
+axis and at the deepest depth along
+the depth axis (`leafLabelReserve` px
+reserved for labels); each internal
+node sits at the centroid of its
+children along the leaf axis and at
+its own depth offset along the depth
+axis. Links use
+`buildDendrogramElbowPath` for the
+two-segment right-angle path from
+parent to child. Single-leaf tree
+centres the leaf. Per-node `color`
+always wins; otherwise leaves use
+`leafColor` and internals use
+`internalColor`. Hover node opens
+tooltip with label, depth, and either
+`leaf` (for leaves) or `<N> leaves`
+(for internal nodes); hover link
+opens a tooltip showing `<src> ->
+<tgt>` when no node is also hovered.
+Pure helpers exported:
+`getDendrogramDefaultColor`,
+`flattenDendrogramHierarchy`,
+`getDendrogramLeaves`,
+`getDendrogramMaxDepth`,
+`buildDendrogramElbowPath`,
+`computeDendrogramLayout`,
+`describeDendrogramChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-circle role=
+graphics-symbol + tabIndex=0 +
+"<label>" / "<label> (<N> leaves)"
+aria-label; per-link role=graphics-
+symbol + tabIndex=0 + "Link <src> to
+<tgt>" aria-label. data-section on
+every node; root mirrors data-node-
+count / data-link-count / data-leaf-
+count / data-max-depth / data-
+orientation / data-animate; node
+groups mirror id / depth / parent /
+is-leaf / leaf-index / leaf-count /
+child-count / color / hovered; links
+mirror index / source / target /
+hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 52 vitest cases pass.
+
 ## [1.11.503] - 2026-05-19 -- UI: chart-circle-packing primitive (TODO 11.485)
 
 New **ChartCirclePacking** UI
