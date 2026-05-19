@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.471] - 2026-05-19 -- UI: chart-stream primitive (TODO 11.453)
+
+New **ChartStream** UI primitive in
+`web/src/components/ui/chart-stream.tsx`:
+pure-SVG stream graph (stacked-area
+variant with a centered baseline).
+At every x position the chart sums
+per-series values and centers the
+stack vertically around a
+horizontal baseline so the silhouette
+grows symmetrically up + down. Each
+series fills its own band; hovering
+a band highlights it and dims the
+others. Smooth interpolation uses a
+Catmull-Rom-to-cubic-Bezier pass on
+both upper + lower edges; two-point
+bands degrade cleanly to straight
+polylines. Per-series click + tooltip
+with column total at the hovered x.
+Pure helpers exported:
+`getStreamTotalAt`, `getStreamMax`,
+`computeStreamLayout`,
+`buildStreamPath`,
+`describeStreamChart`. 50 vitest
+cases cover helpers (incl. layout
+invariants: layer N lower edge meets
+layer N+1 upper edge; stack centered
+around chart middle) + every render
+branch including smooth toggle, x
+label formatting, dimming on hover,
+click payload, ARIA description
+override, and ref forwarding.
+
 ## [1.11.470] - 2026-05-19 -- UI: chart-radial-bar primitive (TODO 11.452)
 
 New **ChartRadialBar** UI primitive
