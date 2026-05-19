@@ -243,3 +243,4 @@ export * from './chart-line-distribution';
 export * from './chart-line-period-compare';
 export * from './chart-line-streak';
 export * from './chart-line-momentum';
+export * from './chart-line-control';
