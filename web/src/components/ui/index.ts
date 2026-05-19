@@ -190,3 +190,4 @@ export * from './chart-streamgraph';
 export * from './chart-polar-area';
 export * from './chart-treemap-squarified';
 export * from './chart-funnel-area';
+export * from './chart-pictogram';
