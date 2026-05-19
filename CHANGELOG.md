@@ -4,6 +4,156 @@
 
 (no entries -- next release window)
 
+## [1.11.551] - 2026-05-19 -- UI: chart-line-momentum primitive (TODO 11.533)
+
+New **ChartLineMomentum** UI
+primitive in
+`web/src/components/ui/chart-line-momentum.tsx`:
+pure-SVG line chart with a
+**momentum oscillator** in a
+dedicated sub-panel below the
+main price line. Momentum at
+index `i` = `value[i] - value[i
+- period]` (classic technical-
+analysis indicator) -- first
+`<period>` indices are null
+because the look-back window is
+unfilled. Sub-panel y axis
+**centers on zero** when both
+signs are present, with a
+dashed zero reference line
+spanning the chart, and the
+momentum line above zero is
+shaded green while below is
+shaded red. The canonical
+"momentum oscillator" view used
+in finance / trading dashboards
+to spot bullish vs bearish
+phases and divergences from
+price. Pure helpers
+`computeLineMomentumValues`
+(sorts ascending, drops
+non-finite, returns same-length
+`(number | null)[]` with first
+`<period>` entries null and
+subsequent entries `y[i] -
+y[i - period]`; period >=
+length yields all-null;
+empty / null -> []),
+`buildLineMomentumSamples`
+(per-point `{index, x, y,
+momentum, sign}`),
+`classifyLineMomentumSign`
+(`'positive' | 'negative' |
+'zero'`; null / non-finite ->
+zero; exact 0 -> zero),
+`normaliseLineMomentumPeriod`
+(clamps to >= 1; floors
+fractional; non-finite ->
+default 10),
+`normaliseLineMomentumSubHeightRatio`
+(clamps to `[0.1, 0.9]`),
+`computeLineMomentumLayout`
+(centers momentum range on zero
+when both signs present;
+per-series carries
+`positivePath` / `negativePath`
+sign-split paths for the
+shaded fills), and
+`describeLineMomentumChart`.
+Distinct from `<ChartLineRate>`
+(11.521; per-segment first
+derivative `(y[i+1] - y[i]) /
+(x[i+1] - x[i])` -- depends on
+x step; momentum is a
+fixed-lag y-only diff),
+`<ChartLineAcceleration>`
+(11.528; second derivative --
+momentum is single-stage),
+`<ChartLineVelocity>` (11.527;
+per-point directional arrows --
+momentum is a continuous line
+in a separate panel),
+`<ChartLineMovingAvg>` (11.513;
+SMA smoothing -- momentum
+produces a separate derived
+signal in its own panel),
+`<ChartLineTrend>` (11.512;
+global regression line), and
+`<ChartLineCumulative>` (11.520;
+running sum -- momentum is a
+DIFFERENCE, not an
+accumulation). Per-instance
+`positiveColor` / `negativeColor`
+/ `zeroColor` always beats
+defaults; per-series `color` /
+`period` always beats chart-
+level defaults. Tooltip on dots
+shows label, x, bold y, and a
+coloured `momentum(<period>):
+<value> (<sign>)` row (or n/a
+when the period is unfilled).
+Sign badge in top-left calls
+out the dominant sign with an
+icon (▲/▼/◆) and the strongest
+absolute latest momentum.
+ARIA: root `role="region"` +
+`aria-describedby`; SVG
+`role="img"`; per-shape
+`role="graphics-symbol"` +
+`tabIndex={0}`. Momentum
+aria-label includes period;
+dot aria-label includes
+momentum value + sign (or n/a).
+Data-attrs: root
+`data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-period`,
+`data-dominant-sign`,
+`data-animate`; main path
+`data-kind="main"`; momentum
+path `data-kind="momentum"`;
+momentum fills `data-sign`
+(positive/negative); dots
+`data-momentum`, `data-sign`;
+series groups `data-series-id`,
+`data-series-color`,
+`data-series-period`,
+`data-series-finite-count`,
+`data-series-momentum-valid-count`,
+`data-series-positive-count`,
+`data-series-negative-count`,
+`data-series-zero-count`,
+`data-series-latest-sign`. 68
+vitest cases pass (defaults,
+helpers incl. period
+normalisation / sign
+classification / momentum
+canonical formula sample,
+buildSamples, layout incl.
+centered range / latest /
+per-point momentumPy /
+sign-split paths / per-series
+period override, describe
+chart incl. No data + per-
+series period + n/a, component
+render incl. empty / main +
+momentum + zero line / pos +
+neg fills + hide / sign badge +
+omit / dots with momentum +
+sign / early dots empty
+momentum / hide dots / ARIA /
+root data-* attrs / tooltip
+with momentum row + n/a for
+early + hide on leave + omit /
+onPointClick / legend with
+(n=<period>) + toggle + omit /
+sub-panel label / animate flag
++ class / ref / displayName).
+Implementation patch:
+`docs/patches/11.533-ui-chart-line-momentum.md`.
+
 ## [1.11.550] - 2026-05-19 -- UI: chart-line-streak primitive (TODO 11.532)
 
 New **ChartLineStreak** UI
