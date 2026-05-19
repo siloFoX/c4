@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.491] - 2026-05-19 -- UI: chart-histogram primitive (TODO 11.473)
+
+New **ChartHistogram** UI primitive in
+`web/src/components/ui/chart-histogram.tsx`:
+pure-SVG histogram with configurable bin
+count, count/density y-axis modes, an
+optional Gaussian-KDE density-curve
+overlay, and per-bar tooltips. Accepts
+a flat `number[]` of raw values; auto-
+bin count defaults to Sturges' rule
+(`ceil(log2(n) + 1)`). Bin range is
+auto-derived from finite values
+(collapsed range expands by +/-0.5);
+explicit `xMin` / `xMax` clamp the
+rendered range and drop out-of-range
+values. Non-finite values dropped
+before binning; last bin is closed on
+the right edge so the maximum value
+still counts. y-axis modes: `count`
+(bar height proportional to bin count
+over the visible peak) and `density`
+(`count / (totalFinite * step)`). KDE
+overlay: Gaussian kernel, bandwidth
+defaults to Silverman's rule; explicit
+`bandwidth` overrides; the curve is
+scaled back to the bar y-axis so it
+fits the histogram in both modes.
+Hover/focus opens a tooltip with bin
+range, count, and density (each
+formatted). Pure helpers exported:
+`getHistogramFiniteValues`,
+`getHistogramSturgesBinCount`,
+`getHistogramBounds`,
+`computeHistogramBins`,
+`silvermanBandwidth`,
+`computeKernelDensity`,
+`getHistogramTicks`,
+`computeHistogramLayout`,
+`describeHistogram`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-bar
+role=graphics-symbol + tabIndex=0 +
+"Bin <range>: <count> values" /
+"density <density>" aria-label.
+data-section on every node; root
+mirrors data-value-count / data-bin-
+count / data-y-mode / data-density-
+overlay / data-animate; bars mirror
+data-bin-index / -bin-start / -bin-end
+/ -bin-count / -bin-density / hovered.
+Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 61 vitest cases pass.
+
 ## [1.11.490] - 2026-05-19 -- UI: chart-error-bars primitive (TODO 11.472)
 
 New **ChartErrorBars** UI primitive in
