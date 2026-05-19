@@ -4,6 +4,189 @@
 
 (no entries -- next release window)
 
+## [1.11.559] - 2026-05-19 -- UI: chart-line-resample primitive (TODO 11.541)
+
+New **ChartLineResample** UI
+primitive in
+`web/src/components/ui/chart-line-resample.tsx`:
+pure-SVG line chart with a
+runtime **downsample /
+upsample toggle** for handling
+dense (or sparse) data.
+Renders the raw series as a
+dimmed reference + the
+resampled series in the
+series color on top, plus a
+5-button mode toggle (`LTTB`,
+`Stride`, `Mean`, `Min/Max`,
+`Upsample`) so operators can
+pick the algorithm that best
+preserves the visual
+structure of their data. Five
+canonical algorithms:
+**LTTB** (Largest Triangle
+Three Buckets; canonical
+visual downsampling -- picks
+the sample from each bucket
+that forms the largest
+triangle with the previously
+kept sample and the average
+point of the next bucket;
+best shape preservation),
+**Stride** (every-Nth
+sample), **Mean** (bucket
+average; synthesizes),
+**Min/Max** (preserves
+extrema; emits both min and
+max per bucket ordered by
+x), **Linear upsample**
+(linearly interpolates
+between samples for sparse
+data; synthesizes between
+endpoints). All algorithms
+preserve `originalIndex` so
+callers can map resampled
+points back to source rows;
+LTTB / Stride / Min/Max keep
+ORIGINAL samples
+(synthesized=false), Mean
+and Linear-upsample emit
+synthesized samples
+(synthesized=true). The
+canonical "this is too many
+points to render" / "I need
+to interpolate this sparse
+series" primitive used in
+observability dashboards
+(Prometheus / Grafana LTTB),
+financial charts, and any
+context where the question
+is "keep the shape, change
+the point count". Pure
+helpers `lineResampleLttb`
+(canonical LTTB; first +
+last always kept; target <
+3 falls back to stride),
+`lineResampleStride`,
+`lineResampleMean`,
+`lineResampleMinMax`,
+`lineResampleLinearUpsample`,
+`applyLineResample`
+(dispatcher),
+`computeLineResampleLayout`
+(runs selected algorithm per
+series; projects raw +
+resampled paths; per-series
+reduction ratio), and
+`describeLineResampleChart`.
+Distinct from
+`<ChartLineMovingAvg>`
+(11.513; preserves count
+modifies values -- resample
+CHANGES the count),
+`<ChartLineEwma>` (11.539;
+same count), `<ChartLineKalman>`
+(11.538; same count),
+`<ChartLineBollinger>`
+(11.537; envelope -- same
+count), `<ChartLineZoom>`
+(viewport zoom on same data
+without changing count),
+and `<ChartLineFft>` (11.540;
+frequency domain -- resample
+stays in time domain).
+Per-series `mode` / `target`
+always beats chart-level.
+Controlled + uncontrolled
+mode toggle via `mode`
+(controlled) or `defaultMode`
+(uncontrolled; default
+'lttb') + `onModeChange`.
+Tooltip on dots shows label,
+x, bold y, and a source row
+indicating either
+`original #<i>` (kept input)
+or `synthesized (<mode>)`.
+Reduction badge in top-left
+calls out mode + resampled /
+raw counts + ratio with
+icon ↓. Mode toggle is
+`role="radiogroup"` with
+per-button `role="radio"` +
+`aria-checked`. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; raw + resampled
++ dots `role="graphics-symbol"
+tabIndex={0}`. Data-attrs:
+root `data-series-count`,
+`data-visible-series-count`,
+`data-total-raw-points`,
+`data-total-resampled-points`,
+`data-mode`, `data-target`,
+`data-reduction-ratio`,
+`data-animate`; raw path
+`data-kind="raw"`; resampled
+path `data-kind="resampled"`;
+dots `data-original-index`,
+`data-synthesized`; series
+groups `data-series-mode`,
+`data-series-target`,
+`data-series-raw-count`,
+`data-series-resampled-count`,
+`data-series-reduction-ratio`,
+`data-series-finite-count`.
+77 vitest cases pass
+(defaults incl. 5 canonical
+modes, helpers,
+lineResampleStride incl.
+endpoints preserved +
+target clamp,
+lineResampleMean incl.
+bucket mean verified at 1.5
+and 3.5,
+lineResampleMinMax incl.
+preserves min + max +
+orders by x within bucket,
+lineResampleLttb incl.
+emits exactly target /
+endpoints preserved / all
+non-synthesized / target
+< 3 falls back,
+lineResampleLinearUpsample
+incl. linear interpolation
+verified midpoint y=1 +
+endpoints non-synthesized +
+single-point input,
+applyLineResample dispatcher,
+computeLineResampleLayout
+incl. raw + resampled paths
+/ reduction ratio /
+per-series mode + target
+override / hidden / bounds /
+total counts / upsamples
+sparse, describeLineResampleChart
+No data + per-series with
+mode + counts, component
+render incl. empty / raw +
+resampled paths / hide raw /
+dots with synthesized +
+originalIndex + hide /
+reduction badge + omit /
+mode toggle 5 buttons +
+aria-checked active +
+uncontrolled click switches
++ controlled stays + hide /
+ARIA / root data-* /
+tooltip source row
+synthesized vs original +
+hide on leave + omit /
+onPointClick / legend
+counts + toggle + omit /
+animate / ref / displayName).
+Implementation patch:
+`docs/patches/11.541-ui-chart-line-resample.md`.
+
 ## [1.11.558] - 2026-05-19 -- UI: chart-line-fft primitive (TODO 11.540)
 
 New **ChartLineFft** UI primitive
