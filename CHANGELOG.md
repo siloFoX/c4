@@ -4,6 +4,216 @@
 
 (no entries -- next release window)
 
+## [1.11.552] - 2026-05-19 -- UI: chart-line-control primitive (TODO 11.534)
+
+New **ChartLineControl** UI
+primitive in
+`web/src/components/ui/chart-line-control.tsx`:
+pure-SVG **Statistical Process
+Control (SPC)** chart. Each
+series renders against three
+horizontal reference rules:
+the **center line (CL)** at
+the series mean, an **upper
+control limit (UCL)** at
+`mean + kSigma * sigma`, and a
+**lower control limit (LCL)**
+at `mean - kSigma * sigma`.
+Default `kSigma = 3` (the
+canonical Western Electric
+Rule 1 threshold). A faint
+in-control band fills the area
+between UCL and LCL; points
+inside the band render in the
+in-control colour while points
+outside render in the
+out-of-control colour (red by
+default) at a slightly larger
+radius. A control badge in
+the top-left calls out the
+total count of out-of-control
+points with an alert / ok
+state. The canonical SPC chart
+used in manufacturing quality
+control, SRE error-budget
+tracking, and any context
+where the question is "is the
+process in statistical
+control?". Pure helpers
+`computeLineControlStats`
+(returns `{mean, sigma, ucl,
+lcl, count, ok, kSigma}`;
+empty -> ok=false; sigma is
+the POPULATION standard
+deviation; `centerLine` /
+`sigma` overrides beat
+data-derived values),
+`classifyLineControlState`
+(`'in' | 'above' | 'below'`;
+non-finite -> in; not-ok stats
+-> in; boundary values treated
+as in -- only STRICT
+excursions flag),
+`normaliseLineControlKSigma`
+(non-finite / non-positive ->
+3),
+`computeLineControlLayout` (y
+range expands to cover both
+data envelope AND UCL / LCL
+limits so the rules are
+always visible; per-point
+carries `deviation` (z-score);
+per-series carries
+`outOfControlCount` +
+`aboveCount` + `belowCount` +
+projected `centerPy` /
+`uclPy` / `lclPy`), and
+`describeLineControlChart`.
+Distinct from
+`<ChartLineConfidence>`
+(11.502; per-point upper/lower
+bounds supplied EXTERNALLY --
+control chart DERIVES limits
+statistically from the
+series), `<ChartLineThreshold>`
+(11.503; arbitrary
+user-defined horizontal
+thresholds + zones -- control
+chart's limits are the
+standardized SPC mean +-
+k*sigma rules),
+`<ChartLineBaseline>` (11.510;
+single flat reference --
+control chart has THREE
+coordinated rules driven by
+the same stats),
+`<ChartLinePercentile>`
+(11.514; distribution
+percentile bands per x bucket
+requiring multi-sample input
+-- control chart takes
+single-sample input and
+applies global statistics),
+`<ChartLineMinMax>` (11.517;
+extrema markers -- control
+chart's rules are STATISTICAL
+limits, not observed
+extrema), `<ChartLineTarget>`
+(11.518; vs flat user-supplied
+target with over/under shading
+-- control chart has BOTH
+upper and lower limits derived
+from data),
+`<ChartLineForecast>` (11.519;
+historical/forecast split on
+time axis -- control chart
+applies same rules across the
+whole series), and
+`<ChartLineAnomaly>` (11.524;
+per-point z-score outliers
+with optional rolling window
+-- control chart adds the
+canonical CL/UCL/LCL **rules**
+as the centrepiece and
+emphasizes the COUNT of
+out-of-control points as an
+alert metric). Per-instance
+`centerColor` / `limitColor` /
+`outColor` / `inColor`
+always beats defaults;
+per-series `color` / `kSigma`
+/ `centerLine` / `sigma`
+always beats chart-level
+defaults. Tooltip on dots
+shows label, x, bold y, a
+`CL: <mean>` row, and a
+coloured `out of control
+(<state>)` / `in control`
+row with the point's z-score
+in sigma units. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`. CL + UCL + LCL
+lines are
+`role="graphics-symbol"` with
+descriptive aria-label
+(including the sigma
+multiple); process path +
+dots `role="graphics-symbol"
+tabIndex={0}`; dot
+aria-label includes the
+state. Data-attrs: root
+`data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-k-sigma`,
+`data-out-of-control-count`,
+`data-animate`; limits
+`data-kind="ucl"` /
+`"lcl"` + `data-value`; CL
+`data-kind="cl"` +
+`data-value`; dots
+`data-state`,
+`data-out-of-control`,
+`data-deviation`; series
+groups `data-series-id`,
+`data-series-color`,
+`data-series-mean`,
+`data-series-sigma`,
+`data-series-ucl`,
+`data-series-lcl`,
+`data-series-k-sigma`,
+`data-series-out-of-control-count`,
+`data-series-above-count`,
+`data-series-below-count`,
+`data-series-finite-count`.
+60 vitest cases pass
+(defaults, helpers,
+computeLineControlStats incl.
+mean+sigma+UCL+LCL from
+balanced sample with kSigma=3
+/ custom kSigma=2 /
+centerLine override / sigma
+override / default kSigma,
+classifyLineControlState
+incl. above/below/in/
+boundary-as-in/non-finite/
+not-ok stats,
+computeLineControlLayout
+incl. per-series stats /
+out-of-control flag at narrow
+kSigma / above-vs-below
+counts / y range expands to
+UCL+LCL / per-point state +
+deviation / centerPy < uclPy
+/ lclPy on screen / per-
+series kSigma override,
+describeLineControlChart
+incl. No data + per-series
+CL/UCL/LCL/out summary,
+component render incl. empty
+/ CL + UCL + LCL with kind
+attrs / dashed UCL/LCL /
+process series path / dots
+with state + out-of-control /
+in-control dots
+data-out-of-control=false /
+hide dots / in-control fill
+rect + hide via prop / badge
+out count + alert state +
+ok state + omit / ARIA /
+root data-* attrs / group
+data-series-mean/sigma/ucl/
+lcl / tooltip CL + state
+rows + hide on leave + omit
+via prop / onPointClick
+payload / legend CL + out +
+toggle + omit / animate
+flag + class / ref /
+displayName). Implementation
+patch:
+`docs/patches/11.534-ui-chart-line-control.md`.
+
 ## [1.11.551] - 2026-05-19 -- UI: chart-line-momentum primitive (TODO 11.533)
 
 New **ChartLineMomentum** UI
