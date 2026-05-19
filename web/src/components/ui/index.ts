@@ -202,3 +202,4 @@ export * from './chart-radial-stacked-bar';
 export * from './chart-radial-line';
 export * from './chart-radial-area';
 export * from './chart-strip';
+export * from './chart-beeswarm';
