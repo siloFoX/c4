@@ -4,6 +4,265 @@
 
 (no entries -- next release window)
 
+## [1.11.438] - 2026-05-19 -- UI: countdown-timer primitive (TODO 11.420)
+
+New **CountdownTimer** UI primitive
+in
+`web/src/components/ui/countdown-timer.tsx`:
+counts down from a positive
+duration to zero, formats remaining
+time as `HH:MM:SS` (auto-collapses
+to `MM:SS` when the run never
+exceeds an hour), supports
+pause / resume / reset, and fires
+`onExpire` exactly once at zero.
+
+### API
+
+```ts
+interface CountdownTimerProps {
+  durationSeconds: number;
+  autoStart?: boolean;                    // default true
+  warningThresholdSeconds?: number;       // default 30
+  criticalThresholdSeconds?: number;      // default 10
+  controls?: boolean;                     // default true
+  showReset?: boolean;                    // default false
+  format?: 'auto' | 'hh:mm:ss' | 'mm:ss'; // default 'auto'
+  onExpire?: () => void;
+  onTick?: (remaining: number) => void;
+  onPause?: () => void;
+  onResume?: () => void;
+  onReset?: (seconds: number) => void;
+  label?: ReactNode;
+  className?: string;
+  ariaLabel?: string;                     // default 'Countdown timer'
+  tickIntervalMs?: number;                // default 250
+}
+
+interface CountdownTimerHandle {
+  start(): void;
+  pause(): void;
+  resume(): void;
+  reset(seconds?: number): void;
+  toggle(): void;
+  getRemainingSeconds(): number;
+  getState(): CountdownTimerState;
+}
+
+type CountdownTimerState =
+  | 'normal'
+  | 'warning'
+  | 'critical'
+  | 'expired';
+```
+
+### Behaviour
+
+- The tick loop computes remaining
+  time from a wall-clock `endsAt`
+  timestamp so the display stays
+  accurate across throttled tabs
+  and uneven `setInterval`
+  cadence.
+- Pause captures the snapshot and
+  tears down the interval; resume
+  re-derives `endsAt` from
+  "now + snapshot" so accumulated
+  drift never leaks into the next
+  run.
+- `onExpire` fires exactly once
+  at zero (guarded by a ref so
+  React strict-mode double
+  renders do not duplicate).
+- State derivation:
+  `<= criticalThresholdSeconds`
+  -> `'critical'`,
+  `<= warningThresholdSeconds`
+  -> `'warning'`,
+  otherwise `'normal'`;
+  `<= 0` -> `'expired'`.
+- Display text class swaps with
+  the state (`text-foreground` /
+  `text-warning` /
+  `text-destructive`); ARIA
+  `aria-live` flips to
+  `'assertive'` when state is
+  `'critical'` so screen readers
+  announce the imminent
+  expiration.
+- Toggle button auto-disables
+  when remaining is 0 (the timer
+  cannot be resumed from an
+  expired state without reset).
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_WARNING_THRESHOLD = 30
+DEFAULT_CRITICAL_THRESHOLD = 10
+DEFAULT_COUNTDOWN_FORMAT = 'auto'
+DEFAULT_TICK_INTERVAL_MS = 250
+clampCountdownDuration(value): number
+formatCountdownTime(seconds, format?, thresholdHours?): string
+getCountdownState(remaining, warning?, critical?): CountdownTimerState
+tickRemaining(remaining, deltaMs): number
+```
+
+- `clampCountdownDuration` floors
+  negatives + `+Infinity` to 0
+  (the timer must not run beyond
+  its configured budget).
+- `formatCountdownTime` ceils
+  fractional seconds so a 0.5s
+  remaining renders as `00:01`
+  rather than `00:00`. `auto`
+  format includes hours only at
+  `1h+`; `mm:ss` collapses hours
+  into minutes (`62:05` for 1h
+  2m 5s).
+- `getCountdownState` returns
+  `'expired'` for 0 / negative /
+  NaN.
+- `tickRemaining` subtracts
+  `deltaMs/1000` from remaining
+  and clamps to 0.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- Display: `role="timer"` +
+  `aria-atomic="true"` +
+  `aria-live="polite"` (or
+  `'assertive'` when state is
+  `'critical'`).
+- Toggle button: `aria-label`
+  swaps between
+  `"Pause countdown"` and
+  `"Resume countdown"`.
+- Reset button (when supplied):
+  `aria-label="Reset countdown"`.
+- `data-section` on every node:
+  `countdown-timer` (root),
+  `countdown-timer-label`
+  (label slot),
+  `countdown-timer-display`
+  (formatted time),
+  `countdown-timer-controls`
+  (button group),
+  `countdown-timer-toggle`
+  (pause/resume),
+  `countdown-timer-reset`
+  (reset button when shown).
+- Root mirrors live state via
+  `data-state` /
+  `data-running` /
+  `data-format` /
+  `data-remaining`.
+
+### Imperative handle
+
+Hosts can drive the timer
+programmatically (e.g. start a
+shared bus from a parent
+shortcut) via the handle:
+`start()` / `pause()` /
+`resume()` / `reset(seconds?)`
+/ `toggle()` /
+`getRemainingSeconds()` /
+`getState()`.
+
+### Tests
+
+48 cases in
+`web/src/components/ui/countdown-timer.test.tsx`,
+covering:
+
+- All four pure helpers across
+  positive / NaN / fractional /
+  hour-boundary / custom-threshold
+  cases.
+- Default + custom `ariaLabel`.
+- Default duration render (MM:SS
+  + HH:MM:SS).
+- `format` overrides
+  (`'hh:mm:ss'` forces hours;
+  `'mm:ss'` collapses).
+- `autoStart=true` default
+  (Pause button visible);
+  `autoStart=false`
+  (Resume button).
+- Pause / Resume firing
+  `onPause` / `onResume`.
+- `controls=false` hides the
+  control group.
+- `showReset` reveals the reset
+  button.
+- `reset(30)` via the imperative
+  handle restores the display.
+- `data-state` reflects
+  normal / warning / critical
+  per the configured thresholds.
+- Display class swaps to
+  `text-destructive` in
+  critical.
+- `data-running` mirrors live
+  state.
+- `data-remaining` is the ceiling
+  of seconds.
+- Label slot renders when
+  supplied.
+- `role="timer"` +
+  `aria-atomic="true"` +
+  `aria-live` polite by default,
+  assertive in critical.
+- Stable `displayName`.
+- Imperative handle exposes all
+  seven method names.
+- Toggle button disabled at
+  remaining=0.
+- Fake-timer driven:
+  ticks down + fires
+  `onTick`; `onExpire`
+  exactly once; pause prevents
+  further ticks.
+
+### Pairs with existing primitives
+
+- `<VideoPlayer>` (11.419) shares
+  the `formatVideoTime` time
+  formatting concept; this
+  primitive ships its own
+  `formatCountdownTime` so the
+  two stay independent on the
+  hour-collapse rule.
+- `<Gauge>` / `<Meter>` (11.412)
+  for value visualisation around
+  the countdown.
+- `<StatusIndicator>` (11.414)
+  for state badges that pair
+  well with the
+  `data-state` attribute.
+
+### Out of scope
+
+- Count-up timer (this primitive
+  is countdown-only by design).
+- Pre-expiration soft-warnings
+  outside the warning / critical
+  threshold tiers (hosts can wrap
+  with `onTick` for finer
+  gradations).
+- Persisted state across page
+  reloads (host owns persistence
+  via the imperative handle).
+- Audible alarm on expire (host
+  wraps `onExpire`).
+- Animated digit transition on
+  tick (snap for v1; CSS
+  transitions follow-on motion
+  layer).
+
 ## [1.11.437] - 2026-05-19 -- UI: video-player primitive (TODO 11.419)
 
 New **VideoPlayer** UI primitive in
