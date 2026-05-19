@@ -188,3 +188,4 @@ export * from './chart-marimekko';
 export * from './chart-slope';
 export * from './chart-streamgraph';
 export * from './chart-polar-area';
+export * from './chart-treemap-squarified';

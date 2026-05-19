@@ -4,6 +4,57 @@
 
 (no entries -- next release window)
 
+## [1.11.497] - 2026-05-19 -- UI: chart-treemap-squarified primitive (TODO 11.479)
+
+New **ChartTreemapSquarified** UI
+primitive in
+`web/src/components/ui/chart-treemap-squarified.tsx`:
+pure-SVG **squarified** treemap.
+Implements the Bruls/Huijsen/van Wijk
+(2000) layout: values sorted descending
+and greedily packed into rows along
+the **short side** of the remaining
+free rectangle so the worst-case cell
+aspect ratio is minimised at every
+step. Distinct from `<ChartTreemap>`
+(11.444) which typically uses slice-
+and-dice (one tall column with thin
+slivers) -- squarified trades a small
+amount of value-order locality for
+much more readable rectangles. Layout
+returns each cell's `aspectRatio` so
+adopters can inspect per-cell quality;
+the test suite asserts the worst AR
+stays below 8 for a non-trivial
+sample. Non-positive / non-finite
+values are dropped from the layout
+entirely; the canonical sort preserves
+original index so click + ref payloads
+stay correlated. `cellGap` is split
+half above and half below each cell;
+total cell area equals `innerW *
+innerH` when `cellGap=0`. Hover/focus
+opens a tooltip with label, value,
+share, and aspect ratio. Pure helpers
+exported: `getTreemapSquarifiedDefaultColor`,
+`sortTreemapSquarifiedDesc`,
+`getTreemapSquarifiedTotal`,
+`computeTreemapSquarifiedLayout`,
+`describeTreemapSquarifiedChart`.
+ARIA: root role=region + aria-label,
+SVG role=img with same label; per-rect
+role=graphics-symbol + tabIndex=0 +
+"<label>: <value> (<percent>)" aria-
+label. data-section on every node;
+root mirrors data-item-count /
+data-cell-count / data-total /
+data-worst-aspect-ratio / data-animate;
+cell groups mirror id / index / value /
+share / color / aspect-ratio /
+hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 49 vitest cases pass.
+
 ## [1.11.496] - 2026-05-19 -- UI: chart-polar-area primitive (TODO 11.478)
 
 New **ChartPolarArea** UI primitive in
