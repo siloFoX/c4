@@ -4,6 +4,300 @@
 
 (no entries -- next release window)
 
+## [1.11.444] - 2026-05-19 -- UI: feature-tour primitive (TODO 11.426)
+
+New **FeatureTour** UI primitive in
+`web/src/components/ui/feature-tour.tsx`:
+multi-step product tour. Each step
+targets an existing DOM element by
+CSS selector; the primitive paints a
+translucent mask over the page,
+spotlights the anchor with a ring,
+anchors a tooltip panel next to it,
+and exposes Prev / Next / Skip /
+Finish controls. Dismissal is
+persisted to `localStorage` under
+a per-tour id so users do not see
+the same tour twice.
+
+### API
+
+```ts
+interface FeatureTourStep {
+  id: string;
+  target: string;            // CSS selector for the anchor element
+  title: ReactNode;
+  description?: ReactNode;
+  placement?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
+}
+
+interface FeatureTourProps {
+  tourId: string;            // localStorage namespace
+  steps: FeatureTourStep[];
+  open?: boolean;            // controlled
+  defaultOpen?: boolean;     // default true
+  onOpenChange?: (open: boolean) => void;
+  stepIndex?: number;        // controlled
+  defaultStepIndex?: number; // default 0
+  onStepChange?: (index: number) => void;
+  onComplete?: () => void;
+  onSkip?: () => void;
+  storageKey?: string;       // overrides the namespaced key
+  showMask?: boolean;        // default true
+  closeOnEscape?: boolean;   // default true
+  showProgress?: boolean;    // default true
+  panelOffset?: number;      // default 12
+  labels?: {
+    prev?: string;
+    next?: string;
+    skip?: string;
+    finish?: string;
+    closeAria?: string;
+  };
+  className?: string;
+  panelClassName?: string;
+  containerId?: string;      // portal root id
+  ariaLabel?: string;        // default 'Feature tour'
+}
+```
+
+### Behaviour
+
+- The full tour overlay renders
+  through the canonical portal
+  (`app-portal-root` by default).
+- A translucent mask covers the
+  page (opt-out with
+  `showMask=false`); clicking
+  the mask closes the tour
+  manually (no dismissal mark).
+- A spotlight ring is drawn
+  around the current anchor's
+  bounding rect so the user's
+  eye is drawn to the relevant
+  UI region.
+- A tooltip panel sits next to
+  the anchor using
+  `computeTourPanelPosition`.
+  Placement defaults to
+  `'bottom'`; `'auto'` runs the
+  exported heuristic
+  (`resolveAutoPlacement`) to
+  pick `bottom > top > right
+  > left` based on which side
+  fits within the viewport.
+- Anchor + panel position are
+  re-measured on `resize` and
+  capture-phase `scroll` so
+  the spotlight + panel track
+  layout changes.
+- If the anchor selector
+  misses (`document.querySelector`
+  returns null), the panel
+  falls back to the viewport
+  centre and the spotlight
+  is omitted; the root carries
+  `data-anchor-found="false"`
+  so hosts can react.
+- Prev / Next / Skip / Finish
+  controls:
+  - Prev is disabled on the
+    first step.
+  - Next advances; on the last
+    step it becomes Finish ->
+    fires `onComplete`,
+    persists dismissal,
+    closes.
+  - Skip fires `onSkip`,
+    persists dismissal, closes.
+  - The X close button closes
+    manually (no dismissal).
+- Keyboard: Escape -> Skip
+  (when `closeOnEscape`);
+  ArrowRight -> Next;
+  ArrowLeft -> Prev.
+- `defaultOpen` honours the
+  persisted dismissal flag --
+  on second mount with the
+  same `tourId` the tour stays
+  closed. Controlled `open`
+  bypasses the flag so hosts
+  can force-reopen for the
+  "Replay tour" affordance.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_FEATURE_TOUR_STORAGE_PREFIX = 'c4:feature-tour:'
+DEFAULT_FEATURE_TOUR_PLACEMENT = 'bottom'
+DEFAULT_FEATURE_TOUR_PANEL_WIDTH = 320
+DEFAULT_FEATURE_TOUR_PANEL_OFFSET = 12
+getTourStorageKey(tourId, override?): string
+isTourDismissed(tourId, override?, storage?): boolean
+markTourDismissed(tourId, override?, storage?): void
+clearTourDismissal(tourId, override?, storage?): void
+clampStepIndex(index, total): number
+resolveAutoPlacement(anchor, panel, viewport, offset?): Exclude<FeatureTourPlacement, 'auto'>
+computeTourPanelPosition(anchor, panel, placement?, viewport?, offset?): PanelPosition
+```
+
+- Storage helpers swallow throws
+  (private-mode / quota /
+  null storage) so the
+  primitive never crashes the
+  host page.
+- `clampStepIndex` mirrors the
+  pattern used by
+  `<ProgressTracker>` /
+  `<CountdownTimer>`: empty
+  total -> 0; NaN -> 0;
+  clamps to `[0, total - 1]`.
+- `computeTourPanelPosition`
+  always clamps the resulting
+  `top` / `left` into the
+  viewport so the panel never
+  scrolls off-screen on small
+  viewports.
+
+### ARIA + data attributes
+
+- Root: `data-section="feature-tour"`,
+  `data-tour-id`,
+  `data-step-index`,
+  `data-step-id`,
+  `data-step-count`,
+  `data-anchor-found`,
+  `data-placement`.
+- Panel: `role="dialog"` +
+  `aria-modal="true"` +
+  `aria-label` +
+  `aria-labelledby` pointing to
+  the step title id.
+- Close button:
+  `aria-label="Close tour"`
+  (customisable via
+  `labels.closeAria`).
+- `data-section` on every node:
+  `feature-tour` (root),
+  `feature-tour-mask`,
+  `feature-tour-spotlight`,
+  `feature-tour-panel`,
+  `feature-tour-header`,
+  `feature-tour-title`,
+  `feature-tour-description`,
+  `feature-tour-progress`,
+  `feature-tour-actions`,
+  `feature-tour-skip`,
+  `feature-tour-prev`,
+  `feature-tour-next`,
+  `feature-tour-close`.
+
+### Tests
+
+55 cases in
+`web/src/components/ui/feature-tour.test.tsx`,
+covering:
+
+- All exported pure helpers:
+  storage key namespacing +
+  override; mark / clear / read
+  flag round-trip; null-storage
+  no-op; throwing-storage
+  swallow; `clampStepIndex`
+  empty / negative / NaN /
+  fractional / valid / above
+  cases.
+- `resolveAutoPlacement`: bottom
+  preferred, top fallback,
+  right fallback, left last
+  resort.
+- `computeTourPanelPosition`:
+  bottom / top / left / right
+  placement math, viewport
+  clamping, auto resolution.
+- Default + custom `ariaLabel`.
+- First step title +
+  description render.
+- Progress counter "1 / 3";
+  `showProgress=false` hides it.
+- Next advances; Prev disabled
+  on first step; Prev moves
+  back from a non-first step;
+  last-step Next reads
+  "Finish".
+- Finish fires `onComplete`,
+  closes, marks dismissed.
+- Skip fires `onSkip`, closes,
+  marks dismissed.
+- Close button closes manually
+  (no dismiss).
+- Mask click closes manually
+  (no dismiss).
+- `showMask=false` hides the
+  mask.
+- Persisted dismissal flag
+  blocks `defaultOpen` on the
+  second mount; controlled
+  `open=true` bypasses the
+  flag.
+- `onStepChange` fires on
+  navigation.
+- Controlled `stepIndex` pins
+  the rendered step.
+- Escape fires Skip
+  (`closeOnEscape` default
+  true); `closeOnEscape=false`
+  ignores Escape.
+- ArrowRight advances /
+  ArrowLeft retreats.
+- Spotlight renders when the
+  anchor is found;
+  `data-anchor-found="false"`
+  when the selector misses.
+- Root data attrs reflect
+  state.
+- Custom `labels` override
+  defaults.
+- Panel renders inside the
+  portal target (not inline).
+- Stable `displayName`.
+
+### Pairs with existing primitives
+
+- `<NotificationBell>` (11.424)
+  often sits in the same chrome
+  surface as the entry-point
+  for "Replay tour".
+- `<DropdownMenu>` for the
+  user/help menu that triggers
+  the tour.
+- `<Dialog>` underlies the
+  modal panel pattern; the
+  feature tour is a
+  portal+role=dialog with
+  anchor-aware positioning.
+
+### Out of scope
+
+- Multi-target highlighting per
+  step (the spotlight ring
+  surrounds a single anchor;
+  host can wrap with a custom
+  spotlight if needed).
+- Branching / conditional steps
+  based on user input (host
+  drives `stepIndex` to
+  implement branches).
+- Animated panel transitions
+  on step change (snap for v1;
+  CSS transitions follow-on
+  motion layer).
+- Server-side configuration of
+  tour content (host owns the
+  `steps` prop; the persistent
+  dismissal flag is the only
+  state the primitive owns).
+
 ## [1.11.443] - 2026-05-19 -- UI: search-result-list primitive (TODO 11.425)
 
 New **SearchResultList** UI primitive
