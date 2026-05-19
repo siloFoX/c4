@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.509] - 2026-05-19 -- UI: chart-radial-area primitive (TODO 11.491)
+
+New **ChartRadialArea** UI primitive in
+`web/src/components/ui/chart-radial-area.tsx`:
+pure-SVG **radial area** chart variant
+where each series is a **closed polygon
+with a filled interior** in polar
+coordinates. Two stack modes:
+**overlay** (default; every series
+fills from centre out to its value-
+radius; overlapping fills use
+`fillOpacity` so multiple series stay
+legible on top of each other) and
+**stacked** (per-sample cumulative
+sums stack radially; each layer paints
+an annular band between previous
+cumulative and its own; peak total
+maps to outerRadius). Two curves:
+**linear** (default; straight polygon
+edges between samples) and **cardinal**
+(closed cubic-bezier smoothing for
+classic D3 radial-area look). Distinct
+from `<ChartRadialLine>` (11.490,
+line-emphasized; no stacked mode),
+`<ChartRadar>` (11.445, multi-axis
+polygon for categorical), `<ChartPolarArea>`
+(11.478, equal-angle wedges), and
+`<ChartRadialStackedBar>` (11.489,
+stacks angularly within each
+category). Path building: overlay
+(inner ring collapses) emits a single
+closed M..Z ring; stacked (distinct
+inner ring) emits two closed rings
+(outer + reversed inner) with
+`fillRule="evenodd"` so the SVG
+paints only the annulus. Non-finite /
+non-positive values clamp to 0 so
+layers never invert. Hidden series
+drop from layout; cumulative cursor
+pauses for hidden layers in stacked
+mode. Hover/focus dims other series
+to 0.4 and opens a tooltip with
+label, sum of finite samples, and
+sample count. Per-series click +
+per-series legend toggle handlers.
+Pure helpers exported:
+`getRadialAreaDefaultColor`,
+`polarToCartesian`,
+`getRadialAreaAngle`,
+`getRadialAreaSampleCount`,
+`getRadialAreaMaxValue`,
+`getRadialAreaTicks`,
+`buildRadialAreaClosedPath`,
+`computeRadialAreaLayout`,
+`describeRadialAreaChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-outline role=
+graphics-symbol + tabIndex=0 +
+"<label>: <N> samples" aria-label.
+data-section on every node; root
+mirrors data-stack-mode / data-curve
+/ data-cycle-length / data-series-
+count / data-visible-series-count /
+data-max-value / data-animate; series
+groups mirror id / index / color /
+point-count / hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 61 vitest cases pass.
+
 ## [1.11.508] - 2026-05-19 -- UI: chart-radial-line primitive (TODO 11.490)
 
 New **ChartRadialLine** UI primitive in
