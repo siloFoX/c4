@@ -118,3 +118,4 @@ export * from './skeleton-set';
 export * from './rich-text-editor';
 export * from './search-input';
 export * from './detail-list';
+export * from './action-menu';
