@@ -228,3 +228,4 @@ export * from './chart-line-event';
 export * from './chart-line-band';
 export * from './chart-line-min-max';
 export * from './chart-line-target';
+export * from './chart-line-forecast';
