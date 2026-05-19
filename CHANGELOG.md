@@ -4,6 +4,181 @@
 
 (no entries -- next release window)
 
+## [1.11.558] - 2026-05-19 -- UI: chart-line-fft primitive (TODO 11.540)
+
+New **ChartLineFft** UI primitive
+in
+`web/src/components/ui/chart-line-fft.tsx`:
+pure-SVG chart that pairs a
+**time-domain line** on the
+left with a **frequency-domain
+spectrum** on the right,
+computed via a direct Discrete
+Fourier Transform. The
+component is the catalog's
+ONLY **frequency-domain**
+primitive -- the side panel
+surfaces the dominant cycle
+(period = 1 / dominant
+frequency) so operators can
+spot periodic structure hidden
+in the raw time series. DFT
+formula `X[k] = sum y[n] *
+exp(-2*pi*i*k*n/N)` computed
+for half-spectrum `k = 0..N/2`
+(real input is conjugate-
+symmetric). Frequency at bin
+k is `k / (N * sampleStep)`
+where `sampleStep = (xN-1 -
+x0) / (N-1)` so units match
+the sample grid. Period at
+bin k is `1 / frequency[k]`;
+bin 0 (DC) has infinite period
+and is excluded from the
+dominant search by default.
+Direct DFT is O(N^2) which is
+fast at chart-scale and
+avoids the power-of-two
+length constraint of radix-2
+FFT. Pure helpers
+`computeLineFftDft(values)`
+(returns half-spectrum
+`{real, imag}` of length
+N/2+1; non-finite skipped),
+`computeLineFftSpectrum(points,
+{detrend?, excludeDc?})` (
+canonical helper; sorts
+ascending; drops non-finite;
+optional detrend (default
+true); returns
+`{bins, dominantBin,
+totalSamples, detrended,
+excludedDc, meanValue}` with
+each bin carrying `{k,
+frequency, period, real,
+imag, magnitude,
+normalisedMagnitude}`),
+`detrendLineFftValues(values)`
+(subtracts mean of finite
+values),
+`findLineFftDominantBin(bins,
+excludeDc?)` (max-magnitude
+bin; excludes DC by default),
+`normaliseLineFftPanelRatio`
+(clamps to [0.1, 0.9]),
+`computeLineFftLayout` (
+splits canvas into time +
+spectrum panels; returns
+per-series + projected bar
+geometry), and
+`describeLineFftChart`.
+Distinct: catalog's only
+frequency-domain primitive
+-- distinct from every other
+smoother / filter
+(`<ChartLineMovingAvg>`
+11.513, `<ChartLineEwma>`
+11.539, `<ChartLineKalman>`
+11.538, `<ChartLineBollinger>`
+11.537, `<ChartLineControl>`
+11.534 are all time-domain
+only); also distinct from
+`<ChartLineMomentum>` (11.533;
+sub-panel oscillator with
+DERIVATIVE, not spectrum).
+Per-instance `dominantColor`
+/ `spectrumColor` always beats
+defaults; per-series `detrend`
+/ `excludeDc` always beats
+chart-level. Tooltip on time-
+domain dots shows label, x,
+bold y; on spectrum bins
+shows label + bin number,
+frequency, period, bold
+magnitude, and (when
+dominant) a coloured
+"dominant" row. Dominant
+badge in the top-left calls
+out the strongest series'
+frequency + period with icon
+`f`. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; time path +
+every time dot + every
+spectrum bar / dot
+`role="graphics-symbol"
+tabIndex={0}`. Data-attrs:
+root `data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-detrend`,
+`data-exclude-dc`,
+`data-dominant-frequency`,
+`data-dominant-period`,
+`data-animate`; time path
+`data-kind="time"`; spectrum
+bars `data-bin-k`,
+`data-frequency`,
+`data-period`,
+`data-magnitude`,
+`data-normalised-magnitude`,
+`data-dominant`; series
+groups `data-series-id`,
+`data-series-color`,
+`data-series-detrend`,
+`data-series-exclude-dc`,
+`data-series-dominant-
+frequency`, `data-series-
+dominant-period`, `data-
+series-dominant-magnitude`,
+`data-series-bin-count`,
+`data-series-finite-count`.
+70 vitest cases pass
+(defaults, helpers,
+computeLineFftDft incl. DC =
+sum, period-4 cosine
+concentrates at bin 4 with
+N=16, output length N/2+1,
+computeLineFftSpectrum incl.
+period-4 cosine detected at
+frequency 0.25 (canonical
+verified math), detrend +
+excludeDc defaults, two-tone
+picks larger amplitude
+(period 8), normalisedMag
+maxes at 1, sort ascending,
+drops non-finite, records
+meanValue,
+findLineFftDominantBin
+excludes DC default + include
+when false,
+computeLineFftLayout splits
+canvas + per-series time +
+spectrum + dominant mark +
+bounds + per-series
+overrides,
+describeLineFftChart No data
++ dominant freq + period,
+component render incl. empty
+/ time path / spectrum bars
+default / dots when bars=false
++ spectrum path / hide
+spectrum / dominant
+data-dominant=true / time
+dots + hide / badge + omit /
+ARIA / root data-* / group
+data-* / tooltip on time
+dot (x+y) + tooltip on bin
+bar (freq + period + mag +
+dominant) + hide on leave +
+omit / onPointClick +
+onBinClick / legend f= + T=
++ toggle + omit / animate /
+ref / displayName).
+Implementation patch:
+`docs/patches/11.540-ui-chart-line-fft.md`.
+
 ## [1.11.557] - 2026-05-19 -- UI: chart-line-ewma primitive (TODO 11.539)
 
 New **ChartLineEwma** UI primitive
