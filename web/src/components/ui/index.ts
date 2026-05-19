@@ -132,3 +132,4 @@ export * from './video-player';
 export * from './countdown-timer';
 export * from './progress-tracker';
 export * from './scroll-spy';
+export * from './back-to-top';
