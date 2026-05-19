@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.486] - 2026-05-19 -- UI: chart-stacked-bar primitive (TODO 11.468)
+
+New **ChartStackedBar** UI primitive
+in
+`web/src/components/ui/chart-stacked-bar.tsx`:
+pure-SVG stacked bar chart. Each
+category renders a single bar
+subdivided into colored segments per
+series. Orientation toggles between
+vertical (stack grows upward from
+the baseline) and horizontal (stack
+grows rightward from the left axis);
+both controlled and uncontrolled via
+`orientation` / `defaultOrientation`
+/ `onOrientationChange`. Distinct
+from `<ChartGroupedBar>` (11.467)
+in that bars are stacked within a
+category rather than placed side-by-
+side, and distinct from
+`<ChartStackedArea>` (11.466) in
+that this primitive uses discrete
+bars per category rather than
+continuous areas. Optional
+`showValueLabels` paints the
+formatted value inside each segment
+that is large enough to hold
+readable text. Legend interaction:
+every entry is a focusable
+`<button aria-pressed>` that toggles
+its series's visibility. Pure
+helpers exported:
+`getStackedBarCategoryTotal`,
+`getStackedBarMaxTotal`,
+`computeStackedBarLayout`,
+`getStackedBarTicks`,
+`describeStackedBarChart`. ARIA:
+root `role=region`, SVG
+`role=img`, per-segment
+`role=graphics-symbol` +
+`tabIndex=0`. data-section on
+every node + data-orientation,
+data-segment-count, data-visible-
+count, data-hovered, data-series-
+hidden, data-segment-value, data-
+segment-color mirrored for tests.
+Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 55 vitest cases
+pass.
+
 ## [1.11.485] - 2026-05-19 -- UI: chart-grouped-bar primitive (TODO 11.467)
 
 New **ChartGroupedBar** UI primitive
