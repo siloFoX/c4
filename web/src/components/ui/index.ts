@@ -121,3 +121,5 @@ export * from './detail-list';
 export * from './action-menu';
 export * from './time-picker';
 export * from './color-picker';
+export * from './gauge';
+export * from './meter';

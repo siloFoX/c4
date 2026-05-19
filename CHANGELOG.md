@@ -4,6 +4,315 @@
 
 (no entries -- next release window)
 
+## [1.11.430] - 2026-05-19 -- UI: gauge + meter primitives (TODO 11.412)
+
+New `web/src/components/ui/gauge.tsx`
+and `web/src/components/ui/meter.tsx`
+ship two paired progress primitives:
+
+- `<Gauge>` -- SVG radial arc gauge
+  with min/max range and optional
+  threshold zones (each [from, to]
+  paints a coloured band so
+  operators see at a glance whether
+  the current value sits in a
+  healthy / warning / danger
+  region).
+- `<Meter>` -- linear bar with
+  multi-segment colour stops; the
+  track shades each segment in its
+  declared colour and an indicator
+  fills the bar to the current
+  value.
+
+Both carry `role="progressbar"` +
+`aria-valuemin` / `aria-valuemax`
+/ `aria-valuenow` /
+`aria-valuetext`.
+
+### Gauge API
+
+```tsx
+<Gauge
+  value={68}
+  min={0}
+  max={100}
+  thresholds={[
+    { from: 0, to: 50, color: '#10b981' },
+    { from: 50, to: 80, color: '#f59e0b' },
+    { from: 80, to: 100, color: '#ef4444' },
+  ]}
+  size={120}
+  thickness={10}
+  showValue
+  formatValue={(v) => `${v}%`}
+  ariaLabel="CPU usage"
+/>
+```
+
+Layout:
+
+- SVG inside a square box (default
+  120px); sweep is 270 degrees
+  from the 7 o'clock position to
+  the 5 o'clock position (so the
+  needle has a recognizable U
+  shape with a 90-degree gap at
+  the bottom).
+- Track arc painted in
+  `trackColor` (default 20%
+  grey).
+- Threshold band arcs layered
+  beneath the progress arc at
+  35% opacity so they show as
+  faint coloured wedges.
+- Progress arc painted in the
+  matched threshold colour
+  (falls back to `progressColor`
+  or the primary token).
+- Optional centred value label.
+
+Pure helpers exported:
+`clampGaugeValue`,
+`valueToFraction`,
+`findThresholdColor`,
+`describeArc` (SVG path
+generator), and the
+`GAUGE_START_ANGLE_DEG` /
+`GAUGE_END_ANGLE_DEG` /
+`GAUGE_SWEEP_DEG` constants
+(135 / 405 / 270).
+
+### Meter API
+
+```tsx
+<Meter
+  value={72}
+  min={0}
+  max={100}
+  segments={[
+    { from: 0, to: 50, color: '#10b981', label: 'healthy' },
+    { from: 50, to: 85, color: '#f59e0b', label: 'warn' },
+    { from: 85, to: 100, color: '#ef4444', label: 'critical' },
+  ]}
+  size="md"
+  orientation="horizontal"
+  showValue
+  ariaLabel="Disk usage"
+/>
+```
+
+Layout:
+
+- Track `<div>` background uses a
+  segmented `linear-gradient`
+  (each segment hard-stops at
+  its declared colour so the
+  bar reads as a row of bands).
+- Indicator `<div>` overlays
+  the track with `width =
+  (value/max)*100%` for
+  horizontal (`height = ...%`
+  for vertical) tinted with
+  the matched segment colour at
+  85% opacity.
+- Size: sm / md (default) /
+  lg.
+- Orientation: horizontal
+  (default) or vertical.
+- Optional value badge to the
+  right (or below) the bar.
+
+Pure helpers exported:
+`findMeterSegment(value,
+segments)`,
+`buildMeterStops(segments,
+min, max, fallback)` (returns
+CSS gradient stops string).
+Reuses `clampGaugeValue` and
+`valueToFraction` from
+gauge.tsx.
+
+### Edge cases
+
+- `max <= min` (zero or
+  inverted range) falls back to
+  `[min, min + 100]` so the
+  aria values stay sane.
+- `NaN` value clamps to min.
+- `+Infinity` clamps to max.
+- `-Infinity` clamps to min.
+- Threshold / segment lookup
+  uses inclusive
+  `value >= from && value <= to`
+  so boundary values land on
+  the lower band (consistent
+  with the JSDoc).
+
+### ARIA + data attributes
+
+Gauge root (`<div
+role="progressbar">`):
+
+- `data-section="gauge"`
+- `data-value`
+- `data-fraction`
+- aria-label / aria-valuemin /
+  aria-valuemax / aria-valuenow
+  / aria-valuetext
+
+Sub-nodes:
+
+- `data-section="gauge-svg"`
+- `data-section="gauge-track"`
+- `data-section="gauge-threshold"`
+  + `data-threshold-from` /
+  `data-threshold-to`
+- `data-section="gauge-progress"`
+  + `data-progress-color`
+- `data-section="gauge-value"`
+
+Meter root (`<div
+role="progressbar">`):
+
+- `data-section="meter"`
+- `data-orientation`
+- `data-size`
+- `data-value`
+- `data-fraction`
+- `data-segment` (label or
+  color of the matched
+  segment)
+- aria-orientation +
+  aria-valuemin/max/now/text
+
+Sub-nodes:
+
+- `data-section="meter-track"`
+- `data-section="meter-indicator"`
+  + `data-fill-color`
+- `data-section="meter-value"`
+
+### Tests
+
+62 cases across two files:
+
+`gauge.test.tsx` (28):
+- `clampGaugeValue` (5): below
+  min, above max, in-range,
+  NaN / Infinity / -Infinity,
+  zero range
+- `valueToFraction` (5): 0
+  at min, 1 at max, 0.5 mid,
+  zero range -> 0, clamp out-
+  of-range
+- `findThresholdColor` (3):
+  null on empty, matching
+  threshold, fallback when no
+  match
+- `describeArc` (4): empty
+  when end<=start, large-arc
+  flag 0 for <=180, 1 for
+  >180, constants exposed
+- Component (11): role +
+  default aria-label, custom
+  aria-label, valuemin/max/now,
+  clamp display, value text,
+  hide value, formatValue,
+  aria-valuetext, data-value
+  + data-fraction, svg paths,
+  thresholds render bands,
+  progress color matches
+  threshold, fallback progress
+  color, size applies inline,
+  zero-range fallback,
+  displayName, ref
+
+`meter.test.tsx` (34):
+- `findMeterSegment` (3):
+  empty -> null, matching
+  segment, boundary inclusive
+- `buildMeterStops` (4):
+  fallback when empty, CSS
+  stops, fallback color
+  per-segment, collapsed
+  range
+- Component (27): role +
+  default aria-label, custom
+  aria-label, valuemin/max/
+  now, clamp two directions,
+  data attrs (orientation,
+  size, value, fraction),
+  track + indicator render,
+  horizontal width, vertical
+  height, segment-driven
+  fill, fillColor fallback,
+  aria-orientation, showValue
+  badge, hide badge default,
+  formatValue, aria-valuetext,
+  data-segment matches,
+  track gradient with
+  segments, solid color
+  without, zero-range
+  fallback, displayName, ref
+
+62/62 pass under vitest 4.1.5;
+TypeScript clean for touched
+files.
+
+### Pairs with existing primitives
+
+- `<Progress>` -- linear
+  task-progress bar (single
+  colour). Meter is the
+  multi-segment status
+  variant.
+- `<StatCard>` (11.124 /
+  11.406) -- common host for
+  Gauge as a hero metric or
+  Meter as the comparison
+  bar below the value.
+- `<SkeletonSet>` (11.402)
+  -- the loading-state
+  silhouette before Gauge /
+  Meter values arrive.
+- ThemeCustomizer (11.394)
+  -- both read token-based
+  classes for fallback
+  colours.
+
+### Out of scope (deferred)
+
+- Animated needle / fill
+  transitions. Both primitives
+  snap to the new value; CSS
+  transitions belong in a
+  follow-on motion layer.
+- Multiple values on one
+  meter / gauge (e.g.,
+  comparison fill). Single
+  value for v1.
+- Tick marks / labels along
+  the arc or bar. Adopters
+  can layer their own; a
+  built-in ticker is a
+  follow-on.
+- Custom sweep angles for
+  Gauge (semicircle / full
+  circle). 270-degree sweep
+  is the canonical default;
+  configurable sweep is a
+  follow-on.
+- Vertical gauge variant.
+  Gauge is always radial;
+  Meter covers the vertical
+  case.
+- Touch / mouse drag to set
+  the value. Gauges / meters
+  are typically read-only;
+  use ColorPicker or Slider
+  for input.
+
 ## [1.11.429] - 2026-05-19 -- UI: color-picker primitive (TODO 11.411)
 
 New `web/src/components/ui/color-picker.tsx`
