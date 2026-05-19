@@ -4,6 +4,208 @@
 
 (no entries -- next release window)
 
+## [1.11.553] - 2026-05-19 -- UI: chart-line-burndown primitive (TODO 11.535)
+
+New **ChartLineBurndown** UI
+primitive in
+`web/src/components/ui/chart-line-burndown.tsx`:
+pure-SVG **burndown chart** --
+the canonical agile / project-
+management view of remaining
+work over time. Two specific
+lines share an x axis: the
+**ideal** trajectory (a
+dashed straight line from
+the initial scope at the
+start date down to zero at
+the deadline, computed
+entirely from `startTotal` +
+`startX` + `endX`) and the
+**actual** trajectory (the
+observed remaining work,
+supplied as `data`). The
+region between them is
+shaded: green where the
+team is **ahead** of
+schedule (actual below
+ideal) and red where the
+team is **behind** (actual
+above ideal). A status
+badge in the top-left
+calls out the current
+status (`ahead` /
+`behind` / `on-track`)
+with the delta from
+ideal. The canonical
+"sprint health" / "release
+tracking" visualisation
+used by every agile team.
+Pure helpers
+`computeBurndownIdealY` (
+canonical ideal-trajectory
+helper -- returns
+startTotal for `x <=
+startX`, 0 for `x >=
+endX`, linear interpolation
+between; non-finite
+inputs -> NaN; collapse
+holds the curve as a
+step at the seam),
+`classifyBurndownStatus`
+(`'ahead' | 'behind' |
+'on-track'`; positive
+delta -> behind;
+negative -> ahead; within
+epsilon -> on-track;
+non-finite -> on-track),
+`computeBurndownLayout`
+(returns the projected
+endpoints +
+aheadFillPath +
+behindFillPath shaded
+polygons walking actual
+forward then ideal
+backward + per-point
+delta + status +
+currentStatus from last
+sample + daysRemaining;
+y range expanded to
+include both 0 and
+startTotal so ideal
+endpoints sit at axis
+extremes; sorts
+ascending; drops
+non-finite), and
+`describeBurndownChart`.
+Distinct from
+`<ChartLineTarget>`
+(11.518; vs a FLAT
+user-supplied target with
+over/under shading --
+burndown's reference is a
+DIAGONAL ideal trajectory
+computed from inputs),
+`<ChartLineForecast>`
+(11.519; historical /
+forecast split on time
+axis -- burndown overlays
+ideal + actual on the
+SAME time axis),
+`<ChartLineCumulative>`
+(11.520; running
+cumulative SUM rising --
+burndown is the
+opposite, remaining work
+DECREASING),
+`<ChartLineComparison>`
+(11.511; two arbitrary
+curves with difference
+shading -- burndown's
+ideal is computed and the
+shading is colour-coded
+by side),
+`<ChartLinePeriodCompare>`
+(11.531; two periods of
+the same metric --
+burndown is remaining vs
+plan, not two
+recurrences), and
+`<ChartLineBaseline>`
+(11.510; single flat
+reference -- burndown's
+reference is a
+DIAGONAL rule).
+Per-instance
+`aheadColor` /
+`behindColor` /
+`onTrackColor` /
+`actualColor` /
+`idealColor` always
+beats defaults. Tooltip
+on dots shows actual
+label, x, bold
+`remaining: <y>` row,
+`ideal: <idealY>` row,
+and a coloured
+`<status> (+/-delta)`
+row. Status badge in
+the top-left calls
+out current status
+with icon ▼/▲/◆ and
+signed delta. ARIA:
+root `role="region"` +
+`aria-describedby`; SVG
+`role="img"`; ideal +
+actual + every dot
+`role="graphics-symbol"
+tabIndex={0}`. Data-
+attrs: root
+`data-total-points`,
+`data-start-total`,
+`data-current-remaining`,
+`data-current-delta`,
+`data-status`,
+`data-ahead-count`,
+`data-behind-count`,
+`data-on-track-count`,
+`data-days-remaining`,
+`data-animate`; ideal
+line `data-kind="ideal"`;
+actual line
+`data-kind="actual"`;
+shading paths
+`data-status` (ahead /
+behind); dots
+`data-ideal-y`,
+`data-delta`,
+`data-status`. 57
+vitest cases pass
+(defaults, helpers
+incl. computeBurndownIdealY
+endpoint + midpoint +
+clamp + collapse + non-
+finite, classifyBurndownStatus
+positive/negative/zero/
+epsilon/non-finite,
+computeBurndownLayout
+empty / degenerate /
+derived inputs / explicit
+overrides / per-point
+ideal + delta + status /
+ahead vs behind counts /
+currentStatus from last
+sample / ideal endpoint
+projection / shading
+paths / y range
+includes 0 + startTotal /
+bounds overrides / drops
+non-finite / daysRemaining
+/ sort ascending,
+describeBurndownChart
+No data + scope +
+remaining + status,
+component render incl.
+empty / ideal kind=ideal /
+actual kind=actual /
+ideal dashed / hide
+ideal / ahead fill /
+behind fill / hide
+fills via prop / dots
+with status + delta +
+ideal-y / hide dots /
+status badge + omit /
+ARIA / root data-* /
+tooltip ideal + status
+rows + hide on leave +
+omit / onPointClick /
+legend actual + ideal +
+status + total / omit
+legend / animate flag +
+class / ref /
+displayName).
+Implementation patch:
+`docs/patches/11.535-ui-chart-line-burndown.md`.
+
 ## [1.11.552] - 2026-05-19 -- UI: chart-line-control primitive (TODO 11.534)
 
 New **ChartLineControl** UI
