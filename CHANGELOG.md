@@ -4,6 +4,300 @@
 
 (no entries -- next release window)
 
+## [1.11.431] - 2026-05-19 -- UI: list-section primitive (TODO 11.413)
+
+New `web/src/components/ui/list-section.tsx`
+ships `<ListSection>` -- grouped list
+rows with section header (label +
+count badge), collapsible groups, and
+optional sticky headers on scroll.
+
+### API
+
+```tsx
+<ListSection
+  groups={[
+    { id: 'active', label: 'Active',
+      items: [...] },
+    { id: 'done', label: 'Done',
+      items: [...], defaultCollapsed: true },
+  ]}
+  collapsedGroups={collapsed}
+  onCollapsedGroupsChange={setCollapsed}
+  collapsible
+  showBadges
+  stickyHeaders
+  ariaLabel="Tasks"
+  renderItem={(item, group) => (
+    <TaskRow id={item.id} />
+  )}
+  emptyLabel="No tasks"
+/>
+```
+
+```ts
+interface ListSectionItem {
+  id: string | number;
+  content: ReactNode;
+  ariaLabel?: string;
+}
+
+interface ListSectionGroup {
+  id: string;
+  label: ReactNode;
+  items: ListSectionItem[];
+  defaultCollapsed?: boolean;
+  count?: number;        // override items.length
+  description?: ReactNode;
+  badge?: ReactNode;     // custom slot, overrides count badge
+}
+
+interface ListSectionProps {
+  groups: ListSectionGroup[];
+  collapsedGroups?: string[];
+  defaultCollapsedGroups?: string[];
+  onCollapsedGroupsChange?: (ids: string[]) => void;
+  collapsible?: boolean;    // default true
+  showBadges?: boolean;     // default true
+  stickyHeaders?: boolean;  // default true
+  ariaLabel?: string;
+  className?: string;
+  renderItem?: (item, group) => ReactNode;
+  emptyLabel?: ReactNode;   // default '(no items)'
+}
+```
+
+### Behaviour
+
+- **Header**: each group renders a
+  `<button>` header with chevron
+  (right when collapsed, down when
+  expanded), label, and count
+  badge. Click toggles collapse;
+  Enter / Space also toggle.
+  Headers carry
+  `aria-expanded` mirroring the
+  collapsed state, and
+  `aria-controls` pointing to the
+  body id.
+- **Sticky headers**: when
+  `stickyHeaders` is true (default)
+  each header gets
+  `sticky top-0 z-10` so it pins
+  to the top of the scroll
+  container while the group's
+  body scrolls past.
+- **Collapsing**: `collapsible`
+  (default true) enables the
+  toggle. When false, the header
+  is rendered with the chevron
+  hidden and `disabled`; clicking
+  is a no-op; `aria-expanded`
+  is omitted.
+- **Controlled state**:
+  `collapsedGroups` (controlled)
+  or `defaultCollapsedGroups` +
+  per-group `defaultCollapsed`
+  (uncontrolled). The initial set
+  is the union of both seeds.
+  `onCollapsedGroupsChange(ids)`
+  fires on every toggle in both
+  modes.
+- **Count badge**: small pill
+  rendered next to the label.
+  Default `count = items.length`;
+  `group.count` overrides for
+  truncated lists (e.g.,
+  "showing 10 of 247"). Setting
+  `group.badge` replaces the pill
+  with a custom ReactNode.
+  `showBadges={false}` hides
+  badges across the board.
+- **Description**: optional
+  trailing description text shown
+  on the right of each header
+  (e.g., timestamp / hint).
+- **Per-group empty state**: an
+  empty `items` array renders the
+  `emptyLabel` inside the body
+  rather than collapsing the
+  group.
+- **Empty groups array**: when
+  `groups.length === 0`, the root
+  renders the `emptyLabel` and
+  carries `data-empty="true"`.
+
+### Pure helpers (exported)
+
+```ts
+export function isGroupCollapsed(
+  groupId: string,
+  collapsedSet: Set<string>,
+): boolean;
+
+export function getGroupCount(
+  group: ListSectionGroup,
+): number;
+
+export function totalItemCount(
+  groups: ListSectionGroup[],
+): number;
+
+export function visibleItemCount(
+  groups: ListSectionGroup[],
+  collapsedSet: Set<string>,
+): number;
+```
+
+`getGroupCount` returns
+`group.count` (clamped to >=0 +
+floored) when supplied; else
+`group.items.length`.
+
+### ARIA + data attributes
+
+Root (`<div role="list">`,
+`aria-label`):
+
+- `data-section="list-section"`
+- `data-empty` ('true' / 'false')
+- `data-group-count`
+- `data-total-items`
+- `data-sticky-headers`
+- `data-collapsible`
+
+Per group (`<section role="region">`):
+
+- `aria-labelledby` -> header id
+- `data-section="list-section-group"`
+- `data-group-id`
+- `data-collapsed`
+- `data-count`
+
+Header (`<button>`):
+
+- `data-section="list-section-header"`
+- `data-group-id`
+- `aria-expanded` (when collapsible)
+- `aria-controls` -> body id
+- chevron span:
+  `data-section="list-section-chevron"`
+- label span:
+  `data-section="list-section-label"`
+- count pill:
+  `data-section="list-section-count"`
+  + `aria-label="N items"`
+- custom badge slot:
+  `data-section="list-section-badge-slot"`
+- description span:
+  `data-section="list-section-description"`
+
+Body (`<ul role="list">`):
+
+- `data-section="list-section-body"`
+- `data-group-id`
+- empty-state li:
+  `data-section="list-section-empty-group"`
+
+Item (`<li role="listitem">`):
+
+- `data-section="list-section-item"`
+- `data-item-id`
+- `data-group-id`
+- `aria-label` (per-item override)
+
+### Tests
+
+41 cases in `list-section.test.tsx`:
+
+- `isGroupCollapsed` (2)
+- `getGroupCount` (4): items
+  fallback, explicit count,
+  negative clamp, fractional
+  floor
+- `totalItemCount` /
+  `visibleItemCount` (3): sum,
+  collapsed-drop, all-collapsed
+- Component (32): role + default
+  ariaLabel, custom ariaLabel,
+  one region per group, label
+  rendered, count badges
+  default, hide badges, custom
+  badge slot, items render,
+  click toggles collapse, click
+  re-expand, Enter / Space
+  toggle, aria-expanded
+  mirrors, data-collapsed
+  mirrors, defaultCollapsed
+  per-group, defaultCollapsed
+  Groups prop, controlled
+  override, onChange callback,
+  collapsible=false disables,
+  chevron hidden when
+  collapsible=false, sticky
+  classes default, sticky=
+  false drops classes,
+  renderItem override,
+  description rendered,
+  count override, empty
+  groups -> emptyLabel +
+  data-empty, empty group ->
+  per-group emptyLabel, root
+  data attrs (count, total,
+  sticky, collapsible),
+  per-item data attrs,
+  displayName, ref.
+
+41/41 pass under vitest 4.1.5;
+TypeScript clean for touched
+files.
+
+### Pairs with existing primitives
+
+- `<ListVirtualizer>` (11.401)
+  -- the virtualized list
+  variant. ListSection is the
+  small-to-mid list with
+  declared groups.
+- `<TreeView>` (11.397) --
+  the nested-hierarchy variant.
+  ListSection is the flat-
+  hierarchy variant (single
+  level of grouping).
+- `<CommandBar>` (11.395) --
+  often paired with ListSection
+  when the host wants
+  multi-selection across
+  groups.
+- ThemeCustomizer (11.394) --
+  the list reads token-based
+  Tailwind classes so it
+  auto-themes.
+
+### Out of scope (deferred)
+
+- Nested groups (groups within
+  groups). Single-level only
+  for v1; TreeView covers
+  recursive trees.
+- Drag-and-drop reorder of
+  items between groups.
+  Adopters can layer their own
+  via the `renderItem` slot.
+- Per-group filter / search.
+  Caller pre-filters the
+  `items` arrays.
+- Virtualized item rendering
+  per group. Pair with
+  `<ListVirtualizer>` (11.401)
+  for that.
+- Sortable group order
+  (drag-the-header). Source-
+  array order is canonical.
+- Multi-select range (Shift+
+  click). Host manages
+  selection state.
+
 ## [1.11.430] - 2026-05-19 -- UI: gauge + meter primitives (TODO 11.412)
 
 New `web/src/components/ui/gauge.tsx`
