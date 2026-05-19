@@ -191,3 +191,4 @@ export * from './chart-polar-area';
 export * from './chart-treemap-squarified';
 export * from './chart-funnel-area';
 export * from './chart-pictogram';
+export * from './chart-spider-web';
