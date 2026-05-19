@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.474] - 2026-05-19 -- UI: chart-pareto primitive (TODO 11.456)
+
+New **ChartPareto** UI primitive in
+`web/src/components/ui/chart-pareto.tsx`:
+pure-SVG Pareto chart. Categories
+sort by value descending (the
+component auto-sorts regardless of
+input order) and render as bars on
+the left axis; a cumulative
+percentage line + dot markers overlay
+on the right axis (0..100%). A dashed
+threshold reference line (default
+80%, clamped to [0, 1]) marks the
+Pareto principle boundary; bars at
+or below that line are tagged as
+"vital few" via `data-vital-few` for
+adopters / tests to pick out. Per-bar
+tooltip shows label + value +
+cumulative percent + vital-few hint
+where applicable. Per-bar click
+handler. Pure helpers exported:
+`sortParetoCategoriesDesc`,
+`getParetoTotal`,
+`getParetoCumulative`,
+`getParetoCumulativePercent`,
+`findParetoThresholdIndex`,
+`getParetoTicks`,
+`describeParetoChart`. 59 vitest
+cases cover helpers (incl. drops
+non-positive values, preserves
+length under non-positives,
+threshold clamping) + every render
+branch including sort order, line +
+threshold visibility, dual axis
+suppression, formatter shaping,
+click payload, ARIA description
+override, and ref forwarding.
+
 ## [1.11.473] - 2026-05-19 -- UI: chart-gantt primitive (TODO 11.455)
 
 New **ChartGantt** UI primitive in
