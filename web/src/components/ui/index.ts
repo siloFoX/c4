@@ -147,3 +147,4 @@ export * from './env-badge';
 export * from './user-card';
 export * from './kbd-shortcut-recorder';
 export * from './text-diff';
+export * from './chart-bar';
