@@ -4,6 +4,252 @@
 
 (no entries -- next release window)
 
+## [1.11.425] - 2026-05-19 -- UI: detail-list primitive (TODO 11.407)
+
+New `web/src/components/ui/detail-list.tsx`
+ships `<DetailList>` -- a key-value pair
+list rendered as a native HTML `<dl>` /
+`<dt>` / `<dd>` so definition-list
+semantics flow into assistive tech without
+an ARIA shim. Horizontal / vertical
+orientations + copy-on-hover affordance.
+
+### API
+
+```tsx
+<DetailList
+  items={[
+    { id: 'name', label: 'Name', value: 'arps-1' },
+    { id: 'token', label: 'Token', value: <Masked />,
+      copyValue: 'sk_real_value' },
+    { id: 'created', label: 'Created', value: '2026-05-18' },
+  ]}
+  orientation="horizontal"
+  size="md"
+  showCopyOnHover
+  onCopy={(item, text) => track('copy', { id: item.id })}
+  ariaLabel="Asset details"
+/>
+```
+
+```ts
+interface DetailListItem {
+  id: string | number;
+  label: ReactNode;
+  value: ReactNode;
+  copyValue?: string;
+  copyable?: boolean;
+  ariaLabel?: string;
+}
+
+interface DetailListProps {
+  items: DetailListItem[];
+  orientation?: 'horizontal' | 'vertical';   // default 'vertical'
+  size?: 'sm' | 'md' | 'lg';                  // default 'md'
+  className?: string;
+  ariaLabel?: string;                          // default 'Details'
+  showCopyOnHover?: boolean;                   // default true
+  copyLabel?: (item) => string;
+  onCopy?: (item, text: string) => void;
+  copyFeedbackMs?: number;                     // default 1500
+  emptyLabel?: ReactNode;                      // default '(no details)'
+}
+```
+
+### Behaviour
+
+- **Semantics**: native `<dl>` root +
+  `<dt>` / `<dd>` per row. `role="list"`
+  / `role="listitem"` annotations layer
+  on top for AT defensive guards.
+- **Orientations**:
+  - `vertical` (default): label on top
+    (small uppercase tracked muted),
+    value below.
+  - `horizontal`: label on the left
+    (taking ~1/3 width on `md+`),
+    value right-aligned. Collapses to
+    vertical on mobile (`< md`) so
+    long labels never crowd values.
+- **Copy-on-hover**: when an item is
+  copyable, a small button slides in
+  on hover / focus (opacity 0 ->
+  100). Click writes the resolved
+  text via `navigator.clipboard.write
+  Text` AND fires
+  `onCopy(item, text)`. Copy success
+  flips the icon to a checkmark for
+  `copyFeedbackMs` then back to the
+  copy glyph.
+- **Copyable resolution**:
+  - `copyValue` (explicit string)
+    always wins.
+  - Otherwise string / number / bigint
+    values are auto-copyable.
+  - ReactNode values without a
+    `copyValue` are not copyable.
+  - `copyable: false` forces hide.
+  - `copyable: true` overrides --
+    callers can mark a ReactNode-only
+    row as copyable AND must supply
+    `copyValue` to give the button
+    something to write.
+- **Empty list**: when items.length is
+  0, the dl carries `data-empty="true"`
+  and the `emptyLabel` renders inside.
+  `aria-label` still applies for AT.
+
+### Pure helpers (exported)
+
+```ts
+export function getDetailListCopyText(
+  item: DetailListItem,
+): string | null;
+
+export function isDetailListItemCopyable(
+  item: DetailListItem,
+): boolean;
+```
+
+`getDetailListCopyText` is the
+canonical resolver -- returns
+`copyValue` when set, else coerces
+string / number / bigint values to
+string, else null.
+
+`isDetailListItemCopyable` mirrors
+the component's hide-the-button
+gate. Exported so adopters that
+manage their own copy UI outside the
+component can use the same rule.
+
+### ARIA + data attributes
+
+Root (`<dl>`):
+
+- `role="list"`
+- `aria-label`
+- `data-section="detail-list"`
+- `data-orientation`
+- `data-size`
+- `data-empty` ('true' / 'false')
+- `data-item-count` (when non-empty)
+
+Per row:
+
+- `role="listitem"`
+- `data-section="detail-list-row"`
+- `data-detail-id` (string id)
+- `data-orientation`
+- `data-copyable` ('true' / 'false')
+- `data-copied` ('true' / 'false')
+
+Sub-nodes:
+
+- `<dt>`: `data-section="detail-list-label"`
+- `<dd>`: `data-section="detail-list-value"`
+- `data-section="detail-list-value-text"`
+  (inner span)
+- `data-section="detail-list-copy"`
+  (button) + `data-detail-id`
+- `data-section="detail-list-copy-icon"`
+  (copy glyph)
+- `data-section="detail-list-copy-check"`
+  (checkmark glyph)
+- `data-section="detail-list-empty"`
+  (empty state)
+
+### Tests
+
+36 cases in `detail-list.test.tsx`:
+
+- `getDetailListCopyText` (5):
+  copyValue wins, string verbatim,
+  number coerced, bigint coerced,
+  ReactNode -> null
+- `isDetailListItemCopyable` (3):
+  copyable=true override,
+  copyable=false override, text
+  presence fallback
+- Component (28): role=list +
+  aria-label default + custom,
+  native dl, dt + dd per item,
+  value content rendered, root
+  data attrs (orientation /
+  size / item-count), horizontal
+  md:flex-row, vertical flex-col,
+  copy button for string-coercible
+  values, omits copy for ReactNode
+  values, copyValue enables copy
+  on ReactNode, copyable=false
+  suppresses, showCopyOnHover=
+  false hides all, copy click
+  writes via clipboard + fires
+  onCopy(item, text), copyValue
+  used in clipboard write, copy
+  success flips data-copied +
+  checkmark icon, copied state
+  clears after copyFeedbackMs,
+  onCopy still fires when
+  clipboard missing, custom
+  copyLabel override, emptyLabel
+  custom + default '(no details)',
+  empty root data-empty='true',
+  per-row data-detail-id, per-row
+  data-copyable mirrors status,
+  size variants apply different
+  classes, item.ariaLabel
+  overrides copy button label
+  fallback, displayName, ref
+  forwarding to dl.
+
+36/36 pass under vitest 4.1.5;
+TypeScript clean for touched files.
+
+### Pairs with existing primitives
+
+- `<Card>` -- DetailList commonly
+  sits inside a Card body as the
+  "Details" panel.
+- `<PageHeader>` (11.249/11.405)
+  -- pairs in the detail-page
+  variant of SkeletonSet
+  (11.402).
+- `<Badge>` / `<Chip>` --
+  candidate values for the dd
+  slot.
+- ThemeCustomizer (11.394) --
+  the list reads token-based
+  Tailwind classes so it
+  auto-themes.
+
+### Out of scope (deferred)
+
+- Inline edit on a value cell
+  (click value -> input). Belongs
+  in a follow-on (
+  `<EditableDetailList>` or per-
+  row `renderValue` slot with
+  the host owning the input).
+- Per-row badges / icons next to
+  the label. Currently the label
+  accepts ReactNode so callers
+  can inline; a structured
+  badge slot can be a later
+  ergonomic improvement.
+- Sort / reorder. List order is
+  source-array order; reorder
+  semantics are out of scope.
+- Group / section headers
+  between rows. Belongs in a
+  follow-on if a real adopter
+  hits the limit.
+- Custom copy icon. Currently
+  fixed to `lucide-react` Copy /
+  Check; future API can accept
+  a `copyIcon` / `copiedIcon`
+  ReactNode override.
+
 ## [1.11.424] - 2026-05-18 -- UI: stat-card comparison + sparkline slot (TODO 11.406)
 
 `<StatCard>` already shipped the
