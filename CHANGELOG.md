@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.481] - 2026-05-19 -- UI: chart-arc-diagram primitive (TODO 11.463)
+
+New **ChartArcDiagram** UI primitive
+in
+`web/src/components/ui/chart-arc-diagram.tsx`:
+pure-SVG arc diagram. Nodes sit on
+a horizontal baseline, each
+rendered as a dot whose radius can
+be scaled by `node.weight`. Edges
+paint as semicircular arcs above
+(or below) the baseline between
+the two node xs; the radius is
+half the horizontal distance and
+stroke width encodes the edge
+weight. Self-edges render as small
+loops near the node. Hover a node
+to highlight every connected edge
++ neighbour; hover an edge to
+focus that single connection.
+Per-node and per-edge click
+handlers fire with full payloads.
+Pure helpers exported:
+`getArcDiagramNodePositions`,
+`getArcDiagramNodeRadius`,
+`computeArcDiagramNodeDegree`,
+`buildArcDiagramEdgePath`,
+`describeArcDiagram`. 45 vitest
+cases cover helpers + every render
+branch including arc direction
+flip (above vs below), self-edge
+loop rendering, hover propagation
+to neighbours / incident edges,
+formatter shaping, click payload,
+ARIA description override, edge
+filtering for unknown source /
+target ids, and ref forwarding.
+
 ## [1.11.480] - 2026-05-19 -- UI: chart-chord primitive (TODO 11.462)
 
 New **ChartChord** UI primitive in
