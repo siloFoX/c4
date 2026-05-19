@@ -219,3 +219,4 @@ export * from './chart-line-marker';
 export * from './chart-line-segment';
 export * from './chart-line-discontinuous';
 export * from './chart-line-annotated';
+export * from './chart-line-baseline';

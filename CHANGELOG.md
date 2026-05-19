@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.528] - 2026-05-19 -- UI: chart-line-baseline primitive (TODO 11.510)
+
+New **ChartLineBaseline** UI
+primitive in
+`web/src/components/ui/chart-line-baseline.tsx`:
+pure-SVG multi-series line chart with
+**an adjustable horizontal baseline
+reference** and per-point
+classification of whether each y
+value sits above, below, or equal to
+the baseline. Each dot is coloured
+by direction (green above, red
+below, neutral equal) when
+`colorDotsByDirection=true`
+(default); the tooltip surfaces the
+signed delta from baseline. The
+canonical "metric vs target" pattern
+for performance dashboards (delta
+from 0, delta from budget, delta
+from SLO). `classifyLineBaselinePoint`
+returns `{ delta, direction }`;
+`epsilon` widens the equality band
+for noise tolerance. `getLineBaselineBounds`
+auto-expands the y range to include
+the baseline so the reference rule
+is always visible. Per-series
+direction counts (`aboveCount`,
+`belowCount`, `equalCount`) exposed
+via data attrs. Distinct from
+`<ChartLineAreaGradient>` (11.504)
+(baseline as area floor with
+gradient), `<ChartLineThreshold>`
+(11.503) (multiple thresholds + zone
+shading), `<ChartLineAnnotated>`
+(11.509) (vertical event
+annotations), and all other line
+variants. Pure helpers exported:
+`getLineBaselineDefaultColor`,
+`getLineBaselineFinitePoints`,
+`classifyLineBaselinePoint`,
+`pickLineBaselineDotColor`,
+`getLineBaselineBounds`,
+`getLineBaselineTicks`,
+`buildLineBaselinePath`,
+`computeLineBaselineLayout`,
+`describeLineBaselineChart`. 74
+vitest cases pass under vitest
+4.1.5; TypeScript clean for
+touched files. Exported via
+`components/ui` barrel. Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.527] - 2026-05-19 -- UI: chart-line-annotated primitive (TODO 11.509)
 
 New **ChartLineAnnotated** UI
