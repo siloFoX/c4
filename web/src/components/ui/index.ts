@@ -251,3 +251,4 @@ export * from './chart-line-kalman';
 export * from './chart-line-ewma';
 export * from './chart-line-fft';
 export * from './chart-line-resample';
+export * from './chart-line-rangefocus';
