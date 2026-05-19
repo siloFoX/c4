@@ -4,6 +4,57 @@
 
 (no entries -- next release window)
 
+## [1.11.523] - 2026-05-19 -- UI: chart-line-area-stacked primitive (TODO 11.505)
+
+New **ChartLineAreaStacked** UI
+primitive in
+`web/src/components/ui/chart-line-area-stacked.tsx`:
+pure-SVG stacked line + area chart
+with **two stacking modes**.
+`'absolute'` (default) cumulatively
+sums layers; y axis shows raw
+totals. `'percent'` normalises per-x
+so each column sums to 1.0; y axis
+shows percentages. Distinct from
+the v1 `<ChartStackedArea>` which
+paints only the absolute mode and
+lacks the percent normalisation
+this primitive adds. The
+canonical sample grid is the sorted
+unique union of x values across
+visible series (via
+`collectLineAreaStackedXValues`);
+series that lack a sample at some x
+contribute 0 (zero-fill). Negative
+contributions clamp to 0. Each
+layer's top edge gets a stroked
+line, so layer boundaries stay
+crisp even when fill opacity is
+low. Tooltip rows show raw y plus a
+`share:` row with formatted percent
++ total at that x. Distinct from
+`<ChartLineAreaGradient>` (11.504)
+(single area below line; not
+stacked), `<ChartLineThreshold>`
+(11.503), `<ChartLineConfidence>`
+(11.502), `<ChartLineMulti>` (11.500),
+`<ChartLineZoom>` (11.501),
+`<ChartLineDashed>` (11.499),
+`<ChartLineSmooth>` (11.498),
+`<ChartLineStep>` (11.497). Pure
+helpers exported:
+`getLineAreaStackedDefaultColor`,
+`getLineAreaStackedFinitePoints`,
+`collectLineAreaStackedXValues`,
+`buildLineAreaStackedYLookup`,
+`computeLineAreaStackedLayout`,
+`describeLineAreaStackedChart`. 56
+vitest cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.522] - 2026-05-19 -- UI: chart-line-area-gradient primitive (TODO 11.504)
 
 New **ChartLineAreaGradient** UI

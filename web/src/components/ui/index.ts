@@ -214,3 +214,4 @@ export * from './chart-line-zoom';
 export * from './chart-line-confidence';
 export * from './chart-line-threshold';
 export * from './chart-line-area-gradient';
+export * from './chart-line-area-stacked';
