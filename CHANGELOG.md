@@ -4,6 +4,66 @@
 
 (no entries -- next release window)
 
+## [1.11.527] - 2026-05-19 -- UI: chart-line-annotated primitive (TODO 11.509)
+
+New **ChartLineAnnotated** UI
+primitive in
+`web/src/components/ui/chart-line-annotated.tsx`:
+pure-SVG multi-series line chart
+with **vertical annotation lines +
+text labels at specific x values**.
+The canonical "annotated event"
+pattern for monitoring dashboards:
+metric over time with vertical
+reference lines marking deploys,
+incidents, releases, holidays.
+Each annotation owns its own
+`color`, `position` (`'top'` /
+`'inline'` / `'bottom'`), and
+`dashArray`. Annotations with
+non-string id or non-finite x drop
+silently. The y-range
+auto-expansion in
+`getLineAnnotatedBounds` includes
+every finite annotation x so the
+vertical lines always sit inside
+the active plot. Annotations live
+in an independent SVG `<g>` group
+above the series so they render
+visually on top at intersections.
+`resolveLineAnnotatedLabel(px,
+position, padding, innerHeight)`
+is the canonical label coordinate
+resolver. Per-annotation
+`onAnnotationClick` callback (in
+addition to the standard
+`onPointClick`) lets adopters open
+release notes, scroll to incident
+details, etc. Distinct from
+`<ChartLineThreshold>` (11.503)
+(horizontal threshold rules + zone
+shading; chart-line-annotated
+paints vertical event rules with
+text), `<ChartLineDiscontinuous>`
+(11.508) (gap markers),
+`<ChartLineSegment>` (11.507)
+(threshold-coloured segments).
+Pure helpers exported:
+`getLineAnnotatedDefaultColor`,
+`getLineAnnotatedFinitePoints`,
+`getLineAnnotatedFiniteAnnotations`,
+`getLineAnnotatedBounds`,
+`getLineAnnotatedTicks`,
+`buildLineAnnotatedPath`,
+`resolveLineAnnotatedLabel`,
+`computeLineAnnotatedLayout`,
+`describeLineAnnotatedChart`. 75
+vitest cases pass under vitest
+4.1.5; TypeScript clean for
+touched files. Exported via
+`components/ui` barrel. Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.526] - 2026-05-19 -- UI: chart-line-discontinuous primitive (TODO 11.508)
 
 New **ChartLineDiscontinuous** UI
