@@ -4,6 +4,265 @@
 
 (no entries -- next release window)
 
+## [1.11.443] - 2026-05-19 -- UI: search-result-list primitive (TODO 11.425)
+
+New **SearchResultList** UI primitive
+in
+`web/src/components/ui/search-result-list.tsx`:
+renders a list of search results
+with per-row title highlighting
+against the current query, an
+optional snippet preview, a per-row
+type icon slot, full keyboard
+navigation (ArrowUp / ArrowDown /
+Home / End / Enter), and an
+infinite-scroll loader fed by an
+IntersectionObserver pinned to a
+sentinel at the bottom of the list.
+
+### API
+
+```ts
+interface SearchResultItem {
+  id: string;
+  title: string;
+  snippet?: string;
+  type?: string;
+  icon?: ReactNode;
+  url?: string;
+  metadata?: Record<string, ReactNode>;
+}
+
+interface SearchResultListProps {
+  results: SearchResultItem[];
+  query?: string;
+  activeId?: string | null;            // controlled
+  defaultActiveId?: string | null;     // uncontrolled seed
+  onActiveChange?: (id: string | null) => void;
+  onSelect?: (item: SearchResultItem) => void;
+  loading?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  emptyState?: ReactNode;              // default 'No results'
+  loadingState?: ReactNode;            // default 'Loading...'
+  loadMoreThreshold?: string;          // default '200px'
+  ariaLabel?: string;                  // default 'Search results'
+  className?: string;
+  highlightSnippet?: boolean;          // default false
+  renderItem?: (args: {
+    item: SearchResultItem;
+    isActive: boolean;
+    highlightedTitle: ReactNode;
+    highlightedSnippet: ReactNode;
+    onSelect: () => void;
+  }) => ReactNode;
+}
+```
+
+### Behaviour
+
+- Root is `role="listbox"` +
+  `tabIndex=0` +
+  `aria-activedescendant` so
+  keyboard focus stays on the
+  outer container and the active
+  row is announced via the
+  active-descendant pattern.
+- Each row is `role="option"`
+  with `aria-selected` mirroring
+  the active id.
+- Click selects + sets the
+  active id; mouse-enter sets
+  the active id (no select).
+  This matches the standard
+  combobox / command-palette
+  navigation pattern.
+- Keyboard nav on the listbox:
+  - ArrowDown: next (clamps to
+    last).
+  - ArrowUp: previous (clamps to
+    first).
+  - Home: first.
+  - End: last.
+  - Enter: select the active
+    item (no-op when no active).
+- Title highlighting:
+  `highlightMatches(text, query)`
+  wraps matches in `<mark>` with
+  a `data-section="search-result-mark"`
+  marker. Case-insensitive +
+  regex-special characters in
+  the query are escaped, so
+  queries like `$10` or `a.b*`
+  are matched literally.
+- Snippet highlighting is opt-in
+  via `highlightSnippet={true}`;
+  default mode keeps the snippet
+  plain so the row's headline
+  stays the focus.
+- Infinite scroll: when
+  `hasMore={true}`, a 1px
+  sentinel renders at the bottom
+  of the list and an
+  IntersectionObserver fires
+  `onLoadMore` whenever the
+  sentinel intersects the
+  viewport. The observer
+  disconnects on unmount and
+  re-attaches when `results.length`
+  or `loadMoreThreshold`
+  changes.
+- Active row scroll-into-view on
+  every active change so the
+  selected option stays visible
+  in the listbox.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_SEARCH_LOAD_MORE_THRESHOLD = '200px'
+escapeRegexForHighlight(query): string
+highlightMatches(text, query?): ReactNode
+getNextActiveId(currentId, items, direction): string | null
+```
+
+- `escapeRegexForHighlight`
+  escapes the standard regex
+  meta-character set
+  (`.*+?^${}()|[]\`).
+- `highlightMatches` returns
+  the original text unchanged
+  when the query is empty,
+  null, or whitespace-only;
+  swallows invalid regex
+  constructions so the row
+  never throws.
+- `getNextActiveId` accepts
+  `'next' | 'previous' | 'first'
+  | 'last'`. `next` and
+  `previous` clamp at the
+  boundaries (no wrap). Empty
+  results return `null`.
+
+### ARIA + data attributes
+
+- Listbox root: `role="listbox"`
+  + `aria-label` +
+  `aria-activedescendant` +
+  `tabIndex=0`.
+- Each row: `role="option"` +
+  `aria-selected` +
+  `id="search-result-<item.id>"`
+  matching the active-descendant.
+- `data-section` on every node:
+  `search-result-list` (root),
+  `search-result-item` (row),
+  `search-result-icon`,
+  `search-result-content`,
+  `search-result-title`,
+  `search-result-snippet`,
+  `search-result-type`,
+  `search-result-mark` (per
+  highlight),
+  `search-result-list-empty`,
+  `search-result-list-loading`,
+  `search-result-list-sentinel`.
+- Root mirrors `data-active-id`,
+  `data-result-count`,
+  `data-loading`,
+  `data-has-more`. Each row
+  mirrors `data-item-id`,
+  `data-active`, `data-type`.
+
+### Tests
+
+58 cases in
+`web/src/components/ui/search-result-list.test.tsx`,
+covering:
+
+- All three pure helpers:
+  regex escaping, plain-text
+  fallthrough, case-insensitive
+  multi-match, whitespace-only
+  query, regex-special query
+  escape, list-clamping nav in
+  both directions, first / last
+  shortcuts, empty list null.
+- Default + custom `ariaLabel`.
+- One option per result.
+- Title + snippet + type render.
+- Default-mode highlights titles
+  only; `highlightSnippet=true`
+  marks the snippet too.
+- Click fires
+  `onSelect(item)` + sets active.
+- Mouse enter sets active.
+- Controlled `activeId` marks
+  the matching row
+  `aria-selected="true"`.
+- ArrowDown / ArrowUp / Home /
+  End navigation.
+- Enter selects the active
+  item; no-op when no active.
+- Empty + loading state copy
+  (default + custom).
+- `aria-activedescendant`
+  matches the active row id.
+- Root + per-row data attrs
+  reflect state.
+- Sentinel: renders only when
+  `hasMore=true`, IO observes
+  it, intersection fires
+  `onLoadMore`, non-intersection
+  does not, observer uses the
+  configured `loadMoreThreshold`
+  as `rootMargin`, observer
+  disconnects on unmount.
+- `renderItem` render-prop
+  replaces the default row +
+  receives `highlightedTitle`.
+- Stable `displayName` +
+  `forwardRef` to the listbox.
+- Skips IO setup when no
+  `IntersectionObserver` is on
+  `window`.
+- Default icon (FileText svg)
+  renders; custom `item.icon`
+  replaces it.
+
+### Pairs with existing primitives
+
+- `<CommandPalette>` for inline
+  command/action surfaces.
+- `<SearchInput>` /
+  `<SearchBar>` as the query
+  source that feeds this list.
+- `<InfiniteScroll>` underlies
+  the bottom-sentinel pattern;
+  this primitive bakes in the
+  observer for the common
+  search case.
+
+### Out of scope
+
+- Server search (host owns the
+  network; pass `results` +
+  `hasMore` + `loading`).
+- Result grouping (host can
+  pre-bucket and render
+  multiple lists side by side).
+- URL routing on select (host
+  wires `onSelect`).
+- Word-level fuzzy matching
+  (highlighter is substring +
+  case-insensitive; host can
+  pre-compute the matched
+  ranges).
+- Virtualisation of very long
+  result lists (host can wrap
+  in `<VirtualizedList>` for
+  thousands of rows).
+
 ## [1.11.442] - 2026-05-19 -- UI: notification-bell primitive (TODO 11.424)
 
 New **NotificationBell** UI primitive
