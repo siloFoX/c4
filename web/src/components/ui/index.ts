@@ -168,3 +168,4 @@ export * from './chart-gantt';
 export * from './chart-pareto';
 export * from './chart-boxplot';
 export * from './chart-violin';
+export * from './chart-step';

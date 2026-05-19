@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.477] - 2026-05-19 -- UI: chart-step primitive (TODO 11.459)
+
+New **ChartStep** UI primitive in
+`web/src/components/ui/chart-step.tsx`:
+pure-SVG step chart (staircase plot).
+Adjacent points are connected by
+right-angle segments, never
+interpolated. Three step variants
+are supported: `after` (classic
+staircase, default; horizontal first
+then vertical), `before` (jump y at
+the previous x, then hold
+horizontally), and `middle` (jump at
+the midpoint between samples). Hover
+surfaces a dot indicator at the
+closest sample + tooltip with x
+label and y value. Optional area
+fill below the step line. Per-point
+click handler. Pure helpers
+exported: `getStepYBounds`,
+`getStepXLabels`, `buildStepPath`,
+`buildStepAreaPath`,
+`findStepHitIndex`, `getStepTicks`,
+`describeStepChart`. 59 vitest cases
+cover helpers (incl. all three step
+variants verified by exact path
+checks) + every render branch
+including step type, area fill,
+legend placement, dot suppression,
+formatter shaping, click payload,
+ARIA description override, and ref
+forwarding.
+
 ## [1.11.476] - 2026-05-19 -- UI: chart-violin primitive (TODO 11.458)
 
 New **ChartViolin** UI primitive in
