@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.542] - 2026-05-19 -- UI: chart-line-anomaly primitive (TODO 11.524)
+
+New **ChartLineAnomaly** UI
+primitive in
+`web/src/components/ui/chart-line-anomaly.tsx`:
+pure-SVG multi-series line chart
+that **detects statistical
+outliers via z-score** and
+highlights them with larger
+coloured markers. Each series's
+mean and sample standard
+deviation drive a normal-range
+band and per-point z-scores; any
+point with `|z| >= threshold`
+(default `2`) is flagged as
+`'high'` or `'low'` anomaly with
+distinct colours. Pure helpers
+`computeLineAnomalyStats` (sample
+stddev via Bessel correction;
+`ok=false` for constant /
+single-sample series),
+`computeLineAnomalyZScore`,
+`classifyLineAnomalyDirection`
+(inclusive at threshold;
+fallback for non-finite z /
+threshold),
+`computeLineAnomalyLayout`, and
+`describeLineAnomalyChart`. The
+band, mean line, and +/-
+threshold-stddev bound lines
+render only when stats.ok=true.
+Distinct from
+`<ChartLineMinMax>` (extremes
+always 2),
+`<ChartLinePercentile>` (sample
+groups per x),
+`<ChartLineMovingAvg>` (windowed
+smoothing),
+`<ChartLineConfidence>`
+(external bounds),
+`<ChartLineTrend>` (regression),
+and external-reference
+primitives. 60 vitest cases
+cover defaults, stats math
+(Bessel + ok flag), z-score,
+classification, layout (band +
+bounds + anomaly detection),
+ARIA, tooltip, legend,
+callbacks, ref. (TODO 11.524)
+
 ## [1.11.541] - 2026-05-19 -- UI: chart-line-spark-bar primitive (TODO 11.523)
 
 New **ChartLineSparkBar** UI
