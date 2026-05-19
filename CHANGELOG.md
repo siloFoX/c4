@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.545] - 2026-05-19 -- UI: chart-line-velocity primitive (TODO 11.527)
+
+New **ChartLineVelocity** UI
+primitive in
+`web/src/components/ui/chart-line-velocity.tsx`:
+pure-SVG multi-series line chart
+that **decorates every point with
+a directional arrow marker**
+indicating velocity (up / down /
+flat) and optionally angled along
+the local tangent. Two arrow
+modes: `'tangent'` (default;
+chevron points along the pixel-
+space slope from the previous
+point, so it visually follows
+the line) and `'sign'` (chevron
+points straight up / down / right
+based on the sign of dy).
+Per-arrow color reflects
+direction (green up, red down,
+slate flat). Pure helpers
+`computeVelocity` (dx, dy,
+magnitude, angle in DATA-space
+math convention, direction
+classification),
+`buildLineVelocityArrowPath`
+(two-stroke chevron with the tip
+at the supplied coordinates;
+non-finite / size<=0 -> ''),
+`computeLineVelocityLayout` (uses
+pixel-space angle for tangent
+mode so arrows visually align
+with the slope), and
+`describeLineVelocityChart`. The
+canonical "where is this metric
+heading" visualisation. Distinct
+from `<ChartLineRate>`
+(derivative as separate line),
+`<ChartLineMinMax>` (extremes
+only), `<ChartLineMarker>`
+(static configurable markers),
+`<ChartLineEvent>` (event icons
+on dedicated track),
+`<ChartLineCumulative>` (running
+sum), `<ChartLineAnomaly>`
+(outliers). 58 vitest cases
+cover defaults, velocity math,
+arrow path builder, layout
+(tangent + sign modes), ARIA,
+tooltip with first-point
+fallback, legend, callbacks,
+ref. (TODO 11.527)
+
 ## [1.11.544] - 2026-05-19 -- UI: chart-line-rolling-min-max primitive (TODO 11.526)
 
 New **ChartLineRollingMinMax** UI
