@@ -1,7 +1,7 @@
 {
   "name": "c4-web",
   "private": true,
-  "version": "1.11.530",
+  "version": "1.11.531",
   "type": "module",
   "scripts": {
     "dev": "vite",

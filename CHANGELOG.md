@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.531] - 2026-05-19 -- UI: chart-line-moving-avg primitive (TODO 11.513)
+
+New **ChartLineMovingAvg** UI
+primitive in
+`web/src/components/ui/chart-line-moving-avg.tsx`:
+pure-SVG multi-series line chart
+with a **simple moving average
+overlay** computed per series with
+a configurable window. Each series
+gets a raw line (dimmed) plus a
+thicker SMA rule whose path breaks
+at every index where the SMA is not
+defined. Three modes -- `trailing`
+(default), `centered`, `edge` --
+let adopters trade off the
+"undefined edges" of trailing SMA
+against a partial-window fill at
+the leading edge or a centered
+alignment. Pure helpers
+`computeSimpleMovingAverage`
+(canonical SMA with non-finite
+filtering and per-mode null
+handling), `normaliseLineMovingAvgWindow`
+(positive int >= 1, with non-finite
+/ non-numeric / <1 falling back to
+1), `buildLineMovingAvgPath` (emits
+one `M ... L ...` segment per run
+of consecutive non-null values),
+`computeLineMovingAvgLayout` (raw
++ MA paths per series with maValid
+count and y bounds expanded to
+include MA samples), and
+`describeLineMovingAvgChart`. Hover
+tooltip shows `SMA(W):` per dot
+(or `n/a` when window not filled).
+Distinct from `<ChartLineTrend>`
+(global linear regression),
+`<ChartLineSmooth>` (visual curve
+interpolation -- no averaging),
+`<ChartLineBaseline>` (flat
+reference), and the raw line
+primitives. 66 vitest cases cover
+defaults, pure helpers, all three
+modes, layout, ARIA, tooltip,
+legend, callbacks, ref. (TODO
+11.513)
+
 ## [1.11.530] - 2026-05-19 -- UI: chart-line-trend primitive (TODO 11.512)
 
 New **ChartLineTrend** UI primitive
