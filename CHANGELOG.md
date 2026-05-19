@@ -4,6 +4,170 @@
 
 (no entries -- next release window)
 
+## [1.11.557] - 2026-05-19 -- UI: chart-line-ewma primitive (TODO 11.539)
+
+New **ChartLineEwma** UI primitive
+in
+`web/src/components/ui/chart-line-ewma.tsx`:
+pure-SVG **exponentially-
+weighted moving average**
+(EWMA) overlay using the
+canonical recursive formula
+`ewma[k] = alpha * raw[k] +
+(1 - alpha) * ewma[k-1]`.
+Renders three coordinated
+elements on the same axes:
+the dimmed raw observations
+line, the smoothed EWMA line
+in the series color, and (when
+enabled) per-point residual
+sticks linking raw to smoothed
+colored by sign. A half-life
+badge in the top-left calls
+out the canonical
+interpretation: `ln(2) / -ln(1
+- alpha)` is the number of
+samples back that hold half
+the smoothing weight. The
+canonical recursive smoother
+used in pandas
+(`Series.ewm`), monitoring
+(RRDtool's exponential
+averaging, many Prometheus
+recording rules), and any
+context where the question is
+"what is the running level of
+this signal with a specific
+time-scale of memory?". Pure
+helpers `runLineEwma` (sorts
+ascending; drops non-finite;
+returns per-point `{index, x,
+raw, ewma, residual,
+residualSign}`; empty / null
+-> []),
+`lineEwmaSpanToAlpha` /
+`lineEwmaAlphaToSpan` (pandas
+convention `alpha = 2 /
+(span + 1)`),
+`lineEwmaHalfLife` (`ln(2) /
+-ln(1 - alpha)`; alpha=0 ->
+Infinity; alpha=1 -> 0),
+`classifyLineEwmaResidual`
+(positive/negative/zero;
+non-finite -> zero),
+`normaliseLineEwmaAlpha`
+(clamps to (0, 1]; non-
+finite -> 0.3),
+`resolveLineEwmaAlpha`
+(explicit alpha beats span;
+defaults when neither),
+`computeLineEwmaLayout`, and
+`describeLineEwmaChart`.
+Distinct from
+`<ChartLineMovingAvg>`
+(11.513; SMA with fixed
+window equal-weight -- EWMA
+gives EXPONENTIALLY decreasing
+weights over ALL past samples
+with no window),
+`<ChartLineBollinger>`
+(11.537; rolling SMA +
+envelope -- EWMA is recursive
+and uses all past samples
+with exponential decay),
+`<ChartLineKalman>` (11.538;
+recursive Bayesian filter
+with separate process and
+measurement noise variances
+-- EWMA is DETERMINISTIC with
+a single parameter, no
+uncertainty model),
+`<ChartLineControl>` (11.534;
+SPC global mean+/-k*sigma --
+EWMA is a smoother, not a
+control rule), and
+`<ChartLineTrend>` (11.512;
+global linear regression --
+EWMA is per-point recursive).
+Behaviour: alpha=1 -> no
+smoothing (ewma==raw at
+every step); alpha->0 ->
+infinite memory; first
+sample residual is 0 when
+initialEstimate defaults to
+first observation; span and
+alpha are interchangeable
+within float precision.
+Per-instance `alpha` / `span`
+/ `initialEstimate` /
+`ewmaDashArray` always beats
+chart-level. Tooltip on dots
+shows label, x, raw row, bold
+ewma row, and a coloured
+signed residual row. Half-
+life badge in top-left calls
+out the dominant series'
+alpha with icon α + half-
+life label. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; raw + ewma +
+dots `role="graphics-symbol"
+tabIndex={0}`. Data-attrs:
+root `data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-alpha`,
+`data-dominant-alpha`,
+`data-dominant-half-life`,
+`data-animate`; raw path
+`data-kind="raw"`; ewma path
+`data-kind="ewma"`; dots
+`data-raw`, `data-ewma`,
+`data-residual`,
+`data-residual-sign`;
+residual sticks `data-sign`;
+series groups expose alpha
+/ half-life / effective span
+/ counts / RMSE / final
+ewma. 75 vitest cases pass
+(defaults, helpers,
+runLineEwma incl. canonical
+formula at alpha=0.5
+(init=0, raw=10 -> ewma=5)
+/ flat series converges /
+observation[0] as initial ->
+residual[0]=0 / alpha=1 ->
+ewma==raw / smaller alpha
+larger RMSE / sort ascending
+/ drops non-finite / sign
+reflects raw vs ewma / span
+yields same as derived alpha,
+computeLineEwmaLayout incl.
+per-series alpha + half-life
++ effective span / residual
+sign counts / RMSE / hidden /
+bounds / per-series alpha +
+span override / total +
+visible counts / per-point
+pys, describeLineEwmaChart
+No data + summary, component
+render incl. empty / raw
+kind=raw / ewma kind=ewma /
+hide raw / residual sticks +
+omit / dots with raw + ewma
++ residual + sign / hide
+dots / half-life badge +
+omit / ARIA / root data-* /
+group data-* / tooltip raw +
+ewma + residual + hide on
+leave + omit / onPointClick
+/ legend α + hl + toggle +
+omit / animate / ref /
+displayName).
+Implementation patch:
+`docs/patches/11.539-ui-chart-line-ewma.md`.
+
 ## [1.11.556] - 2026-05-19 -- UI: chart-line-kalman primitive (TODO 11.538)
 
 New **ChartLineKalman** UI
