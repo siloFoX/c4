@@ -4,6 +4,76 @@
 
 (no entries -- next release window)
 
+## [1.11.507] - 2026-05-19 -- UI: chart-radial-stacked-bar primitive (TODO 11.489)
+
+New **ChartRadialStackedBar** UI
+primitive in
+`web/src/components/ui/chart-radial-stacked-bar.tsx`:
+pure-SVG **radial stacked bar** chart.
+Each category is a concentric ring
+around the centre; within each ring,
+the configured series stack
+**angularly** so the full 2pi of the
+ring is divided proportionally by each
+series's value within that category.
+Distinct from `<ChartRadialBar>`
+(11.452) (one arc per series, value
+encodes arc length), `<ChartPolarArea>`
+(11.478) (equal-angle wedges, radius
+encodes value), and `<ChartStackedBar>`
+(11.468) (linear stacked bars). Layout:
+one ring per category stacking
+outward from `innerRadius` to
+`outerRadius` with `ringGap` between
+rings; `ringThickness = (outerRadius -
+innerRadius - gaps) / N`. Within each
+ring, visible series fill 2pi minus
+per-segment `padAngle`s; each segment
+occupies an arc proportional to
+`value / categoryTotal`. Non-positive
+/ non-finite values produce no segment.
+Hidden series (controlled or
+uncontrolled) drop segments
+everywhere; remaining series
+reproportion to fill the ring. Per-
+series `color` always wins; otherwise
+the 10-color palette maps each
+`seriesIndex` so the same series uses
+the same colour across every ring.
+Center disc shows the grand total of
+all visible segments; optional
+`centerLabel` caption above the value.
+Hover/focus on a segment opens a
+tooltip with category + series labels,
+value, and share within the category.
+Per-segment click + per-series legend
+toggle handlers. Pure helpers
+exported:
+`getRadialStackedBarDefaultColor`,
+`polarToCartesian`,
+`getRadialStackedBarCategoryTotal`,
+`computeRadialStackedBarLayout`,
+`describeRadialStackedBarChart`. ARIA:
+root role=region + aria-label, SVG
+role=img with same label; per-segment
+role=graphics-symbol + tabIndex=0 +
+"<categoryLabel> / <seriesLabel>:
+<value> (<percent> of
+<categoryLabel>)" aria-label. data-
+section on every node; root mirrors
+data-category-count / data-series-
+count / data-visible-series-count /
+data-segment-count / data-grand-total
+/ data-ring-thickness / data-animate;
+ring groups mirror id / index / total
+/ inner-radius / outer-radius;
+segment groups mirror category-id /
+series-id / series-index / value /
+share / color / hovered. Mount fade
+via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 49 vitest cases pass.
+
 ## [1.11.506] - 2026-05-19 -- UI: chart-cluster primitive (TODO 11.488)
 
 New **ChartCluster** UI primitive in
