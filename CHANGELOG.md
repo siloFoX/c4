@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.529] - 2026-05-19 -- UI: chart-line-comparison primitive (TODO 11.511)
+
+New **ChartLineComparison** UI
+primitive in
+`web/src/components/ui/chart-line-comparison.tsx`:
+pure-SVG line chart for **comparing
+two series via difference shading**.
+The polygon strip between the
+primary and secondary curves is
+painted with `primaryAboveColor` when
+primary is on top and
+`primaryBelowColor` when secondary is
+on top, and is split exactly at every
+crossing so each half respects its
+own direction. Pure helpers
+`buildLineComparisonXUnion`,
+`buildLineComparisonYLookup`,
+`interpolateLineComparisonY`,
+`findLineComparisonCrossing` (the
+crossing x is the absolute-delta
+proportion of the segment),
+`computeLineComparisonLayout` (emits
+both tracks + ordered regions +
+aggregate stats `{primaryHigherCount,
+secondaryHigherCount, equalCount,
+maxPrimaryGap, maxSecondaryGap,
+crossingCount, xUnionCount}`), and
+`describeLineComparisonChart`. Hover
+tooltip surfaces the signed delta
+versus the other track. Distinct from
+`<ChartLineConfidence>` (band around
+one series),
+`<ChartLineThreshold>` (horizontal
+references), `<ChartLineAreaGradient>`
+(area below one line),
+`<ChartLineAreaStacked>` (stacked
+series), and `<ChartLineBaseline>`
+(flat baseline classification). 74
+vitest cases cover defaults, pure
+helpers, crossing math, layout
+regions + stats, ARIA, tooltip,
+legend, callbacks, animate, ref
+forwarding, data attr stats. (TODO
+11.511)
+
 ## [1.11.528] - 2026-05-19 -- UI: chart-line-baseline primitive (TODO 11.510)
 
 New **ChartLineBaseline** UI
