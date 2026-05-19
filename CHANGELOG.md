@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.473] - 2026-05-19 -- UI: chart-gantt primitive (TODO 11.455)
+
+New **ChartGantt** UI primitive in
+`web/src/components/ui/chart-gantt.tsx`:
+pure-SVG horizontal Gantt chart.
+Each row is a task bar stretched
+between `start` and `end`; optional
+progress fill shades the completed
+portion. Dependency arrows route
+from one task's end to another
+task's start with an elbow path +
+arrowhead marker. A `today` marker
+line highlights the current date
+when supplied + in range. Per-task
+tooltip surfaces label, start, end,
+and optional progress percent.
+Per-task click handler. Date parsing
+accepts both ISO strings and epoch
+numbers. Pure helpers exported:
+`parseGanttDate`,
+`getGanttDateBounds`,
+`getGanttRangeRatio`,
+`getGanttTaskColor`,
+`getGanttTicks`, `formatGanttDate`,
+`buildGanttDependencyPath`,
+`describeGanttChart`. 61 vitest
+cases cover helpers + every render
+branch including dependency arrows,
+today marker visibility, progress
+fill, formatter shaping, click
+payload, ARIA description override,
+unparseable-date skipping, and ref
+forwarding.
+
 ## [1.11.472] - 2026-05-19 -- UI: chart-network primitive (TODO 11.454)
 
 New **ChartNetwork** UI primitive in
