@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.536] - 2026-05-19 -- UI: chart-line-target primitive (TODO 11.518)
+
+New **ChartLineTarget** UI primitive
+in
+`web/src/components/ui/chart-line-target.tsx`:
+pure-SVG multi-series line chart
+with **a target reference line +
+over/under shading** between the
+data and the target. Each
+per-segment gap is painted with
+`overColor` when the line is above
+target and `underColor` when below;
+segments that straddle the target
+are split exactly at the crossing
+via the absolute-delta proportion.
+Per-series goal-tracking stats
+(over count, under count, peak
+over, peak under, percent over,
+total area) drive a legend progress
+badge and the auto-generated ARIA
+description. Pure helpers
+`classifyLineTargetPoint`
+(`'over' | 'under' | 'at'` with
+epsilon equality band),
+`findLineTargetCrossing` (returns
+crossing x or null; rejects
+same-side / endpoint-on-target /
+degenerate / non-finite),
+`computeLineTargetStats` (canonical
+goal-tracking aggregates),
+`computeLineTargetLayout`, and
+`describeLineTargetChart`. Distinct
+from `<ChartLineThreshold>` (zone
+shading above/below threshold
+across the whole chart, not between
+line and target),
+`<ChartLineBaseline>` (per-point
+classification without area
+shading), `<ChartLineBand>`
+(chart-wide rectangle, no shading
+to data), `<ChartLineComparison>`
+(difference between two curves),
+and `<ChartLineMinMax>` (data-
+derived extremes). 71 vitest cases
+cover defaults, classification +
+epsilon, crossing math, stats,
+layout (with crossing split), ARIA,
+tooltip, legend progress, callbacks,
+ref. (TODO 11.518)
+
 ## [1.11.535] - 2026-05-19 -- UI: chart-line-min-max primitive (TODO 11.517)
 
 New **ChartLineMinMax** UI
