@@ -4,6 +4,167 @@
 
 (no entries -- next release window)
 
+## [1.11.560] - 2026-05-19 -- UI: chart-line-rangefocus primitive (TODO 11.542)
+
+New **ChartLineRangeFocus** UI
+primitive in
+`web/src/components/ui/chart-line-rangefocus.tsx`:
+pure-SVG line chart implementing
+the canonical **focus +
+context** pattern (also known
+as "overview + detail" or
+"brush + zoom"). Canvas splits
+vertically into a large
+**detail** panel (top) that
+renders only the points within
+the selected sub-range
+projected to fill the panel,
+and a small **overview** panel
+(bottom) that renders the
+entire data range dimmed with
+a draggable **brush**
+rectangle marking the
+selected sub-range. The brush
+has three pointer-driven
+affordances: drag the body
+to move the window, drag
+either edge handle to resize,
+or click anywhere on the
+overview to recenter the
+window on the click point.
+The canonical "navigate
+dense time-series" UI used
+in Grafana (time-range bar),
+D3 brush examples, and any
+context where the question
+is "drill into a sub-window
+without losing the big
+picture". Pure helpers
+`clampLineRangeFocusRange`
+(enforces x0 <= x1, full
+bounds, minWidth expansion;
+non-finite bounds -> defaults;
+pin to bounds when expansion
+would cross edge),
+`normaliseLineRangeFocusOverviewRatio`
+(clamps to [0.1, 0.5]; non-
+finite -> 0.28),
+`computeLineRangeFocusLayout`
+(splits canvas into detail +
+overview panels; per-series
+detailPath includes only
+in-range points; overviewPath
+includes all; brushRect +
+left/right handles projected
+from range to overview-panel
+pixels), and
+`describeLineRangeFocusChart`.
+Distinct from
+`<ChartLineZoom>` (single-
+chart viewport zoom on one
+panel -- range-focus uses
+TWO panels with a brush on
+the overview),
+`<ChartLineResample>` (11.541;
+changes underlying sample
+COUNT -- range-focus keeps
+full data and zooms
+x-window), `<ChartLineForecast>`
+(11.519; semantic split of
+time axis -- range-focus is
+a UI affordance for
+navigation), and
+`<ChartLineFft>` (11.540;
+split-panel pairing time +
+frequency domains -- range-
+focus's two panels are both
+time domain at different
+x-resolutions). Brush
+interaction model: pointer-
+captured drag with pointermove
+/ pointerup listeners on
+window so drags continue
+when cursor leaves SVG;
+delta-x in pixels converted
+to delta-x in data via the
+overview panel's projection;
+move drags pin against full
+bounds when window would
+slide off either side; edge
+drags extend or shrink the
+corresponding end
+independently; every
+mutation goes through
+`clampLineRangeFocusRange`
+so final state is always
+valid. Controlled +
+uncontrolled range state.
+Tooltip on detail dots shows
+label, x, bold y. Range
+badge in top-left calls out
+[x0, x1] + width with icon
+↔. Brush group is
+`role="slider"` with
+`aria-valuemin`/`max`/`now`/
+`text`. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; detail line +
+detail dots + overview line
++ brush all
+`role="graphics-symbol"` or
+`role="slider"`. Data-attrs:
+root `data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-total-in-range`,
+`data-range-x0`,
+`data-range-x1`,
+`data-range-ratio`,
+`data-animate`; detail
+line `data-kind="detail"`;
+overview line
+`data-kind="overview"`;
+brush handles `data-kind`
+(`'left'`|`'right'`); series
+groups expose
+`data-series-in-range-count`,
+`data-series-finite-count`,
+etc. 57 vitest cases pass
+(defaults, helpers,
+clampLineRangeFocusRange
+incl. clamp / swap / expand
+minWidth / collapse / non-
+finite / pin to lo,
+computeLineRangeFocusLayout
+incl. splits canvas / detail
+in-range only / overview
+all / brush width matches
+projected range / records
+inRange counts / hidden /
+bounds overrides / clamps
+range / totalInRange sums /
+handles flank rect,
+describeLineRangeFocusChart
+No data + range + count,
+component render incl.
+empty / detail + overview
+paths / hide overview /
+brush rect + 2 handles /
+role=slider + aria-value* /
+hide brush / detail dots
+only in-range / hide dots /
+range badge + omit / ARIA /
+root data-* / controlled
+range stays controlled /
+tooltip + hide on leave +
+omit / onPointClick /
+legend counts + toggle +
+omit / animate / ref /
+displayName).
+Implementation patch:
+`docs/patches/11.542-ui-chart-line-rangefocus.md`.
+
 ## [1.11.559] - 2026-05-19 -- UI: chart-line-resample primitive (TODO 11.541)
 
 New **ChartLineResample** UI
