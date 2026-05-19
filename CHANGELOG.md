@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.526] - 2026-05-19 -- UI: chart-line-discontinuous primitive (TODO 11.508)
+
+New **ChartLineDiscontinuous** UI
+primitive in
+`web/src/components/ui/chart-line-discontinuous.tsx`:
+pure-SVG multi-series line chart
+that **explicitly breaks the line at
+`null` / `undefined` data points**.
+The canonical "data outage" pattern
+for monitoring dashboards. Unlike
+every other line primitive (which
+drops non-finite points silently),
+this one distinguishes `null` /
+`undefined` (an explicit gap marker)
+from `NaN` (a dropped point) and
+surfaces the gap visually with a
+dashed gap-marker rule under the x
+axis between bracketing finite
+points. `buildLineDiscontinuousRuns`
+walks the series and splits at gaps
+into contiguous `runs[]` (each its
+own `<path>`) plus a parallel
+`gaps[]` array recording the
+bracketed span (startIndex,
+endIndex, startX, endX, width).
+Series-level `connectGaps: true`
+collapses runs into one path while
+preserving the gap records.
+Distinct from `<ChartLineSegment>`
+(11.507) (threshold-coloured line),
+`<ChartLineMarker>` (11.506)
+(per-point markers),
+`<ChartLineAreaStacked>` (11.505)
+and all other 11.497-11.507
+variants which focus on different
+dimensions. Pure helpers exported:
+`getLineDiscontinuousDefaultColor`,
+`isFiniteDiscontinuousPoint`,
+`isLineDiscontinuousGap`,
+`getLineDiscontinuousFinitePoints`,
+`getLineDiscontinuousGapCount`,
+`getLineDiscontinuousBounds`,
+`getLineDiscontinuousTicks`,
+`buildLineDiscontinuousRuns`,
+`computeLineDiscontinuousLayout`,
+`describeLineDiscontinuousChart`. 78
+vitest cases pass under vitest
+4.1.5; TypeScript clean for touched
+files. Exported via `components/ui`
+barrel. Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.525] - 2026-05-19 -- UI: chart-line-segment primitive (TODO 11.507)
 
 New **ChartLineSegment** UI
