@@ -158,3 +158,4 @@ export * from './chart-radar';
 export * from './chart-bullet';
 export * from './chart-funnel';
 export * from './chart-treemap';
+export * from './chart-sankey';

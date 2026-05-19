@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.467] - 2026-05-19 -- UI: chart-sankey primitive (TODO 11.449)
+
+New **ChartSankey** UI primitive in
+`web/src/components/ui/chart-sankey.tsx`:
+pure-SVG Sankey diagram. Nodes
+arrange in vertical columns (layers)
+according to longest path from a
+source node; flows between nodes
+paint as smooth cubic bezier ribbons
+whose width is proportional to flow
+value. Hovering a node highlights
+its upstream + downstream paths so
+adopters can read conversion /
+energy / cost flow at a glance.
+Per-node + per-link colour
+overrides; per-link click + per-node
+click callbacks. Pure helpers
+exported: `getSankeyNodeLayers`
+(cycle-safe), `getSankeyNodeValue`,
+`findUpstreamNodes`,
+`findDownstreamNodes` (both
+visited-set guarded against cycles),
+`buildSankeyLinkPath`,
+`describeSankeyChart`. 51 vitest
+cases cover helpers + every render
+branch including layer assignment,
+highlight on hover, custom colours,
+formatter shaping, click payloads,
+tooltip visibility, ARIA description
+override, and ref forwarding.
+
 ## [1.11.466] - 2026-05-19 -- UI: chart-treemap primitive (TODO 11.448)
 
 New **ChartTreemap** UI primitive in
