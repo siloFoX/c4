@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.499] - 2026-05-19 -- UI: chart-pictogram primitive (TODO 11.481)
+
+New **ChartPictogram** UI primitive in
+`web/src/components/ui/chart-pictogram.tsx`:
+pure-SVG pictogram (isotype) chart
+that uses repeated icons to represent
+quantities. Each row paints
+`value / unitValue` icons in a left-
+to-right grid, with the final icon
+partially filled (via per-row
+`<clipPath>`) when the value is
+fractional. Distinct from every other
+chart-* primitive: this is the
+canonical Otto-Neurath isotype
+presentation where the **count of
+glyphs** -- not a continuous bar or
+area -- carries the quantitative
+meaning. Built-in icon shapes:
+`circle` (default), `square`,
+`rounded`, `star`, `triangle`,
+`hexagon`, `person`. Custom SVG paths
+(`M...`) accepted in place of a shape
+name. Empty (background) icons paint
+behind every glyph at `emptyOpacity`
+so each slot is visible even when
+unfilled (e.g., 7-of-10 lights
+filled, not 7 lights floating). Long
+rows wrap automatically into multiple
+visual rows. Hover/focus dims other
+rows to opacity 0.4 and opens a
+tooltip with label, value, and icon
+count. Per-row label + count badge
+render by default. Pure helpers
+exported: `getPictogramDefaultColor`,
+`getPictogramIconCount`,
+`buildPictogramIconPath`,
+`computePictogramLayout`,
+`describePictogramChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-row icon group
+role=graphics-symbol + tabIndex=0 +
+"<label>: <value> (<count> icons)"
+aria-label. data-section on every
+node; root mirrors data-row-count /
+data-visible-row-count /
+data-icon-count / data-unit-value /
+data-total-value / data-default-icon /
+data-animate; row groups mirror id /
+index / value / color / icon-count /
+full-icons / fractional-icon / visual-
+rows / hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 59 vitest cases pass.
+
 ## [1.11.498] - 2026-05-19 -- UI: chart-funnel-area primitive (TODO 11.480)
 
 New **ChartFunnelArea** UI primitive in
