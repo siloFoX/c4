@@ -4,6 +4,291 @@
 
 (no entries -- next release window)
 
+## [1.11.458] - 2026-05-19 -- UI: chart-pie primitive (TODO 11.440)
+
+New **ChartPie** UI primitive in
+`web/src/components/ui/chart-pie.tsx`:
+pure-SVG pie / donut chart.
+Hovering a slice expands it
+outward by a small offset, a legend
+lists every slice with its color +
+percentage, optional per-slice
+percent labels sit on top of the
+arc, and the donut variant renders
+a configurable total readout in the
+centre. The root carries an
+`aria-describedby` reference to a
+visually-hidden text region that
+summarises every slice for screen
+readers.
+
+### API
+
+```ts
+interface ChartPieSlice {
+  id: string;
+  label: string;
+  value: number;
+  color?: string;
+}
+
+interface ChartPieProps {
+  data: readonly ChartPieSlice[];
+  width?: number;                      // default 320
+  height?: number;                     // default 240
+  innerRadius?: number;                // > 0 -> donut
+  outerRadius?: number;                // auto-fit when omitted
+  showLegend?: boolean;                // default true
+  showPercentLabels?: boolean;         // default false
+  showTotal?: boolean;                 // default true
+  totalLabel?: ReactNode;
+  formatValue?: (n: number) => string;
+  formatPercent?: (p: number) => string;
+  animate?: boolean;                   // default true
+  className?: string;
+  ariaLabel?: string;                  // default 'Pie chart'
+  ariaDescription?: string;
+  onSliceClick?: (slice: ChartPieSlice) => void;
+  startAngle?: number;                 // radians (default -PI/2)
+  hoverExpand?: number;                // default 6 px
+  legendPlacement?: 'right' | 'bottom';
+  legendFormat?: (slice, percent) => ReactNode;
+  emptyState?: ReactNode;              // default 'No data'
+}
+```
+
+### Behaviour
+
+- Computes percent + arc range
+  per slice from a positive
+  total; non-positive / NaN
+  values are dropped before
+  layout.
+- Slices start at `startAngle`
+  (default `-PI/2` so the first
+  slice begins at the top of
+  the circle and sweeps
+  clockwise).
+- Hover (mouse-enter / focus)
+  expands the active slice by
+  `hoverExpand` (default 6 px)
+  outward by recomputing the
+  arc with a larger outer
+  radius. Mouse-leave / blur
+  collapses it.
+- Donut mode kicks in when
+  `innerRadius > 0`. Pie mode
+  draws a wedge (M / L / A / Z);
+  donut mode draws an annular
+  segment (M / A / L / A / Z).
+- Donut centre readout: the
+  total (formatted via
+  `formatValue`) sits at the
+  geometric centre with an
+  optional `totalLabel` line
+  beneath.
+- Legend renders one row per
+  slice with a colour swatch +
+  label + per-slice percent.
+  `legendFormat` overrides the
+  label / percent body for
+  custom legends.
+- ARIA description is rendered
+  as a `sr-only` `<p>`
+  alongside the SVG;
+  `ariaDescription` override
+  replaces the default
+  comma-joined summary.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_CHART_PIE_WIDTH = 320
+DEFAULT_CHART_PIE_HEIGHT = 240
+DEFAULT_CHART_PIE_HOVER_EXPAND = 6
+getPieTotal(data): number
+computePieSlices(data, startAngle?): { slices, total }
+polarToCartesian(cx, cy, r, angle): { x, y }
+arcPath(cx, cy, innerR, outerR, startAngle, endAngle): string
+formatPiePercent(percent, formatter?): string
+```
+
+- `getPieTotal` sums every
+  positive finite value; NaN /
+  Infinity / negatives are
+  dropped.
+- `computePieSlices` returns a
+  `ComputedSlice` per input
+  entry with `startAngle`,
+  `endAngle`, `midAngle`,
+  `percent`, and `value`. Empty
+  / zero-total input returns
+  `{ slices: [], total: 0 }`.
+- `arcPath` handles both pie
+  wedges (no inner radius) and
+  annular segments. Full-circle
+  / annulus paths are split
+  into two semicircles so the
+  SVG renderer always closes
+  the shape correctly.
+- `formatPiePercent` defaults
+  to one decimal under 10%,
+  zero decimals at or above
+  10%, and `100%` at any value
+  >= 99.95.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label` +
+  `aria-describedby` pointing
+  at a `sr-only` text region.
+- SVG: `role="img"` +
+  `aria-label`.
+- Per-slice group:
+  `role="graphics-symbol"` +
+  `aria-label="<label>:
+  <percent>"` + `tabIndex=0`
+  for keyboard reach.
+- `data-section` on every
+  node: `chart-pie` (root),
+  `chart-pie-canvas`,
+  `chart-pie-svg`,
+  `chart-pie-aria-desc`,
+  `chart-pie-empty`,
+  `chart-pie-slice`,
+  `chart-pie-arc`,
+  `chart-pie-label`,
+  `chart-pie-center`,
+  `chart-pie-center-total`,
+  `chart-pie-center-label`,
+  `chart-pie-legend`,
+  `chart-pie-legend-item`,
+  `chart-pie-legend-swatch`,
+  `chart-pie-legend-label`,
+  `chart-pie-legend-percent`.
+- Root mirrors
+  `data-slice-count`,
+  `data-donut`,
+  `data-animate`. Each slice
+  mirrors `data-slice-id` +
+  `data-hovered`. Each legend
+  row mirrors `data-slice-id`.
+  Legend wrapper mirrors
+  `data-placement`.
+
+### Tests
+
+53 cases in
+`web/src/components/ui/chart-pie.test.tsx`,
+covering:
+
+- `getPieTotal`: positive sum;
+  non-finite + non-positive
+  skip; empty -> 0.
+- `computePieSlices`: empty +
+  zero-total -> no slices;
+  percent sums to 100;
+  angle range covers full
+  circle; startAngle override;
+  midAngle is the slice
+  centre.
+- `polarToCartesian`: angle=0
+  -> right of centre;
+  angle=PI/2 -> below centre.
+- `arcPath`: empty for
+  outerR<=0; partial pie M/A/Z;
+  full annulus 4 A commands;
+  partial donut 2 A commands.
+- `formatPiePercent`: whole +
+  one-decimal-under-10
+  + 99.97 -> 100% rounding
+  + custom formatter + NaN.
+- Constants.
+- Component: region + default
+  + custom `ariaLabel`; one
+  slice per series;
+  aria-describedby references
+  the hidden description;
+  default description lists
+  every slice + percent;
+  `ariaDescription` override
+  replaces default.
+- Per-slice
+  `role=graphics-symbol` +
+  aria-label with percent.
+- Default mode is pie
+  (data-donut=false); `innerR
+  >0` flips to donut + renders
+  the centre total.
+- `showTotal=false` hides the
+  donut centre total;
+  `totalLabel` renders below
+  the readout; `formatValue`
+  formats the total.
+- `showLegend=false` hides
+  the legend; legend rows +
+  default percent rendering;
+  `formatPercent` override;
+  `legendFormat` override;
+  `legendPlacement=bottom`
+  reflects on `data-placement`.
+- `showPercentLabels=true`
+  renders on-arc percent
+  labels; labels omitted on
+  slices < 5%.
+- Hover flips `data-hovered`
+  + expands the arc (path d
+  changes).
+- `onSliceClick` fires with
+  the slice.
+- Per-slice color override.
+- Empty data -> empty state
+  (default + custom
+  `emptyState`).
+- `animate=false` flips
+  `data-animate`.
+- Root `data-slice-count`
+  mirrors data.length.
+- Stable `displayName` +
+  `forwardRef` to the root.
+- SVG viewBox respects width
+  + height.
+
+### Pairs with existing primitives
+
+- `<ChartBar>` (11.438) and
+  `<ChartLine>` (11.439) re-
+  use the same colour palette
+  via `getDefaultBarColor`.
+- `<Gauge>` / `<Meter>`
+  (11.412) for single-value
+  readouts that sit beside the
+  pie.
+- `<DataTable>` for the
+  underlying row dataset that
+  feeds the pie.
+
+### Out of scope
+
+- Nested / sunburst
+  hierarchies (host wraps
+  with a custom multi-ring
+  layer if needed).
+- Slice connector lines for
+  outside labels (host can
+  add custom SVG children if
+  external labels are
+  desired).
+- 3D shading (the primitive
+  is intentionally flat
+  vector for accessibility +
+  legibility).
+- Animated slice rotation
+  beyond the mount fade (host
+  wraps in a motion
+  primitive when needed).
+
 ## [1.11.457] - 2026-05-19 -- UI: chart-line primitive (TODO 11.439)
 
 New **ChartLine** UI primitive in
