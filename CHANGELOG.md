@@ -4,6 +4,124 @@
 
 (no entries -- next release window)
 
+## [1.11.549] - 2026-05-19 -- UI: chart-line-period-compare primitive (TODO 11.531)
+
+New **ChartLinePeriodCompare** UI
+primitive in
+`web/src/components/ui/chart-line-period-compare.tsx`:
+pure-SVG line chart overlaying
+**the same metric across two
+periods** (current vs prior) on
+a shared x axis. Current period
+renders solid; prior renders
+dashed (`priorDashArray='4 3'`)
+and slightly faded
+(`priorOpacity=0.6`) so the
+two read as primary signal +
+reference. A coloured change
+badge in the top-left surfaces
+the total period-over-period
+percent change with direction
+(up / down / flat). Each
+current-period dot carries
+per-point `data-delta`,
+`data-percent-change`, and
+`data-direction` attrs derived
+from the matching prior-period
+sample. The canonical "this week
+vs last week" / "Q4 vs Q3" /
+"YoY change" visualisation. Pure
+helpers `pairLinePeriodCompareByX`
+(exact x match; ORIGINAL indices;
+`delta = current - prior`;
+`percentChange = delta /
+|prior|`; collapses to 0 on
+prior=0),
+`classifyLinePeriodCompareDirection`
+(`'up' | 'down' | 'flat'`;
+epsilon band; non-finite ->
+`'flat'`),
+`computeLinePeriodCompareTotals`
+(returns `{currentTotal,
+priorTotal, totalDelta,
+totalPercentChange, ok,
+direction, pairCount,
+currentCount, priorCount}`;
+`ok=false` when both series
+empty),
+`computeLinePeriodCompareLayout`,
+and
+`describeLinePeriodCompareChart`.
+Distinct from
+`<ChartLineComparison>` (11.511,
+two **different** curves with
+difference shading),
+`<ChartLineCorrelation>` (11.529,
+dual-axis for two **unrelated**
+metrics), `<ChartLineForecast>`
+(11.519, historical/forecast
+split on the time axis),
+`<ChartLineTarget>` (11.518, vs
+a flat target), and
+`<ChartLineResidual>` (11.525,
+observed minus predicted).
+Tooltip hover surfaces the
+period role + the vs-prior delta
+row on current dots (omitted for
+prior dots since those ARE the
+reference). Per-instance
+`upColor` / `downColor` /
+`flatColor` always beats the
+defaults; per-series `color`
+always beats the palette.
+Tooltip respects
+`formatValue` / `formatPercent`;
+sr-only description respects
+`formatValue` / `formatPercent`.
+ARIA: root `role="region"` +
+`aria-describedby` linking the
+sr-only summary; SVG
+`role="img"`; per-shape
+`role="graphics-symbol"` +
+`tabIndex={0}`. Data-attrs:
+root `data-pair-count`,
+`data-current-total`,
+`data-prior-total`,
+`data-total-delta`,
+`data-total-percent-change`,
+`data-direction`,
+`data-totals-ok`; series groups
+`data-series-role`,
+`data-series-color`,
+`data-series-finite-count`;
+dots `data-series-role`,
+`data-delta`,
+`data-percent-change`,
+`data-direction`. 56 vitest
+cases pass (pairing helper -
+both null, exact x match,
+ORIGINAL indices, drops
+unmatched, `|prior|`
+denominator, prior=0 collapse,
+non-finite filter, ascending
+sort; direction classifier
+including epsilon band and
+non-finite; totals helper
+including ok=false on both
+empty; per-role layout series
+including current dots carry
+delta/percent/direction;
+component render including
+empty / both paths / prior
+dashed / change badge /
+data-delta on current dots
+only / tooltip vs-prior row /
+legend with current + prior /
+data-* root attrs / animate
+flag / displayName).
+Implementation patch:
+`docs/patches/11.531-ui-chart-line-period-compare.md`.
+
 ## [1.11.548] - 2026-05-19 -- UI: chart-line-distribution primitive (TODO 11.530)
 
 New **ChartLineDistribution** UI
