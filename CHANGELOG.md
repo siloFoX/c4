@@ -4,6 +4,303 @@
 
 (no entries -- next release window)
 
+## [1.11.454] - 2026-05-19 -- UI: kbd-shortcut-recorder primitive (TODO 11.436)
+
+New **KbdShortcutRecorder** UI
+primitive in
+`web/src/components/ui/kbd-shortcut-recorder.tsx`:
+input-like surface that records the
+next key combo the user types while
+focused. The recorded combo is
+rendered as a row of `<kbd>` pills
+using the platform-aware formatter
+from `<KeyboardShortcutsOverlay>`
+(11.429). A reset button clears the
+current binding back to a
+configurable `resetValue` (default
+`''`). Optional `collisions` array
++ `onCollision` callback let hosts
+surface conflicts with existing
+bindings before the value is
+committed.
+
+### API
+
+```ts
+interface KbdShortcutRecorderProps {
+  value?: string;                    // controlled
+  defaultValue?: string;
+  onChange?: (value: string) => void;
+  onRecord?: (value: string) => void;
+  collisions?: readonly string[];
+  onCollision?: (value: string, collidesWith: string) => void;
+  platform?: KeyboardPlatform;       // default 'auto'
+  placeholder?: ReactNode;
+  disabled?: boolean;
+  showReset?: boolean;               // default true
+  resetValue?: string;               // default ''
+  recordOnFocus?: boolean;           // default true
+  helperText?: ReactNode;
+  errorText?: ReactNode;
+  showIcon?: boolean;                // default true
+  ariaLabel?: string;
+  className?: string;
+}
+```
+
+### Behaviour
+
+- Rendered as a `<button
+  role="textbox" aria-readonly>`
+  so screen readers announce it
+  as a read-only text input
+  while the underlying element
+  is still keyboard-reachable +
+  click-toggleable.
+- Focus toggles recording mode
+  on (default
+  `recordOnFocus=true`); blur
+  always stops recording. Click
+  toggles the recording state
+  independently of focus.
+- `Escape` cancels recording
+  without committing. Bare
+  modifier presses (e.g. just
+  `Meta` or `Shift`) are
+  swallowed -- a shortcut needs
+  a non-modifier key.
+- Recorded combos are
+  canonical-ordered: modifier
+  tokens are forced into
+  `mod > ctrl > alt > shift`
+  order and lowercased; the
+  non-modifier key preserves
+  its original casing
+  (`Enter`, `F5`, `ArrowUp`).
+  Aliases collapse: `cmd` /
+  `meta` -> `mod`, `option` /
+  `opt` -> `alt`, `control` ->
+  `ctrl`.
+- When the recorded combo
+  collides with an entry in
+  `collisions` (compared in
+  canonical form so
+  `'shift+mod+k'` and
+  `'mod+shift+k'` are
+  detected), the commit is
+  blocked and
+  `onCollision(value,
+  collidesWith)` fires.
+- A `role="alert"` banner
+  renders below the input when
+  the current rendered value
+  collides (lets host-driven
+  collisions surface without
+  passing through the recorder
+  itself).
+- Reset button (right of the
+  input) clears the binding
+  back to `resetValue`. Hidden
+  when the value is empty or
+  `showReset=false`.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_KBD_RECORDER_RESET = ''
+normalizeShortcutOrder(tokens): string[]
+recordShortcutFromEvent(event, platform?): string
+hasShortcutCollision(value, collisions): string | null
+formatRecordedShortcut(value, platform?): string[]
+```
+
+- `normalizeShortcutOrder`
+  lowercases + reorders
+  modifier tokens; preserves
+  the original casing of every
+  non-modifier key so adopters
+  can compare strict-equal
+  against
+  `'Enter' / 'F5' /
+  'ArrowUp'`. Collapses cmd /
+  meta / control / option /
+  opt aliases.
+- `recordShortcutFromEvent`
+  drops bare-modifier presses
+  + non-mappable exotic keys
+  (e.g. `AudioVolumeUp`) so
+  the recorder never commits
+  a half-bound shortcut. The
+  recognised key set covers
+  every key.length=1 plus
+  arrow keys, Home / End /
+  PageUp / PageDown, Tab /
+  Enter / Escape / Space /
+  Backspace / Delete, and the
+  F1..F12 series.
+- `hasShortcutCollision`
+  compares against each entry
+  in `collisions` in canonical
+  form; returns the matching
+  collision string or `null`.
+- `formatRecordedShortcut`
+  delegates to the v1.11.447
+  `formatShortcut` helper for
+  platform-aware key labels
+  (`Cmd` / `Ctrl` / `Option`
+  / `Alt` / `Shift`).
+
+### ARIA + data attributes
+
+- Group root: `role="group"` +
+  `aria-label`.
+- Input: `role="textbox"` +
+  `aria-readonly="true"` +
+  `aria-disabled` while
+  disabled.
+- Error region:
+  `role="alert"`.
+- Reset button:
+  `aria-label="Reset shortcut"`.
+- `data-section` on every
+  node: `kbd-shortcut-recorder`
+  (root), `-row`, `-input`,
+  `-icon`, `-keys`, `-key`,
+  `-placeholder`, `-reset`,
+  `-error`, `-helper`.
+- Root mirrors
+  `data-recording`,
+  `data-disabled`,
+  `data-empty`,
+  `data-has-collision`.
+
+### Tests
+
+47 cases in
+`web/src/components/ui/kbd-shortcut-recorder.test.tsx`,
+covering:
+
+- `normalizeShortcutOrder`:
+  canonical mod / alt / shift
+  / key order; cmd / option /
+  opt alias collapse; multi-
+  modifier composition;
+  whitespace + empty token
+  drop; modifier
+  lowercase-but-key-casing-
+  preserved.
+- `recordShortcutFromEvent`:
+  mac mod+k via metaKey;
+  windows mod+k via ctrlKey;
+  mod+shift+k canonical
+  ordering; Enter / Tab /
+  Space (normalised to
+  `'space'`); arrow keys;
+  F1..F12 series; bare
+  modifier -> empty; exotic
+  key -> empty.
+- `hasShortcutCollision`:
+  empty value -> null;
+  canonical match (`mod+
+  shift+k` vs `shift+mod+k`);
+  alias collapse (`cmd+k` vs
+  `mod+k`); no match -> null.
+- `formatRecordedShortcut`:
+  platform labels;
+  empty value -> [].
+- Constants -
+  `DEFAULT_KBD_RECORDER_RESET`.
+- Component: group +
+  aria-label; readonly textbox
+  role; placeholder render;
+  controlled value renders as
+  kbd pills.
+- Focus puts the input into
+  recording mode (default);
+  click toggles recording on
+  / off; blur stops recording.
+- Escape cancels recording
+  (no commit).
+- Real combo commits + fires
+  `onChange` + `onRecord`,
+  then stops recording.
+- Bare modifier press does
+  NOT commit.
+- Collision blocks commit +
+  fires `onCollision`;
+  collision banner renders
+  when controlled value
+  collides;
+  `data-has-collision`
+  attribute mirrors state;
+  `errorText` override
+  replaces default copy.
+- `helperText` renders only
+  when no error is present.
+- Reset button visibility:
+  hidden when empty; visible
+  with a value + clears on
+  click; `resetValue`
+  override controls reset
+  target; `showReset=false`
+  hides the button.
+- Disabled blocks focus /
+  click / key handling.
+- `data-empty` mirrors the
+  value.
+- `showIcon=false` hides the
+  leading keyboard icon.
+- Stable `displayName` +
+  `forwardRef` to the input
+  button.
+- Non-mapped key during
+  recording is swallowed (no
+  commit).
+
+### Pairs with existing primitives
+
+- `<KeyboardShortcutsOverlay>`
+  (11.429) for the inspect /
+  cheat-sheet surface;
+  re-used `formatShortcut` /
+  `parseShortcutString` /
+  `resolvePlatform` so the
+  two primitives stay in
+  lock-step on platform
+  labels.
+- `<DataExport>` (11.430) for
+  the form pattern this
+  recorder borrows
+  (label/helper/error
+  triplet).
+- `<KbdShortcut>` style kbd
+  primitives for inline
+  reminders where the user
+  is not editing.
+
+### Out of scope
+
+- Per-action conflict
+  resolution (host owns the
+  `collisions` set + decides
+  whether to surface a
+  prompt).
+- Multi-binding capture
+  (host wraps several
+  recorders if an action
+  supports more than one
+  binding).
+- Persisting bindings across
+  reloads (host owns
+  storage).
+- Editing arbitrary
+  non-keyboard chord
+  primitives like
+  `mouse:left+drag` (this
+  primitive is keyboard-only
+  by design; host wraps for
+  exotic input).
+
 ## [1.11.453] - 2026-05-19 -- UI: user-card primitive (TODO 11.435)
 
 New **UserCard** UI primitive in
