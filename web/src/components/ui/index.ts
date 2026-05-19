@@ -232,3 +232,4 @@ export * from './chart-line-forecast';
 export * from './chart-line-cumulative';
 export * from './chart-line-rate';
 export * from './chart-line-normalize';
+export * from './chart-line-spark-bar';
