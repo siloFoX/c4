@@ -179,3 +179,4 @@ export * from './chart-stacked-area';
 export * from './chart-grouped-bar';
 export * from './chart-stacked-bar';
 export * from './chart-donut';
+export * from './chart-bubble';
