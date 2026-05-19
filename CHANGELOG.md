@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.465] - 2026-05-19 -- UI: chart-funnel primitive (TODO 11.447)
+
+New **ChartFunnel** UI primitive in
+`web/src/components/ui/chart-funnel.tsx`:
+pure-SVG conversion funnel. Each
+stage paints as a trapezoid whose
+width is proportional to its value,
+narrowing toward the bottom for the
+classic funnel silhouette. Drop-off
+labels between consecutive stages
+quantify users lost; hover opens a
+tooltip with stage label + formatted
+value + % of top stage + %
+conversion from previous (omitted on
+the first stage). Default colour
+gradient flows from a light tint
+(`#bfdbfe`) at the top to a darker
+brand colour (`#1d4ed8`) at the
+bottom; per-stage colour and
+gradient endpoints both overridable.
+Pure helpers exported: `getFunnelMax`,
+`getFunnelRatio`, `getStageDropoff`,
+`getStageConversion`, `getStageOfTop`,
+`interpolateColor`, `buildFunnelPath`,
+`describeFunnelChart`. 60 vitest
+cases cover helpers + every render
+branch including label/value/drop-off
+suppression, gradient endpoints,
+tooltip visibility, ARIA description
+override, click payload, and ref
+forwarding.
+
 ## [1.11.464] - 2026-05-19 -- UI: chart-bullet primitive (TODO 11.446)
 
 New **ChartBullet** UI primitive in
