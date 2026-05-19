@@ -162,3 +162,4 @@ export * from './chart-sankey';
 export * from './chart-waterfall';
 export * from './chart-candlestick';
 export * from './chart-radial-bar';
+export * from './chart-stream';
