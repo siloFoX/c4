@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.487] - 2026-05-19 -- UI: chart-donut primitive (TODO 11.469)
+
+New **ChartDonut** UI primitive in
+`web/src/components/ui/chart-donut.tsx`:
+pure-SVG donut chart (pie variant with a
+center hole). Each slice is an annular
+arc; the hollow center hosts a
+configurable label group (primary +
+secondary). Distinct from `<ChartPie>`
+(11.440) in that this primitive
+introduces a first-class center slot
+with a default visible-total readout,
+configurable `thicknessRatio` (clamped
+to [0, 1]), optional `padAngle` to
+space arcs, and optional `cornerRadius`
+for rounded arc ends. Hover/focus on
+an arc opens a tooltip with label,
+formatted value, and formatted percent.
+Legend interaction: every entry is a
+focusable `<button aria-pressed>` that
+toggles its slice's visibility;
+controlled + uncontrolled. Hidden
+slices reproportion the visible ring.
+Pure helpers exported:
+`getDonutDefaultColor`,
+`polarToCartesian`, `getDonutTotal`,
+`getDonutVisibleTotal`,
+`computeDonutArcs`,
+`describeDonutChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with the same label, per-arc path
+role=graphics-symbol + tabIndex=0 + a
+"<label>: <value> (<percent>%)"
+aria-label. data-section on every node
++ root mirrors data-slice-count /
+data-visible-count / data-hidden-count
+/ data-animate / data-thickness-ratio.
+Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 60 vitest cases pass.
+
 ## [1.11.486] - 2026-05-19 -- UI: chart-stacked-bar primitive (TODO 11.468)
 
 New **ChartStackedBar** UI primitive
