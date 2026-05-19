@@ -151,3 +151,4 @@ export * from './chart-bar';
 export * from './chart-line';
 export * from './chart-pie';
 export * from './chart-area';
+export * from './chart-heatmap';

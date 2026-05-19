@@ -4,6 +4,297 @@
 
 (no entries -- next release window)
 
+## [1.11.460] - 2026-05-19 -- UI: chart-heatmap primitive (TODO 11.442)
+
+New **ChartHeatmap** UI primitive
+in
+`web/src/components/ui/chart-heatmap.tsx`:
+calendar-style heatmap (GitHub-
+contributions layout). Each column
+is an ISO week; each row is a
+day-of-week starting at the
+configured `weekStartsOn`. Cells
+are coloured along a 5-step
+quantile scale (no-data / q1 / q2
+/ q3 / q4) so adopters can read
+intensity at a glance. Day-hover
+shows a tooltip and an optional
+click handler exposes the resolved
+`Date` + cell payload.
+
+### API
+
+```ts
+interface ChartHeatmapCell {
+  date: string | Date;
+  value: number;
+  label?: string;
+}
+
+interface ChartHeatmapResolvedCell {
+  date: Date;
+  iso: string;
+  value: number;
+  label?: string;
+  bucket: number;
+}
+
+interface ChartHeatmapProps {
+  data: readonly ChartHeatmapCell[];
+  startDate?: string | Date;
+  endDate?: string | Date;
+  cellSize?: number;                    // default 12
+  cellGap?: number;                     // default 2
+  colorScale?: readonly string[];       // default GitHub greens
+  emptyColor?: string;                  // default translucent grey
+  showWeekdayLabels?: boolean;          // default true
+  showMonthLabels?: boolean;            // default true
+  showLegend?: boolean;                 // default true
+  formatValue?: (v: number) => string;
+  formatDate?: (d: Date) => string;
+  onCellClick?: (cell: ChartHeatmapResolvedCell) => void;
+  className?: string;
+  ariaLabel?: string;                   // default 'Activity heatmap'
+  weekStartsOn?: 0 | 1;                 // default 0 (Sun)
+  legendLowLabel?: string;              // default 'Less'
+  legendHighLabel?: string;             // default 'More'
+}
+```
+
+### Behaviour
+
+- `getHeatmapWeeks` walks every
+  ISO week from
+  `startOfWeek(startDate)` to
+  `startOfWeek(endDate)` and
+  emits one column per week
+  with 7 cells per row. Cells
+  outside the requested range
+  are `null` so the column
+  shape is stable.
+- When `startDate` /
+  `endDate` are omitted, the
+  range is derived from the
+  min / max date in `data`.
+  Empty data renders an empty
+  SVG.
+- Cells colour by quantile:
+  the bucket index comes from
+  `getHeatmapBucket(value,
+  max, scale.length - 1)`.
+  Zero / negative values map
+  to bucket 0 (no-data colour
+  via `emptyColor`).
+- Hover (mouse-enter / focus)
+  flips `data-hovered`,
+  highlights the cell border,
+  and opens a tooltip with the
+  formatted date + value (or
+  cell `label` when supplied).
+- `onCellClick` fires with the
+  resolved cell (Date + iso +
+  value + bucket + optional
+  label) when the cell is
+  clicked. Cell cursor
+  switches to `pointer` when
+  the handler is wired.
+- Month labels emit at the
+  first column where the
+  month changes; weekday
+  labels render in a thin
+  gutter to the left of the
+  grid. Both opt out via
+  `showMonthLabels=false` /
+  `showWeekdayLabels=false`.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_HEATMAP_CELL_SIZE = 12
+DEFAULT_HEATMAP_CELL_GAP = 2
+DEFAULT_HEATMAP_EMPTY_COLOR
+DEFAULT_HEATMAP_COLOR_SCALE // 5 GitHub greens
+formatIsoDate(value): string
+bucketHeatmapData(data): Map<iso, cell>
+getHeatmapMax(data): number
+getHeatmapBucket(value, max, bucketCount?): number
+getHeatmapColor(value, max, scale?): string
+getHeatmapWeeks(data, options?): HeatmapWeek[]
+defaultFormatHeatmapDate(date): string
+```
+
+- All date math runs in UTC
+  so cells never drift across
+  daylight-saving or
+  timezones.
+- `formatIsoDate` accepts
+  `Date | string | number`;
+  unparseable inputs return
+  an empty string instead of
+  throwing.
+- `getHeatmapBucket` clamps
+  any input into `0..max`,
+  treating non-finite /
+  non-positive as bucket 0
+  (empty cell).
+- `getHeatmapColor` honours
+  custom palettes; the bucket
+  count derives from
+  `scale.length - 1` so the
+  empty colour is always
+  `scale[0]`.
+- `getHeatmapWeeks` accepts
+  explicit `startDate` /
+  `endDate` overrides;
+  `weekStartsOn` defaults to
+  Sunday (0) but flips to
+  Monday-first via `1`. Out-
+  of-range cells render as
+  `null` so the column always
+  has 7 rows.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- SVG: `role="img"` +
+  `aria-label`.
+- Per-cell `<rect>`:
+  `role="graphics-symbol"` +
+  `aria-label="<date>:
+  <value>"` + `tabIndex=0`
+  for keyboard reach.
+- Tooltip: `role="tooltip"`.
+- `data-section` on every
+  node: `chart-heatmap`
+  (root), `chart-heatmap-svg`,
+  `chart-heatmap-month`,
+  `chart-heatmap-weekday`,
+  `chart-heatmap-cell`,
+  `chart-heatmap-legend`,
+  `chart-heatmap-legend-low`,
+  `chart-heatmap-legend-swatch`,
+  `chart-heatmap-legend-high`,
+  `chart-heatmap-tooltip`,
+  `chart-heatmap-tooltip-date`,
+  `chart-heatmap-tooltip-value`.
+- Root mirrors
+  `data-cell-count`,
+  `data-week-count`,
+  `data-week-starts-on`. Each
+  cell mirrors `data-iso` +
+  `data-bucket` +
+  `data-value` +
+  `data-hovered`. Each
+  legend swatch mirrors
+  `data-bucket`. Tooltip
+  mirrors `data-iso`.
+
+### Tests
+
+50 cases in
+`web/src/components/ui/chart-heatmap.test.tsx`,
+covering:
+
+- `formatIsoDate`: Date /
+  ISO string / unparseable.
+- `bucketHeatmapData`: keyed
+  map; unparseable dropped.
+- `getHeatmapMax`: positive
+  max; NaN ignored; empty
+  -> 0.
+- `getHeatmapBucket`: zero /
+  negative -> 0; quartile
+  assignment; non-finite ->
+  0.
+- `getHeatmapColor`: zero ->
+  empty colour; max -> last
+  palette tier; custom scale.
+- `getHeatmapWeeks`: at-
+  least-one column per
+  span; 7 cells per column;
+  out-of-range cells null;
+  weekStartsOn 0 vs 1 shifts
+  row order; per-cell bucket
+  reflects value; weeks are
+  columns / cells are rows.
+- Constants -- default cell
+  size + gap + 5-tier scale +
+  translucent empty colour.
+- Component: region + default
+  + custom `ariaLabel`; one
+  cell per non-null grid
+  square; per-cell aria-
+  label includes date +
+  value; per-cell data attrs
+  mirror state.
+- Hover flips
+  `data-hovered` + opens
+  tooltip; mouse leave hides
+  it; focus opens the
+  tooltip; cell.label
+  overrides tooltip body;
+  formatValue / formatDate
+  format the tooltip.
+- Click invokes `onCellClick`
+  with the resolved cell.
+- Legend renders the colour
+  scale + low / high labels;
+  swatch count matches scale
+  length; `showLegend=false`
+  hides; legend label
+  overrides.
+- Month labels default
+  visible;
+  `showMonthLabels=false`
+  hides. Weekday labels
+  default visible (7 rows);
+  `showWeekdayLabels=false`
+  hides.
+- `cellSize` applies to rect
+  width + height.
+- Zero-value cells render in
+  the empty colour.
+- Custom colour scale paints
+  high-value cells.
+- Root data attrs mirror
+  state.
+- Stable `displayName` +
+  `forwardRef` to the root.
+- Empty data renders without
+  crashing.
+
+### Pairs with existing primitives
+
+- `<ChartBar>` (11.438) /
+  `<ChartLine>` (11.439) /
+  `<ChartArea>` (11.441) /
+  `<ChartPie>` (11.440) for
+  the rest of the chart
+  family.
+- `<DataTable>` for the raw
+  per-day rows that feed the
+  heatmap.
+
+### Out of scope
+
+- Multiple-year heatmaps as
+  a single grid (host wraps
+  per-year `<ChartHeatmap>`
+  instances side by side).
+- Range selection / brush
+  (host wraps in a brush
+  primitive).
+- Server-side data
+  subscription (host owns
+  the network and passes the
+  resulting `data` array).
+- Per-cell custom shapes
+  (the primitive ships
+  rounded squares; host
+  composes with a custom SVG
+  layer for other markers).
+
 ## [1.11.459] - 2026-05-19 -- UI: chart-area primitive (TODO 11.441)
 
 New **ChartArea** UI primitive in
