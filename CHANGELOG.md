@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.516] - 2026-05-19 -- UI: chart-line-smooth primitive (TODO 11.498)
+
+New **ChartLineSmooth** UI primitive
+in `web/src/components/ui/chart-line-smooth.tsx`:
+pure-SVG smoothed line chart with two
+distinct interpolation algorithms.
+`'catmullRom'` (default) uses the
+canonical Catmull-Rom-to-Bezier
+formula with a `tension` parameter
+clamped to `[0, 1]` (0 = straight
+segments, 0.5 = standard CR weight,
+1 = full smoothing). `'monotone'` uses
+Fritsch-Carlson monotone cubic Hermite
+interpolation so the curve never
+overshoots adjacent y values --
+correct for CDFs, probability data,
+and any series where overshoot would
+be misleading. Algorithm is robust
+against div-by-zero on flat / vertical
+segments. Monotone implementation
+sorts points by px before building
+the path to guarantee the
+monotonicity property for adopter
+data with out-of-order x.
+Multi-series with hover dim,
+focusable per-dot tooltips,
+controlled + uncontrolled hidden
+state, legend toggles, axis + grid +
+optional axis labels. ARIA: root
+region + svg role=img + per-path and
+per-dot graphics-symbol with
+tabIndex=0; data-section on every
+node. Pure helpers exported:
+`getLineSmoothDefaultColor`,
+`getLineSmoothFinitePoints`,
+`getLineSmoothBounds`,
+`getLineSmoothTicks`,
+`buildCatmullRomPath`,
+`buildMonotonePath`,
+`buildSmoothLinePath`,
+`computeLineSmoothLayout`,
+`describeLineSmoothChart`. 69 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.515] - 2026-05-19 -- UI: chart-line-step primitive (TODO 11.497)
 
 New **ChartLineStep** UI primitive in

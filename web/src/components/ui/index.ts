@@ -207,3 +207,4 @@ export * from './chart-lollipop';
 export * from './chart-cleveland-dot';
 export * from './chart-tornado';
 export * from './chart-line-step';
+export * from './chart-line-smooth';
