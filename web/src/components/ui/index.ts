@@ -199,3 +199,4 @@ export * from './chart-dendrogram';
 export * from './chart-tree-radial';
 export * from './chart-cluster';
 export * from './chart-radial-stacked-bar';
+export * from './chart-radial-line';

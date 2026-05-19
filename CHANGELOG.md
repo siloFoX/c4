@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.508] - 2026-05-19 -- UI: chart-radial-line primitive (TODO 11.490)
+
+New **ChartRadialLine** UI primitive in
+`web/src/components/ui/chart-radial-line.tsx`:
+pure-SVG **radial line / spiral plot**
+for cyclic / periodic time-series
+data. Two modes: `cyclic` (default;
+angle encodes position-in-cycle
+0..2pi over `cycleLength` samples;
+radius encodes value; line closes
+back to start) and `spiral` (angle
+accumulates continuously over
+multiple cycles; radius walks outward
+over the full sample range while
+still modulating with the value).
+Distinct from `<ChartRadialBar>`
+(11.452, concentric arc bars),
+`<ChartPolarArea>` (11.478, equal-
+angle wedges), `<ChartRadar>` (11.445,
+multi-axis polygon), and
+`<ChartRadialStackedBar>` (11.489,
+rings of stacks): this primitive is
+the polar line variant for periodic
+data. Non-finite values break the
+painted line (path emits a new M) and
+collapse the offending point to inner
+radius. closeCyclic=true (cyclic mode
+only) appends a line back to the
+first finite point plus a closing Z
+so the cycle is visually sealed (also
+exposed as fillPath when
+showFill=true). Axis spokes + labels
+one per cycleLength step; labels
+default to sample index, or supply
+`axisLabels` for hour-of-day /
+month-name style readability;
+`formatAxis` rewrites further. Hover/
+focus on a point opens a tooltip with
+series label, position (axis label
+or 'position N'; includes 'cycle K'
+in spiral mode), and value. Per-
+point click + per-series legend
+toggle handlers. Pure helpers
+exported:
+`getRadialLineDefaultColor`,
+`polarToCartesian`,
+`getRadialLineCyclicAngle`,
+`getRadialLineMaxValue`,
+`getRadialLineSampleCount`,
+`getRadialLineTicks`,
+`computeRadialLineLayout`,
+`describeRadialLineChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-line + per-point
+role=graphics-symbol + tabIndex=0 +
+aria-labels. data-section on every
+node; root mirrors data-mode / data-
+cycle-length / data-total-cycles /
+data-series-count / data-visible-
+series-count / data-point-count /
+data-max-value / data-animate; series
+groups mirror id / index / color /
+point-count; points mirror series-id
+/ index / cycle / position / value /
+hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 61 vitest cases pass.
+
 ## [1.11.507] - 2026-05-19 -- UI: chart-radial-stacked-bar primitive (TODO 11.489)
 
 New **ChartRadialStackedBar** UI
