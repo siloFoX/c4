@@ -237,3 +237,4 @@ export * from './chart-line-anomaly';
 export * from './chart-line-residual';
 export * from './chart-line-rolling-min-max';
 export * from './chart-line-velocity';
+export * from './chart-line-acceleration';

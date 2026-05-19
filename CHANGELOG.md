@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.546] - 2026-05-19 -- UI: chart-line-acceleration primitive (TODO 11.528)
+
+New **ChartLineAcceleration** UI
+primitive in
+`web/src/components/ui/chart-line-acceleration.tsx`:
+pure-SVG multi-series line chart
+that **plots the discrete second
+derivative** (acceleration /
+"rate of rate change") of an
+input series. For every triple of
+consecutive finite samples sorted
+by x ascending it computes
+`v_left = (y_b - y_a) / (x_b -
+x_a)`, `v_right = (y_c - y_b) /
+(x_c - x_b)`, and `accel =
+(v_right - v_left) / ((x_c -
+x_a) / 2)` -- the canonical non-
+uniform finite-difference second
+derivative anchored at the
+middle index. Rendered against a
+horizontal zero-acceleration
+baseline with sign-shaded regions
+(amber for positive / concave up
+"accelerating", cyan for negative
+/ concave down "decelerating");
+segments crossing zero are split
+at the inflection point. Three
+anchor modes ('center' default,
+'left', 'right'). Pure helpers
+`computeAcceleration` (n-2
+samples for n finite, drops
+dx=0 triples, preserves ORIGINAL
+left/mid/right indices),
+`findLineAccelerationZeroCrossing`,
+`computeLineAccelerationStats`,
+`computeLineAccelerationLayout`,
+and `describeLineAccelerationChart`.
+The canonical inflection-point /
+second-order momentum diagnostic.
+Distinct from `<ChartLineRate>`
+(first derivative),
+`<ChartLineVelocity>`
+(directional arrows on raw line),
+and other transforms. 68 vitest
+cases cover defaults, derivative
+math (constant 2 for x^2, 0 for
+linear, sign-flip detection),
+crossing math, stats, layout
+(sign-fill split + zero
+baseline), ARIA, tooltip with
+concavity tag, legend, callbacks,
+ref. (TODO 11.528)
+
 ## [1.11.545] - 2026-05-19 -- UI: chart-line-velocity primitive (TODO 11.527)
 
 New **ChartLineVelocity** UI
