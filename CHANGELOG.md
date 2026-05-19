@@ -4,6 +4,74 @@
 
 (no entries -- next release window)
 
+## [1.11.505] - 2026-05-19 -- UI: chart-tree-radial primitive (TODO 11.487)
+
+New **ChartTreeRadial** UI primitive in
+`web/src/components/ui/chart-tree-radial.tsx`:
+pure-SVG **radial tree** layout, the
+polar variant of `<ChartDendrogram>`
+(11.486). The root sits at the centre,
+leaves radiate out at the perimeter,
+and each level of the hierarchy lives
+at a fixed radius. Three link styles:
+`curve` (default; smooth cubic bezier
+in polar space), `elbow` (arc along
+the parent's radius then radial line
+to the child), or `line` (straight
+line from parent to child). Layout
+(`computeTreeRadialLayout`): walk DFS
+to assign each leaf a unique
+`leafIndex`; each leaf placed at
+angle `startAngle + leafIndex * (2pi /
+leafCount)` and radius `outerRadius`;
+each internal node sits at the mean
+of its children's angles at radius
+`depth * depthStep`. Per-node `color`
+always wins; otherwise leaves use
+`leafColor` and internals use
+`internalColor`. Leaf labels rotate
+tangent to the perimeter so they
+remain readable around the full
+circle; labels on the bottom half
+(angle in `(pi/2, 3pi/2)`) are
+flipped 180 deg to keep text upright;
+`rotateLeafLabels=false` falls back
+to absolute outside-the-leaf
+placement. Internal labels hidden by
+default; `showInternalLabels=true`
+enables them at the centroid. Hover/
+focus opens tooltip (label + depth +
+leaf / leafCount) for nodes or link
+src->tgt for links. Per-node + per-
+link click handlers. Pure helpers
+exported: `polarToCartesian`,
+`getTreeRadialDefaultColor`,
+`flattenTreeRadialHierarchy`,
+`getTreeRadialLeaves`,
+`getTreeRadialMaxDepth`,
+`buildTreeRadialLinkPath`,
+`computeTreeRadialLayout`,
+`describeTreeRadialChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-circle role=
+graphics-symbol + tabIndex=0 +
+"<label>" / "<label> (<N> leaves)"
+aria-label; per-link role=graphics-
+symbol + tabIndex=0 + "Link <src> to
+<tgt>" aria-label. data-section on
+every node; root mirrors data-node-
+count / data-link-count / data-leaf-
+count / data-max-depth / data-link-
+style / data-animate; node groups
+mirror id / depth / parent / is-leaf
+/ leaf-index / leaf-count / child-
+count / color / angle / radius /
+hovered; link paths mirror index /
+source / target / hovered. Mount
+fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 55 vitest cases pass.
+
 ## [1.11.504] - 2026-05-19 -- UI: chart-dendrogram primitive (TODO 11.486)
 
 New **ChartDendrogram** UI primitive in

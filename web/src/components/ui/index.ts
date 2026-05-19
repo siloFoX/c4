@@ -196,3 +196,4 @@ export * from './chart-sunburst';
 export * from './chart-icicle';
 export * from './chart-circle-packing';
 export * from './chart-dendrogram';
+export * from './chart-tree-radial';
