@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.538] - 2026-05-19 -- UI: chart-line-cumulative primitive (TODO 11.520)
+
+New **ChartLineCumulative** UI
+primitive in
+`web/src/components/ui/chart-line-cumulative.tsx`:
+pure-SVG multi-series line chart
+that **plots the running cumulative
+sum** of per-period increments.
+Each `{x, value}` sample is an
+increment; the chart computes
+`cumulative_i = baseline + sum(
+value_0 .. value_i)` and renders
+that as the line. Optional faint
+increment bars below the line show
+the per-period delta with a signed
+fill; optional horizontal target
+line + crossing detection drives a
+"progress to target" % shown in
+the legend. Pure helpers
+`computeRunningCumulative`
+(treats non-finite as 0,
+preserves running sum),
+`buildLineCumulativeRunningPoints`
+(sorts by x, preserves original
+indices),
+`computeLineCumulativeStats`
+(totals, max/min increments,
+target crossing index + linearly
+interpolated x within segment,
+percent clamped to [0,1]),
+`computeLineCumulativeLayout`,
+and `describeLineCumulativeChart`.
+Distinct from
+`<ChartLineMovingAvg>` (windowed
+average, no accumulation),
+`<ChartLineTrend>` (regression),
+`<ChartLineAreaStacked>` (stacks
+series), `<ChartLineBaseline>` /
+`<ChartLineTarget>` (comparison),
+and `<ChartLineForecast>`
+(time-axis split). 65 vitest
+cases cover defaults,
+cumulative math, crossing
+interpolation, layout, ARIA,
+tooltip, legend, callbacks, ref.
+(TODO 11.520)
+
 ## [1.11.537] - 2026-05-19 -- UI: chart-line-forecast primitive (TODO 11.519)
 
 New **ChartLineForecast** UI

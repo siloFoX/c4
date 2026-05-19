@@ -229,3 +229,4 @@ export * from './chart-line-band';
 export * from './chart-line-min-max';
 export * from './chart-line-target';
 export * from './chart-line-forecast';
+export * from './chart-line-cumulative';
