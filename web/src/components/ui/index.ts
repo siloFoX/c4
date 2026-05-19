@@ -224,3 +224,4 @@ export * from './chart-line-comparison';
 export * from './chart-line-trend';
 export * from './chart-line-moving-avg';
 export * from './chart-line-percentile';
+export * from './chart-line-event';
