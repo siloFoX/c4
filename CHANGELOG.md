@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.511] - 2026-05-19 -- UI: chart-beeswarm primitive (TODO 11.493)
+
+New **ChartBeeswarm** UI primitive in
+`web/src/components/ui/chart-beeswarm.tsx`:
+pure-SVG **beeswarm plot** with
+force-directed, non-overlapping circle
+placement around a per-group lane.
+Sibling of `<ChartStrip>` (11.492) but
+strictly non-overlapping: a greedy
+deterministic packer (D3 / Sergio
+Pegoraro algorithm) walks points in
+value order and, for each point,
+considers `laneCenter` plus the two
+tangent y values offered by every
+previously placed point whose along
+distance is below the spacing
+threshold (`2*radius + gap`), then
+picks the candidate closest to
+`laneCenter` that does not collide
+with any placed point. Output is
+fully deterministic; identical input
+always produces identical layout.
+Multi-group lanes share the API of
+`<ChartStrip>`: per-mark hover dims
+others to 0.3, click fires
+`onPointClick`, legend toggles
+visibility (controlled +
+uncontrolled). ARIA: root region +
+svg role=img + per-mark
+graphics-symbol with tabIndex=0; data-
+section on every node. Pure helpers
+exported: `getBeeswarmDefaultColor`,
+`getBeeswarmFiniteValues`,
+`getBeeswarmBounds`,
+`getBeeswarmTicks`,
+`packBeeswarmGroup` (canonical packer),
+`computeBeeswarmLayout`,
+`describeBeeswarmChart`. 67 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.510] - 2026-05-19 -- UI: chart-strip primitive (TODO 11.492)
 
 New **ChartStrip** UI primitive in
