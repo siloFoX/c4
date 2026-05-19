@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.506] - 2026-05-19 -- UI: chart-cluster primitive (TODO 11.488)
+
+New **ChartCluster** UI primitive in
+`web/src/components/ui/chart-cluster.tsx`:
+pure-SVG **cluster dendrogram**,
+sibling of `<ChartDendrogram>` (11.486)
+with three key distinctions: (1)
+**distance-aware depth axis** -- each
+node carries an optional `distance`
+(the merge distance in hierarchical
+clustering); the depth axis encodes
+distance rather than uniform depth
+steps. Leaves at distance 0; internal
+nodes at their merge distance. (2)
+**cluster cut line** -- optional
+`cutDistance` prop draws a horizontal
+threshold; every internal node at or
+below the cut becomes a cluster root
+and its descendants share a colour
+from the cluster palette. (3) **distance
+axis with ticks** -- vertical axis on
+the left shows tick marks at evenly-
+spaced distance values. Layout: leaves
+evenly along x; internal node x =
+mean of children x; y derived from
+distance. Links are right-angle elbows
+(horizontal from parent x to child x
+at parent's y, then vertical down to
+child's y). Per-node `distance >= 0`
+always wins; leaves without explicit
+distance default to 0; internal nodes
+without explicit distance fall back
+to `(maxDepth - depth) / maxDepth` so
+the tree visually mimics uniform-
+spacing without true heights. Hover/
+focus opens tooltip (label + distance
++ leaf/leaves + cluster id when
+present) for nodes or link src->tgt
+for links. Per-node + per-link click
+handlers. Pure helpers exported:
+`getClusterDefaultColor`,
+`getClusterNodeDistance`,
+`flattenClusterHierarchy`,
+`getClusterLeaves`,
+`getClusterMaxDistance`,
+`getClusterTicks`,
+`computeClusterLayout`,
+`describeClusterChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-circle role=
+graphics-symbol + tabIndex=0 +
+"<label>" / "<label> (<N> leaves,
+distance <D>)" aria-label; per-link
+role=graphics-symbol + tabIndex=0 +
+"Link <src> to <tgt>" aria-label.
+data-section on every node; root
+mirrors data-node-count / data-link-
+count / data-leaf-count / data-max-
+distance / data-cluster-count /
+data-cut-distance / data-animate;
+node groups mirror id / depth /
+parent / leaf / leaf-index / leaf-
+count / child-count / distance /
+color / cluster / hovered; links
+mirror index / source / target /
+cluster / hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 60 vitest cases pass.
+
 ## [1.11.505] - 2026-05-19 -- UI: chart-tree-radial primitive (TODO 11.487)
 
 New **ChartTreeRadial** UI primitive in

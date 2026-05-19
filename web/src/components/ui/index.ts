@@ -197,3 +197,4 @@ export * from './chart-icicle';
 export * from './chart-circle-packing';
 export * from './chart-dendrogram';
 export * from './chart-tree-radial';
+export * from './chart-cluster';
