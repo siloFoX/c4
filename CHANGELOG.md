@@ -4,6 +4,262 @@
 
 (no entries -- next release window)
 
+## [1.11.432] - 2026-05-19 -- UI: status-indicator primitive (TODO 11.414)
+
+New `web/src/components/ui/status-indicator.tsx`
+ships `<StatusIndicator>` -- coloured
+dot with optional pulse animation,
+optional label slot, three size
+variants, and `role="status"` +
+`aria-live="polite"` so screen readers
+announce kind transitions as live
+updates.
+
+### API
+
+```tsx
+<StatusIndicator
+  kind="success"
+  size="md"
+  label="Connected"
+  pulse           // boolean | "subtle"
+  ariaLabel="Currently online"
+  hideDot={false}
+  decorative={false}
+/>
+```
+
+```ts
+type StatusIndicatorKind =
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
+  | 'neutral'
+  | 'pending';
+
+type StatusIndicatorSize = 'sm' | 'md' | 'lg';
+
+type StatusIndicatorPulse = boolean | 'subtle';
+
+interface StatusIndicatorProps {
+  kind?: StatusIndicatorKind;       // default 'neutral'
+  size?: StatusIndicatorSize;        // default 'md'
+  label?: ReactNode;
+  pulse?: StatusIndicatorPulse;     // default false
+  ariaLabel?: string;
+  hideDot?: boolean;
+  decorative?: boolean;
+  className?: string;
+  // ... HTMLSpanElement attributes
+}
+```
+
+### Behaviour
+
+- **Kinds**: six canonical colour
+  tokens -- success (emerald),
+  warning (amber), error (rose),
+  info (sky), neutral (zinc),
+  pending (violet). Each kind
+  resolves to a dot bg colour, a
+  ping colour, and a label text
+  colour via the exported
+  `STATUS_INDICATOR_KIND_CLASS`
+  map.
+- **Size**: sm / md (default) /
+  lg. Each variant sets the dot
+  square dimensions
+  (h-1.5/2/2.5 + w-...) + label
+  text size + inter-element gap.
+- **Label slot**: when supplied,
+  renders next to the dot with
+  the kind's text colour token.
+  When omitted, only the dot
+  renders.
+- **Pulse animation**:
+  - `false` (default): no ping
+    overlay.
+  - `true`: ping overlay at 60%
+    opacity with
+    `motion-safe:animate-ping`.
+  - `'subtle'`: ping overlay at
+    30% opacity.
+  `prefers-reduced-motion:
+  reduce` drops the ping
+  animation but keeps the
+  static colour cue.
+- **ARIA live updates**: default
+  `role="status"` +
+  `aria-live="polite"` +
+  `aria-atomic="true"` so a
+  kind transition (e.g.,
+  `pending -> success`) gets
+  announced without operator
+  focus.
+- **Decorative**: `decorative={
+  true}` drops the role +
+  aria-live + aria-label so the
+  indicator renders as a pure
+  visual cue (e.g., next to a
+  text node that already
+  announces the state).
+- **hideDot**: when true, only
+  the label renders -- useful
+  for cases where the colour
+  isn't needed but the kind
+  semantics still matter.
+
+### ARIA label resolution
+
+The pure helper
+`getStatusIndicatorAriaLabel(
+ariaLabel, kind, label)`:
+
+| priority | source |
+| --- | --- |
+| 1 | explicit `ariaLabel` prop |
+| 2 | string `label` (non-empty after trim) |
+| 3 | fallback `"Status: <kind>"` |
+
+Exported so adopters can mirror
+the same fallback chain in
+custom hosts.
+
+### Pure helpers (exported)
+
+```ts
+export function getStatusIndicatorAriaLabel(
+  ariaLabel: string | undefined,
+  kind: StatusIndicatorKind,
+  label: ReactNode,
+): string | undefined;
+
+export const STATUS_INDICATOR_KIND_CLASS: Record<
+  StatusIndicatorKind,
+  { dot: string; ping: string; text: string }
+>;
+```
+
+### Data attributes
+
+Root (`<span role="status">`):
+
+- `data-section="status-indicator"`
+- `data-kind`
+- `data-size`
+- `data-pulse` ('true' /
+  'false' / 'subtle')
+- `data-decorative`
+- `data-hide-dot`
+
+Inner:
+
+- `data-section="status-indicator-dot-wrapper"`
+- `data-section="status-indicator-dot"`
+  + `data-dot-kind`
+- `data-section="status-indicator-pulse"`
+  + `data-pulse-kind`
+- `data-section="status-indicator-label"`
+
+### Tests
+
+31 cases in
+`status-indicator.test.tsx`:
+
+- `STATUS_INDICATOR_KIND_CLASS`
+  (1): six kinds declared
+- `getStatusIndicatorAriaLabel`
+  (4): ariaLabel wins, label
+  fallback, trim whitespace,
+  kind-word fallback
+- Component (26): role=status,
+  aria-live + aria-atomic,
+  decorative drops role +
+  aria-live + aria-label,
+  default ariaLabel fallback,
+  string label becomes aria-
+  label, explicit ariaLabel
+  wins, label slot rendered,
+  label omitted when no prop,
+  dot rendered, hideDot=true
+  omits dot, data-kind /
+  data-size mirror props,
+  dot color class matches
+  tokens, label text color
+  matches kind, dot size
+  matches variant, pulse=true
+  renders ping, pulse=false
+  omits ping, pulse=subtle
+  uses opacity-30, pulse=
+  motion-safe class, data-
+  pulse reflects value,
+  data-decorative + data-
+  hide-dot mirror, extra
+  HTML attributes forwarded,
+  honors className,
+  displayName, ref
+  forwarding, every kind has
+  dot+ping+text class tokens.
+
+31/31 pass under vitest 4.1.5;
+TypeScript clean for touched
+files.
+
+### Pairs with existing primitives
+
+- `<Badge>` -- discrete chip
+  variant for labelled
+  state. StatusIndicator is
+  the dot-only / dot-plus-
+  label variant for inline
+  affordances.
+- `<Toast>` (11.280) --
+  full-screen polite live
+  region. StatusIndicator is
+  the inline equivalent.
+- `<Spinner>` --
+  indeterminate progress.
+  StatusIndicator is the
+  discrete state variant.
+- ThemeCustomizer (11.394)
+  -- the indicator reads
+  Tailwind colour classes
+  directly so it auto-themes
+  with the design system.
+
+### Out of scope (deferred)
+
+- Auto-clear after a timeout
+  (e.g., flash "saved" for
+  3s then revert). Host owns
+  the timer.
+- Multi-state animation
+  ("flipping" between two
+  kinds with a transition).
+  Snap to the new kind for
+  v1; CSS transitions
+  belong in a follow-on
+  motion layer.
+- Tooltip slot on hover.
+  Host can wrap with the
+  existing `<Tooltip>`
+  primitive.
+- Per-kind icon glyph
+  (e.g., check, x, exclam).
+  Adopters who want an icon
+  can wrap with the
+  existing icon primitives;
+  a built-in icon slot is a
+  follow-on.
+- Adoption sweep through
+  existing status-line
+  affordances. Existing
+  inline `<span class="bg-
+  emerald-500 ...">` dots
+  ship until a migration
+  dispatch.
+
 ## [1.11.431] - 2026-05-19 -- UI: list-section primitive (TODO 11.413)
 
 New `web/src/components/ui/list-section.tsx`

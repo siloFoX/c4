@@ -124,3 +124,4 @@ export * from './color-picker';
 export * from './gauge';
 export * from './meter';
 export * from './list-section';
+export * from './status-indicator';
