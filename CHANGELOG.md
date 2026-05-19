@@ -4,6 +4,63 @@
 
 (no entries -- next release window)
 
+## [1.11.494] - 2026-05-19 -- UI: chart-slope primitive (TODO 11.476)
+
+New **ChartSlope** UI primitive in
+`web/src/components/ui/chart-slope.tsx`:
+pure-SVG slope / parallel-line chart
+for before-after comparison across two
+time points. Each item gets a
+connecting line from its `before`
+value on the left axis to its `after`
+value on the right axis. Direction
+colors (up green / down red / flat
+grey) make rate-of-change visually
+obvious at a glance. Distinct from
+`<ChartLine>` (11.439) which paints a
+continuous series over many x
+positions, and from `<ChartBullet>`
+(11.442) which compares a single value
+to a target range. Direction
+resolution honours an `epsilon`
+tolerance so tiny deltas can be
+classified as flat. Per-item `color`
+always wins; otherwise the primitive
+picks the direction color. Bounds
+auto-derived (collapsed range expands
+by +/-0.5); `yMin` / `yMax` props
+override. Non-finite before/after
+flagged `isValid=false` and skipped
+from the painted line. Hover/focus
+sets the hovered id and dims every
+other item to opacity 0.3; tooltip
+shows label, formatted before + after,
+signed delta, and direction. Per-item
+click handler fires with `{item,
+layout}`. Pure helpers exported:
+`getSlopeDirection`,
+`getSlopePctChange`,
+`getSlopeDirectionColor`,
+`getSlopeBounds`, `getSlopeTicks`,
+`computeSlopeLayout`,
+`describeSlopeChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-line
+role=graphics-symbol + tabIndex=0 +
+"<label>: <before> -> <after>
+(<direction>)" aria-label. data-
+section on every node; root mirrors
+data-item-count / data-visible-count
+/ data-up-count / data-down-count /
+data-flat-count / data-animate; item
+groups mirror item-id / item-index /
+item-direction / item-before / item-
+after / item-delta / item-pct-change
+/ item-color / hovered. Mount fade
+via `motion-safe:animate-fade-in`.
+Ref forwards to root. 60 vitest cases
+pass.
+
 ## [1.11.493] - 2026-05-19 -- UI: chart-marimekko primitive (TODO 11.475)
 
 New **ChartMarimekko** UI primitive in

@@ -185,3 +185,4 @@ export * from './chart-error-bars';
 export * from './chart-histogram';
 export * from './chart-ridge';
 export * from './chart-marimekko';
+export * from './chart-slope';
