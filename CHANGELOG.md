@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.493] - 2026-05-19 -- UI: chart-marimekko primitive (TODO 11.475)
+
+New **ChartMarimekko** UI primitive in
+`web/src/components/ui/chart-marimekko.tsx`:
+pure-SVG Marimekko chart (variable-
+width stacked bars). Each column's
+*width* is proportional to its share of
+the grand total; within each column,
+every visible series stacks vertically
+with cell heights proportional to the
+series's share of *that column's*
+total. Optional percentage labels render
+inside cells whose pixel area exceeds
+`labelMinArea`. Distinct from
+`<ChartStackedBar>` (11.468) (uniform-
+width columns) and from `<ChartMosaic>`
+(11.457) which is similar but typically
+treats the data as a contingency table.
+Hidden series (controlled or
+uncontrolled) drop their cells; column
+widths reproportion themselves to the
+remaining visible totals. Hover/focus
+on a cell opens a tooltip with column +
+series labels, formatted value, share
+within the column, and share of the
+overall grand total. Per-cell click
+handler fires with `{cell}`. Pure
+helpers exported:
+`getMarimekkoDefaultColor`,
+`getMarimekkoColumnTotal`,
+`getMarimekkoGrandTotal`,
+`computeMarimekkoLayout`,
+`describeMarimekkoChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-cell
+role=graphics-symbol + tabIndex=0 +
+"<col> / <series>: <value> (<pct>% of
+column)" aria-label. data-section on
+every node; root mirrors data-column-
+count, data-series-count, data-visible-
+series-count, data-cell-count, data-
+grand-total, data-animate; column
+groups mirror id / index / total /
+share / width; cell groups mirror
+column-id / series-id / value / color /
+cell-share / overall-share / hovered.
+Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 57 vitest cases pass.
+
 ## [1.11.492] - 2026-05-19 -- UI: chart-ridge primitive (TODO 11.474)
 
 New **ChartRidge** UI primitive in
