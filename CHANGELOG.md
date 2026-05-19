@@ -4,6 +4,181 @@
 
 (no entries -- next release window)
 
+## [1.11.435] - 2026-05-19 -- UI: comparison-slider primitive (TODO 11.417)
+
+New **ComparisonSlider** UI primitive
+in
+`web/src/components/ui/comparison-slider.tsx`:
+a before/after image slider with a
+draggable divider handle, keyboard
+navigation, an optional percentage
+badge, and per-image lazy loading
+defaults.
+
+### API
+
+```ts
+interface ComparisonSliderProps {
+  beforeSrc: string;
+  afterSrc: string;
+  beforeAlt?: string;       // default 'Before'
+  afterAlt?: string;        // default 'After'
+  value?: number;           // controlled
+  defaultValue?: number;    // uncontrolled (default 50)
+  onChange?: (v: number) => void;
+  className?: string;
+  ariaLabel?: string;       // default 'Comparison slider'
+  beforeLabel?: ReactNode;
+  afterLabel?: ReactNode;
+  showPercentage?: boolean; // default true
+  lazy?: boolean;           // default true
+  step?: number;            // default 5
+  aspectRatio?: string;     // default '16 / 9'
+  formatValue?: (v: number) => ReactNode;
+}
+```
+
+### Behaviour
+
+- Two `<img>` layers (before
+  underneath, after in a
+  width-clipped wrapper) so the
+  divider acts as a reveal mask.
+- Pointer drag on the root region
+  uses `setPointerCapture` (guarded
+  for jsdom) and clamps to
+  `[0, 100]` via `getPercentFromX`.
+- Keyboard nav on the handle:
+  Arrow Right/Up step `+step`,
+  Arrow Left/Down step `-step`,
+  Page Up/Down step `+/- 2*step`,
+  Home -> 0, End -> 100.
+- Controlled vs. uncontrolled value
+  resolved at the top of the
+  component; both shapes emit
+  `onChange` with a clamped value.
+- Percentage badge: opt-out via
+  `showPercentage={false}`; renders
+  `Math.round(value)%` by default or
+  `formatValue(value)` when
+  supplied.
+- Before/after labels: render only
+  when supplied (rendered in the
+  bottom-left / bottom-right
+  corners).
+- Images default to `loading="lazy"
+  decoding="async" draggable={false}`
+  so off-screen sliders defer their
+  network cost.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_COMPARISON_VALUE = 50
+DEFAULT_COMPARISON_STEP = 5
+DEFAULT_COMPARISON_ASPECT_RATIO = '16 / 9'
+clampComparisonValue(value): number
+getPercentFromX(clientX, { left, width }): number
+stepComparisonValue(current, delta): number
+```
+
+`clampComparisonValue` falls back to
+the default 50 for any non-finite
+input (NaN / +/-Infinity), keeping
+the divider visible even when
+upstream maths drift.
+
+### ARIA + data attributes
+
+- Root: `role="region"` +
+  `aria-label`.
+- Handle: `role="slider"` +
+  `aria-valuemin=0` /
+  `aria-valuemax=100` /
+  `aria-valuenow` /
+  `aria-valuetext` +
+  `aria-orientation="horizontal"` +
+  `tabIndex=0`.
+- `data-section` on every inner
+  node (`comparison-slider`,
+  `-before`, `-after-clip`, `-after`,
+  `-before-label`, `-after-label`,
+  `-handle`, `-handle-grip`,
+  `-handle-arrow`, `-percentage`).
+- Root mirrors props via
+  `data-value`,
+  `data-show-percentage`,
+  `data-lazy`. Handle also exposes
+  `data-handle-position`. Percentage
+  badge carries `data-percentage`.
+
+### Tests
+
+48 cases in
+`web/src/components/ui/comparison-slider.test.tsx`,
+covering:
+
+- All three pure helpers across
+  positive, negative, NaN,
+  `+Infinity`, zero-width-rect, and
+  non-zero `rect.left` cases.
+- Default + custom `ariaLabel` on
+  the region.
+- Handle `aria-valuemin/max/now/text`
+  + `aria-orientation`.
+- `loading="lazy"` default + `lazy=
+  false` swap to `"eager"`.
+- Default value 50, defaultValue
+  override, controlled `value`
+  overrides + reacts to rerender.
+- Arrow Right / Arrow Left / Arrow
+  Up / Arrow Down / Page Up / Page
+  Down / Home / End keyboard nav.
+- Edge-clamp at 95 with step 10 ->
+  100.
+- Pointer-down updates from
+  `clientX`; pointer-move without a
+  preceding pointer-down does NOT
+  update.
+- Percentage badge default render,
+  `showPercentage=false` removes it,
+  `formatValue` overrides the
+  contents.
+- Before/after label slots render
+  when supplied.
+- After-clip width + handle left
+  offset both mirror the value.
+- Root data attrs (`data-value`,
+  `data-show-percentage`,
+  `data-lazy`) reflect props.
+- `aspectRatio` prop applies inline
+  style.
+- Stable `displayName` +
+  `forwardRef` to the root region.
+
+### Pairs with existing primitives
+
+- `<Slider>` for the standard
+  horizontal value slider.
+- `<Gauge>` / `<Meter>` for value
+  visualisation.
+- `<AspectRatio>` for sizing the
+  comparison region inside a
+  layout.
+
+### Out of scope
+
+- Vertical orientation (the
+  primitive is horizontal-only by
+  design; flip later if a
+  consumer needs it).
+- Pinch-zoom on the underlying
+  images.
+- Image preloading / placeholder
+  shimmer (consumers wrap the
+  primitive in their own loading
+  state).
+
 ## [1.11.434] - 2026-05-19 -- UI: rating custom icon + ARIA radiogroup (TODO 11.416)
 
 `<Rating>` already shipped the star
