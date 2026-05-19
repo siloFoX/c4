@@ -4,6 +4,64 @@
 
 (no entries -- next release window)
 
+## [1.11.540] - 2026-05-19 -- UI: chart-line-normalize primitive (TODO 11.522)
+
+New **ChartLineNormalize** UI
+primitive in
+`web/src/components/ui/chart-line-normalize.tsx`:
+pure-SVG multi-series line chart
+that **rebases each series to a
+common index basis** (default
+`100`) so series with different y
+scales become directly comparable.
+Each layout point carries the
+raw `y`, the normalised value
+`(raw_y / reference) * indexBase`,
+and the signed percent change from
+baseline. Three rebasing modes:
+`'first'` (default; rebase from
+first sample), `'value'` (rebase
+at a specific x via linear
+interpolation), `'min'` (rebase
+so the minimum lands at
+`indexBase`). Per-series `mode`
+and `referenceX` overrides always
+win. Pure helpers
+`resolveLineNormalizeYAtX`
+(linearly interpolates y at a
+given x; clamps to endpoints),
+`findLineNormalizeReference`
+(returns null when no reference
+is derivable),
+`normalizeLineNormalizeSeries`
+(returns `{normalized, reference,
+ok}`; `ok=false` when reference
+is null or zero -- can't rebase),
+`computeLineNormalizeStats`,
+`computeLineNormalizeLayout`, and
+`describeLineNormalizeChart`. The
+canonical "indexed performance"
+view used in finance / economics
+dashboards. Distinct from
+`<ChartLineCumulative>` (running
+sum, not rescale),
+`<ChartLineRate>` (derivative),
+`<ChartLineMovingAvg>` (windowed
+average), `<ChartLineTrend>`
+(regression),
+`<ChartLineComparison>` (between
+two curves), and the per-point
+classification primitives. 64
+vitest cases cover defaults,
+reference math (all three modes
++ value mode interpolation),
+normalize math + edge cases
+(zero reference, empty), layout
+(with baseline expansion), ARIA,
+tooltip with raw + index +
+percent rows, legend, callbacks,
+ref. (TODO 11.522)
+
 ## [1.11.539] - 2026-05-19 -- UI: chart-line-rate primitive (TODO 11.521)
 
 New **ChartLineRate** UI primitive
