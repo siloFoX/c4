@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.541] - 2026-05-19 -- UI: chart-line-spark-bar primitive (TODO 11.523)
+
+New **ChartLineSparkBar** UI
+primitive in
+`web/src/components/ui/chart-line-spark-bar.tsx`:
+pure-SVG **hybrid sparkline** that
+pairs a compact line chart with an
+overlaid bar track for dense
+inline use. The canvas is split
+vertically into a top line track
+and a bottom bar track separated
+by `trackGap`. The line uses
+`point.value`; the bars use
+`point.bar`, normalised
+independently. Sparkline-sized
+defaults (width 160, height 48,
+padding 4) so the component fits
+inline with text or in table
+cells. Min/max dots + last-value
+dot + optional last-value pill
+make the form factor self-
+contained. Signed bars use
+green/red colours when
+`signedBars=true`. Invisible hit
+circles centered on each point
+ensure pointer hits land
+reliably despite the tiny dots.
+Pure helpers
+`computeLineSparkBarBounds`
+(clamps barMin/barMax to 0 when
+data has one sign, expanding the
+opposite end of the bar zone),
+`computeLineSparkBarLayout`
+(splits canvas into line + bar
+tracks, signed bar geometry
+around barZeroY), and
+`describeLineSparkBarChart`.
+Distinct from the full-size chart
+primitives (axes + legend +
+larger padding) -- this is the
+sparkline form factor optimised
+for dense dashboards. 52 vitest
+cases cover defaults, bounds
+math, layout (track split + bar
+geometry + clamping), interaction
+(hit-circle hover + click),
+legend toggling, callbacks, ref.
+(TODO 11.523)
+
 ## [1.11.540] - 2026-05-19 -- UI: chart-line-normalize primitive (TODO 11.522)
 
 New **ChartLineNormalize** UI
