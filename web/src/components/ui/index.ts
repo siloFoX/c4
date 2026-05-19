@@ -149,3 +149,4 @@ export * from './kbd-shortcut-recorder';
 export * from './text-diff';
 export * from './chart-bar';
 export * from './chart-line';
+export * from './chart-pie';
