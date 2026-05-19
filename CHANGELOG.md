@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.519] - 2026-05-19 -- UI: chart-line-zoom primitive (TODO 11.501)
+
+New **ChartLineZoom** UI primitive in
+`web/src/components/ui/chart-line-zoom.tsx`:
+pure-SVG multi-series line chart with
+**brush-to-zoom** interaction. Drag
+horizontally across the inner plot to
+define an x range; on pointer release
+the chart zooms into the selected
+window. A "Reset zoom" button appears
+top-right while zoomed; double-click
+also resets. `setPointerCapture`
+keeps brush tracking even when the
+cursor leaves the chart bounds.
+Brushes narrower than `minBrushWidth`
+pixels (default 4) are treated as a
+click and discarded. Controlled
+(`zoom` + `onZoomChange`) and
+uncontrolled (`defaultZoom`) modes
+both supported. Series strokes are
+clipped to the inner area via SVG
+`<clipPath>` so partial points
+outside the visible window crop
+cleanly without dangling lines.
+Distinct from `<ChartLine>` (no
+interaction), `<ChartLineMulti>`
+(11.500) (synchronised crosshair
+tooltip on hover, no brush),
+`<ChartLineStep>` (11.497),
+`<ChartLineSmooth>` (11.498),
+`<ChartLineDashed>` (11.499). Pure
+helpers exported:
+`getLineZoomDefaultColor`,
+`getLineZoomFinitePoints`,
+`getLineZoomBounds`,
+`getLineZoomTicks`,
+`buildLineZoomPath`,
+`clampLineZoomRange`,
+`isLineZoomBrushValid`,
+`computeLineZoomLayout`,
+`describeLineZoomChart`. 72 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.518] - 2026-05-19 -- UI: chart-line-multi primitive (TODO 11.500)
 
 New **ChartLineMulti** UI primitive in
