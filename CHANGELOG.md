@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.463] - 2026-05-19 -- UI: chart-radar primitive (TODO 11.445)
+
+New **ChartRadar** UI primitive in
+`web/src/components/ui/chart-radar.tsx`:
+pure-SVG radar / spider chart. Each
+axis is a labelled dimension; each
+series draws a filled polygon
+connecting per-axis values. The
+polar grid is rendered as N
+concentric polygons plus one radial
+spoke per axis (default N=4).
+Hover / focus on a data point
+enlarges the dot and opens a
+tooltip with series + axis +
+formatted value rows. Legend
+renders to the right by default or
+below the chart with
+`legendPlacement="bottom"`. Default
+ARIA description auto-summarises
+every series across every axis so
+screen readers can describe the
+dataset without extra wiring.
+Pure helpers exported:
+`getRadarAxisAngle`,
+`getRadarPoint`, `getRadarMax`,
+`buildRadarGridLevelPoints`,
+`buildRadarSeriesPoints`,
+`findRadarPointHit`,
+`describeRadarChart`. 58 vitest
+cases cover helpers + every render
+branch including grid level
+counts, axis-label suppression,
+formatter shaping, tooltip
+visibility, `onPointClick` payload,
+ARIA description override, empty
+data fallback, and ref forwarding.
+
 ## [1.11.462] - 2026-05-19 -- UI: chart-scatter primitive (TODO 11.444)
 
 New **ChartScatter** UI primitive in
