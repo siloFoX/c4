@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.490] - 2026-05-19 -- UI: chart-error-bars primitive (TODO 11.472)
+
+New **ChartErrorBars** UI primitive in
+`web/src/components/ui/chart-error-bars.tsx`:
+pure-SVG bar / scatter chart with
+vertical and (in scatter mode)
+horizontal error-bar overlays. Each
+datum carries a required `y` plus
+optional `lower` / `upper` (or a single
+symmetric `error`) for the y-axis
+confidence interval; in scatter mode it
+can also carry `x` + `xLower` / `xUpper`
+/ `xError` for the x-axis CI. Error bars
+render as T-shaped whiskers: a stem
+connecting `lower` to `upper` plus a
+cap at each end. Mode toggles between
+bar (categorical-x with vertical T
+whiskers above/below the bar) and
+scatter (numeric-x, numeric-y with
+whiskers in either or both axes). CI
+resolution per axis: lower/upper take
+priority; else fall back to symmetric
++/- error; else hasError = false. Swap
+when lower > upper. Non-finite y / non-
+finite error skipped. Bar mode pulls
+yMin down to 0 when all values are
+positive. Hover/focus opens a tooltip
+with label, value (or `(x, y)` in
+scatter mode), and the formatted CI
+ranges when present. Pure helpers
+exported: `getDefaultErrorBarColor`,
+`getErrorBarCIRange`,
+`getErrorBarXCIRange`,
+`getErrorBarBounds`, `getErrorBarTicks`,
+`computeErrorBarLayout`,
+`describeErrorBarChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-mark
+role=graphics-symbol + tabIndex=0 +
+aria-label including CI text. data-
+section on every node; root mirrors
+data-mode / data-point-count /
+data-visible-count / data-error-count /
+data-animate; marks mirror id / index /
+value / color / has-y-error /
+has-x-error / y-lower / y-upper /
+hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 62 vitest cases pass.
+
 ## [1.11.489] - 2026-05-19 -- UI: chart-calendar-heatmap primitive (TODO 11.471)
 
 New **ChartCalendarHeatmap** UI primitive

@@ -181,3 +181,4 @@ export * from './chart-stacked-bar';
 export * from './chart-donut';
 export * from './chart-bubble';
 export * from './chart-calendar-heatmap';
+export * from './chart-error-bars';
