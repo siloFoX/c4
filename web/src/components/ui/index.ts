@@ -169,3 +169,4 @@ export * from './chart-pareto';
 export * from './chart-boxplot';
 export * from './chart-violin';
 export * from './chart-step';
+export * from './chart-mosaic';
