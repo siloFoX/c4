@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.483] - 2026-05-19 -- UI: chart-dot-plot primitive (TODO 11.465)
+
+New **ChartDotPlot** UI primitive
+in `web/src/components/ui/chart-dot-plot.tsx`:
+pure-SVG dot plot for
+categorical-numeric data. Each
+category gets a vertical slot;
+every data point renders as a
+circle at the value's y position.
+Optional deterministic jitter (via
+a seeded mulberry32-style PRNG)
+spreads overlapping dots
+horizontally; identical seed +
+inputs always produce the same
+layout so snapshots / E2E tests
+never flap. Optional median tick
+draws a short horizontal segment
+at each category's median (reuses
+`getBoxplotQuantile` from
+`<ChartBoxplot>` so the median
+aligns exactly with the boxplot
+primitive when both are rendered).
+Hover a dot to surface category +
+value; per-dot click handler.
+Pure helpers exported:
+`getDotPlotBounds`,
+`getDotPlotCategoryMedian`,
+`getDotPlotPseudoRandom`,
+`getDotPlotJitterOffset`,
+`getDotPlotTicks`,
+`describeDotPlot`. 54 vitest
+cases cover helpers (incl. PRNG
+determinism, jitter bounds, median
+on odd / even arrays, non-finite
+filtering) + every render branch
+including median tick visibility,
+deterministic-jitter snapshot,
+formatter shaping, click payload,
+legend on/off, ARIA description
+override, and ref forwarding.
+
 ## [1.11.482] - 2026-05-19 -- UI: chart-radar-spider primitive (TODO 11.464)
 
 New **ChartRadarSpider** UI primitive
