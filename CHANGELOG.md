@@ -4,6 +4,70 @@
 
 (no entries -- next release window)
 
+## [1.11.521] - 2026-05-19 -- UI: chart-line-threshold primitive (TODO 11.503)
+
+New **ChartLineThreshold** UI
+primitive in
+`web/src/components/ui/chart-line-threshold.tsx`:
+pure-SVG multi-series line chart
+with one or more **horizontal
+threshold reference lines** plus
+optional **zone shading** above or
+below each threshold. The canonical
+SLO / SLA / alert pattern. Each
+threshold ships with id + label +
+value + optional color, zone
+('above' | 'below' | 'none'),
+zoneColor, and dashArray. The y
+range auto-expands to include every
+threshold so reference lines are
+always visible. Zone fills render
+behind the series, reference lines
+above so the crossing point is
+unambiguous. Per-point
+`thresholdState[]` records
+isAbove / isBelow / isInZone per
+threshold so adopters can ask "did
+this point cross a threshold?". The
+tooltip surfaces which thresholds
+the hovered point crosses;
+per-dot `data-in-zone` exposes the
+in-zone state. Threshold reference
+lines are focusable
+(`role="graphics-symbol"` +
+`tabIndex={0}`) with aria-labels
+describing value + zone. Distinct
+from `<ChartLineConfidence>`
+(11.502) (per-point bounds drawn as
+a filled polygon between curves;
+chart-line-threshold's zone is a
+fixed horizontal band defined by a
+single value), `<ChartLineZoom>`
+(11.501), `<ChartLineMulti>`
+(11.500), `<ChartLineDashed>`
+(11.499), `<ChartLineSmooth>`
+(11.498), `<ChartLineStep>`
+(11.497). Note: the threshold spec
+interface is exported as
+`ChartLineThresholdSpec` to avoid a
+name clash with the component
+`ChartLineThreshold`. Pure helpers
+exported:
+`getLineThresholdDefaultColor`,
+`getLineThresholdFinitePoints`,
+`getLineThresholdFiniteThresholds`,
+`getLineThresholdBounds`,
+`getLineThresholdTicks`,
+`buildLineThresholdPath`,
+`classifyLineThresholdPoint`,
+`computeLineThresholdLayout`,
+`describeLineThresholdChart`. 73
+vitest cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.520] - 2026-05-19 -- UI: chart-line-confidence primitive (TODO 11.502)
 
 New **ChartLineConfidence** UI
