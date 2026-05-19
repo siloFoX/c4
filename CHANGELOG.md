@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.514] - 2026-05-19 -- UI: chart-tornado primitive (TODO 11.496)
+
+New **ChartTornado** UI primitive in
+`web/src/components/ui/chart-tornado.tsx`:
+pure-SVG **tornado / butterfly chart**
+for paired magnitude comparison. Each
+category renders two bars growing in
+opposite directions from a central
+axis: left value extends leftward,
+right value extends rightward. Two
+scale modes: `'shared'` (default;
+both sides share one max so
+magnitudes are directly comparable)
+and `'independent'` (per-side max).
+Distinct from
+`<ChartClevelandDot>` (11.495; two
+dots on one shared axis without
+bars), `<ChartBar>` (single value
+per category one direction),
+`<ChartStackedBar>` (sub-series stack
+within one bar),
+`<ChartLollipop>` (11.494; one stick
+from a fixed baseline), and
+`<ChartFunnel>` (progressive
+narrowing). Five sortBy keys
+(`left`, `right`, `sum`, `diff`,
+`absDiff`) with asc / desc;
+`centerGap` reserves a band on each
+side of the center axis so bars
+never touch it. Per-bar `onItemClick`
+receives the side that was clicked.
+ARIA: root region + svg role=img +
+per-bar graphics-symbol with
+tabIndex=0; data-section on every
+node. Pure helpers exported:
+`getTornadoFiniteItems`,
+`getTornadoMaxValue`,
+`getTornadoTicks`,
+`sortTornadoItems`,
+`computeTornadoLayout`,
+`describeTornadoChart`. 65 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.513] - 2026-05-19 -- UI: chart-cleveland-dot primitive (TODO 11.495)
 
 New **ChartClevelandDot** UI primitive
