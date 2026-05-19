@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.515] - 2026-05-19 -- UI: chart-line-step primitive (TODO 11.497)
+
+New **ChartLineStep** UI primitive in
+`web/src/components/ui/chart-line-step.tsx`:
+pure-SVG step-line chart with the full
+family of step interpolation types
+(`'before'` / `'after'` (default) /
+`'center'`) selectable per render.
+Distinct from the legacy
+`<ChartStep>` which paints a single
+hardcoded step variant.
+`buildStepLinePath(points, stepType)`
+is the canonical exported builder:
+emits `H curr.x V curr.y` for after,
+`V curr.y H curr.x` for before, or
+`H midX V curr.y H curr.x` for
+center. Multi-series with per-series
+colour, hover dim, focusable per-dot
+tooltips, controlled +
+uncontrolled hidden state, legend
+toggles, axis + grid + tick labels +
+optional x/y axis titles. ARIA: root
+region + svg role=img + per-path and
+per-dot graphics-symbol with
+tabIndex=0; data-section on every
+node including `data-axis="x"`/`"y"`
+splits on ticks and grid lines. Pure
+helpers exported:
+`getLineStepDefaultColor`,
+`getLineStepFinitePoints`,
+`getLineStepBounds`,
+`getLineStepTicks`,
+`buildStepLinePath`,
+`computeLineStepLayout`,
+`describeLineStepChart`. 61 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.514] - 2026-05-19 -- UI: chart-tornado primitive (TODO 11.496)
 
 New **ChartTornado** UI primitive in
