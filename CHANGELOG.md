@@ -4,6 +4,328 @@
 
 (no entries -- next release window)
 
+## [1.11.429] - 2026-05-19 -- UI: color-picker primitive (TODO 11.411)
+
+New `web/src/components/ui/color-picker.tsx`
+ships `<ColorPicker>` -- HSL
+saturation/lightness canvas + hue
+slider + optional alpha slider +
+hex/rgb/hsl input modes + preset
+swatch row. Pointer drag on each
+surface sets the corresponding
+axis; the textual input parses on
+blur (and on Enter); preset
+swatches set the value via click.
+
+### API
+
+```tsx
+<ColorPicker
+  value={{ h: 0, s: 100, l: 50, a: 1 }}
+  onChange={(next) => setColor(next)}
+  presets={['#000', '#fff', '#f00']}
+  showAlpha
+  inputMode="hex"
+  ariaLabel="Brand color"
+/>
+```
+
+```ts
+interface ColorValue {
+  h: number;   // 0..360
+  s: number;   // 0..100
+  l: number;   // 0..100
+  a: number;   // 0..1
+}
+
+interface ColorPickerProps {
+  value?: ColorValue;
+  defaultValue?: ColorValue;
+  onChange?: (color: ColorValue) => void;
+  presets?: string[];           // hex strings; default DEFAULT_COLOR_PRESETS
+  showAlpha?: boolean;          // default true
+  inputMode?: 'hex' | 'rgb' | 'hsl';   // default 'hex'
+  ariaLabel?: string;
+  className?: string;
+  disabled?: boolean;
+}
+```
+
+### Behaviour
+
+- **SL canvas**: a square surface
+  where X is saturation (0..100)
+  and Y is lightness inverted
+  (top=100, bottom=0). Background
+  layers two CSS gradients --
+  white to fully-saturated current
+  hue across X, and transparent
+  to black across Y. Pointer drag
+  updates `s` + `l`. Aria-valuetext
+  reads "Saturation N%, Lightness
+  N%".
+- **Hue slider**: full 360-degree
+  rainbow horizontal strip;
+  pointer drag updates `h`.
+  Aria-valuemin/now/max = 0/h/360.
+- **Alpha slider** (when
+  `showAlpha` is true): gradient
+  from transparent to the current
+  hue, layered over a checkerboard
+  background. Pointer drag updates
+  `a` 0..1. Aria-valuemin/now/max
+  = 0/a/1.
+- **Input row**: a `<select>` for
+  the format (HEX / RGB / HSL) +
+  a text field that mirrors the
+  current value in that format.
+  Mid-typing the field shows the
+  user's keystrokes; on blur (or
+  Enter) the field parses the
+  value via `parseColor(text,
+  mode)`. Invalid input snaps the
+  field back to the canonical
+  formatted current value.
+- **Preset swatches**: a row of
+  clickable buttons under the
+  input. Each click parses the
+  hex and emits the new color.
+  `presets={[]}` hides the row;
+  default presets are
+  `DEFAULT_COLOR_PRESETS`.
+- **Pointer capture**: each
+  surface calls
+  `setPointerCapture` on its
+  pointerdown so a drag that
+  exits the surface keeps
+  updating until pointerup.
+- **Disabled**: all interactions
+  (pointer, input, preset click)
+  short-circuit; root carries
+  `data-disabled="true"`.
+
+### Pure helpers (exported)
+
+```ts
+export function normalizeColorValue(
+  value: Partial<ColorValue> | null | undefined,
+): ColorValue;
+
+export function hslToRgb(
+  h: number, s: number, l: number,
+): { r: number; g: number; b: number };
+
+export function rgbToHsl(
+  r: number, g: number, b: number,
+): { h: number; s: number; l: number };
+
+export function parseHex(input: string): ColorValue | null;
+export function parseRgb(input: string): ColorValue | null;
+export function parseHsl(input: string): ColorValue | null;
+
+export function parseColor(
+  input: string,
+  preferred: 'hex' | 'rgb' | 'hsl',
+): ColorValue | null;
+
+export function formatHex(value: ColorValue): string;
+export function formatRgb(value: ColorValue): string;
+export function formatHsl(value: ColorValue): string;
+export function formatColor(
+  value: ColorValue,
+  mode: 'hex' | 'rgb' | 'hsl',
+): string;
+
+export const DEFAULT_COLOR_VALUE: ColorValue;
+export const DEFAULT_COLOR_PRESETS: string[];
+```
+
+Behaviour:
+
+- `normalizeColorValue` wraps hue
+  around 360 (negatives + over-
+  range), clamps s/l to 0..100
+  and a to 0..1, fills missing
+  fields with DEFAULT_COLOR_VALUE.
+- `hslToRgb` returns 0..255
+  bytes with proper grey-out at
+  s=0, white at l=100, black at
+  l=0.
+- `rgbToHsl` is the inverse;
+  round-trips with <=2-unit drift
+  on mid-range colors.
+- `parseHex` accepts 3 / 4 / 6 /
+  8 digit hex, with or without
+  the leading hash; rejects
+  anything else.
+- `parseRgb` / `parseHsl` accept
+  the canonical `rgb()` /
+  `rgba()` / `hsl()` / `hsla()`
+  shapes; permissive on
+  whitespace; returns null on
+  garbage.
+- `parseColor(text, preferred)`
+  falls through hex / rgb / hsl
+  parsers ordered by the
+  preferred hint so the most
+  likely shape wins first.
+- `formatHex` / `formatRgb` /
+  `formatHsl` emit the canonical
+  string; `a < 1` switches to
+  the alpha variant
+  (`#rrggbbaa`, `rgba()`,
+  `hsla()`).
+
+### ARIA + data attributes
+
+Root (`<div role="group">`,
+`aria-label`):
+
+- `data-section="color-picker"`
+- `data-disabled`
+- `data-show-alpha`
+
+Surfaces:
+
+- `data-section="color-picker-sl"`
+  + `role="slider"` +
+  `aria-valuetext` +
+  `data-saturation` +
+  `data-lightness`
+- `data-section="color-picker-hue"`
+  + `role="slider"` +
+  `aria-valuemin/now/max` +
+  `data-hue`
+- `data-section="color-picker-alpha"`
+  + `role="slider"` +
+  `aria-valuemin/now/max` +
+  `data-alpha`
+- Thumb indicators:
+  `-sl-thumb`, `-hue-thumb`,
+  `-alpha-thumb`
+
+Input row:
+
+- `data-section="color-picker-input-row"`
+- mode select:
+  `data-section="color-picker-mode"`
+  + `aria-label="Input format"`
+- text input:
+  `data-section="color-picker-input"`
+  + `aria-label="Color value"`
+
+Presets:
+
+- `data-section="color-picker-presets"`
+  + `role="list"` +
+  `aria-label="Color presets"`
+- each:
+  `data-section="color-picker-preset"`
+  + `role="listitem"` +
+  `aria-label="Preset <hex>"` +
+  `data-preset-hex`
+
+### Tests
+
+58 cases in `color-picker.test.tsx`:
+
+- `normalizeColorValue` (4):
+  defaults, clamp out-of-range,
+  hue wrap, pass-through
+- `hslToRgb` (6): white,
+  black, gray, pure red,
+  pure green, pure blue
+- `rgbToHsl` (5): white,
+  black, red, green, round-
+  trip <=2 drift
+- `parseHex` (5): 6-digit,
+  3-digit shorthand, 8-digit
+  alpha, no-hash, garbage
+- `parseRgb` (3): rgb, rgba,
+  garbage
+- `parseHsl` (3): hsl,
+  hsla, garbage
+- `parseColor` (2): preferred-
+  mode fallback, accepts any
+  format
+- `formatHex/Rgb/Hsl/Color`
+  (5): opaque / alpha
+  formatting, dispatcher
+- Component (25): role=group,
+  ariaLabel custom, 3 sliders,
+  showAlpha=false hides alpha,
+  data attrs on root, input
+  format reflects current
+  color, mode select switches
+  format, typing valid hex
+  commits on blur, Enter
+  commits, invalid input
+  snaps back, preset click
+  fires onChange, default
+  presets when none supplied,
+  empty presets hides row,
+  SL pointerdown emits s/l,
+  Hue pointerdown emits hue,
+  Alpha pointerdown emits a,
+  pointermove without down
+  is no-op, controlled value
+  override, disabled blocks
+  SL + preset, data-section
+  per surface, SL
+  aria-valuetext, Hue aria-
+  valuenow, displayName,
+  ref forwarding.
+
+58/58 pass under vitest 4.1.5;
+TypeScript clean for touched
+files.
+
+### Pairs with existing primitives
+
+- `<ThemeCustomizer>` (11.394) --
+  hue / brand surface adjuster.
+  ColorPicker is the per-color
+  primitive; ThemeCustomizer is
+  the page-level theme tuner.
+- `<Input>` -- the textual input
+  follows the same focus-ring
+  shape.
+- `<Popover>` -- the canonical
+  trigger pattern is to host
+  ColorPicker inside a popover
+  triggered by a swatch
+  button; the trigger lives in
+  the host.
+
+### Out of scope (deferred)
+
+- Eyedropper API (
+  `window.EyeDropper`).
+  Browser-gated; a follow-on
+  can layer it on top.
+- CMYK / Lab / OKlch color
+  models. RGB / HSL / hex
+  covers the canonical web
+  surface for v1.
+- Named CSS color parsing
+  (e.g., "rebeccapurple").
+  Adopters can pre-resolve
+  to hex via the host's color
+  table.
+- Saturation/value HSV canvas
+  variant. HSL is the
+  dispatched contract;
+  HSV is a follow-on if a real
+  adopter prefers Photoshop-
+  style coordinates.
+- Drag of an external color
+  swatch onto the canvas
+  (HTML5 DnD). Out of scope.
+- Recent-colors memory. The
+  host can manage a recently-
+  used list and pass via
+  `presets`.
+
 ## [1.11.428] - 2026-05-19 -- UI: date-picker disabled-date predicate (TODO 11.410)
 
 `<DatePicker>` (11.176) already shipped
