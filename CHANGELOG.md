@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.502] - 2026-05-19 -- UI: chart-icicle primitive (TODO 11.484)
+
+New **ChartIcicle** UI primitive in
+`web/src/components/ui/chart-icicle.tsx`:
+pure-SVG **icicle** chart, the
+rectangular variant of `<ChartSunburst>`
+(11.483). Each level of the hierarchy
+is a band; within a band, sibling
+rectangles tile the parent's extent
+with sizes proportional to their share
+of the parent. Two orientations:
+`horizontal` (root at top, children
+below) or `vertical` (root at left,
+children to the right). Click any cell
+to make it the new focus -- the focus
+subtree expands to fill the full canvas
+extent. A breadcrumb above the canvas
+lets adopters jump back to any
+ancestor. Value resolution: leaves use
+explicit value; non-leaf nodes prefer
+the sum of children (fallback to
+explicit only when child totals
+collapse). Click-to-zoom controlled
+(`focusPath` + `onFocusPathChange`) or
+uncontrolled (`defaultFocusPath`).
+Tooltip shows full breadcrumb path,
+formatted value, share against focus,
+and share of overall total. Pure
+helpers exported:
+`getIcicleDefaultColor`,
+`getIcicleNodeValue`,
+`flattenIcicleHierarchy`,
+`getIcicleMaxDepth`,
+`computeIcicleLayout`,
+`describeIcicleChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-rect role=
+graphics-symbol + tabIndex=0 +
+"<label>: <value> (<percent>)" aria-
+label; breadcrumb nav with
+`<button aria-label="Zoom to <label>">`
+per entry. data-section on every
+node; root mirrors data-node-count /
+data-cell-count / data-focus-id /
+data-focus-depth / data-max-depth /
+data-orientation / data-animate; cell
+groups mirror id / depth / parent /
+value / share / global-share / color /
+is-focus / hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 52 vitest cases pass.
+
 ## [1.11.501] - 2026-05-19 -- UI: chart-sunburst primitive (TODO 11.483)
 
 New **ChartSunburst** UI primitive in
