@@ -4,6 +4,306 @@
 
 (no entries -- next release window)
 
+## [1.11.447] - 2026-05-19 -- UI: keyboard-shortcuts-overlay primitive (TODO 11.429)
+
+New **KeyboardShortcutsOverlay** UI
+primitive in
+`web/src/components/ui/keyboard-shortcuts-overlay.tsx`:
+modal panel listing shortcuts
+grouped by category, with a
+platform-aware key display, an
+opt-in search filter, and a
+configurable trigger combo
+(`Cmd+/` on Mac, `Ctrl+/`
+elsewhere by default).
+
+### API
+
+```ts
+type KeyboardPlatform = 'mac' | 'windows' | 'linux' | 'auto';
+
+interface KeyboardShortcut {
+  id: string;
+  keys: string;            // e.g. 'mod+shift+k'
+  label: string;
+  description?: string;
+  category?: string;
+}
+
+interface KeyboardShortcutsOverlayProps {
+  shortcuts: KeyboardShortcut[];
+  open?: boolean;          // controlled
+  defaultOpen?: boolean;   // default false
+  onOpenChange?: (open: boolean) => void;
+  triggerShortcut?: string;            // default 'mod+/'
+  showSearch?: boolean;                // default true
+  searchPlaceholder?: string;          // default 'Search shortcuts...'
+  categoryOrder?: readonly string[];
+  platform?: KeyboardPlatform;         // default 'auto'
+  containerId?: string;                // portal root id
+  ariaLabel?: string;                  // default 'Keyboard shortcuts'
+  emptyState?: ReactNode;              // default 'No matching shortcuts'
+  closeOnEscape?: boolean;             // default true
+  closeOnBackdropClick?: boolean;      // default true
+  className?: string;
+  panelClassName?: string;
+  defaultCategory?: string;            // default 'General'
+}
+```
+
+### Behaviour
+
+- Panel renders through the
+  canonical portal
+  (`app-portal-root` by default).
+- A global `keydown` listener
+  on `window` toggles the
+  overlay when the configured
+  `triggerShortcut` is hit.
+  The default `mod+/` resolves
+  to `Cmd+/` on Mac and
+  `Ctrl+/` elsewhere via
+  `resolvePlatform` +
+  `matchesShortcut`.
+- Each shortcut's key combo is
+  rendered as a sequence of
+  `<kbd>` chips wrapped in a
+  `<dt>` / `<dd>` pair so
+  screen readers can announce
+  the action label alongside
+  the keys.
+- Items group by `category`;
+  entries with no category
+  fall into a configurable
+  `defaultCategory` (default
+  `'General'`).
+- `categoryOrder` pins the
+  section order; unlisted
+  categories follow in insertion
+  order.
+- The search input filters on
+  label, description, category,
+  and the raw keys string
+  (case-insensitive). Empty
+  results render the empty
+  state.
+- The search resets to empty
+  every time the overlay
+  reopens so stale filter state
+  does not leak between
+  sessions.
+- Escape closes
+  (`closeOnEscape` default
+  true). Backdrop click closes
+  (`closeOnBackdropClick`
+  default true). Close button
+  in the header also closes.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_KEYBOARD_TRIGGER_SHORTCUT = 'mod+/'
+DEFAULT_KEYBOARD_DEFAULT_CATEGORY = 'General'
+detectPlatform(): KeyboardPlatform
+resolvePlatform(platform): 'mac' | 'windows' | 'linux'
+getModKeyLabel(platform): 'Cmd' | 'Ctrl'
+getAltKeyLabel(platform): 'Option' | 'Alt'
+getShiftKeyLabel(): 'Shift'
+parseShortcutString(str): string[]
+formatKeyLabel(key, platform?): string
+formatShortcut(shortcut, platform?): string[]
+matchesShortcut(event, shortcut, platform?): boolean
+filterShortcuts(shortcuts, query): KeyboardShortcut[]
+groupShortcuts(shortcuts, order?, defaultCategory?):
+  Array<{ category, shortcuts }>
+```
+
+- `parseShortcutString` splits
+  on `+`, trims tokens, drops
+  empties, so `'mod + shift +
+  k'` and `'++mod++k++'` both
+  parse to a clean token list.
+- `formatKeyLabel` maps tokens
+  to platform-aware display
+  labels: `mod` -> `Cmd | Ctrl`,
+  `alt` -> `Option | Alt`,
+  arrow keys -> `Up | Down |
+  Left | Right`, common named
+  keys -> their titled label,
+  single chars -> uppercase.
+- `matchesShortcut` accepts a
+  KeyboardEvent (DOM or React)
+  and a shortcut string. `mod`
+  resolves to `metaKey` on Mac
+  and `ctrlKey` elsewhere;
+  extra modifiers that are not
+  in the pattern fail the match
+  so adopters can hotkey
+  unmodified keys without
+  cross-firing.
+- `filterShortcuts` matches
+  query (trimmed,
+  case-insensitive) against
+  label / description /
+  category / raw keys; empty
+  query returns a copy.
+- `groupShortcuts` honours
+  `categoryOrder`; unknown
+  buckets follow in insertion
+  order.
+
+### ARIA + data attributes
+
+- Panel: `role="dialog"` +
+  `aria-modal="true"` +
+  `aria-label` +
+  `tabIndex=-1`.
+- Search input:
+  `aria-label="Filter shortcuts"`.
+- Close button:
+  `aria-label="Close shortcuts overlay"`.
+- `data-section` on every node:
+  `keyboard-shortcuts-overlay`
+  (root dialog),
+  `-panel`,
+  `-header`,
+  `-title`,
+  `-trigger-hint`,
+  `-trigger-key`,
+  `-close`,
+  `-search`,
+  `-search-input`,
+  `-grid`,
+  `-empty`,
+  `-category`,
+  `-category-title`,
+  `-list`,
+  `-shortcut`,
+  `-shortcut-label`,
+  `-shortcut-description`,
+  `-shortcut-keys`,
+  `-key`.
+- Root mirrors `data-platform`,
+  `data-shortcut-count`,
+  `data-trigger`. Each category
+  mirrors `data-category`.
+  Each shortcut row mirrors
+  `data-shortcut-id`.
+
+### Tests
+
+64 cases in
+`web/src/components/ui/keyboard-shortcuts-overlay.test.tsx`,
+covering:
+
+- `parseShortcutString` (split,
+  trim, drop empties, empty
+  string).
+- `resolvePlatform` (explicit
+  pass-through, auto detection,
+  undefined fallback).
+- `getModKeyLabel` /
+  `getAltKeyLabel` for all
+  three platforms.
+- `formatKeyLabel` (mod / alt
+  platform swaps; common
+  named keys; arrow keys;
+  single char uppercase;
+  empty -> empty).
+- `formatShortcut` multi-key
+  composition.
+- `matchesShortcut`: mac
+  metaKey, windows ctrlKey,
+  mac does NOT accept
+  ctrlKey-only for mod,
+  case-insensitive key
+  compare, extra unwanted
+  modifier rejection,
+  mod+shift+n requires both,
+  shortcut without a main key
+  rejected.
+- `filterShortcuts`: empty
+  query copy, label /
+  description / category /
+  keys match.
+- `groupShortcuts`: category
+  buckets, default category
+  fallback, categoryOrder
+  pinning.
+- Constants -- default trigger
+  + default category.
+- Component: closed by default,
+  `defaultOpen` opens on
+  mount, controlled `open=true`
+  forces open, custom
+  `ariaLabel`.
+- Cmd+/ trigger opens (mac);
+  Ctrl+/ trigger opens
+  (windows); trigger toggles
+  closed when already open.
+- Escape closes (default);
+  `closeOnEscape=false` ignores
+  Escape.
+- Close button closes;
+  backdrop click closes;
+  `closeOnBackdropClick=false`
+  keeps the overlay open.
+- One section per category;
+  one shortcut row per item;
+  `<kbd>` chips per key;
+  platform=windows swaps
+  mod -> Ctrl chip.
+- Per-shortcut description
+  renders when supplied.
+- Search input filters visible
+  rows; search miss renders
+  the empty state;
+  `showSearch=false` hides the
+  input; search resets on
+  reopen.
+- `categoryOrder` pins
+  section order.
+- Panel renders inside the
+  portal target (not inline).
+- Root data attrs mirror
+  state.
+- Trigger hint renders the
+  formatted trigger as
+  `<kbd>` chips.
+- Stable `displayName`.
+
+### Pairs with existing primitives
+
+- `<CommandPalette>` for
+  action-execution surfaces
+  triggered by their own
+  shortcut.
+- `<Tooltip>` for inline
+  shortcut hints on individual
+  controls.
+- `<Dialog>` underlies the
+  modal pattern; this
+  primitive ships its own
+  portal + role=dialog with
+  the search-and-grid layout
+  baked in.
+
+### Out of scope
+
+- Capturing arbitrary
+  shortcuts and dispatching
+  actions (host wires its own
+  handler with `matchesShortcut`).
+- Editing / customising
+  bindings at runtime (host
+  owns the bindings array).
+- Cross-tab synchronisation
+  of binding overrides (host
+  owns storage).
+- Animated transitions on
+  open / close (snap for v1;
+  motion layer follow-on).
+
 ## [1.11.446] - 2026-05-19 -- UI: changelog-viewer primitive (TODO 11.428)
 
 New **ChangelogViewer** UI primitive
