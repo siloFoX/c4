@@ -155,3 +155,4 @@ export * from './chart-heatmap';
 export * from './chart-sparkline';
 export * from './chart-scatter';
 export * from './chart-radar';
+export * from './chart-bullet';

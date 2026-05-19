@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.464] - 2026-05-19 -- UI: chart-bullet primitive (TODO 11.446)
+
+New **ChartBullet** UI primitive in
+`web/src/components/ui/chart-bullet.tsx`:
+pure-SVG bullet chart in the Stephen
+Few sense. Visualises a single primary
+measure against a target plus a stack
+of qualitative range bands (low /
+medium / high; 3 default tiers at
+33% / 66% / 100% of the chart max).
+Horizontal or vertical orientation.
+Carries `role="progressbar"` so
+assistive tech describes the measure
+as a percentage of the chart max with
+the standard ARIA progressbar fields
+(`aria-valuenow`, `aria-valuemin=0`,
+`aria-valuemax`, and an
+`aria-valuetext` that reads
+"value of target target"). Optional
+label + sub-label header echoes the
+current value alongside the target.
+Numeric axis ticks (default 5,
+formatted via `formatValue`) render
+under or beside the track.
+Pure helpers exported: `getBulletMax`,
+`getDefaultBulletRanges`,
+`getBulletRatio`, `getBulletTicks`,
+`sortBulletRangesAscending`. 50 vitest
+cases cover helpers + every render
+branch including custom ranges,
+formatter shaping, orientation,
+over-max clamping, label/target text
+visibility, and ref forwarding.
+
 ## [1.11.463] - 2026-05-19 -- UI: chart-radar primitive (TODO 11.445)
 
 New **ChartRadar** UI primitive in
