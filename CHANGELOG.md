@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.476] - 2026-05-19 -- UI: chart-violin primitive (TODO 11.458)
+
+New **ChartViolin** UI primitive in
+`web/src/components/ui/chart-violin.tsx`:
+pure-SVG violin plot. Each series
+renders as a violin silhouette
+mirrored around a vertical axis;
+the width at every y-position is
+proportional to the local kernel
+density estimate (Gaussian kernel +
+Silverman bandwidth by default). A
+median dot marks the centre; an
+optional inner mini-boxplot overlay
+(IQR box + min/max whisker line)
+overlays on the same axis. Density
+is normalised per-series against
+its own peak so each violin uses
+the full slot width regardless of
+absolute sample count. Hover
+tooltip surfaces median, IQR,
+range, and sample count. Per-violin
+click handler. Pure helpers
+exported: `gaussianKernel`,
+`getViolinStdDev`,
+`silvermanBandwidth`, `computeKDE`,
+`getViolinEvalPoints`,
+`getViolinStats`, `getViolinBounds`,
+`getViolinTicks`, `buildViolinPath`,
+`describeViolinChart` (plus re-export
+of `getBoxplotStats` from
+`<ChartBoxplot>`). 63 vitest cases
+cover helpers (incl. kernel
+symmetry, Silverman fallback for
+zero-sigma data, KDE peak near data
+centre, mirror-polygon path
+correctness) + every render branch
+including inner-box visibility,
+median dot, tooltip rows, formatter
+shaping, click payload, ARIA
+description override, and ref
+forwarding.
+
 ## [1.11.475] - 2026-05-19 -- UI: chart-boxplot primitive (TODO 11.457)
 
 New **ChartBoxplot** UI primitive in
