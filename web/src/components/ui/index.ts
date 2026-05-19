@@ -230,3 +230,4 @@ export * from './chart-line-min-max';
 export * from './chart-line-target';
 export * from './chart-line-forecast';
 export * from './chart-line-cumulative';
+export * from './chart-line-rate';
