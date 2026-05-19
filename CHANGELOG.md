@@ -4,6 +4,304 @@
 
 (no entries -- next release window)
 
+## [1.11.457] - 2026-05-19 -- UI: chart-line primitive (TODO 11.439)
+
+New **ChartLine** UI primitive in
+`web/src/components/ui/chart-line.tsx`:
+pure-SVG line chart with axis grid,
+hover dot indicator, multi-series
+support, smooth-curve toggle, and
+null-aware gap handling so missing
+data points break the line cleanly
+instead of being interpolated
+through.
+
+### API
+
+```ts
+interface ChartLineDataPoint {
+  x: number;
+  y: number | null;
+}
+
+interface ChartLineSeries {
+  id: string;
+  label: string;
+  data: readonly ChartLineDataPoint[];
+  color?: string;
+}
+
+interface ChartLineProps {
+  series: readonly ChartLineSeries[];
+  width?: number;                      // default 520
+  height?: number;                     // default 280
+  padding?: number;                    // default 36
+  axisLabel?: { x?: string; y?: string };
+  smooth?: boolean;                    // default false
+  showGrid?: boolean;                  // default true
+  showTooltip?: boolean;               // default true
+  showAxisTicks?: boolean;             // default true
+  showDots?: boolean;                  // default false
+  animate?: boolean;                   // default true
+  className?: string;
+  ariaLabel?: string;                  // default 'Line chart'
+  formatX?: (v: number) => string;
+  formatY?: (v: number) => string;
+  tickCount?: number;                  // default 4
+  xDomain?: [number, number];
+  yDomain?: [number, number];
+}
+```
+
+### Behaviour
+
+- Computes bounds from every
+  series' non-null data points;
+  empty input collapses to
+  `(0, 1)` on both axes; a
+  single point expands by +1 to
+  avoid zero-range; explicit
+  `xDomain` / `yDomain` always
+  win.
+- Linear scales map data->pixel
+  via `getLinearScale`; null y
+  values are excluded from the
+  rendered line, producing a
+  visible gap.
+- Multi-series: each entry in
+  `series` renders its own
+  path; default colour comes
+  from the shared 8-color
+  palette (re-exported as
+  `DEFAULT_CHART_LINE_PALETTE`)
+  so `<ChartLine>` and
+  `<ChartBar>` stay
+  visually consistent.
+- `smooth=true` builds a
+  Catmull-Rom-to-cubic-bezier
+  path (`C cp1x cp1y cp2x cp2y
+  x y`); `smooth=false`
+  (default) renders an
+  `M / L` polyline.
+- `showDots=true` renders a
+  `<circle>` at every
+  non-null data point.
+- Hover layer: mousemove on
+  the SVG resolves the
+  fractional x position back
+  to a data-space value, picks
+  the nearest point per series
+  via `findNearestPointIndex`,
+  and renders both a vertical
+  rule and per-series hover
+  dots. A tooltip overlay
+  lists the matched value per
+  series (color swatch +
+  label + formatted value or
+  `n/a` when null).
+- `showTooltip=false` /
+  `showGrid=false` /
+  `showAxisTicks=false`
+  opt-outs each shed their
+  respective layers.
+- `animate=true` applies the
+  `motion-safe:animate-fade-in`
+  utility on each series group
+  so reduced-motion users do
+  not see the mount animation.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_CHART_LINE_WIDTH = 520
+DEFAULT_CHART_LINE_HEIGHT = 280
+DEFAULT_CHART_LINE_PADDING = 36
+DEFAULT_CHART_LINE_TICK_COUNT = 4
+DEFAULT_CHART_LINE_PALETTE  // re-exported from <ChartBar>
+getChartLineBounds(series, xDomain?, yDomain?): ChartLineBounds
+getLinearScale(min, max, length): (value: number) => number
+buildLinePath(points, smooth?): string
+findNearestPointIndex(data, xValue): number
+getChartLineTicks(min, max, count?): number[]
+formatChartLineTick(value, formatter?): string
+```
+
+- `buildLinePath` splits into
+  runs of consecutive non-null
+  points and emits a separate
+  `M ... L / C ...` sub-path
+  per run. All-null input
+  returns an empty string;
+  single-point smooth path
+  emits just the move-to;
+  two-point smooth path
+  degrades to a straight line.
+- `findNearestPointIndex`
+  finds the index with the
+  smallest absolute distance
+  in x-space; non-finite x
+  values are skipped.
+- `getLinearScale` clamps NaN
+  input to 0 and falls back to
+  1-to-1 (range or length=0
+  collapses to a unit scale).
+- `formatChartLineTick`
+  mirrors `<ChartBar>` --
+  integers pass through,
+  floats trim trailing zeros
+  (2dp), custom formatter
+  wins, NaN -> '0'.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- SVG: `role="img"` +
+  `aria-label`.
+- Per-series path:
+  `role="graphics-symbol"` +
+  `aria-label=<series.label>`.
+- Tooltip: `role="tooltip"`.
+- `data-section` on every
+  node: `chart-line` (root),
+  `chart-line-svg`,
+  `chart-line-axis-x`,
+  `chart-line-axis-y`,
+  `chart-line-grid-y`,
+  `chart-line-grid-x`,
+  `chart-line-tick-y`,
+  `chart-line-tick-x`,
+  `chart-line-series`,
+  `chart-line-path`,
+  `chart-line-dot` (when
+  `showDots=true`),
+  `chart-line-hover-layer`,
+  `chart-line-hover-rule`,
+  `chart-line-hover-dot`,
+  `chart-line-tooltip`,
+  `chart-line-tooltip-row`,
+  `chart-line-tooltip-swatch`,
+  `chart-line-tooltip-label`,
+  `chart-line-tooltip-value`,
+  `chart-line-axis-x-label`,
+  `chart-line-axis-y-label`.
+- Root mirrors
+  `data-series-count`,
+  `data-smooth`,
+  `data-animate`. Series
+  groups mirror
+  `data-series-id` +
+  `data-series-color`. Hover
+  dots mirror
+  `data-series-id`. Tooltip
+  rows mirror
+  `data-series-id`. Grid
+  rows mirror
+  `data-tick-value`.
+
+### Tests
+
+52 cases in
+`web/src/components/ui/chart-line.test.tsx`,
+covering:
+
+- `getChartLineBounds`: derive
+  from data; ignore null y;
+  empty fallback to (0,1);
+  single-point expansion;
+  xDomain / yDomain override.
+- `getLinearScale`: linear
+  mapping; zero-range domain;
+  zero-range length;
+  non-finite input.
+- `buildLinePath`: empty;
+  straight (M / L); smooth
+  (cubic bezier C); null
+  break splits sub-paths;
+  all-null empty;
+  single-point smooth;
+  two-point smooth degrades
+  to straight.
+- `findNearestPointIndex`:
+  empty -> -1; closest by
+  absolute x.
+- `getChartLineTicks`:
+  evenly-spaced; default
+  count; zero range.
+- `formatChartLineTick`:
+  integer / float / formatter
+  / NaN.
+- Constants -- defaults.
+- Component: region + default
+  + custom `ariaLabel`; one
+  series group per series;
+  per-series path
+  `role=graphics-symbol` +
+  aria-label.
+- `smooth=false` -> straight
+  path; `smooth=true` -> cubic
+  bezier path.
+- Null y splits the path on
+  the gap.
+- `showGrid=false` hides grid
+  lines; y / x tick labels
+  reflect bounds; formatY +
+  formatX format every label.
+- `showDots` renders one dot
+  per non-null point;
+  default off.
+- Mouse move on the svg
+  shows hover layer +
+  tooltip; mouse leave hides
+  both.
+- `showTooltip=false`
+  suppresses the tooltip
+  overlay.
+- Axis title labels render
+  when supplied.
+- Axis lines render.
+- Empty series renders
+  without crashing.
+- `animate=false` /
+  `smooth=true` data attrs
+  reflect props.
+- Per-series color override
+  applies to stroke.
+- Root `data-series-count`
+  mirrors series.length.
+- Stable `displayName` +
+  `forwardRef` to the root.
+- SVG viewBox respects
+  width + height.
+
+### Pairs with existing primitives
+
+- `<ChartBar>` (11.438) for
+  categorical bar charts;
+  re-exports the same
+  palette helpers.
+- `<Sparkline>` for compact
+  inline trend pings.
+- `<DataTable>` for raw row
+  display beside the chart.
+
+### Out of scope
+
+- Area fill / stacked area
+  variants (host wraps with
+  a `path` overlay).
+- Annotation lines / band
+  highlights (host adds
+  custom SVG children
+  underneath this primitive).
+- Brush / range select
+  (host wraps the chart in a
+  brush primitive when needed).
+- Tick algorithms like
+  d3-scale `nice()` -- the
+  built-in ticks divide the
+  range evenly.
+
 ## [1.11.456] - 2026-05-19 -- UI: chart-bar primitive (TODO 11.438)
 
 New **ChartBar** UI primitive in
