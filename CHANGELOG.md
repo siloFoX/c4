@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.501] - 2026-05-19 -- UI: chart-sunburst primitive (TODO 11.483)
+
+New **ChartSunburst** UI primitive in
+`web/src/components/ui/chart-sunburst.tsx`:
+pure-SVG **sunburst** (radial
+hierarchical) chart with **click-to-
+zoom into branches**. Each ring is one
+level of the hierarchy; each arc
+encodes its share of its parent.
+Clicking any arc makes it the new
+focus -- its subtree expands to fill
+the full 2pi and every other branch
+is hidden; clicking the center disc
+zooms back out one level toward the
+root. Value resolution: leaves use
+their explicit `value`; non-leaf
+nodes prefer the sum of children
+(explicit parent value only used as
+fallback when child totals collapse).
+Layout: rings stack outward from
+`centerRadius`; ring width = `(outer
+- center) / (maxDepth - focusDepth +
+1)`. Click-to-zoom is controlled
+(`focusPath` + `onFocusPathChange`)
+or uncontrolled (`defaultFocusPath`).
+Center disc is `role="button"` +
+`tabIndex={0}` so keyboard users can
+zoom out. Tooltip shows full
+breadcrumb path, value, share against
+focus value, and share of overall
+total. Pure helpers exported:
+`getSunburstDefaultColor`,
+`polarToCartesian`,
+`getSunburstNodeValue`,
+`flattenSunburstHierarchy`,
+`getSunburstMaxDepth`,
+`computeSunburstLayout`,
+`describeSunburstChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-arc role=graphics-
+symbol + tabIndex=0 + "<label>:
+<value> (<percent>)" aria-label;
+center "<focus>" disc keyboard-
+focusable. data-section on every
+node; root mirrors data-node-count /
+data-arc-count / data-focus-id /
+data-focus-depth / data-max-depth /
+data-animate; arc groups mirror id /
+depth / parent / value / share /
+global-share / color / is-focus /
+hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 52 vitest cases pass.
+
 ## [1.11.500] - 2026-05-19 -- UI: chart-spider-web primitive (TODO 11.482)
 
 New **ChartSpiderWeb** UI primitive in
