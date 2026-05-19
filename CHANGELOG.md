@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.535] - 2026-05-19 -- UI: chart-line-min-max primitive (TODO 11.517)
+
+New **ChartLineMinMax** UI
+primitive in
+`web/src/components/ui/chart-line-min-max.tsx`:
+pure-SVG multi-series line chart
+with **min/max markers and
+connecting reference lines**. For
+each series the canonical min point
+(lowest y) and max point (highest
+y) are identified and rendered as
+triangle glyphs (downward for min
+in red, upward for max in green)
+at the actual data coordinates.
+Optional horizontal reference
+lines extend across the full x
+range at the min and max y-values;
+optional vertical drop-lines fall
+from each marker to the x-axis.
+The canonical "high/low water
+mark" visualisation. Pure helpers
+`findLineMinMaxExtrema` (returns
+`{min, max}` with original-array
+indices; first occurrence wins on
+ties; null for empty / non-finite
+only), `buildLineMinMaxMarkerPath`
+(SVG `d` for upward / downward
+triangle anchored at center),
+`computeLineMinMaxLayout`, and
+`describeLineMinMaxChart`. Points
+carry `isMin` / `isMax` flags so
+adopters can drive custom dot
+styles. Distinct from
+`<ChartLineThreshold>` (external
+thresholds),
+`<ChartLineBaseline>` (single
+baseline + classification),
+`<ChartLineBand>` (chart-wide
+band between fixed y-values),
+`<ChartLinePercentile>`
+(percentile bands from samples),
+and `<ChartLineMarker>`
+(configurable markers per point).
+65 vitest cases cover defaults,
+extrema math (ties, original
+indices), marker geometry,
+layout, ARIA, marker + point
+tooltips, legend, callbacks, ref.
+(TODO 11.517)
+
 ## [1.11.534] - 2026-05-19 -- UI: chart-line-band primitive (TODO 11.516)
 
 New **ChartLineBand** UI primitive

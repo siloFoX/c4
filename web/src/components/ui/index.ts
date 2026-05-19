@@ -226,3 +226,4 @@ export * from './chart-line-moving-avg';
 export * from './chart-line-percentile';
 export * from './chart-line-event';
 export * from './chart-line-band';
+export * from './chart-line-min-max';
