@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.489] - 2026-05-19 -- UI: chart-calendar-heatmap primitive (TODO 11.471)
+
+New **ChartCalendarHeatmap** UI primitive
+in
+`web/src/components/ui/chart-calendar-heatmap.tsx`:
+pure-SVG GitHub-style year calendar
+heatmap. Each day paints as a small
+colored square; columns are weeks; rows
+are days of the week. Color encodes
+activity intensity via a configurable
+5-step palette plus a distinct
+emptyColor for zero / non-positive /
+non-finite days. Month labels render
+above the grid at the first column that
+touches each new month; a sparse DOW
+label axis renders on the left (3
+labels by default). Distinct from
+`<ChartHeatmap>` (11.442) in that this
+primitive is *time-aware*: it knows
+about ISO dates, week boundaries, and
+months, so callers can hand it
+`[{date, value}]` and a year (or an
+explicit date range) and get the full
+layout for free. Hover/focus opens a
+tooltip with formatted date + value;
+per-cell click handler. Pure helpers
+exported: `toISODate`, `parseISODate`,
+`addDays`, `getYearRange`,
+`getCalendarHeatmapColor`,
+`computeCalendarHeatmap`,
+`describeCalendarHeatmap`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label, per-cell rect
+role=graphics-symbol + tabIndex=0 +
+"<date>: <value>" aria-label so the
+whole year is keyboard-tabbable.
+data-section on every node; root
+mirrors data-cell-count /
+data-week-count / data-week-start /
+data-start-date / data-end-date /
+data-max / data-animate; cells mirror
+data-cell-date / -value / -level /
+-color / -col / -row / data-hovered.
+Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 52 vitest cases pass.
+
 ## [1.11.488] - 2026-05-19 -- UI: chart-bubble primitive (TODO 11.470)
 
 New **ChartBubble** UI primitive in
