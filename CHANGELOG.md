@@ -4,6 +4,383 @@
 
 (no entries -- next release window)
 
+## [1.11.449] - 2026-05-19 -- UI: data-import-wizard primitive (TODO 11.431)
+
+New **DataImportWizard** UI
+primitive in
+`web/src/components/ui/data-import-wizard.tsx`:
+five-step wizard
+(`upload` -> `map` -> `preview` ->
+`import` -> `done`). File upload
+(with drag-and-drop), column
+mapping between source headers and
+target schema, validation preview
+with row-level error chips, batch
+import progress bar, and a final
+error report with per-row
+drill-down.
+
+### API
+
+```ts
+type ImportWizardStep =
+  | 'upload' | 'map' | 'preview' | 'import' | 'done';
+
+interface ImportColumn {
+  key: string;
+  label: string;
+  required?: boolean;
+  description?: string;
+}
+
+interface ImportRow {
+  index: number;
+  values: Record<string, string>;
+  errors?: ImportRowError[];
+}
+
+interface ImportRowError {
+  column?: string;
+  message: string;
+}
+
+interface DataImportWizardProps {
+  step?: ImportWizardStep;            // controlled
+  defaultStep?: ImportWizardStep;     // default 'upload'
+  onStepChange?: (step: ImportWizardStep) => void;
+
+  acceptedFileTypes?: readonly string[]; // default ['.csv','.json','.xlsx']
+  uploadedFile?: File | null;
+  onFileUpload?: (file: File) => Promise<void> | void;
+
+  sourceColumns?: readonly string[];
+  targetColumns?: readonly ImportColumn[];
+  mapping?: Record<string, string>;   // controlled
+  defaultMapping?: Record<string, string>;
+  onMappingChange?: (m: Record<string, string>) => void;
+
+  previewRows?: readonly ImportRow[];
+  previewSummary?: { valid: number; invalid: number };
+
+  importProgress?: number;            // 0..1
+  isImporting?: boolean;
+
+  errorRows?: readonly ImportRow[];
+  successCount?: number;
+  errorCount?: number;
+
+  onImport?: () => Promise<void> | void;
+  onRetry?: () => void;
+  onClose?: () => void;
+
+  labels?: ImportWizardLabels;
+  ariaLabel?: string;
+  className?: string;
+}
+```
+
+### Behaviour
+
+- Steps render as a horizontal
+  navigation strip with chevron
+  markers, per-step `data-state`
+  ('completed' | 'active' |
+  'pending'), and
+  `aria-current="step"` on the
+  active step.
+- Upload step: drop zone
+  (`onDragOver` highlights the
+  border + sets
+  `data-dragging="true"`) +
+  hidden `<input type="file">`
+  trigger. Drop or change fires
+  `onFileUpload(file)`. The
+  selected file name renders
+  inline.
+- Map step: a table with one
+  row per source column; each
+  row exposes a `<select>` of
+  target columns. Selecting
+  `-- skip --` clears the
+  mapping. Required target
+  columns are flagged with a
+  trailing `*`. A warning
+  banner lists every required
+  target that has not been
+  mapped.
+- Preview step: optional
+  summary chips for valid /
+  invalid counts; a scrollable
+  table of preview rows with
+  `data-row-status="valid"`
+  /  `'invalid'` so adopters
+  can style or filter.
+- Import step: a `<progressbar>`
+  with `aria-valuemin/max/now/text`
+  and a spinning loader; tracks
+  `importProgress` (clamped to
+  `[0, 1]`).
+- Done step: success +
+  error count chips; per-error
+  row chevron toggle that
+  reveals row values + every
+  error entry. Retry / Close
+  buttons in the footer (each
+  renders only when its
+  callback is provided).
+- Next is gated per step:
+  - upload: requires
+    `uploadedFile`.
+  - map: requires every
+    required target to be
+    mapped.
+  - preview: enabled only if
+    `previewSummary.valid > 0`
+    (or no summary supplied).
+  - import / done: Next is
+    suppressed (Start import /
+    Close take its place).
+- Back is disabled on the
+  first step and while
+  `isImporting`.
+
+### Pure helpers (exported)
+
+```ts
+IMPORT_WIZARD_STEPS = ['upload','map','preview','import','done']
+IMPORT_WIZARD_STEP_LABELS = { upload: 'Upload', ... }
+getImportStepIndex(step): number
+getNextImportStep(step): ImportWizardStep
+getPrevImportStep(step): ImportWizardStep
+validateImportMapping(mapping, targetColumns):
+  { ok: boolean; missing: string[] }
+isImportMappingComplete(mapping, targetColumns): boolean
+clampImportProgress(value): number
+formatImportProgressPercent(value): string
+```
+
+- `getNextImportStep` /
+  `getPrevImportStep` clamp at
+  the boundaries so adopters
+  can call them safely from
+  any step.
+- `validateImportMapping`
+  reports every required target
+  that is not present in the
+  mapping value set; non-
+  required columns are never
+  flagged.
+- `clampImportProgress` guards
+  NaN / negative / >1; the
+  formatter reuses the clamp
+  before rounding to integer
+  percent.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- Step strip: `role="navigation"`
+  + `aria-label="Wizard steps"`;
+  each `<li>` carries
+  `aria-current="step"` when
+  active.
+- Map select per row:
+  `aria-label="Map <source> to target column"`.
+- Map warning row:
+  `role="alert"`.
+- Import progress:
+  `role="progressbar"` +
+  `aria-valuemin=0` /
+  `aria-valuemax=100` /
+  `aria-valuenow` +
+  `aria-valuetext`.
+- Error drill-down toggle:
+  `aria-expanded` mirrors
+  state + `aria-controls`
+  points at the detail
+  region id.
+- `data-section` on every
+  node:
+  `data-import-wizard` (root),
+  `-steps`,
+  `-step`, `-step-marker`,
+  `-step-label`,
+  `-step-connector`,
+  `-body`,
+  `-upload`, `-upload-label`,
+  `-upload-input`,
+  `-upload-file`,
+  `-map`, `-map-table`,
+  `-map-row`, `-map-select`,
+  `-map-error`,
+  `-preview`,
+  `-preview-summary`,
+  `-preview-summary-valid`,
+  `-preview-summary-invalid`,
+  `-preview-rows`,
+  `-preview-row`,
+  `-import`,
+  `-import-progress`,
+  `-import-track`,
+  `-import-fill`,
+  `-import-label`,
+  `-done`,
+  `-done-summary`,
+  `-done-success`,
+  `-done-errors`,
+  `-error-report`,
+  `-error-row`,
+  `-error-toggle`,
+  `-error-detail`,
+  `-error-values`,
+  `-error-value`,
+  `-error-list`,
+  `-error-entry`,
+  `-actions`,
+  `-back`, `-next`,
+  `-import-action`,
+  `-retry`, `-close`.
+- Root mirrors `data-step`,
+  `data-step-index`,
+  `data-mapping-complete`,
+  `data-importing`. Each step
+  mirrors `data-step` +
+  `data-state`. Upload zone
+  mirrors `data-dragging`.
+  Each map row mirrors
+  `data-source`. Each preview
+  row mirrors `data-row-index`
+  + `data-row-status`. Each
+  error row mirrors
+  `data-row-index` +
+  `data-expanded`. Progress
+  wrapper mirrors
+  `data-progress`.
+
+### Tests
+
+55 cases in
+`web/src/components/ui/data-import-wizard.test.tsx`,
+covering:
+
+- All exported pure helpers:
+  step list / labels, index,
+  next + prev clamps,
+  `validateImportMapping` ok /
+  missing required / non-
+  required not flagged /
+  empty mapping,
+  `isImportMappingComplete`
+  delegate,
+  `clampImportProgress` neg /
+  >1 / NaN,
+  `formatImportProgressPercent`
+  0 / 100 / mid integer
+  rounding.
+- Default + custom `ariaLabel`.
+- Starts on the upload step;
+  five step markers rendered.
+- Upload-step Next disabled
+  without `uploadedFile`;
+  enabled with it; selected
+  file name renders.
+- File input fires
+  `onFileUpload(file)`.
+- Next advances to map step.
+- Back returns to previous;
+  Back disabled on first
+  step.
+- Map step renders one row
+  per source column; Next
+  disabled until required
+  mappings are set;
+  `onMappingChange` fires
+  with the merged mapping;
+  warning banner lists missing
+  required.
+- `data-mapping-complete`
+  attr reflects state.
+- Preview step shows summary
+  chips; per-row
+  `data-row-status` flips on
+  errors; Start import button
+  rendered; Start import
+  disabled when no valid
+  rows; clicking fires
+  `onImport` + advances to
+  import step.
+- Import step renders
+  progressbar with the
+  configured `importProgress`.
+- Done step shows success /
+  error chips; per-error row
+  toggle expands +
+  reveals values and error
+  messages; Retry + Close
+  appear when handlers
+  provided; clicking each
+  fires its callback.
+- Controlled `step` pins the
+  rendered step;
+  `onStepChange` fires on Next
+  with the right value.
+- `isImporting` locks Back.
+- Step navigation has
+  `role="navigation"` +
+  `aria-current` on the
+  active step.
+- Completed steps render
+  `data-state="completed"`.
+- Upload `accept` attribute
+  reflects `acceptedFileTypes`.
+- Stable `displayName` +
+  `forwardRef` to the root
+  region.
+
+### Pairs with existing primitives
+
+- `<DataExport>` (11.430) is
+  the reverse flow: pull rows
+  out of the app, not in.
+- `<FileDrop>` underlies the
+  drag-and-drop pattern; this
+  primitive bakes its own
+  drop zone into the upload
+  step for tight wizard
+  cohesion.
+- `<ProgressTracker>` (11.421)
+  for non-import multi-step
+  flows where the steps are
+  more loosely connected.
+- `<Stepper>` for compact
+  step-by-step forms outside
+  the import path.
+
+### Out of scope
+
+- File parsing (host owns
+  CSV / JSON / XLSX parsing
+  and feeds back
+  `sourceColumns` +
+  `previewRows`).
+- Network calls / batching
+  (host implements
+  `onImport`; the primitive
+  only owns the UI gate +
+  progress mirror).
+- Server-side validation
+  (host wires per-row errors
+  into `previewRows` /
+  `errorRows`).
+- Auto-mapping suggestions
+  based on header similarity
+  (host computes and
+  preseeds `defaultMapping`).
+- Resumable / chunked imports
+  (host implements the
+  resume protocol).
+
 ## [1.11.448] - 2026-05-19 -- UI: data-export primitive (TODO 11.430)
 
 New **DataExport** UI primitive in
