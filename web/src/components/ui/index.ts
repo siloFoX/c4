@@ -241,3 +241,4 @@ export * from './chart-line-acceleration';
 export * from './chart-line-correlation';
 export * from './chart-line-distribution';
 export * from './chart-line-period-compare';
+export * from './chart-line-streak';
