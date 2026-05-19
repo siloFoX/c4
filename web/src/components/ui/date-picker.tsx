@@ -23,6 +23,13 @@ import {
 
 // (11.176) DatePicker primitive. Native Date only, no external date lib.
 // Reuses the existing Popover. Single-date and DateRangePicker exports.
+//
+// (v1.11.428, TODO 11.410) Adds `isDateDisabled` predicate so
+// callers can mark individual cells unavailable (weekends,
+// holidays, capacity-out days) without expressing them as a
+// continuous min/max range. The pure helper `isDayAllowed` is
+// exported so hosts that manage selection externally can reuse
+// the same gate.
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -31,6 +38,26 @@ function withinRange(d: Date, min?: Date, max?: Date): boolean {
   if (min && t < startOfDay(min).getTime()) return false;
   if (max && t > startOfDay(max).getTime()) return false;
   return true;
+}
+
+// (v1.11.428, TODO 11.410) Combined gate -- a date is allowed
+// only when it is within [min, max] AND the optional
+// `isDateDisabled` predicate returns false. Throws in the
+// predicate are swallowed (predicate -> disabled) so a bad
+// caller-supplied function cannot crash the calendar render.
+export function isDayAllowed(
+  d: Date,
+  min?: Date,
+  max?: Date,
+  isDateDisabled?: (date: Date) => boolean,
+): boolean {
+  if (!withinRange(d, min, max)) return false;
+  if (!isDateDisabled) return true;
+  try {
+    return !isDateDisabled(startOfDay(d));
+  } catch {
+    return false;
+  }
 }
 
 function buildMonthGrid(view: Date): Date[] {
@@ -50,6 +77,7 @@ interface MonthGridProps {
   rangeTo?: Date | null | undefined;
   min?: Date | undefined;
   max?: Date | undefined;
+  isDateDisabled?: ((date: Date) => boolean) | undefined;
   onPick: (d: Date) => void;
   onFocus: (d: Date) => void;
   today: Date;
@@ -63,6 +91,7 @@ function MonthGrid({
   rangeTo,
   min,
   max,
+  isDateDisabled,
   onPick,
   onFocus,
   today,
@@ -81,7 +110,7 @@ function MonthGrid({
       ))}
       {cells.map((d) => {
         const inMonth = d.getMonth() === viewMonth.getMonth();
-        const disabled = !withinRange(d, min, max);
+        const disabled = !isDayAllowed(d, min, max, isDateDisabled);
         const isToday = isSameDay(d, today);
         const isFocused = isSameDay(d, focused);
         const isSelected = isSameDay(d, selected);
@@ -205,6 +234,10 @@ export interface DatePickerProps {
   disabled?: boolean | undefined;
   ariaLabel?: string | undefined;
   className?: string | undefined;
+  // (v1.11.428, TODO 11.410) Per-day disabled predicate. Receives
+  // the start-of-day Date; return true to mark the cell unavailable.
+  // Thrown errors are swallowed -> cell is disabled.
+  isDateDisabled?: ((date: Date) => boolean) | undefined;
 }
 
 function assignRef<T>(ref: Ref<T> | undefined, node: T | null) {
@@ -236,6 +269,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
       disabled,
       ariaLabel,
       className,
+      isDateDisabled,
     },
     ref,
   ) => {
@@ -282,12 +316,12 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
       }
       else if (k === 'Enter') {
         e.preventDefault();
-        if (withinRange(focused, min, max)) {
+        if (isDayAllowed(focused, min, max, isDateDisabled)) {
           onChange(focused);
           setOpen(false);
         }
       }
-    }, [focused, min, max, moveFocus, onChange]);
+    }, [focused, min, max, isDateDisabled, moveFocus, onChange]);
 
     const onPick = useCallback((d: Date) => {
       onChange(d);
@@ -331,6 +365,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                 selected={value}
                 min={min}
                 max={max}
+                isDateDisabled={isDateDisabled}
                 onPick={onPick}
                 onFocus={setFocused}
                 today={today}
@@ -359,6 +394,8 @@ export interface DateRangePickerProps {
   ariaLabel?: string | undefined;
   className?: string | undefined;
   placeholder?: string | undefined;
+  // (v1.11.428, TODO 11.410) Per-day disabled predicate.
+  isDateDisabled?: ((date: Date) => boolean) | undefined;
 }
 
 export const DateRangePicker = forwardRef<HTMLButtonElement, DateRangePickerProps>(
@@ -372,6 +409,7 @@ export const DateRangePicker = forwardRef<HTMLButtonElement, DateRangePickerProp
       ariaLabel,
       className,
       placeholder = 'YYYY-MM-DD ~ YYYY-MM-DD',
+      isDateDisabled,
     },
     ref,
   ) => {
@@ -435,9 +473,9 @@ export const DateRangePicker = forwardRef<HTMLButtonElement, DateRangePickerProp
       }
       else if (k === 'Enter') {
         e.preventDefault();
-        if (withinRange(focused, min, max)) onPick(focused);
+        if (isDayAllowed(focused, min, max, isDateDisabled)) onPick(focused);
       }
-    }, [focused, min, max, onPick]);
+    }, [focused, min, max, isDateDisabled, onPick]);
 
     const fromLabel = toISODate(value.from);
     const toLabel = toISODate(value.to);
@@ -485,6 +523,7 @@ export const DateRangePicker = forwardRef<HTMLButtonElement, DateRangePickerProp
                 rangeTo={value.to}
                 min={min}
                 max={max}
+                isDateDisabled={isDateDisabled}
                 onPick={onPick}
                 onFocus={setFocused}
                 today={today}
@@ -506,6 +545,7 @@ export const DateRangePicker = forwardRef<HTMLButtonElement, DateRangePickerProp
                 rangeTo={value.to}
                 min={min}
                 max={max}
+                isDateDisabled={isDateDisabled}
                 onPick={onPick}
                 onFocus={setFocused}
                 today={today}
