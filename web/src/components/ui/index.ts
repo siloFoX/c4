@@ -234,3 +234,4 @@ export * from './chart-line-rate';
 export * from './chart-line-normalize';
 export * from './chart-line-spark-bar';
 export * from './chart-line-anomaly';
+export * from './chart-line-residual';

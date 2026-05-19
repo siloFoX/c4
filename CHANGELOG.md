@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.543] - 2026-05-19 -- UI: chart-line-residual primitive (TODO 11.525)
+
+New **ChartLineResidual** UI
+primitive in
+`web/src/components/ui/chart-line-residual.tsx`:
+pure-SVG multi-series **residual
+plot**. Takes paired observed
+and predicted values per x and
+plots `residual = observed -
+predicted` against a horizontal
+zero-reference line. Stems drop
+from each residual point to zero
+so over- vs under-prediction
+reads at a glance. Per-series
+diagnostic stats (mean, MAE,
+RMSE, max |r|, bias direction)
+drive the legend and ARIA
+description. Pure helpers
+`computeResidual`,
+`classifyLineResidualSign`
+(positive/negative/zero with
+epsilon band),
+`computeLineResidualStats`
+(meanResidual + MAE + RMSE +
+maxAbs + bias 'positive' /
+'negative' / 'unbiased'),
+`computeLineResidualLayout`,
+and `describeLineResidualChart`.
+The canonical regression
+diagnostic / model evaluation
+visualisation. Distinct from
+`<ChartLineRate>` (derivative),
+`<ChartLineComparison>` (two
+curves), `<ChartLineTarget>`
+(flat target),
+`<ChartLineTrend>` (regression
+line), `<ChartLineAnomaly>`
+(z-score outliers on single
+series), and
+`<ChartLineBaseline>` (per-point
+classification vs flat). 53
+vitest cases cover defaults,
+residual math, sign + stats,
+layout (zero baseline + stems +
+diagnostics), ARIA, tooltip with
+under/over-predicted label,
+legend, callbacks, ref. (TODO
+11.525)
+
 ## [1.11.542] - 2026-05-19 -- UI: chart-line-anomaly primitive (TODO 11.524)
 
 New **ChartLineAnomaly** UI
