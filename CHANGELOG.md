@@ -4,6 +4,291 @@
 
 (no entries -- next release window)
 
+## [1.11.433] - 2026-05-19 -- UI: timeline-step primitive (TODO 11.415)
+
+New `web/src/components/ui/timeline-step.tsx`
+ships `<TimelineStep>` -- single
+vertical step indicator that
+composes into a larger wizard /
+progress timeline. Each instance
+owns the circle + connector lines
++ an optional content slot to
+the right of the circle. The
+host arranges the steps in a
+flex column and supplies
+`showConnectorBefore` /
+`showConnectorAfter` flags so
+the first / last step does not
+paint orphan connectors.
+
+Distinct from `<Stepper>`
+(11.252 / 11.376) -- Stepper is
+the full multi-step composer
+that walks a `StepperStep[]`
+array. TimelineStep is the
+building block, exposed for
+hosts that want to assemble
+custom timeline layouts (audit
+log entries, release-cut
+milestones, etc.).
+
+### API
+
+```tsx
+<ol>
+  <TimelineStep
+    state="completed"
+    label="Validate request"
+    description="2026-05-19 12:34"
+    showConnectorAfter
+  />
+  <TimelineStep
+    state="current"
+    label="Run quality gate"
+    showConnectorBefore
+    showConnectorAfter
+  />
+  <TimelineStep
+    state="pending"
+    label="Deploy to prod"
+    showConnectorBefore
+  />
+</ol>
+```
+
+```ts
+type TimelineStepState =
+  | 'completed'
+  | 'current'
+  | 'pending'
+  | 'error';
+
+type TimelineStepSize = 'sm' | 'md' | 'lg';
+type TimelineStepConnectorState = 'completed' | 'pending';
+
+interface TimelineStepProps {
+  state?: TimelineStepState;                       // default 'pending'
+  icon?: ReactNode;                                 // overrides default per-state icon
+  label?: ReactNode;
+  description?: ReactNode;
+  meta?: ReactNode;                                 // right-rail timestamp slot
+  showConnectorBefore?: boolean;                    // default false
+  showConnectorAfter?: boolean;                     // default false
+  connectorState?: TimelineStepConnectorState;     // overrides per-side derivation
+  size?: TimelineStepSize;                          // default 'md'
+  ariaLabel?: string;
+  className?: string;
+  // ...HTMLLIElement attributes
+}
+```
+
+### Behaviour
+
+- **States**: completed (emerald
+  bg + check icon), current
+  (primary bg + ring, no default
+  icon), pending (background +
+  border + muted icon), error
+  (rose bg + alert icon).
+- **Sizes**: sm (h-5 circle) /
+  md (h-6, default) / lg (h-8);
+  each variant scales the
+  default icon dim + label
+  text + gap.
+- **Connector lines**:
+  `showConnectorBefore` /
+  `showConnectorAfter` flags
+  toggle the vertical rail
+  segments above / below the
+  circle. Default per-side
+  derivation:
+  - completed: both sides
+    completed colour
+  - current / error: above
+    completed, below pending
+  - pending: both pending
+  `connectorState` prop
+  overrides both sides
+  uniformly when the host
+  needs explicit control.
+- **Custom icon slot**: pass
+  any `icon` ReactNode to
+  replace the default. Empty
+  pending / current cells
+  default to no icon (just
+  the coloured circle).
+- **Right-rail content**:
+  `label` + `description` +
+  `meta` slots render in a
+  column to the right of the
+  rail; the entire content
+  block is omitted when all
+  three are undefined.
+- **ARIA**: `<li
+  role="listitem">` with
+  `aria-current="step"` when
+  state is `current`.
+  `ariaLabel` prop adds an
+  explicit label for the
+  step.
+
+### Pure helpers (exported)
+
+```ts
+export const TIMELINE_STEP_STATE_CLASS: Record<
+  TimelineStepState,
+  { circle: string; icon: string; label: string; description: string }
+>;
+
+export function isTimelineStepReachable(
+  state: TimelineStepState,
+): boolean;
+
+export function getTimelineStepDefaultIcon(
+  state: TimelineStepState,
+): ReactNode;
+
+export function getTimelineStepAriaCurrent(
+  state: TimelineStepState,
+): 'step' | undefined;
+```
+
+- `isTimelineStepReachable`:
+  true for completed +
+  current; false for pending +
+  error.
+- `getTimelineStepDefaultIcon`:
+  Check for completed,
+  AlertCircle for error,
+  null for current + pending.
+- `getTimelineStepAriaCurrent`:
+  'step' only for current.
+
+### Data attributes
+
+Root (`<li role="listitem">`):
+
+- `data-section="timeline-step"`
+- `data-state`
+- `data-size`
+- `data-show-connector-before`
+- `data-show-connector-after`
+- `data-reachable` ('true' /
+  'false')
+
+Inner:
+
+- `data-section="timeline-step-rail"`
+- `data-section="timeline-step-rail-spacer"`
+  (when connector hidden)
+- `data-section="timeline-step-connector-before"`
+  + `data-connector-state`
+- `data-section="timeline-step-connector-after"`
+  + `data-connector-state`
+- `data-section="timeline-step-circle"`
+  + `data-state`
+- `data-section="timeline-step-icon"`
+  + `data-icon-kind`
+  ('custom' / `default-<state>`)
+- `data-section="timeline-step-content"`
+- `data-section="timeline-step-label"`
+- `data-section="timeline-step-description"`
+- `data-section="timeline-step-meta"`
+
+### Tests
+
+43 cases in
+`timeline-step.test.tsx`:
+
+- `TIMELINE_STEP_STATE_CLASS`
+  (2): four states declared,
+  class strings non-empty
+- `isTimelineStepReachable`
+  (4): completed -> true,
+  current -> true, pending
+  -> false, error -> false
+- `getTimelineStepDefaultIcon`
+  (4): node for completed +
+  error, null for pending +
+  current
+- `getTimelineStepAriaCurrent`
+  (1): 'step' for current,
+  undefined for the rest
+- Component (32): listitem
+  role, data-state default
+  + per state, aria-current
+  on current only, ariaLabel,
+  label / description / meta
+  slots, content omitted
+  when slots empty, circle
+  rendered, default icons
+  per state (check /
+  alert / null), custom icon
+  overrides, connector
+  before / after toggle,
+  connector state derivation
+  per state, connectorState
+  override, data-show-
+  connector flags, data-size
+  variants, circle dim per
+  size, data-reachable
+  reflects state, extra HTML
+  attrs forwarded, className
+  honored, displayName, ref
+  forwarding, label colour
+  shifts on error state.
+
+43/43 pass under vitest 4.1.5;
+TypeScript clean for touched
+files.
+
+### Pairs with existing primitives
+
+- `<Stepper>` (11.252 /
+  11.376) -- full multi-step
+  composer. TimelineStep is
+  the per-row primitive
+  inside or outside Stepper.
+- `<Timeline>` -- log /
+  activity timeline (existing
+  layout). TimelineStep is
+  the wizard-flavoured row.
+- `<StatusIndicator>` (11.414)
+  -- inline state dot. The
+  circle on TimelineStep
+  serves the same purpose
+  but locks into a
+  prescribed wizard layout.
+- ThemeCustomizer (11.394) --
+  the step reads token-based
+  classes so it auto-themes.
+
+### Out of scope (deferred)
+
+- Horizontal orientation. The
+  dispatched contract is
+  vertical; `<Stepper>`
+  covers the horizontal
+  variant.
+- Click handler on the step
+  (jump-to-step). Adopters
+  wrap the step in their own
+  button or anchor; the
+  primitive stays
+  presentational.
+- Animated connector fill
+  ("progress bar" between two
+  steps). Snap to the new
+  state for v1; CSS
+  transitions belong in a
+  follow-on motion layer.
+- Tooltip slot on the
+  circle. Host wraps with
+  the existing `<Tooltip>`
+  primitive.
+- Per-cell drag-to-reorder.
+  Wizard order is canonical.
+
 ## [1.11.432] - 2026-05-19 -- UI: status-indicator primitive (TODO 11.414)
 
 New `web/src/components/ui/status-indicator.tsx`
