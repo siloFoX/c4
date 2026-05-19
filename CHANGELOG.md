@@ -4,6 +4,200 @@
 
 (no entries -- next release window)
 
+## [1.11.554] - 2026-05-19 -- UI: chart-line-pareto primitive (TODO 11.536)
+
+New **ChartLinePareto** UI
+primitive in
+`web/src/components/ui/chart-line-pareto.tsx`:
+pure-SVG **Pareto chart in
+line form** -- categorical
+inputs ranked by value
+descending, rendered as a
+primary value line against
+the LEFT axis with a
+cumulative-percentage
+overlay against the RIGHT
+axis. A dashed horizontal
+reference at the configurable
+threshold (default 80% --
+the canonical 80-20 rule)
+calls out the threshold,
+and a dashed vertical
+"crossover" line marks the
+rank where the cumulative
+percentage first reaches
+the threshold. Vital-few
+items (those at or before
+the crossover) are tinted
+green and the rectangle
+behind them is shaded;
+trivial-many items are
+tinted gray. A vital-few
+badge in the top-left tells
+operators "N vital few
+drive 80%". The canonical
+"80-20 rule" / "vital few
+vs trivial many"
+visualisation used in
+root-cause analysis,
+defect prioritisation,
+inventory ABC analysis,
+etc. Pure helpers
+`rankLineParetoItems` (sort
+by value descending; assign
+rank; compute
+cumulativeValue,
+cumulativePercent, share,
+stratum vital/trivial;
+vital classification
+includes items whose
+cumulative <= threshold
+PLUS the first item that
+crosses the threshold;
+threshold <= 0 -> all
+trivial; preserves
+originalIndex),
+`findLineParetoCrossover`
+(first rank reaching
+threshold; empty -> -1;
+last when never reached),
+`normaliseLineParetoThreshold`
+(clamps to [0, 100]),
+`computeLineParetoLayout`
+(returns ranked + paths +
+vitalFillPath + crossover
+metadata; dual y-axes
+spanning [0, maxValue] left
+and [0, 100]% right), and
+`describeLineParetoChart`.
+Distinct from
+`<ChartPareto>` (bar-form
+of the Pareto analysis --
+this primitive is the
+LINE-form with the
+cumulative on a SEPARATE
+line on a dual axis),
+`<ChartLineCumulative>`
+(11.520; simple running
+SUM rising over time --
+Pareto's cumulative is
+RANKED-descending +
+NORMALISED to 100% with
+canonical 80% threshold +
+vital-few crossover),
+`<ChartLineTarget>` (11.518;
+vs arbitrary user target
+-- Pareto's reference is
+the standardized 80% rule
+with built-in vital-few
+identification),
+`<ChartLineThreshold>`
+(11.503; arbitrary
+user-defined horizontal
+thresholds + zones --
+Pareto's threshold is the
+canonical Pareto rule),
+`<ChartLineBaseline>`
+(11.510; single flat
+reference -- Pareto has
+TWO coordinated references
+plus dual cumulative
+overlay). Per-instance
+`valueColor` /
+`cumulativeColor` /
+`thresholdColor` /
+`vitalColor` /
+`trivialColor` always
+beats defaults. Tooltip
+on value dots shows
+category in value-color,
+rank, bold value (share),
+cumulative percent, and a
+coloured vital-few /
+trivial-many row. Vital-
+few badge in the top-left
+calls out the count with
+icon ★ + "drive <threshold>%"
+label. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; value path +
+cumulative path +
+threshold line + every
+value dot
+`role="graphics-symbol"
+tabIndex={0}`; cumulative
+dots are decorative
+(role=graphics-symbol +
+aria-hidden); crossover
+vertical
+`role="graphics-symbol"`
+with aria-label including
+the rank. Data-attrs:
+root `data-total-points`,
+`data-vital-few-count`,
+`data-trivial-many-count`,
+`data-crossover-rank`,
+`data-threshold`,
+`data-total-value`,
+`data-animate`; value
+path `data-kind="value"`;
+cumulative path
+`data-kind="cumulative"`;
+dots `data-kind` +
+`data-rank` +
+`data-category` +
+`data-value` +
+`data-cumulative-percent`
++ `data-share` +
+`data-stratum`. 65 vitest
+cases pass (defaults,
+helpers incl.
+rankLineParetoItems
+descending sort +
+originalIndex + cumulative
+reaches 100 + boundary
+crosser handling +
+threshold=0 +
+flat-distribution + share
+sum,
+findLineParetoCrossover
+first/last/threshold=0
+cases, computeLineParetoLayout
+empty / degenerate / rank
+order / vital count /
+crossover / paths / fill /
+no fill at threshold=0 /
+threshold py monotonic /
+valueMin overrides / drops
+non-finite / totalValue /
+per-point stratum /
+percent ticks,
+describeLineParetoChart No
+data + summary, component
+render incl. empty / value
+path kind=value /
+cumulative path
+kind=cumulative / dashed
+threshold + hide /
+crossover vertical + hide
+/ vital-few fill + hide /
+badge + hide / value +
+cumulative dots per rank /
+dot data-stratum +
+cumulative-percent +
+share / hide dots / ARIA /
+root data-* / tooltip rows
+incl. vital / hide on
+leave + omit / onPointClick
+/ legend value + cumulative
++ vital items + omit /
+animate / vital color
+default / ref /
+displayName). Implementation
+patch:
+`docs/patches/11.536-ui-chart-line-pareto.md`.
+
 ## [1.11.553] - 2026-05-19 -- UI: chart-line-burndown primitive (TODO 11.535)
 
 New **ChartLineBurndown** UI
