@@ -4,6 +4,254 @@
 
 (no entries -- next release window)
 
+## [1.11.437] - 2026-05-19 -- UI: video-player primitive (TODO 11.419)
+
+New **VideoPlayer** UI primitive in
+`web/src/components/ui/video-player.tsx`:
+HTML5 video with a custom controls
+bar (play / pause, scrubber, time,
+volume, mute, playback rate select,
+picture-in-picture toggle) and a
+keyboard shortcut grid bound to the
+outer container so the player keeps
+responding even when the underlying
+`<video>` does not have focus.
+
+### API
+
+```ts
+interface VideoPlayerProps {
+  src: string;
+  poster?: string;
+  autoPlay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
+  defaultVolume?: number;
+  defaultPlaybackRate?: number;
+  playbackRates?: number[];          // default [0.5, 0.75, 1, 1.25, 1.5, 2]
+  controls?: boolean;                // default true
+  className?: string;
+  ariaLabel?: string;                // default 'Video player'
+  seekStep?: number;                 // s, default 5
+  volumeStep?: number;               // 0-1, default 0.1
+  preload?: 'auto' | 'metadata' | 'none'; // default 'metadata'
+  caption?: ReactNode;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnded?: () => void;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
+  onVolumeChange?: (volume: number, muted: boolean) => void;
+  onPlaybackRateChange?: (rate: number) => void;
+}
+
+interface VideoPlayerHandle {
+  play(): Promise<void>;
+  pause(): void;
+  seek(time: number): void;
+  getCurrentTime(): number;
+  getDuration(): number;
+  toggleMute(): void;
+  togglePictureInPicture(): Promise<void>;
+}
+```
+
+### Behaviour
+
+- Renders a `<video>` element with
+  `playsInline` + the supplied src
+  / poster / preload. Custom
+  controls bar overlays the bottom
+  of the container; `controls=
+  false` hides the custom bar.
+- Play / Pause button switches
+  icons via the internal
+  `isPlaying` state, wired off
+  the `<video>`'s play / pause /
+  ended events.
+- Scrubber is a native
+  `<input type="range">`; mid-
+  scrub updates set
+  `video.currentTime` directly.
+- Volume slider + mute button.
+  Dropping the slider to 0
+  auto-mutes; raising it un-mutes.
+- Playback rate `<select>`
+  populated from
+  `playbackRates` (default
+  `[0.5, 0.75, 1, 1.25, 1.5, 2]`).
+- Picture-in-picture button calls
+  `video.requestPictureInPicture()`
+  if available; toggles back to
+  document via
+  `document.exitPictureInPicture()`.
+  Browser declines are swallowed
+  so the player never throws.
+- Keyboard shortcuts on the outer
+  region (`tabIndex=0` so it can
+  receive focus directly):
+  - Space / K: play-pause toggle.
+  - Arrow Right: seek `+seekStep`.
+  - Arrow Left: seek `-seekStep`.
+  - Arrow Up / Arrow Down: volume
+    `+/- volumeStep`.
+  - M: toggle mute.
+  - P: toggle picture-in-picture.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2]
+DEFAULT_SEEK_STEP = 5
+DEFAULT_VOLUME_STEP = 0.1
+DEFAULT_VOLUME = 1
+DEFAULT_PLAYBACK_RATE = 1
+formatVideoTime(seconds): string
+clampVolume(value): number
+clampSeek(time, duration): number
+nextPlaybackRate(current, rates?): number
+```
+
+- `formatVideoTime` returns
+  `MM:SS` under 1 hour and
+  `HH:MM:SS` past 1 hour; NaN /
+  negatives -> `00:00`.
+- `clampVolume` clamps to
+  `[0, 1]`; NaN -> default 1.
+- `clampSeek` clamps to
+  `[0, duration]`; invalid
+  duration -> 0.
+- `nextPlaybackRate` cycles
+  through the rate list and wraps
+  at the end; an unknown current
+  rate snaps to the first entry.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label` + `tabIndex=0` so
+  the keyboard shortcut grid
+  works without an inner focus.
+- Play / Pause button:
+  `aria-label="Play" | "Pause"`
+  reflects state.
+- Mute button: `"Mute" | "Unmute"`.
+- Scrubber: `aria-label="Seek"`.
+- Volume slider:
+  `aria-label="Volume"`.
+- Rate select:
+  `aria-label="Playback speed"`.
+- PiP button:
+  `aria-label="Picture in picture"`.
+- `data-section` on every node:
+  `video-player` (root),
+  `video-player-element`
+  (`<video>`), `video-player-controls`
+  (control bar),
+  `video-player-play`,
+  `video-player-current-time`,
+  `video-player-scrubber`,
+  `video-player-duration`,
+  `video-player-mute`,
+  `video-player-volume`,
+  `video-player-rate`,
+  `video-player-pip`,
+  `video-player-caption`.
+- Root mirrors live state via
+  `data-playing` / `data-muted` /
+  `data-pip` / `data-rate`.
+
+### Imperative handle
+
+`forwardRef` returns a
+`VideoPlayerHandle` -- programmatic
+`play()` / `pause()` / `seek(time)`
+/ `getCurrentTime()` /
+`getDuration()` / `toggleMute()` /
+`togglePictureInPicture()` for
+hosts that need to drive the
+player from a parent surface
+(e.g. an autopilot timeline or a
+keyboard-shortcut bridge in a
+larger app).
+
+### Tests
+
+53 cases in
+`web/src/components/ui/video-player.test.tsx`,
+covering:
+
+- All four pure helpers across
+  positive, NaN, fractional, and
+  boundary cases.
+- Default + custom `ariaLabel`,
+  region tabIndex=0,
+  `data-section`.
+- `<video>` element with src,
+  poster, preload defaulting to
+  `"metadata"`.
+- Controls bar default render +
+  `controls=false` hides it.
+- Play -> Pause -> Play state
+  toggle through the play button.
+- Mute toggle through the button.
+- Volume slider 0 reports
+  `(0, true)`; mid value reports
+  `(0.4, false)`.
+- Playback rate select fires
+  `onPlaybackRateChange`; rate
+  options match the configured
+  list.
+- Space / K shortcut toggles
+  play; M toggles mute.
+- Arrow Up / Down adjusts volume
+  by step (floating-point
+  tolerance asserted with
+  `toBeCloseTo`).
+- Arrow Down at 0 auto-mutes.
+- P shortcut + PiP button both
+  call `requestPictureInPicture`
+  on the video element.
+- Caption renders when supplied.
+- Region data attrs reflect
+  state.
+- Arrow Right does not throw when
+  duration is 0 (no metadata
+  yet).
+- `displayName` is stable.
+- Imperative handle exposes all
+  eight method names; ref.play()
+  forwards to the underlying
+  element.
+
+### Pairs with existing primitives
+
+- `<ImageGallery>` (11.418) for
+  thumbnail browsing.
+- `<ComparisonSlider>` (11.417)
+  for before/after image pairs.
+- `<Slider>` underlies the seek
+  bar pattern (a native range
+  input here for simplicity).
+
+### Out of scope
+
+- HLS / DASH adaptive streaming
+  (host wraps with hls.js etc).
+- Multi-audio / subtitle track
+  picker (the underlying
+  `<video>` element handles
+  `<track>` children if the host
+  composes them in).
+- Skin theming variants (this
+  primitive renders a single
+  dark-overlay control bar;
+  hosts can wrap for branding).
+- Fullscreen toggle (browsers
+  vary widely; the host can wrap
+  the region in a
+  `requestFullscreen` of their
+  own choosing).
+
 ## [1.11.436] - 2026-05-19 -- UI: image-gallery primitive (TODO 11.418)
 
 New **ImageGallery** UI primitive in
