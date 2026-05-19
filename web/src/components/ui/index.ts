@@ -125,3 +125,4 @@ export * from './gauge';
 export * from './meter';
 export * from './list-section';
 export * from './status-indicator';
+export * from './timeline-step';
