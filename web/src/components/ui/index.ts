@@ -203,3 +203,4 @@ export * from './chart-radial-line';
 export * from './chart-radial-area';
 export * from './chart-strip';
 export * from './chart-beeswarm';
+export * from './chart-lollipop';

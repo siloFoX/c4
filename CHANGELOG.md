@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.512] - 2026-05-19 -- UI: chart-lollipop primitive (TODO 11.494)
+
+New **ChartLollipop** UI primitive in
+`web/src/components/ui/chart-lollipop.tsx`:
+pure-SVG **lollipop chart** with one
+stick (line from baseline to value
+position) and one head (circle at the
+value position) per category.
+Optimised for sparse categorical data
+where a bar would feel visually heavy.
+Distinct from `<ChartBar>` (rectangle
+bars), `<ChartDotPlot>` (Wilkinson
+stacking), `<ChartScatter>` /
+`<ChartBubble>` (2D xy),
+`<ChartStrip>` (11.492) /
+`<ChartBeeswarm>` (11.493)
+(distribution viewers), and
+`<ChartSlope>` (11.476) (two values
+per category). Vertical (default) and
+horizontal orientations; configurable
+baseline (default 0); `sortOrder` of
+'asc' / 'desc' / preserve. Range
+auto-includes the baseline so the
+stick is always visible. Hover/focus
+on a head dims others to 0.35 and
+opens a tooltip; click fires
+`onItemClick({item, layout})`. ARIA:
+root region + svg role=img + per-head
+graphics-symbol with tabIndex=0;
+data-section on every node. Pure
+helpers exported:
+`getLollipopDefaultColor`,
+`getLollipopFiniteItems`,
+`getLollipopBounds` (includes
+baseline), `getLollipopTicks`,
+`sortLollipopItems`,
+`computeLollipopLayout`,
+`describeLollipopChart`. 64 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.511] - 2026-05-19 -- UI: chart-beeswarm primitive (TODO 11.493)
 
 New **ChartBeeswarm** UI primitive in
