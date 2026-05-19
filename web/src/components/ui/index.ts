@@ -140,3 +140,4 @@ export * from './announcement-banner';
 export * from './changelog-viewer';
 export * from './keyboard-shortcuts-overlay';
 export * from './data-export';
+export * from './data-import-wizard';
