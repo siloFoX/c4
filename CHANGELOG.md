@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.469] - 2026-05-19 -- UI: chart-candlestick primitive (TODO 11.451)
+
+New **ChartCandlestick** UI primitive
+in
+`web/src/components/ui/chart-candlestick.tsx`:
+pure-SVG OHLC candlestick chart.
+Each candle paints a solid body
+from open->close and a thin wick
+from low to high. Bullish candles
+(close > open) take the up colour
+('#16a34a'), bearish candles (close
+< open) take the down colour
+('#dc2626'), dojis (close == open)
+collapse to a hairline at the
+neutral colour ('#475569'). Hovering
+a candle opens a tooltip with all
+four OHLC values + the formatted
+date plus an optional volume row.
+Per-candle click handler.
+Pure helpers exported:
+`getCandlestickBounds`,
+`getCandlestickDirection`,
+`getCandleColor`,
+`getCandlestickTicks`,
+`formatCandleDate`,
+`describeCandlestickChart`. 50 vitest
+cases cover helpers + every render
+branch including direction
+classification, doji rendering as
+hairline body, tooltip OHLC values
++ optional volume row, wick colour
+override, custom candle width,
+formatter shaping (value + date),
+click payload, ARIA description
+override, and ref forwarding.
+
 ## [1.11.468] - 2026-05-19 -- UI: chart-waterfall primitive (TODO 11.450)
 
 New **ChartWaterfall** UI primitive
