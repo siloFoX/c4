@@ -194,3 +194,4 @@ export * from './chart-pictogram';
 export * from './chart-spider-web';
 export * from './chart-sunburst';
 export * from './chart-icicle';
+export * from './chart-circle-packing';

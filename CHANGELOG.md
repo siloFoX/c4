@@ -4,6 +4,72 @@
 
 (no entries -- next release window)
 
+## [1.11.503] - 2026-05-19 -- UI: chart-circle-packing primitive (TODO 11.485)
+
+New **ChartCirclePacking** UI
+primitive in
+`web/src/components/ui/chart-circle-packing.tsx`:
+pure-SVG **hierarchical circle
+packing**. Every node in the input
+hierarchy becomes a circle; parent
+circles enclose their children; child
+radii are proportional to
+`sqrt(value)` so circle *area* tracks
+value (the standard area-honest
+encoding). Distinct from
+`<ChartTreemap>` / `<ChartTreemapSquarified>`
+(rectangular nesting),
+`<ChartSunburst>` (radial banded), and
+`<ChartIcicle>` (rectangular banded);
+this is the packed-circles layout that
+emphasises hierarchy + relative size at
+a glance. Layout: root at centre with
+outer radius; for each parent, children
+are packed via a front-chain algorithm
+(Wang et al. 2006 style) -- place
+first two tangent, third tangent to
+both, then for each subsequent walk
+the boundary "front" of circles, try
+every adjacent pair `(a, b)`, place
+the new circle tangent to both at the
+position closest to the centroid,
+reject if it intersects any other
+front circle, otherwise insert into
+the front between `a` and `b`. The
+packed cluster's minimum enclosing
+circle is computed and the whole
+cluster is translated + scaled to fit
+inside the parent with `childPadding`
+clearance. Non-positive / non-finite
+values dropped; non-overlap enforced
+within ~1 px tolerance. Labels: leaves
+(and root) by default; setting
+`showLeafLabelsOnly=false` labels
+every visible circle; label font size
+scales with radius. Tooltip surfaces
+full breadcrumb path, formatted value,
+and share against root. Pure helpers
+exported: `getCirclePackingDefaultColor`,
+`getCirclePackingNodeValue`,
+`flattenCirclePackingHierarchy`,
+`packCirclesFrontChain`,
+`getCirclePackingEnclosingCircle`,
+`computeCirclePackingLayout`,
+`describeCirclePackingChart`. ARIA:
+root role=region + aria-label, SVG
+role=img with same label; per-circle
+role=graphics-symbol + tabIndex=0 +
+"<label>: <value> (<percent>)" aria-
+label. data-section on every node;
+root mirrors data-node-count / data-
+circle-count / data-root-value / data-
+animate; circle groups mirror id /
+depth / parent / value / share /
+color / radius / is-leaf / is-focus /
+hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 50 vitest cases pass.
+
 ## [1.11.502] - 2026-05-19 -- UI: chart-icicle primitive (TODO 11.484)
 
 New **ChartIcicle** UI primitive in
