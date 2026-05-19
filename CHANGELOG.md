@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.475] - 2026-05-19 -- UI: chart-boxplot primitive (TODO 11.457)
+
+New **ChartBoxplot** UI primitive in
+`web/src/components/ui/chart-boxplot.tsx`:
+pure-SVG box-and-whisker plot
+(Tukey). Each series renders as one
+box from Q1 to Q3 (IQR) with a
+median line; whiskers extend to the
+lowest and highest non-outlier
+values using the configurable IQR
+fence multiplier (default 1.5);
+outlier values beyond the fences
+plot as dots. Optional dashed mean
+marker inside the box. Hovering a
+box opens a tooltip with the
+five-number summary (min, Q1,
+median, Q3, max) plus mean and
+outlier count. Per-box click
+handler. Pure helpers exported:
+`getBoxplotQuantile` (linear
+interpolation R-7 / Excel default),
+`getBoxplotStats` (drops non-finite,
+sorts, computes summary + outliers
+in one pass), `getBoxplotBounds`,
+`getBoxplotTicks`,
+`describeBoxplotChart`. 58 vitest
+cases cover helpers (incl. quantile
+interpolation, outlier classification
+via 1.5 IQR fence, custom multiplier
+toggles outlier count) + every
+render branch including whisker
+caps, outlier visibility, mean
+visibility, tooltip 5-number rows,
+formatter shaping, click payload,
+ARIA description override, and ref
+forwarding.
+
 ## [1.11.474] - 2026-05-19 -- UI: chart-pareto primitive (TODO 11.456)
 
 New **ChartPareto** UI primitive in
