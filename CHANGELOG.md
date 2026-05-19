@@ -4,6 +4,279 @@
 
 (no entries -- next release window)
 
+## [1.11.426] - 2026-05-19 -- UI: action-menu primitive (TODO 11.408)
+
+New `web/src/components/ui/action-menu.tsx`
+ships `<ActionMenu>` -- a page-level
+action bar with primary / secondary
+grouping, overflow handling (More
+button for actions beyond `maxVisible`),
+keyboard navigation, and the full
+WAI-ARIA toolbar pattern.
+
+### API
+
+```tsx
+<ActionMenu
+  actions={[
+    { id: 'save', label: 'Save', variant: 'primary',
+      onClick: save, shortcut: 'Cmd+S' },
+    { id: 'edit', label: 'Edit', onClick: edit },
+    { id: 'sep', type: 'separator' },
+    { id: 'archive', label: 'Archive', onClick: archive },
+    { id: 'delete', label: 'Delete',
+      variant: 'destructive', onClick: del },
+  ]}
+  maxVisible={3}
+  align="end"
+  overflowLabel="More"
+  ariaLabel="Asset actions"
+/>
+```
+
+```ts
+type ActionMenuItem = ActionMenuAction | ActionMenuSeparator;
+
+interface ActionMenuAction {
+  id: string;
+  label: string;
+  onClick: () => void;
+  icon?: ReactNode;
+  variant?: 'primary' | 'secondary' | 'destructive';
+  disabled?: boolean;
+  shortcut?: string;
+  ariaLabel?: string;
+}
+
+interface ActionMenuSeparator {
+  id: string;
+  type: 'separator';
+}
+```
+
+### Behaviour
+
+- **Partition**: pure helper
+  `partitionActionMenu(items,
+  maxVisible)` splits the input
+  into `{ visible, overflow }`.
+  - When the ACTION count (separators
+    do not count) is `<= maxVisible`,
+    all items go to `visible`.
+  - Otherwise the first `maxVisible`
+    actions are visible; the rest go
+    to overflow.
+  - Trailing separators in `visible`
+    and leading separators in
+    `overflow` are dropped so no
+    orphan dividers appear at the
+    split boundary.
+- **Overflow menu**: the More button
+  toggles a popover with the
+  overflow items rendered as
+  `role="menuitem"` rows. Click an
+  item to fire its `onClick` AND
+  close the menu. Click outside or
+  press Escape to close. The More
+  button has `aria-haspopup="menu"`
+  + `aria-expanded` mirroring the
+  open state.
+- **Toolbar contract** (WAI-ARIA):
+  root `<div role="toolbar"
+  aria-orientation="horizontal"
+  aria-label>`; single-tabstop
+  pattern with `tabIndex=0` on the
+  active action and `tabIndex=-1`
+  on the rest; ArrowLeft / ArrowRight
+  / Home / End move the active
+  tabstop within the VISIBLE row;
+  disabled actions + separators are
+  skipped in the focus cycle.
+- **Variants**: three canonical
+  classes -- `primary` (filled
+  brand), `secondary` (outlined,
+  default), `destructive` (filled
+  destructive). Each maps to a
+  fixed Tailwind class set
+  (callers cannot smuggle
+  arbitrary classes -- the
+  variant IS the contract).
+- **Disabled**: `disabled: true`
+  flips native `disabled` + adds
+  `data-disabled="true"` + strips
+  the click handler + adds
+  cursor-not-allowed + opacity-50.
+- **Align**: `'end'` (default)
+  right-justifies; `'start'`
+  left-justifies. Mirrors on
+  `data-align`.
+
+### Pure helpers (exported)
+
+```ts
+export function isActionMenuSeparator(
+  item: ActionMenuItem,
+): item is ActionMenuSeparator;
+
+export interface ActionMenuPartition {
+  visible: ActionMenuItem[];
+  overflow: ActionMenuItem[];
+}
+
+export function partitionActionMenu(
+  items: ActionMenuItem[],
+  maxVisible: number,
+): ActionMenuPartition;
+```
+
+`partitionActionMenu` sanity:
+- empty input -> empty partitions.
+- non-finite maxVisible coerces
+  to 0 (everything overflows).
+- maxVisible<0 coerces to 0.
+
+### ARIA + data attributes
+
+Root (`<div role="toolbar">`,
+`aria-orientation="horizontal"`,
+`aria-label`):
+
+- `data-section="action-menu"`
+- `data-align`
+- `data-visible-count`
+- `data-overflow-count`
+- `data-overflow-open`
+  ('true' / 'false')
+
+Visible block:
+
+- `data-section="action-menu-visible"`
+
+Action button:
+
+- `data-section="action-menu-action"`
+- `data-action-id`
+- `data-action-variant`
+- `data-disabled`
+- `data-section="action-menu-action-icon"`
+- `data-section="action-menu-action-label"`
+- `data-section="action-menu-action-shortcut"`
+
+Inline separator:
+
+- `role="separator"` +
+  `aria-orientation="vertical"`
+- `data-section="action-menu-separator"`
+
+Overflow:
+
+- `data-section="action-menu-overflow"`
+- More button:
+  `data-section="action-menu-more"`
+  + `aria-haspopup="menu"` +
+  `aria-expanded`
+- Popover:
+  `role="menu"` +
+  `aria-label="<ariaLabel> overflow"`
+  + `data-section="action-menu-overflow-popover"`
+- Item:
+  `data-section="action-menu-overflow-item"`
+  + `role="menuitem"` +
+  `data-action-id` +
+  `data-action-variant` +
+  `data-disabled`
+- Inner: icon / label / shortcut
+  each carry a data-section.
+- Overflow separator:
+  `data-section="action-menu-overflow-separator"`.
+
+### Tests
+
+41 cases in `action-menu.test.tsx`:
+
+- `isActionMenuSeparator` (2):
+  detect, reject.
+- `partitionActionMenu` (8):
+  empty, fit, overflow split,
+  separators do not count,
+  trailing-sep trim, leading-sep
+  trim, maxVisible=0, NaN coerce.
+- Component (31): role=toolbar +
+  default aria-label, custom
+  aria-label, aria-orientation,
+  first maxVisible visible,
+  overflowed hidden, More button
+  visible/hidden, click More
+  opens menu, aria-expanded
+  mirrors state, click item
+  fires onClick + closes, Escape
+  closes, outside click closes,
+  visible action click fires
+  onClick, disabled visible
+  blocks click, data-action-
+  variant per variant, default
+  variant secondary, icon +
+  shortcut rendered, inline
+  separator role + orientation,
+  ArrowRight cycles visible,
+  ArrowLeft wraps, Home jumps
+  first, End jumps last, single
+  tabstop on mount, data-align,
+  data-visible-count +
+  data-overflow-count,
+  data-overflow-open flips on
+  toggle, custom overflowLabel,
+  disabled overflow item not
+  clickable, action.ariaLabel
+  override, displayName, ref
+  forwarding.
+
+41/41 pass under vitest 4.1.5;
+TypeScript clean for touched files
+(pre-existing `list-action-menu`
+TS error unchanged).
+
+### Pairs with existing primitives
+
+- `<CommandBar>` (11.395) --
+  selection-scoped bottom bar
+  with mandatory Clear. ActionMenu
+  is the inline page-level
+  variant.
+- `<ListActionMenu>` (11.262) --
+  per-row hover affordance.
+  ActionMenu is the page-level
+  top-bar variant.
+- `<PageHeader>` (11.249 /
+  11.405) -- canonical host of
+  ActionMenu via the `actions`
+  slot.
+- ThemeCustomizer (11.394) --
+  the menu reads token-based
+  Tailwind classes so it auto-
+  themes.
+
+### Out of scope (deferred)
+
+- Per-action keyboard binding.
+  The `shortcut` field renders
+  as a decorative `<kbd>`; host
+  binds the actual hotkey.
+- Resize-aware auto maxVisible.
+  Adopters compute their own
+  cap from container width and
+  pass via the prop; an
+  automatic measurement is a
+  follow-on.
+- Multi-row overflow (drawer
+  variant). v1 ships the
+  popover only.
+- Nested overflow sub-menus.
+  Out of scope; popover items
+  fire onClick or do nothing.
+- Drag-to-reorder. Source-array
+  order is canonical.
+
 ## [1.11.425] - 2026-05-19 -- UI: detail-list primitive (TODO 11.407)
 
 New `web/src/components/ui/detail-list.tsx`
