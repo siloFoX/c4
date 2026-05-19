@@ -4,6 +4,244 @@
 
 (no entries -- next release window)
 
+## [1.11.439] - 2026-05-19 -- UI: progress-tracker primitive (TODO 11.421)
+
+New **ProgressTracker** UI primitive
+in
+`web/src/components/ui/progress-tracker.tsx`:
+multi-step progress display with
+named milestones, horizontal or
+vertical orientation, per-step
+completed / active / pending / error
+states, and an ARIA
+`role="progressbar"` on the root so
+screen readers announce overall
+completion alongside the milestone
+list.
+
+### API
+
+```ts
+interface ProgressTrackerStep {
+  id: string;
+  label: ReactNode;
+  description?: ReactNode;
+  state?: 'completed' | 'active' | 'pending' | 'error';
+}
+
+interface ProgressTrackerProps {
+  steps: ProgressTrackerStep[];
+  activeIndex: number;
+  orientation?: 'horizontal' | 'vertical'; // default 'horizontal'
+  showLabels?: boolean;        // default true
+  showDescriptions?: boolean;  // default true
+  size?: 'sm' | 'md' | 'lg';   // default 'md'
+  className?: string;
+  ariaLabel?: string;          // default 'Progress tracker'
+  onStepClick?: (i: number) => void;
+}
+```
+
+### Behaviour
+
+- Steps render in a nested
+  `<ol>` so each milestone is
+  enumerable; per-step
+  `data-section="progress-tracker-step"`
+  + `data-step-id` /
+  `data-step-index` /
+  `data-state` let downstream
+  tests and consumers walk the
+  list.
+- State derivation:
+  - `step.state` override wins.
+  - Otherwise: `index < activeIndex`
+    -> `'completed'`,
+    `index === activeIndex`
+    -> `'active'`,
+    `index > activeIndex`
+    -> `'pending'`.
+- Indicator glyph: Check icon for
+  `'completed'`, X icon for
+  `'error'`, the (1-based) step
+  number for `'active'` and
+  `'pending'`.
+- Per-step visual class swaps with
+  the state for indicator
+  background, ring, border, label
+  text, and connector colour.
+- `onStepClick` toggles the
+  indicator from a `<span>` to a
+  focusable `<button>` so the
+  caller can drive navigation;
+  the active button additionally
+  gets `aria-current="step"`.
+- Connectors render between
+  consecutive steps -- a leading
+  one before every non-first
+  horizontal indicator, a trailing
+  one after every non-last
+  horizontal indicator, and a
+  vertical bar between vertical
+  indicators. Each connector
+  carries `data-state` derived
+  from the indicator before it.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_PROGRESS_TRACKER_ORIENTATION = 'horizontal'
+DEFAULT_PROGRESS_TRACKER_SIZE = 'md'
+clampProgressActiveIndex(index, total): number
+getProgressTrackerStepState(index, activeIndex, override?): ProgressTrackerStepState
+getProgressTrackerPercent(activeIndex, total): number
+```
+
+- `clampProgressActiveIndex` lets
+  hosts pass `-1` to mean "no
+  step started yet" (the entire
+  tracker stays pending);
+  out-of-range or NaN -> `-1`.
+- `getProgressTrackerStepState`
+  is a pure function so adopters
+  can reuse the same state
+  derivation in custom indicator
+  rendering.
+- `getProgressTrackerPercent`
+  counts the active step as
+  half-complete -- this maps
+  cleanly to a single ARIA
+  `aria-valuenow` readout that
+  matches user intuition about
+  "partway through step X". The
+  result is rounded to two
+  decimals.
+
+### ARIA + data attributes
+
+- Root: `role="progressbar"` +
+  `aria-label` +
+  `aria-valuemin=0` /
+  `aria-valuemax=total` /
+  `aria-valuenow=activeIndex+1`
+  + `aria-valuetext="Step N of total"`.
+- Active indicator:
+  `aria-current="step"`.
+- Per-button indicator:
+  `aria-label` includes both the
+  step label and the derived
+  state so screen readers
+  announce "Plan (completed)".
+- `data-section` on every node:
+  `progress-tracker` (root),
+  `progress-tracker-steps`
+  (ordered list),
+  `progress-tracker-step`
+  (per-step `<li>`),
+  `progress-tracker-indicator`
+  (indicator), `progress-tracker-content`
+  (label + description block),
+  `progress-tracker-label`,
+  `progress-tracker-description`,
+  `progress-tracker-connector`
+  (between-step bars).
+- Root mirrors `data-orientation`,
+  `data-size`, `data-active-index`,
+  `data-total`, `data-percent`.
+  Each step mirrors `data-step-id`,
+  `data-step-index`, `data-state`.
+
+### Tests
+
+44 cases in
+`web/src/components/ui/progress-tracker.test.tsx`,
+covering:
+
+- All three pure helpers across
+  empty totals, negative inputs,
+  NaN, fractional, in-range,
+  beyond-range, and override
+  cases.
+- Default + custom `ariaLabel`.
+- `aria-valuemin` / `aria-valuemax`
+  / `aria-valuenow` / `aria-valuetext`
+  reflect the active step.
+- One step element per item.
+- Labels render by default;
+  `showLabels=false` hides them.
+- Descriptions render by default;
+  `showDescriptions=false` hides
+  them.
+- Per-step `data-state` reflects
+  completed / active / pending.
+- Per-step `state` override wins.
+- Orientation default + vertical
+  override.
+- `size` reflects on root.
+- Root data attrs (`data-total`,
+  `data-active-index`,
+  `data-percent`) match the
+  derivation.
+- `onStepClick` callback fires
+  with the index when an
+  indicator button is clicked.
+- Without `onStepClick`,
+  indicators render as `<span>`
+  (no buttons).
+- Indicator shows the step number
+  for pending; Check icon for
+  completed.
+- Active indicator has
+  `aria-current="step"`.
+- Connectors render between
+  non-last steps.
+- `activeIndex` clamping:
+  - >= total -> aria-valuenow =
+    total.
+  - < 0 -> aria-valuenow = 0,
+    percent = 0.
+  - Empty steps -> aria-valuemax
+    = 1 (avoid 0 boundary), data-
+    total = 0.
+- Stable `displayName`.
+- `forwardRef` to the root region.
+- Indicator button accessible
+  label includes the state.
+- `data-step-id` /
+  `data-step-index` on each step.
+
+### Pairs with existing primitives
+
+- `<Stepper>` for compact
+  step-by-step form flows
+  (interaction-heavy).
+- `<Timeline>` /
+  `<TimelineStep>` (11.415) for
+  unrelated milestone narratives
+  on a date-ordered axis.
+- `<Progress>` for a single
+  continuous progress bar
+  without milestones.
+
+### Out of scope
+
+- Async per-step status fetching
+  (host owns network -> state
+  override).
+- Branching workflows (this
+  primitive is strictly linear;
+  fork into multiple
+  ProgressTrackers if needed).
+- Click-to-jump validation
+  (`onStepClick` fires
+  unconditionally; the host
+  decides whether to honour
+  the target).
+- Animated indicator transitions
+  on state change (snap for v1;
+  CSS transitions follow-on
+  motion layer).
+
 ## [1.11.438] - 2026-05-19 -- UI: countdown-timer primitive (TODO 11.420)
 
 New **CountdownTimer** UI primitive
