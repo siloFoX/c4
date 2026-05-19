@@ -4,6 +4,154 @@
 
 (no entries -- next release window)
 
+## [1.11.550] - 2026-05-19 -- UI: chart-line-streak primitive (TODO 11.532)
+
+New **ChartLineStreak** UI
+primitive in
+`web/src/components/ui/chart-line-streak.tsx`:
+pure-SVG line chart that
+highlights **consecutive
+same-direction runs** ("streaks")
+in a series. The base line is
+rendered as a dimmed gray
+reference (`baseOpacity=0.4`);
+each detected streak overlays a
+thicker coloured stroke segment
+on top of it -- green for up
+runs, red for down runs, slate
+for flat runs. A run badge in
+the top-left calls out the
+longest streak across the chart
+with direction icon (↑/↓/→),
+length, and label. The
+canonical "5 consecutive winning
+days" / "3 quarters in a row of
+decline" / "win streak / loss
+streak" visualisation used in
+sports, trading, and operational
+monitoring. Pure helpers
+`computeLineStreaks` (scans
+sorted-by-x finite points and
+returns runs `{startIndex,
+endIndex, length, direction,
+startX, endX, startY, endY,
+delta}`; boundary point belongs
+to both adjacent runs;
+short-runs dropped per
+minLength; sorts ascending before
+scanning; drops non-finite),
+`computeLineStreakLongest`
+(picks the longest run; `{0,
+'flat'}` when empty),
+`classifyLineStreakStep`
+(single-step classifier with
+epsilon band; non-finite ->
+flat),
+`normaliseLineStreakMinLength`
+(clamps to >= 2; floors
+fractional),
+`normaliseLineStreakFlatEpsilon`
+(non-finite / negative -> 0),
+`computeLineStreakLayout`, and
+`describeLineStreakChart`.
+Distinct from
+`<ChartLineVelocity>` (11.527;
+per-point directional ARROW
+markers -- streak is run-based,
+a contiguous SEGMENT, not
+isolated arrows),
+`<ChartLineAcceleration>`
+(11.528; second derivative
+magnitudes per-point),
+`<ChartLineAnomaly>` (11.524;
+z-score outlier highlighting --
+rare DEVIATING points -- streak
+is the OPPOSITE, consecutive
+AGREEING points),
+`<ChartLineMinMax>` (11.517;
+single global min/max marker),
+`<ChartLineTrend>` (11.512; one
+global linear regression rule
+per series), and
+`<ChartLinePeriodCompare>`
+(11.531; two-periods overlay).
+Per-instance `upColor` /
+`downColor` / `flatColor` always
+beats the defaults; per-series
+`color` always beats the
+palette. Tooltip on dots shows
+label, x, bold y, and (when
+in-streak) a coloured `<dir>
+streak` row. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; per-shape
+`role="graphics-symbol"` +
+`tabIndex={0}`. Run aria-label
+includes direction + length;
+dot aria-label includes "in
+<direction> streak" when
+applicable. Data-attrs: root
+`data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-min-length`,
+`data-longest-length`,
+`data-longest-direction`,
+`data-animate`; base path
+`data-kind="base"`; run paths
+`data-direction`, `data-length`,
+`data-start-index`,
+`data-end-index`, `data-delta`;
+dots `data-direction`,
+`data-in-streak`,
+`data-streak-index`; series
+groups `data-series-id`,
+`data-series-color`,
+`data-series-finite-count`,
+`data-series-run-count`,
+`data-series-longest-length`,
+`data-series-longest-direction`,
+`data-series-up-run-count`,
+`data-series-down-run-count`,
+`data-series-flat-run-count`.
+65 vitest cases pass (defaults,
+helpers, computeLineStreaks
+incl. boundary-shared peak,
+single up run, drops short
+runs, keeps length=2 at
+minLength=2, flatEpsilon
+classifies small steps as flat
+into one run, sort ascending,
+drops non-finite, run endpoint
+metadata; computeLineStreakLongest
+empty + picks longest;
+computeLineStreakLayout incl.
+per-series runs/points, marks
+points in run with direction,
+up/down/flat counts, up/down
+color on runs, bounds
+overrides, visible series
+count; describeLineStreakChart
+incl. No data + per-series
+longest; component render incl.
+empty, base + overlays,
+data-length on overlays, dots
++ hide dots, in-streak attr,
+direction attr, run badge with
+direction + length + omit,
+ARIA, root data-* attrs,
+tooltip with streak row +
+hide on leave + omit via prop,
+onPointClick payload, legend
+with run count + toggle from
+legend uncontrolled + omit
+legend, alternating series 0
+streaks at minLength=3, animate
+flag + class, ref, displayName).
+Implementation patch:
+`docs/patches/11.532-ui-chart-line-streak.md`.
+
 ## [1.11.549] - 2026-05-19 -- UI: chart-line-period-compare primitive (TODO 11.531)
 
 New **ChartLinePeriodCompare** UI
