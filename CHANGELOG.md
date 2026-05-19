@@ -4,6 +4,68 @@
 
 (no entries -- next release window)
 
+## [1.11.500] - 2026-05-19 -- UI: chart-spider-web primitive (TODO 11.482)
+
+New **ChartSpiderWeb** UI primitive in
+`web/src/components/ui/chart-spider-web.tsx`:
+pure-SVG **circular hub-spoke** layout
+for hub-spoke node visualization. One
+hub node anchors the centre; every
+remaining node spreads evenly on a
+perimeter circle. Hub-spoke edges paint
+as radial spokes from the hub outward;
+spoke-to-spoke edges paint as straight
+lines across the chart. Optional
+`groupRings=true` stacks spokes on per-
+group concentric rings so nodes in the
+same `group` field share a radius.
+Distinct from `<ChartNetwork>` (11.454,
+force-directed), `<ChartChord>`
+(11.462, chord around a ring),
+`<ChartArcDiagram>` (11.463, baseline +
+arcs), `<ChartRadar>` (11.445, multi-
+axis polygon), and `<ChartRadarSpider>`
+(11.464): this primitive is
+specifically the **hub-centric
+topology** display where a single node
+dominates and others orbit. Hub
+selection: `hubId` prop names the
+centre node; if absent or not found,
+the first node in `nodes` is the hub.
+Hover/focus on a node dims unrelated
+nodes to 0.3 and unrelated edges to
+0.18, and opens a tooltip with label,
+degree, and group. Hover on an edge
+opens an edge tooltip (src-tgt +
+weight). Per-node + per-edge click
+handlers fire with full payloads.
+Edges referencing unknown ids are
+silently dropped. Pure helpers
+exported: `polarToCartesian`,
+`getSpiderWebNodeWeight`,
+`getSpiderWebGroups`,
+`getSpiderWebDegree`,
+`computeSpiderWebLayout`,
+`describeSpiderWebChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-circle
+role=graphics-symbol + tabIndex=0 +
+"<label>: degree <n>" aria-label (hub
+gets "Hub" prefix); per-line
+role=graphics-symbol + tabIndex=0 +
+"<src> to <tgt>: weight <w>" aria-
+label. data-section on every node;
+root mirrors data-node-count / data-
+spoke-count / data-edge-count / data-
+hub-id / data-group-rings / data-
+animate; node groups mirror id / index
+/ group / color / degree / weight /
+is-hub / hovered; edge lines mirror
+edge-index / source / target / weight
+/ hub-spoke / hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 49 vitest cases pass.
+
 ## [1.11.499] - 2026-05-19 -- UI: chart-pictogram primitive (TODO 11.481)
 
 New **ChartPictogram** UI primitive in
