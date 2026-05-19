@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.482] - 2026-05-19 -- UI: chart-radar-spider primitive (TODO 11.464)
+
+New **ChartRadarSpider** UI primitive
+in
+`web/src/components/ui/chart-radar-spider.tsx`:
+pure-SVG spider / radar variant that
+is distinct from `<ChartRadar>`
+(11.445). Where `<ChartRadar>` renders
+one filled polygon per series
+(colour-by-series),
+`<ChartRadarSpider>` decomposes each
+series's polygon into per-axis
+wedges: each wedge is the triangle
+from chart centre through the data
+point at axis N to the data point at
+axis N+1, coloured by axis. The
+result emphasises the per-axis
+contribution rather than the
+per-series silhouette. Optional
+outline polygon connects the per-axis
+points to retain the silhouette shape
+on top of the wedges. Per-axis
+8-colour palette
+(`DEFAULT_CHART_RADAR_SPIDER_AXIS_PALETTE`)
+distinct from per-series palettes so
+the two primitives are visually
+distinguishable at a glance.
+Per-axis colour override.
+Per-wedge tooltip with series + axis
++ value. Per-wedge click handler.
+Pure helpers exported:
+`getDefaultRadarSpiderAxisColor`,
+`getRadarSpiderAngle`,
+`getRadarSpiderMax`,
+`getRadarSpiderRatio`,
+`getRadarSpiderPoint`,
+`buildRadarSpiderWedgePath`,
+`buildRadarSpiderGridPolygon`,
+`describeRadarSpiderChart`. Reuses
+`polarToCartesian` from
+`<ChartRadialBar>`. 56 vitest cases
+cover helpers (incl. axis-angle
+clockwise spacing, palette modulo
+wrap, ratio clamping, wedge-triangle
+geometry, grid-polygon emission) +
+every render branch including
+wedges per (series, axis) pair,
+outline / point / grid / spoke
+suppression, per-axis colour
+override, legend placement,
+formatter shaping, click payload,
+ARIA description override, and ref
+forwarding.
+
 ## [1.11.481] - 2026-05-19 -- UI: chart-arc-diagram primitive (TODO 11.463)
 
 New **ChartArcDiagram** UI primitive
