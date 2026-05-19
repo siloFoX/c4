@@ -4,6 +4,311 @@
 
 (no entries -- next release window)
 
+## [1.11.427] - 2026-05-19 -- UI: time-picker primitive (TODO 11.409)
+
+New `web/src/components/ui/time-picker.tsx`
+ships `<TimePicker>` -- a three-field
+time picker (HH : MM : SS) with optional
+AM/PM toggle for 12-hour mode. Each
+field is a native `<input>` carrying the
+WAI-ARIA `role="spinbutton"` so screen
+readers announce "Hours 12 of 23" etc.
+Keyboard ArrowUp / ArrowDown increment /
+decrement; paste of `HH:MM`, `HH:MM:SS`,
+or `HH:MM:SS AM/PM` strings parses
+straight into the picker.
+
+### API
+
+```tsx
+<TimePicker
+  value={{ hours: 14, minutes: 30, seconds: 0 }}
+  onChange={(next) => setTime(next)}
+  mode="24"        // or '12'
+  showSeconds      // default true
+  step={5}          // minutes/seconds arrow step
+  ariaLabel="Pick a time"
+/>
+```
+
+```ts
+interface TimeValue {
+  hours: number;
+  minutes: number;
+  seconds: number;
+  period?: 'AM' | 'PM';   // only for 12-hour mode
+}
+
+interface TimePickerProps {
+  value?: TimeValue;
+  defaultValue?: TimeValue;
+  onChange?: (value: TimeValue) => void;
+  mode?: '12' | '24';     // default '24'
+  showSeconds?: boolean;   // default true
+  step?: number;           // default 1
+  ariaLabel?: string;
+  className?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  hourAriaLabel?: string;  // default 'Hours'
+  minuteAriaLabel?: string;
+  secondAriaLabel?: string;
+  periodAriaLabel?: string;
+}
+```
+
+### Behaviour
+
+- **Modes**: `'24'` (default) gates
+  hours to 0..23; `'12'` gates hours
+  to 1..12 and renders an AM/PM
+  toggle button on the right.
+- **Spinbutton inputs**: each field
+  is a native `<input>` with
+  `role="spinbutton"` +
+  `aria-valuemin` /
+  `aria-valuemax` /
+  `aria-valuenow` /
+  `aria-valuetext` reflecting the
+  current padded value. Mid-typing
+  the text shows the raw digits;
+  on blur the value snaps back to
+  the canonical 2-digit padding.
+- **Keyboard**: ArrowUp / ArrowDown
+  increment / decrement the
+  focused field with wrap-around
+  at the bounds. The `step` prop
+  applies to minutes + seconds
+  only (hours always step by 1).
+- **AM/PM toggle**: click flips
+  the period; ArrowUp / ArrowDown
+  while focused also flips.
+  Button carries `aria-pressed`
+  mirroring `period === 'PM'`.
+- **Paste**: pasting onto the
+  root passes the clipboard text
+  through `parseTimeString` (the
+  exported pure helper). Accepted
+  shapes: `HH:MM`, `HH.MM`,
+  `HH:MM:SS`, `HH:MM AM`,
+  `HH:MM:SS PM`, `HH:MM a.m.`,
+  etc. Invalid pastes silently
+  fall through to the default
+  paste handling.
+- **Auto-derived period**: in
+  `mode='12'`, a paste of `15:30`
+  parses to `{ hours: 3, minutes:
+  30, seconds: 0, period: 'PM' }`
+  -- the picker accepts a
+  24-hour string and computes
+  the equivalent 12-hour
+  representation. `00:00` ->
+  `12:00 AM`.
+- **Disabled + readOnly**: each
+  disables the inputs + AM/PM
+  toggle; root mirrors
+  `data-disabled` /
+  `data-read-only`.
+
+### Pure helpers (exported)
+
+```ts
+export function normalizeTimeValue(
+  value: TimeValue | null | undefined,
+  mode: '12' | '24',
+): TimeValue;
+
+export function stepTimeField(
+  current: number,
+  delta: number,
+  min: number,
+  max: number,
+): number;
+
+export function togglePeriod(p: 'AM' | 'PM'): 'AM' | 'PM';
+
+export function parseTimeString(
+  input: string,
+  mode?: '12' | '24',
+): TimeValue | null;
+
+export function formatTimeValue(
+  value: TimeValue,
+  mode?: '12' | '24',
+  showSeconds?: boolean,
+): string;
+
+export function to24HourFormat(value: TimeValue): number;
+
+export const DEFAULT_TIME_VALUE_24: TimeValue;
+export const DEFAULT_TIME_VALUE_12: TimeValue;
+```
+
+### Wrap-around math
+
+`stepTimeField(current, delta,
+min, max)` normalizes via modulo
+across `range = max - min + 1`:
+
+- `stepTimeField(23, 1, 0, 23)` ->
+  0
+- `stepTimeField(0, -1, 0, 23)` ->
+  23
+- `stepTimeField(59, 5, 0, 59)` ->
+  4 (`59 + 5 = 64`; 64 % 60 = 4
+  in the 60-value range)
+- `stepTimeField(12, 1, 1, 12)` ->
+  1 (12-hour hour wrap)
+- non-finite current -> `min`
+
+### `parseTimeString` shape
+
+The pure helper accepts:
+
+| input | mode | result |
+| --- | --- | --- |
+| `'14:30'` | '24' | `{ hours: 14, minutes: 30, seconds: 0 }` |
+| `'14:30:45'` | '24' | `{ ..., seconds: 45 }` |
+| `'14.30'` | '24' | dot separator allowed |
+| `'2:30 PM'` | '12' | `{ hours: 2, minutes: 30, seconds: 0, period: 'PM' }` |
+| `'2:30 am'` | '12' | period case-insensitive |
+| `'2:30 p.m.'` | '12' | dotted form |
+| `'15:30'` | '12' | auto-derives PM (`hours: 3`) |
+| `'00:00'` | '12' | -> `12:00 AM` |
+| `'25:00'` | '24' | null |
+| `'14:60'` | (any) | null (minute out of range) |
+| `'hello'` | (any) | null |
+| `''` | (any) | null |
+| `null` / `undefined` | (any) | null |
+
+### ARIA + data attributes
+
+Root (`<div role="group">`,
+`aria-label`):
+
+- `data-section="time-picker"`
+- `data-mode` ('12' / '24')
+- `data-show-seconds`
+  ('true' / 'false')
+- `data-disabled`
+- `data-read-only`
+
+Inputs:
+
+- `role="spinbutton"`
+- `aria-valuemin` /
+  `aria-valuemax` /
+  `aria-valuenow` /
+  `aria-valuetext`
+- `aria-label` (per-field
+  overridable)
+- `data-section="time-picker-hours"`
+  / `-minutes` / `-seconds`
+- `data-time-field` mirror
+
+Separator:
+`data-section="time-picker-separator"`
+(`<span aria-hidden>`)
+
+AM/PM toggle:
+`data-section="time-picker-period"`
++ `data-period` ('AM' / 'PM') +
+`aria-pressed`
+
+### Tests
+
+61 cases in
+`time-picker.test.tsx`:
+
+- `normalizeTimeValue` (6):
+  defaults for null/undefined,
+  12 vs 24 mode default,
+  clamp out-of-range, 12-hour
+  hour 1..12 clamp, period
+  preserved, default period AM
+- `stepTimeField` (6):
+  increment, decrement, wrap
+  upper, wrap lower, 12-hour
+  wrap, non-finite -> min
+- `togglePeriod` (2): AM<->PM
+- `parseTimeString` (10):
+  HH:MM, HH:MM:SS, garbage ->
+  null, dot separator, AM/PM,
+  auto-derive PM from 24h
+  input, 00:00 -> 12:00 AM,
+  case-insensitive + dotted
+  period, non-string -> null
+- `formatTimeValue` (3):
+  pad+colon 24h, omit seconds,
+  append AM/PM 12h
+- `to24HourFormat` (5): no
+  period passthrough, 12 AM ->
+  0, 12 PM -> 12, 3 PM -> 15,
+  5 AM -> 5
+- Component (29): role=group +
+  default aria-label, custom
+  ariaLabel, data-mode +
+  data-show-seconds, three
+  spinbutton inputs, hide
+  seconds, hours valuemin/max
+  24 / 12, AM/PM toggle in
+  12-mode, no toggle in
+  24-mode, toggle click + arrow
+  flip, default 2-digit pad,
+  typing fires onChange clamp,
+  >max clamp, ArrowUp/Down
+  hours +/-1 + wrap, step prop
+  applies to MM/SS only, paste
+  HH:MM:SS, paste HH:MM AM in
+  12-mode, paste garbage no-op,
+  controlled value override,
+  disabled blocks inputs +
+  toggle, readOnly + toggle,
+  data-section per input,
+  data-period on toggle,
+  custom field aria-labels,
+  displayName, ref forwarding.
+
+61/61 pass under vitest 4.1.5;
+TypeScript clean for touched
+files.
+
+### Pairs with existing primitives
+
+- `<DatePicker>` -- canonical
+  partner; pair to build a
+  combined date+time picker.
+- `<Input>` -- internal inputs
+  use the same focus-ring
+  primitive.
+- ThemeCustomizer (11.394) --
+  the picker reads token-based
+  Tailwind classes so it
+  auto-themes.
+
+### Out of scope (deferred)
+
+- Combined `<DateTimePicker>`.
+  Pair this primitive with the
+  date picker in the host.
+- Time-zone selection.
+  TimeValue is a wall-clock
+  triple; the host owns the
+  zone.
+- Millisecond field. Three
+  fields (HH/MM/SS) for v1.
+- Range picker (start time +
+  end time). Belongs in a
+  separate composition.
+- Scroll-wheel mobile picker.
+  Native input + arrow keys is
+  canonical; scroll-wheel UX
+  is a follow-on.
+- Auto-advance to the next
+  field after two digits.
+  Adopters can layer this on
+  top via onChange + DOM ref.
+
 ## [1.11.426] - 2026-05-19 -- UI: action-menu primitive (TODO 11.408)
 
 New `web/src/components/ui/action-menu.tsx`
