@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.468] - 2026-05-19 -- UI: chart-waterfall primitive (TODO 11.450)
+
+New **ChartWaterfall** UI primitive
+in
+`web/src/components/ui/chart-waterfall.tsx`:
+pure-SVG waterfall bar chart. Each
+`delta` bar shows a positive or
+negative change relative to the
+running total; `total` bars draw from
+zero to the cumulative running total
+(starting balance, subtotals, final).
+Thin connector lines link the top of
+each bar to the bottom of the next so
+adopters can read the cumulative
+flow at a glance. Positive deltas
+paint green, negative red, totals
+neutral by default; all colours
+overridable. Per-bar tooltip surfaces
+delta + running total; per-bar click
+handler. Pure helpers exported:
+`computeWaterfallSteps`,
+`getWaterfallBounds`,
+`getWaterfallBarColor`,
+`getWaterfallTicks`,
+`describeWaterfallChart`. 56 vitest
+cases cover helpers + every render
+branch including total / delta /
+zero-delta colouring, connector +
+zero-line visibility, formatter
+shaping (sign + currency), tooltip
+visibility, click payload, ARIA
+description override, and ref
+forwarding.
+
 ## [1.11.467] - 2026-05-19 -- UI: chart-sankey primitive (TODO 11.449)
 
 New **ChartSankey** UI primitive in
