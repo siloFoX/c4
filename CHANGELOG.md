@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.539] - 2026-05-19 -- UI: chart-line-rate primitive (TODO 11.521)
+
+New **ChartLineRate** UI primitive
+in
+`web/src/components/ui/chart-line-rate.tsx`:
+pure-SVG multi-series line chart
+that **plots the per-interval rate
+of change** (the discrete first
+derivative) of an input series.
+Between each consecutive pair of
+finite samples sorted by x, the
+chart emits a rate sample `rate =
+dy / dx` anchored at `'right'`
+(default), `'left'`, or
+`'midpoint'`. The result is
+rendered as a line with a
+horizontal zero-rate baseline;
+sign-shaded regions paint the area
+between the rate line and zero
+(green positive, red negative).
+Segments that cross zero are split
+exactly at the crossing via the
+absolute-value proportion. Pure
+helpers `computeRateOfChange`
+(returns n-1 samples for n
+finite inputs sorted by x; drops
+dx=0 segments; preserves ORIGINAL
+fromIndex/toIndex; supports three
+anchor modes),
+`findLineRateZeroCrossing`,
+`computeLineRateStats`
+(max/min/avg/positive/negative/
+zero counts + totalAbsoluteArea
+via trapezoid sum),
+`computeLineRateLayout`, and
+`describeLineRateChart`.
+Distinct from
+`<ChartLineCumulative>` (running
+SUM vs delta per interval),
+`<ChartLineMovingAvg>` (windowed
+average), `<ChartLineTrend>`
+(global regression vs local
+slope), `<ChartLineComparison>`
+(between two curves vs within
+one), `<ChartLineMinMax>` (data
+extremes), and
+`<ChartLineForecast>` (time-axis
+split). 69 vitest cases cover
+defaults, derivative math,
+crossing, stats, layout, ARIA,
+tooltip, legend, callbacks, ref.
+(TODO 11.521)
+
 ## [1.11.538] - 2026-05-19 -- UI: chart-line-cumulative primitive (TODO 11.520)
 
 New **ChartLineCumulative** UI
