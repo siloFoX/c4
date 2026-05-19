@@ -4,6 +4,290 @@
 
 (no entries -- next release window)
 
+## [1.11.442] - 2026-05-19 -- UI: notification-bell primitive (TODO 11.424)
+
+New **NotificationBell** UI primitive
+in
+`web/src/components/ui/notification-bell.tsx`:
+bell trigger with an unread-count
+badge and a popover panel listing
+notifications. Each item carries a
+per-row "mark as read" action; the
+panel header exposes a global "mark
+all as read" affordance. The unread
+badge animates on count increase
+via the `motion-safe` Tailwind
+variant so users with
+`prefers-reduced-motion` are not
+pulsed at.
+
+### API
+
+```ts
+interface NotificationItem {
+  id: string;
+  title: ReactNode;
+  description?: ReactNode;
+  timestamp?: string | number | Date;
+  read?: boolean;
+  href?: string;
+  icon?: ReactNode;
+}
+
+interface NotificationBellProps {
+  notifications: NotificationItem[];
+  open?: boolean;              // controlled
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onMarkAsRead?: (id: string) => void;
+  onMarkAllAsRead?: () => void;
+  onNotificationClick?: (n: NotificationItem) => void;
+  ariaLabel?: string;          // default 'Notifications'
+  emptyState?: ReactNode;      // default 'No notifications'
+  maxBadgeCount?: number;      // default 9
+  animateBadge?: boolean;      // default true
+  className?: string;
+  panelClassName?: string;
+  align?: 'left' | 'right';    // default 'right'
+  width?: number | string;     // default 320
+  closeOnSelect?: boolean;     // default true
+  renderItem?: (args: {
+    notification: NotificationItem;
+    isUnread: boolean;
+    onMarkRead: () => void;
+    onClick: () => void;
+  }) => ReactNode;
+}
+```
+
+### Behaviour
+
+- Bell trigger toggles a popover
+  panel positioned below the
+  trigger (right-aligned by
+  default).
+- Trigger `aria-label` includes
+  the unread count when > 0
+  ("Notifications (2 unread)").
+- Badge formats with
+  `formatBadgeCount(count, max)`
+  -- shows `max+` when the count
+  exceeds the configured cap
+  (default 9). No badge renders
+  for 0 unread.
+- Badge pulse animation:
+  whenever the unread count
+  *increases*, a fresh React
+  `key` swaps in so the
+  `motion-safe:animate-bounce-once`
+  class re-fires. Count
+  decreases (mark-as-read,
+  mark-all) do not retrigger
+  the pulse.
+- Items render newest-first via
+  `sortNotificationsByTimestamp`
+  (Date / number / ISO string
+  all accepted; missing
+  timestamps sink to the back).
+- Per-item "mark as read"
+  button renders only for
+  unread items.
+- Panel header "Mark all"
+  button renders only when
+  there are unread items.
+- Click outside (mousedown
+  outside both the trigger and
+  the panel) and Escape both
+  close the panel. The handlers
+  attach only while the panel
+  is open.
+- Controlled `open` always wins
+  for the rendered state;
+  `onOpenChange` still fires
+  on every toggle attempt.
+- Item click fires
+  `onNotificationClick(item)`
+  and (by default) closes the
+  panel. `closeOnSelect=false`
+  keeps the panel open.
+- `renderItem` swaps the
+  default row for any host-
+  rendered element while
+  keeping the per-item `<li>`
+  wrapper + its data attrs.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_NOTIFICATION_MAX_BADGE = 9
+DEFAULT_NOTIFICATION_PANEL_WIDTH = 320
+DEFAULT_NOTIFICATION_ALIGN = 'right'
+getUnreadCount(notifications): number
+formatBadgeCount(count, max?): string
+sortNotificationsByTimestamp(notifications): NotificationItem[]
+```
+
+- `getUnreadCount` treats a
+  missing `read` field as
+  unread.
+- `formatBadgeCount` returns an
+  empty string for 0 / negative
+  / NaN; floors fractional;
+  emits `${max}+` past the cap.
+- `sortNotificationsByTimestamp`
+  is non-mutating; it copies
+  the array, sorts newest
+  first, and accepts string /
+  number / Date / undefined
+  timestamps (undefined sinks
+  to the back).
+
+### ARIA + data attributes
+
+- Trigger: `<button>` +
+  `aria-label` (count-aware) +
+  `aria-haspopup="dialog"` +
+  `aria-expanded`.
+- Panel: `role="dialog"` +
+  `aria-label="<label> panel"`.
+- Per-item title is wrapped in
+  its own `<button>` so screen
+  readers can land on each row
+  independently.
+- Mark-as-read button:
+  `aria-label="Mark as read"`.
+- Mark-all button:
+  `aria-label="Mark all as read"`.
+- `data-section` on every node:
+  `notification-bell` (root),
+  `notification-bell-trigger`,
+  `notification-bell-badge`,
+  `notification-bell-panel`,
+  `notification-bell-header`,
+  `notification-bell-mark-all`,
+  `notification-bell-list`,
+  `notification-bell-item`,
+  `notification-bell-item-trigger`,
+  `notification-bell-item-title`,
+  `notification-bell-item-description`,
+  `notification-bell-item-mark`,
+  `notification-bell-empty`.
+- Root mirrors `data-open`,
+  `data-unread-count`,
+  `data-has-unread`. Per-item
+  carries `data-item-id` +
+  `data-unread`. Badge carries
+  `data-badge-count`. Panel
+  carries `data-align`.
+
+### Tests
+
+50 cases in
+`web/src/components/ui/notification-bell.test.tsx`,
+covering:
+
+- All three pure helpers
+  across empty input, mixed
+  read/unread, missing `read`
+  field, fractional badge
+  counts, `max+` overflow, NaN
+  guards, Date / number /
+  string timestamps, and
+  non-mutation of the input
+  array.
+- Default + custom `ariaLabel`;
+  the trigger `aria-label`
+  includes the unread count
+  suffix when > 0.
+- Badge shows count; collapses
+  to `9+` when over
+  `maxBadgeCount`; absent when
+  no unread.
+- Panel closed by default;
+  trigger click opens it.
+- `defaultOpen=true` opens on
+  mount; controlled `open=true`
+  always renders the panel.
+- `onOpenChange` fires on
+  toggle.
+- Items render newest-first
+  inside the panel; description
+  renders when present.
+- Per-item `data-unread`
+  reflects state.
+- Per-item mark-as-read button
+  only renders for unread
+  items; clicking it fires
+  `onMarkAsRead(id)` with the
+  clicked item's id.
+- Header "mark all" button
+  only renders when unread > 0;
+  clicking fires
+  `onMarkAllAsRead`.
+- Item click fires
+  `onNotificationClick(item)`.
+- `closeOnSelect` default true
+  closes after click;
+  `closeOnSelect=false` keeps
+  the panel open.
+- Empty state copy renders;
+  custom `emptyState` slot.
+- Escape closes; outside
+  mousedown closes.
+- `align` reflects on
+  `data-align`; `width` prop
+  applies as inline style.
+- `renderItem` render-prop
+  replaces default rows.
+- Root data attrs (`data-open`,
+  `data-unread-count`,
+  `data-has-unread`) mirror
+  state.
+- Trigger `aria-expanded`
+  mirrors open state; trigger
+  has `aria-haspopup="dialog"`.
+- Stable `displayName` +
+  `forwardRef` to the trigger
+  button.
+- Badge `data-badge-count`
+  reflects unread count.
+
+### Pairs with existing primitives
+
+- `<Toast>` for transient
+  fire-and-forget messages
+  (`<NotificationBell>` is the
+  persistent inbox).
+- `<DropdownMenu>` for the
+  user / app-level menu next
+  to the bell.
+- `<Badge>` /
+  `<BadgeCounter>` underlie
+  the count chip pattern (the
+  bell renders its own pill
+  for tight icon-coupling).
+
+### Out of scope
+
+- Server / SSE subscription
+  to live notifications (host
+  owns network; pass the
+  current `notifications`
+  prop).
+- Infinite scroll inside the
+  panel (host can wrap with
+  `<InfiniteScroll>` if the
+  list grows past a single
+  viewport).
+- Bulk select + bulk actions
+  beyond "mark all" (host can
+  wrap with the bulk-action
+  pattern when needed).
+- Sound / desktop-notification
+  fan-out (host wires
+  `onMarkAsRead` /
+  `onNotificationClick`).
+
 ## [1.11.441] - 2026-05-19 -- UI: back-to-top primitive (TODO 11.423)
 
 New **BackToTop** UI primitive in
