@@ -245,3 +245,4 @@ export * from './chart-line-streak';
 export * from './chart-line-momentum';
 export * from './chart-line-control';
 export * from './chart-line-burndown';
+export * from './chart-line-pareto';
