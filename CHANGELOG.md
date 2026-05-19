@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.488] - 2026-05-19 -- UI: chart-bubble primitive (TODO 11.470)
+
+New **ChartBubble** UI primitive in
+`web/src/components/ui/chart-bubble.tsx`:
+pure-SVG bubble chart encoding three
+numeric dimensions per datum -- x
+(x-axis position), y (y-axis position),
+and size (drives bubble radius via
+sqrt-area scaling). Optional per-point
+category drives palette-based color
+encoding plus a focusable
+`<button aria-pressed>` legend per
+category that toggles visibility.
+Distinct from `<ChartScatter>` (11.444)
+in that bubbles have a 3rd encoded
+variable (size) instead of uniform dot
+radius, and distinct from
+`<ChartDotPlot>` (11.465) in that the x
+axis is numeric here rather than
+categorical. Hover/focus opens a
+tooltip with label, category, x, y, and
+size (formatted). Pure helpers
+exported: `getBubbleDefaultColor`,
+`getBubbleBounds`, `getBubbleRadius`,
+`getBubbleCategories`,
+`getBubbleCategoryColor`,
+`getBubbleTicks`, `computeBubbleLayout`,
+`describeBubbleChart`. Controlled +
+uncontrolled hidden category state via
+`hiddenCategories` /
+`defaultHiddenCategories` /
+`onHiddenCategoriesChange`. Controlled
+bounds via `xMin` / `xMax` / `yMin` /
+`yMax`. ARIA: root role=region +
+aria-label, SVG role=img with the same
+label, per-circle role=graphics-symbol
++ tabIndex=0 + "<label>: x <x>, y <y>,
+size <size>" aria-label. data-section
+on every node; root mirrors
+data-bubble-count / data-visible-count
+/ data-category-count / data-animate.
+Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 65 vitest cases pass.
+
 ## [1.11.487] - 2026-05-19 -- UI: chart-donut primitive (TODO 11.469)
 
 New **ChartDonut** UI primitive in
