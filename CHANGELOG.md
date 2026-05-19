@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.485] - 2026-05-19 -- UI: chart-grouped-bar primitive (TODO 11.467)
+
+New **ChartGroupedBar** UI primitive
+in
+`web/src/components/ui/chart-grouped-bar.tsx`:
+pure-SVG grouped bar chart. Each
+category gets its own horizontal
+slot; within the slot, every visible
+series renders its bar side-by-side.
+Distinct from `<ChartBar>` (11.438)
+in that this primitive emphasises
+multi-series side-by-side grouping +
+a clickable legend that toggles
+per-series visibility. Hidden series
+collapse their share so the visible
+bars expand to fill the slot.
+Optional `showValues` paints a small
+caption above each non-zero bar with
+the formatted value. Hover surfaces
+the bar's category + series label +
+formatted value. Per-bar click +
+per-series click callbacks.
+Pure helpers exported:
+`getGroupedBarMaxValue`,
+`computeGroupedBarLayout`,
+`getGroupedBarTicks`,
+`describeGroupedBarChart`. 51 vitest
+cases cover helpers (incl. layout
+invariants: bars side-by-side
+without overlap; non-positive values
+clamp to zero height; hidden series
+skip the slot; tallest bar height
+equals innerHeight when at max) +
+every render branch including
+legend toggle, controlled vs
+uncontrolled hidden state,
+showValues caption, formatter
+shaping, click payloads, ARIA
+description override, and ref
+forwarding.
+
 ## [1.11.484] - 2026-05-19 -- UI: chart-stacked-area primitive (TODO 11.466)
 
 New **ChartStackedArea** UI primitive
