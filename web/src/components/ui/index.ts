@@ -164,3 +164,4 @@ export * from './chart-candlestick';
 export * from './chart-radial-bar';
 export * from './chart-stream';
 export * from './chart-network';
+export * from './chart-gantt';
