@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.472] - 2026-05-19 -- UI: chart-network primitive (TODO 11.454)
+
+New **ChartNetwork** UI primitive in
+`web/src/components/ui/chart-network.tsx`:
+pure-SVG force-directed network graph.
+Nodes are placed by a deterministic
+physics simulation (Coulomb repulsion
++ edge spring + center gravity) that
+runs `iterations` steps on mount or
+data change. Edges paint as thin lines
+between nodes with thickness scaling
+to edge weight. Drag a node to
+reposition; pinned nodes stay put
+while the layout re-runs around them.
+Mouse-wheel zooms; drag the background
+to pan. Built-in zoom controls (+, -,
+1:1) in the top-right corner. Hover
+opens a tooltip with node label +
+degree + optional group; per-node
+and per-edge click callbacks fire
+with full payloads. Pure helpers
+exported: `seedNetworkPositions`,
+`stepForceSimulation`,
+`runForceLayout` (all deterministic),
+`getNetworkBounds`,
+`computeNodeDegree`,
+`findNodeAtPoint`, `getNodeRadius`,
+`describeNetworkChart`. 58 vitest
+cases cover helpers (incl. simulation
+determinism, no input mutation,
+NaN-jitter guard) + every render
+branch including drag attachments,
+zoom controls, edge weight rendering,
+formatter shaping, tooltip
+visibility, ARIA description
+override, and ref forwarding.
+
 ## [1.11.471] - 2026-05-19 -- UI: chart-stream primitive (TODO 11.453)
 
 New **ChartStream** UI primitive in
