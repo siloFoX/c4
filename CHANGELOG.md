@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.510] - 2026-05-19 -- UI: chart-strip primitive (TODO 11.492)
+
+New **ChartStrip** UI primitive in
+`web/src/components/ui/chart-strip.tsx`:
+pure-SVG one-dimensional **strip plot**
+(also known as a 1D scatter or strip
+chart). Each data point gets a small
+mark (a tick line by default, or a
+filled circle) placed along a single
+value axis. Multiple groups stack into
+parallel lanes; an optional
+deterministic jitter offsets coincident
+points in the orthogonal direction so
+dense regions remain readable.
+Distinct from `<ChartScatter>` (2D
+xy), `<ChartBubble>` (xy + size),
+`<ChartDotPlot>` (Wilkinson stacked
+dots showing frequency),
+`<ChartBoxplot>` (5-number summary),
+`<ChartHistogram>` (binned counts),
+`<ChartViolin>` (KDE-shaped density),
+and `<ChartRidge>` (stacked density
+curves). Jitter uses a mulberry32-
+style mixer keyed on
+`(seed, groupIndex, pointIndex)` so
+points never reshuffle across renders.
+Marks dim every other mark when one is
+hovered or focused; legend toggles
+group visibility; tooltip shows label
++ formatted value. ARIA: root region
++ svg role=img + per-mark
+graphics-symbol with tabIndex=0; data-
+section attribute on every node. Pure
+helpers exported: `getStripDefaultColor`,
+`getStripFiniteValues`, `getStripBounds`,
+`getStripTicks`, `getStripJitter`,
+`computeStripLayout`, `describeStripChart`.
+67 vitest cases pass under vitest
+4.1.5; TypeScript clean for touched
+files. Exported via `components/ui`
+barrel. Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.509] - 2026-05-19 -- UI: chart-radial-area primitive (TODO 11.491)
 
 New **ChartRadialArea** UI primitive in
