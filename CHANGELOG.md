@@ -4,6 +4,65 @@
 
 (no entries -- next release window)
 
+## [1.11.522] - 2026-05-19 -- UI: chart-line-area-gradient primitive (TODO 11.504)
+
+New **ChartLineAreaGradient** UI
+primitive in
+`web/src/components/ui/chart-line-area-gradient.tsx`:
+pure-SVG multi-series line + area
+chart whose defining feature is a
+**vertical linear gradient fill**
+from the line stroke down to a
+configurable baseline. Each series
+declares its own `<linearGradient>`
+in `<defs>` (id = `${useId}-${id}-grad`)
+with `gradientUnits="userSpaceOnUse"`
+and y endpoints anchored to the
+inner-plot top and the baseline
+pixel. Two stops: top
+(`stopOpacity = gradientTopOpacity`,
+default 0.5) and bottom
+(`stopOpacity = gradientBottomOpacity`,
+default 0). The area polygon below
+the line fills with `url(#...)`.
+`resolveLineAreaGradientBaseline`
+returns the explicit baseline when
+finite, otherwise falls back to
+`yMin` so the gradient anchors to
+the actual bottom of the data range.
+The baseline pixel is clamped to
+the inner plot area so the area
+stays visually coherent even when
+the baseline is outside the y
+range. Series-level
+`fillColor` is separate from
+`color` so adopters can use a
+contrast colour for the line vs
+the fill. Distinct from
+`<ChartLine>` (no fill),
+`<ChartArea>` (flat solid fill),
+`<ChartLineConfidence>` (11.502)
+(polygon between two curves, not
+flat baseline),
+`<ChartLineThreshold>` (11.503)
+(zone shading, not gradient), and
+`<ChartStackedArea>` (stacked
+solids). Pure helpers exported:
+`getLineAreaGradientDefaultColor`,
+`getLineAreaGradientFinitePoints`,
+`resolveLineAreaGradientBaseline`,
+`getLineAreaGradientBounds`,
+`getLineAreaGradientTicks`,
+`buildLineAreaGradientLinePath`,
+`buildLineAreaGradientAreaPath`,
+`computeLineAreaGradientLayout`,
+`describeLineAreaGradientChart`. 74
+vitest cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.521] - 2026-05-19 -- UI: chart-line-threshold primitive (TODO 11.503)
 
 New **ChartLineThreshold** UI
