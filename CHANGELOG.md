@@ -4,6 +4,61 @@
 
 (no entries -- next release window)
 
+## [1.11.533] - 2026-05-19 -- UI: chart-line-event primitive (TODO 11.515)
+
+New **ChartLineEvent** UI primitive
+in
+`web/src/components/ui/chart-line-event.tsx`:
+pure-SVG multi-series line chart
+with **event markers** on a
+dedicated horizontal track above
+the plot. Six canonical event
+kinds -- release / incident /
+maintenance / milestone / info /
+custom -- each ship default colour
++ shape (circle / triangle /
+square / star / diamond / cross).
+Per-event `color` and `icon`
+overrides always win. Faint dashed
+vertical rules drop from each icon
+through the plot to anchor the
+event in the time series. Each
+icon is independently focusable and
+clickable, with a tooltip showing
+title + kind + optional
+description + optional timestamp
+label. Pure helpers
+`buildLineEventIconPath` (canonical
+SVG path generator for all six
+icons; cross emits two sub-paths;
+star emits 10-vertex polygon;
+non-finite inputs return ''),
+`getLineEventValidEvents` (drops
+events with non-finite x or
+missing id/title; preserves order),
+`getLineEventKindDef` (canonical
+kind def with custom fallback for
+unknown / missing),
+`computeLineEventLayout` (plot
+area shifts down by track height
++ gap when track is shown;
+out-of-range events recorded with
+`inRange=false`), and
+`describeLineEventChart`. Includes
+a kind legend that toggles all
+events of a kind (controlled +
+uncontrolled). Distinct from
+`<ChartLineAnnotated>` (11.509)
+which renders inline vertical
+reference + text labels without
+the kind-driven icon set or
+dedicated event track. 64 vitest
+cases cover defaults, six kinds,
+icon path math, layout (with /
+without track), filters, tooltips,
+legends, callbacks, ref. (TODO
+11.515)
+
 ## [1.11.532] - 2026-05-19 -- UI: chart-line-percentile primitive (TODO 11.514)
 
 New **ChartLinePercentile** UI
