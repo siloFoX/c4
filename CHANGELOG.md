@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.547] - 2026-05-19 -- UI: chart-line-correlation primitive (TODO 11.529)
+
+New **ChartLineCorrelation** UI
+primitive in
+`web/src/components/ui/chart-line-correlation.tsx`:
+pure-SVG **dual-axis line chart**
+that pairs a primary series on
+the left y-axis with a secondary
+series on the right y-axis, each
+normalised to its own
+independent y range, and computes
+the **Pearson correlation
+coefficient r** between the two
+over their shared x samples. The
+r value is surfaced as a coloured
+badge with magnitude + qualitative
+strength (strong / moderate /
+weak / none) + direction
+(positive / negative / neutral).
+The canonical "two metrics on
+different scales -- do they
+correlate?" view. Pure helpers
+`pairLineCorrelationByX` (exact
+x-match pairing with ORIGINAL
+indices), `computePearsonCorrelation`
+(canonical formula, ok=false on
+<2 pairs or zero variance, r
+clamped to [-1, 1]),
+`classifyLineCorrelationStrength`
+(strong/moderate/weak/none with
+configurable thresholds),
+`classifyLineCorrelationDirection`,
+`computeLineCorrelation`,
+`computeLineCorrelationLayout`
+(separate y ranges + tick sets
+per axis), and
+`describeLineCorrelationChart`.
+Distinct from
+`<ChartLineComparison>` (same y
+scale + difference shading),
+`<ChartLineMulti>` (same y scale
++ crosshair), `<ChartLineResidual>`
+(observed minus predicted on
+same x), `<ChartLineTrend>`
+(single-series regression). 59
+vitest cases cover defaults,
+pairing, Pearson math (perfect
++/- correlation, constant signal,
+mean recording, clamping),
+classification, layout (dual
+axes), ARIA, tooltip, badge,
+legend, callbacks, ref. (TODO
+11.529)
+
 ## [1.11.546] - 2026-05-19 -- UI: chart-line-acceleration primitive (TODO 11.528)
 
 New **ChartLineAcceleration** UI
