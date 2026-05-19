@@ -175,3 +175,4 @@ export * from './chart-chord';
 export * from './chart-arc-diagram';
 export * from './chart-radar-spider';
 export * from './chart-dot-plot';
+export * from './chart-stacked-area';

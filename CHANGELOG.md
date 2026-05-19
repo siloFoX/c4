@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.484] - 2026-05-19 -- UI: chart-stacked-area primitive (TODO 11.466)
+
+New **ChartStackedArea** UI primitive
+in
+`web/src/components/ui/chart-stacked-area.tsx`:
+pure-SVG stacked area chart with a
+toggleable absolute / percentage
+mode and clickable legend interaction
+for hiding individual series.
+Distinct from `<ChartArea>` (11.441)
+in that the mode toggle (a small
+`%`/`#` button in the corner) and
+the legend-driven visibility filter
+are first-class. Every legend entry
+is a focusable `<button
+aria-pressed>` that hides / shows
+its series; percentage mode
+normalises every column to total = 1
+so columns paint relative
+contributions. Smooth interpolation
+shares the Catmull-Rom-to-cubic-Bezier
+encoder used in `<ChartArea>` and
+`<ChartStream>`. Tooltip surfaces
+the raw value, column total,
+optional percent of total
+(percentage mode), and the optional
+x label. Pure helpers exported:
+`getStackedAreaTotalAt`,
+`getStackedAreaMaxTotal`,
+`computeStackedAreaLayout`,
+`buildStackedAreaBandPath`,
+`getStackedAreaTicks`,
+`describeStackedAreaChart`. 59
+vitest cases cover helpers (incl.
+layout invariants: layer boundary
+upperY[i] == lowerY[i+1] in
+absolute mode, columns sum to 1 in
+percentage mode, hidden layers
+collapse to baseline) + every
+render branch including mode
+toggle, controlled / uncontrolled
+mode + hiddenSeries, legend toggle
+click, percent row in tooltip,
+formatter shaping, click payload,
+ARIA description override, and ref
+forwarding.
+
 ## [1.11.483] - 2026-05-19 -- UI: chart-dot-plot primitive (TODO 11.465)
 
 New **ChartDotPlot** UI primitive
