@@ -221,3 +221,4 @@ export * from './chart-line-discontinuous';
 export * from './chart-line-annotated';
 export * from './chart-line-baseline';
 export * from './chart-line-comparison';
+export * from './chart-line-trend';
