@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.517] - 2026-05-19 -- UI: chart-line-dashed primitive (TODO 11.499)
+
+New **ChartLineDashed** UI primitive
+in `web/src/components/ui/chart-line-dashed.tsx`:
+pure-SVG line chart with multiple
+named dash patterns plus first-class
+per-segment styling. Five named
+patterns ship out of the box
+(`solid` / `dashed` / `dotted` /
+`dashDot` / `longDash` -- exported
+via `LINE_DASHED_PATTERNS`), with
+raw `dashArray` overrides accepted
+at both series and per-point levels.
+Resolution order (first match wins):
+point `segmentDashArray` >
+point `segmentStyle` (named) >
+series `dashArray` (raw) >
+series `dashStyle` (named).
+Consecutive segments sharing the same
+effective dash array merge into a
+single `<path>`; a dash transition
+opens a new `<path>` at the
+transition point so the line stays
+visually continuous. Canonical
+exported segment builder
+`buildLineDashedSegments` keeps the
+DOM small even for long series with
+infrequent style changes. Multi-series
+with hover dim, focusable per-dot
+tooltips, controlled + uncontrolled
+hidden state, legend toggles (each
+swatch reflects its series's dash
+pattern via a tiny SVG line), axis +
+grid + optional axis labels. ARIA:
+root region + svg role=img + per-path
+and per-dot graphics-symbol with
+tabIndex=0; data-section on every
+node. Pure helpers exported:
+`getLineDashedDefaultColor`,
+`getLineDashedStrokeDashArray`,
+`getLineDashedFinitePoints`,
+`getLineDashedBounds`,
+`getLineDashedTicks`,
+`resolveSegmentDashArray`,
+`buildLineDashedSegments`,
+`computeLineDashedLayout`,
+`describeLineDashedChart`. 70 vitest
+cases pass under vitest 4.1.5;
+TypeScript clean for touched files.
+Exported via `components/ui` barrel.
+Reference
+`/root/c4/arps-design-system-v1/`.
+
 ## [1.11.516] - 2026-05-19 -- UI: chart-line-smooth primitive (TODO 11.498)
 
 New **ChartLineSmooth** UI primitive
