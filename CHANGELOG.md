@@ -4,6 +4,201 @@
 
 (no entries -- next release window)
 
+## [1.11.561] - 2026-05-19 -- UI: chart-line-decompose primitive (TODO 11.543)
+
+New **ChartLineDecompose** UI
+primitive in
+`web/src/components/ui/chart-line-decompose.tsx`:
+pure-SVG **additive seasonal
+decomposition** chart. Takes
+one time series and splits it
+into three coordinated
+components: **trend**
+(centered moving average of
+window=period; handles even
+periods with canonical 2xN
+half-weight formula),
+**seasonal** (per-phase
+average of detrended values,
+then centered so the seasonal
+pattern has zero mean), and
+**residual** (observed -
+trend - seasonal). Rendered
+as a stacked 4-panel chart
+(Observed / Trend / Seasonal
+/ Residual) sharing the
+x-axis, with per-panel
+y-scales and dashed zero
+reference lines on the
+seasonal + residual panels.
+Seasonal and residual y
+ranges are pinned symmetric
+around zero when both signs
+are present so the reference
+line lands in the middle of
+the panel. This matches
+pandas'
+`seasonal_decompose(model=
+'additive', period=p)`
+output (centered moving-
+average convention). The
+canonical statsmodels /
+pandas seasonal-decompose
+4-pane output -- used for
+visual diagnosis of
+seasonality vs trend vs
+noise in any periodic time
+series (sales, weather, web
+traffic, etc.). Pure helpers
+`computeCenteredMovingAverage`
+(odd: mean over centered
+window; even: canonical
+half-weight endpoints
+formula; edges null; skips
+non-finite from window),
+`computeLineDecomposeSeasonalPattern`
+(per-phase average + center
+to zero mean),
+`computeLineDecomposition`
+(returns `{samples, period,
+trendValidCount,
+residualValidCount,
+seasonalPattern, ok}`; each
+sample carries `{index, x,
+observed, trend, seasonal,
+residual, phase}`;
+reconstructs observed =
+trend + seasonal + residual
+exactly where trend is
+valid),
+`normaliseLineDecomposePeriod`
+(clamps to >= 2; non-finite
+-> default 12),
+`computeLineDecomposeLayout`
+(stacks enabled panels
+evenly with gap separators;
+per-panel y-projection;
+seasonal/residual symmetric
+around 0; per-panel
+points[i].py is null where
+decomposition is null at
+trend edges), and
+`describeLineDecomposeChart`.
+Distinct from
+`<ChartLineMovingAvg>`
+(11.513; SMA only --
+decompose extracts THE
+trend component but ALSO
+produces seasonal + residual
+splits), `<ChartLineResidual>`
+(11.525; observed minus
+EXTERNALLY-supplied
+predicted -- decompose
+derives the predicted (trend
++ seasonal) internally from
+the same series),
+`<ChartLineFft>` (11.540;
+frequency-domain transform
+-- decompose stays in time
+domain and extracts ONE
+pre-specified period; use
+FFT to IDENTIFY the
+dominant period, then
+decompose to SPLIT around
+that period),
+`<ChartLineBollinger>`
+(11.537; rolling envelope
+-- decompose is a 4-panel
+split), and
+`<ChartLineKalman>`
+(11.538; recursive Bayesian
+filter -- decompose is a
+deterministic windowed
+decomposition). Per-instance
+`observedColor` / `trendColor`
+/ `seasonalColor` /
+`residualColor` always beats
+defaults. Tooltip on dots
+shows the full per-sample
+breakdown: panel label, x,
+obs, trend (n/a at edges),
+seasonal, residual (n/a at
+edges), phase. Period badge
+in top-left calls out the
+period + sample count with
+icon ⌬. Legend has 4 toggle
+buttons (one per component)
+with `aria-pressed` flag.
+ARIA: root `role="region"` +
+`aria-describedby`; SVG
+`role="img"`; per-panel
+line paths
+`role="graphics-symbol"
+tabIndex={0}`; legend is
+`role="group"`. Data-attrs:
+root `data-period`,
+`data-total-points`,
+`data-trend-valid-count`,
+`data-residual-valid-count`,
+`data-panel-count`,
+`data-hidden-count`,
+`data-animate`; per-panel
+group `data-panel` (observed
+/ trend / seasonal /
+residual), `data-color`,
+`data-valid-count`; per-panel
+path `data-kind` matching
+component kind; zero
+reference lines
+`data-panel`. 61 vitest
+cases pass (defaults,
+helpers, computeCenteredMovingAverage
+odd + even formulas
+verified at known values
+incl. half-weight endpoints
+at period 4,
+computeLineDecomposeSeasonalPattern
+centers to zero verified by
+sum, computeLineDecomposition
+empty / per-sample / trend
+null at edges / seasonal
+repeats / **verified
+observed = trend + seasonal
++ residual reconstruction
+identity** /
+trendValidCount ===
+residualValidCount / sort
+ascending,
+computeLineDecomposeLayout
+empty / degenerate / 4 panels
+canonical order /
+enabledComponents filter /
+residual range centered on
+0 / residual zero py / trend
+edges null pys / observed
+never null / totalPoints,
+describeLineDecomposeChart
+No data + period + samples
++ trend-valid summary,
+component render incl.
+empty / 4 panel paths /
+hide via hiddenComponents /
+zero reference line on
+residual + seasonal + hide /
+per-panel label / period
+badge + omit / dots only
+when showDots=true / ARIA /
+root data-* / tooltip
+breakdown rows + hide on
+leave + omit / onPointClick
+payload / legend 4 buttons +
+uncontrolled toggle + omit /
+animate / ref / period >
+samples = all trend null /
+displayName).
+Implementation patch:
+`docs/patches/11.543-ui-chart-line-decompose.md`.
+
 ## [1.11.560] - 2026-05-19 -- UI: chart-line-rangefocus primitive (TODO 11.542)
 
 New **ChartLineRangeFocus** UI
