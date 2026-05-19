@@ -4,6 +4,276 @@
 
 (no entries -- next release window)
 
+## [1.11.440] - 2026-05-19 -- UI: scroll-spy primitive (TODO 11.422)
+
+New **ScrollSpy** UI primitive in
+`web/src/components/ui/scroll-spy.tsx`:
+a `<nav>` whose active item tracks
+the section currently in the
+viewport.
+`IntersectionObserver` watches every
+linked section; clicking an item
+smooth-scrolls the target into view
+with an optional offset for sticky
+headers.
+
+### API
+
+```ts
+interface ScrollSpyItem {
+  id: string;        // matches the section element id
+  label: ReactNode;
+  disabled?: boolean;
+}
+
+interface ScrollSpyProps {
+  items: ScrollSpyItem[];
+  activeId?: string | null;          // controlled
+  defaultActiveId?: string | null;   // uncontrolled seed
+  onActiveChange?: (id: string | null) => void;
+  rootMargin?: string;               // default '0px 0px -50% 0px'
+  threshold?: number | number[];     // default 0
+  scrollBehavior?: 'smooth' | 'auto'; // default 'smooth'
+  orientation?: 'vertical' | 'horizontal'; // default 'vertical'
+  className?: string;
+  ariaLabel?: string;                // default 'Section navigation'
+  scrollOffset?: number;             // px, default 0
+  renderItem?: (args: {
+    item: ScrollSpyItem;
+    isActive: boolean;
+    onClick: () => void;
+  }) => ReactNode;
+}
+```
+
+### Behaviour
+
+- Items render as a `<ul>` of
+  links by default; each link
+  is `aria-current="location"`
+  while it matches the active id.
+- `renderItem` swaps the default
+  link for any host-rendered
+  element (button, NavLink, etc.)
+  while keeping the per-item
+  `<li>` wrapper with its
+  `data-section` markers.
+- On click the matching section
+  is found by id and scrolled
+  into view:
+  - `scrollOffset === 0` -> the
+    element's
+    `scrollIntoView({ behavior,
+    block: 'start' })`.
+  - Otherwise the helper
+    `scrollIntoViewWithOffset`
+    falls back to
+    `window.scrollTo({ top:
+    rect.top + scrollY - offset,
+    behavior })`, which lets
+    sticky-header layouts park
+    the section below the
+    header.
+- `IntersectionObserver` is
+  created with the configured
+  `rootMargin` + `threshold` and
+  observes only items whose
+  matching `document.getElementById`
+  exists. The default
+  `rootMargin` ('0px 0px -50%
+  0px') treats the upper half of
+  the viewport as the "active
+  band" so the active id flips
+  exactly when the section
+  reaches the middle line.
+- When the observer reports no
+  intersecting entries, the
+  active id is preserved unless
+  the previously-active section
+  is itself in the current
+  batch (in which case it has
+  just scrolled out and the
+  spy clears).
+- Controlled `activeId` always
+  wins for the rendered
+  highlight; the observer
+  still emits `onActiveChange`
+  so the host can use the
+  callback for analytics /
+  routing while keeping a
+  one-way data flow.
+- The observer disconnects on
+  unmount and on every prop
+  change that resets the watch
+  list (items, rootMargin,
+  threshold).
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_SCROLL_SPY_ROOT_MARGIN = '0px 0px -50% 0px'
+DEFAULT_SCROLL_SPY_THRESHOLD = 0
+DEFAULT_SCROLL_SPY_ORIENTATION = 'vertical'
+DEFAULT_SCROLL_SPY_OFFSET = 0
+interface ScrollSpyEntry { isIntersecting; intersectionRatio; target: { id }; }
+getMostVisibleEntry(entries): ScrollSpyEntry | null
+getActiveIdFromEntries(entries, previousActive): string | null
+scrollIntoViewWithOffset(element, offset?, behavior?): void
+```
+
+- `getMostVisibleEntry` picks
+  the entry with the highest
+  `intersectionRatio` that is
+  also `isIntersecting`. The
+  exported `ScrollSpyEntry` is
+  the minimal shape consumed
+  by the helper so adopters can
+  unit-test their own
+  observers without
+  instantiating real DOM
+  entries.
+- `getActiveIdFromEntries`
+  consults `getMostVisibleEntry`
+  first; when nothing
+  intersects it preserves the
+  previously-active id (unless
+  that id is itself in the
+  batch, which means it has
+  just left the viewport).
+- `scrollIntoViewWithOffset`
+  is jsdom-safe -- it falls
+  back to `element.scrollIntoView`
+  when `window.scrollTo` is
+  missing.
+
+### ARIA + data attributes
+
+- Root: `<nav>` +
+  `aria-label`.
+- Default link:
+  `aria-current="location"`
+  when active;
+  `aria-disabled` when the
+  item has `disabled: true`.
+- `data-section` on every
+  node: `scroll-spy` (root),
+  `scroll-spy-list` (UL),
+  `scroll-spy-item` (each LI),
+  `scroll-spy-link` (default
+  anchor when `renderItem` is
+  not supplied). Each LI also
+  mirrors `data-item-id` /
+  `data-active` /
+  `data-disabled`.
+- Root mirrors
+  `data-orientation`,
+  `data-active-id`,
+  `data-item-count`.
+
+### Tests
+
+41 cases in
+`web/src/components/ui/scroll-spy.test.tsx`,
+covering:
+
+- All three pure helpers across
+  empty entries, none-
+  intersecting, multi-entry
+  ratio comparisons, previous-
+  active preservation, and
+  jsdom-safe `scrollTo`
+  fallback.
+- Default + custom `ariaLabel`.
+- One link per item; default
+  link `href="#id"`.
+- Controlled `activeId` marks
+  the matching item with
+  `aria-current="location"`;
+  non-active links omit
+  `aria-current`.
+- Orientation default
+  (vertical) + horizontal
+  override on root.
+- Root + per-item data attrs
+  (`data-active-id`,
+  `data-item-count`,
+  `data-item-id`, `data-active`,
+  `data-disabled`).
+- Disabled items render with
+  `aria-disabled="true"` and
+  click is a no-op.
+- Click calls the target
+  element's `scrollIntoView` +
+  fires `onActiveChange` with
+  the clicked id.
+- Click `preventDefault`s the
+  anchor (no hash navigation).
+- `IntersectionObserver`
+  constructor receives the
+  configured `rootMargin` +
+  `threshold`.
+- IO observes exactly the
+  items whose DOM elements
+  exist (missing elements
+  silently dropped).
+- IO emit updates the
+  uncontrolled active id and
+  flips the rendered
+  `aria-current`.
+- IO emit fires
+  `onActiveChange` even when
+  the component is
+  controlled (host can use
+  the callback while keeping
+  the rendered highlight
+  in their own state).
+- Observer disconnects on
+  unmount.
+- `renderItem` render-prop
+  replaces the default link.
+- `defaultActiveId` seeds the
+  uncontrolled state.
+- Stable `displayName` +
+  `forwardRef` to the `<nav>`.
+- All `data-section` markers
+  present on the root, list,
+  and item nodes.
+- Skips IO setup when no
+  `IntersectionObserver` is
+  available on `window`.
+
+### Pairs with existing primitives
+
+- `<Breadcrumbs>` for top-level
+  navigation context.
+- `<Navbar>` for the global
+  navigation chrome around a
+  spied document.
+- `<ProgressTracker>` (11.421)
+  for milestone progress where
+  each step is bound to a
+  section but the section
+  ordering is canonical (not
+  scroll-derived).
+
+### Out of scope
+
+- Scroll-restoration (host
+  owns hash routing).
+- Nested / hierarchical
+  spying (host can compose
+  multiple ScrollSpy
+  instances).
+- Configurable observer
+  `root` (always
+  `document.documentElement`
+  for v1).
+- Bidirectional auto-scroll
+  (the spy follows scroll
+  position; it does not
+  reverse-drive scroll from
+  the rendered list).
+
 ## [1.11.439] - 2026-05-19 -- UI: progress-tracker primitive (TODO 11.421)
 
 New **ProgressTracker** UI primitive
