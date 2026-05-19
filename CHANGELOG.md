@@ -4,6 +4,61 @@
 
 (no entries -- next release window)
 
+## [1.11.496] - 2026-05-19 -- UI: chart-polar-area primitive (TODO 11.478)
+
+New **ChartPolarArea** UI primitive in
+`web/src/components/ui/chart-polar-area.tsx`:
+pure-SVG Nightingale rose / polar area
+chart. Every wedge gets an **equal
+angular slice** of the full circle
+(`2π / N`); **radius encodes value**.
+Default radius scaling is `sqrt` (so
+wedge area is proportional to value --
+the honest Nightingale encoding since
+wedge area = (angle/2) * r^2); a
+`linear` mode is available for adopters
+who want radius itself proportional to
+value. Distinct from `<ChartPie>`
+(11.440) and `<ChartDonut>` (11.469)
+(where angle encodes value and radius
+is constant) and from `<ChartRadialBar>`
+(11.452) (which paints separate
+concentric rings per series rather
+than one wedge per category). Non-
+positive / non-finite values render no
+wedge. `maxValue` prop overrides the
+auto-derived peak so multiple
+instances can share a comparable
+radial scale. Hover/focus dims every
+other wedge to opacity 0.3 and opens
+a tooltip with label, value, and the
+percentage ratio against maxValue.
+Axis rings paint at every tick value;
+optional in-wedge labels at the
+centroid (62% radius). Legend buttons
+(aria-pressed) toggle wedge visibility;
+controlled + uncontrolled. Pure
+helpers exported:
+`getPolarAreaDefaultColor`,
+`polarToCartesian`,
+`getPolarAreaMaxValue`,
+`getPolarAreaRadius`,
+`getPolarAreaTicks`,
+`computePolarAreaLayout`,
+`describePolarAreaChart`. ARIA: root
+role=region + aria-label, SVG role=img
+with same label; per-path
+role=graphics-symbol + tabIndex=0 +
+"<label>: <value>" aria-label. data-
+section on every node; root mirrors
+data-wedge-count / data-visible-count
+/ data-max-value / data-radius-mode /
+data-animate; wedge groups mirror id /
+index / value / ratio / color / radius
+/ hovered. Mount fade via
+`motion-safe:animate-fade-in`. Ref
+forwards to root. 58 vitest cases pass.
+
 ## [1.11.495] - 2026-05-19 -- UI: chart-streamgraph primitive (TODO 11.477)
 
 New **ChartStreamgraph** UI primitive
