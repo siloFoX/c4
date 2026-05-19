@@ -4,6 +4,253 @@
 
 (no entries -- next release window)
 
+## [1.11.445] - 2026-05-19 -- UI: announcement-banner primitive (TODO 11.427)
+
+New **AnnouncementBanner** UI
+primitive in
+`web/src/components/ui/announcement-banner.tsx`:
+site-wide banner with dismissible
+state, variant colours (info /
+warning / success / error /
+neutral), optional link slot, and
+per-id dismissal persisted to
+`localStorage` so users do not see
+the same announcement twice.
+
+### API
+
+```ts
+interface AnnouncementLink {
+  href: string;
+  label: ReactNode;
+  external?: boolean;
+}
+
+interface AnnouncementBannerProps {
+  id: string;                              // localStorage namespace
+  variant?: 'info'|'warning'|'success'|'error'|'neutral';  // default 'info'
+  title?: ReactNode;
+  description?: ReactNode;
+  link?: AnnouncementLink;
+  icon?: ReactNode;
+  dismissible?: boolean;                   // default true
+  open?: boolean;                          // controlled
+  defaultOpen?: boolean;                   // default true (honours dismissal)
+  onOpenChange?: (open: boolean) => void;
+  onDismiss?: () => void;
+  storageKey?: string;                     // overrides namespaced key
+  alignment?: 'left' | 'center';           // default 'left'
+  className?: string;
+  ariaLabel?: string;                      // default: title or 'Announcement'
+  children?: ReactNode;                    // overrides title+description body
+}
+```
+
+### Behaviour
+
+- Renders inline as a full-width
+  banner (top-and-bottom border)
+  so hosts drop it into a page
+  header / chrome region.
+- Variant colour set applies to
+  the container, icon, and link
+  via per-variant Tailwind
+  classes; the default
+  variant-specific icon
+  (`Info` / `AlertTriangle` /
+  `CheckCircle2` / `AlertCircle`
+  / `Megaphone`) is replaced by
+  any `icon` prop.
+- Default body renders
+  `title` + `description` slots;
+  passing `children` replaces
+  the entire body so hosts
+  retain full layout control.
+- Link slot renders an anchor
+  with the supplied href +
+  label; `external: true`
+  swaps to `target="_blank"
+  rel="noopener noreferrer"`
+  and exposes
+  `data-external="true"`.
+- Dismiss button is visible
+  by default
+  (`aria-label="Dismiss announcement"`);
+  `dismissible={false}` hides
+  it.
+- Clicking dismiss:
+  - persists the dismissal flag
+    via
+    `markAnnouncementDismissed(id, storageKey)`,
+  - emits `onOpenChange(false)`,
+  - fires `onDismiss`,
+  - closes the banner
+    (when uncontrolled).
+- `defaultOpen` honours the
+  persisted dismissal flag on
+  mount, so a second visit with
+  the same `id` keeps the
+  banner closed. Controlled
+  `open` bypasses the flag for
+  scenarios where the host
+  re-shows the banner on
+  demand.
+- Headline `aria-label`
+  defaults to the title
+  string; falls back to
+  `'Announcement'` when the
+  title is a non-string
+  ReactNode; can be fully
+  overridden via the
+  `ariaLabel` prop.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_ANNOUNCEMENT_STORAGE_PREFIX = 'c4:announcement:'
+DEFAULT_ANNOUNCEMENT_VARIANT = 'info'
+DEFAULT_ANNOUNCEMENT_ALIGNMENT = 'left'
+getAnnouncementStorageKey(id, override?): string
+isAnnouncementDismissed(id, override?, storage?): boolean
+markAnnouncementDismissed(id, override?, storage?): void
+clearAnnouncementDismissal(id, override?, storage?): void
+```
+
+- Helpers mirror the pattern
+  used by `<FeatureTour>`
+  (11.426): namespaced key,
+  override slot, optional
+  storage param for tests,
+  throws-swallowed so the
+  primitive never crashes the
+  host page when storage is
+  unavailable.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label` (title-derived
+  default).
+- Dismiss button:
+  `aria-label="Dismiss announcement"`.
+- External link adds
+  `target="_blank"` +
+  `rel="noopener noreferrer"`.
+- `data-section` on every node:
+  `announcement-banner` (root),
+  `announcement-banner-icon`,
+  `announcement-banner-content`,
+  `announcement-banner-body`
+  (only when `children` are
+  supplied),
+  `announcement-banner-title`,
+  `announcement-banner-description`,
+  `announcement-banner-link`,
+  `announcement-banner-dismiss`.
+- Root mirrors `data-banner-id`,
+  `data-variant`,
+  `data-alignment`,
+  `data-dismissible`. Link
+  mirrors `data-external`.
+
+### Tests
+
+42 cases in
+`web/src/components/ui/announcement-banner.test.tsx`,
+covering:
+
+- All four exported pure
+  helpers: namespacing,
+  override, mark / read /
+  clear round-trip,
+  null-storage no-op,
+  throwing-storage swallow.
+- Default + custom `ariaLabel`;
+  title-derived default;
+  non-string title -> fallback
+  to `'Announcement'`.
+- Title + description default
+  render; `children` body
+  overrides them.
+- Variant defaults + all four
+  non-default variants
+  (`warning` / `success` /
+  `error` / `neutral`) reflect
+  on `data-variant`.
+- Default icon renders per
+  variant; custom `icon` prop
+  replaces it.
+- Link slot renders an anchor
+  with the href + label;
+  `external: true` flips
+  `target` / `rel` /
+  `data-external`.
+- Dismiss button visible by
+  default; `dismissible=false`
+  hides it.
+- Clicking dismiss fires
+  `onDismiss` + persists the
+  flag + closes the banner.
+- Previously-dismissed id
+  stays closed on next mount.
+- Controlled `open=true`
+  bypasses the dismissed flag;
+  `open=false` hides even
+  without a stored flag;
+  controlled dismiss does not
+  flip rendered state but
+  still persists the flag.
+- `onOpenChange` fires on
+  dismiss.
+- `alignment` default + center
+  override reflect on
+  `data-alignment`.
+- `data-banner-id` mirrors
+  the id prop.
+- `data-dismissible` mirrors
+  state.
+- `forwardRef` to the root
+  region.
+- Stable `displayName`.
+- `data-section` markers
+  present on root, icon,
+  content, dismiss.
+- Description omitted when
+  not supplied.
+
+### Pairs with existing primitives
+
+- `<AlertBanner>` for shorter
+  one-line system notices
+  (`<AnnouncementBanner>` ships
+  the dismissal-persistence
+  flow + link slot).
+- `<NotificationBell>` (11.424)
+  for the persistent inbox
+  pattern.
+- `<FeatureTour>` (11.426)
+  shares the dismissal-storage
+  helper pattern; both
+  primitives namespace their
+  keys via `c4:*:` prefixes.
+
+### Out of scope
+
+- Scheduled show / hide based
+  on date ranges (host owns
+  scheduling and toggles the
+  banner via `open`).
+- Server-side targeting
+  rules (host decides which
+  banner id to mount).
+- Multi-banner stacking (host
+  composes multiple
+  `<AnnouncementBanner>`
+  instances if needed).
+- A/B variant content (host
+  picks the variant + body
+  before mount).
+
 ## [1.11.444] - 2026-05-19 -- UI: feature-tour primitive (TODO 11.426)
 
 New **FeatureTour** UI primitive in
