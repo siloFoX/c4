@@ -4,6 +4,286 @@
 
 (no entries -- next release window)
 
+## [1.11.456] - 2026-05-19 -- UI: chart-bar primitive (TODO 11.438)
+
+New **ChartBar** UI primitive in
+`web/src/components/ui/chart-bar.tsx`:
+pure-SVG bar chart with horizontal
++ vertical orientations, per-bar
+color slot, axis labels, an opt-in
+hover tooltip, and a CSS-driven
+mount animation. Hosts pass an
+ordered `data` array; the primitive
+owns the SVG geometry +
+accessibility + interaction wiring.
+
+### API
+
+```ts
+type ChartBarOrientation = 'horizontal' | 'vertical';
+
+interface ChartBarSeries {
+  id: string;
+  label: string;
+  value: number;
+  color?: string;
+}
+
+interface ChartBarProps {
+  data: readonly ChartBarSeries[];
+  orientation?: ChartBarOrientation;   // default 'vertical'
+  width?: number;                      // default 480
+  height?: number;                     // default 280
+  padding?: number;                    // default 32
+  axisLabel?: { x?: string; y?: string };
+  formatValue?: (n: number) => string;
+  showGrid?: boolean;                  // default true
+  showTooltip?: boolean;               // default true
+  showAxisTicks?: boolean;             // default true
+  animate?: boolean;                   // default true
+  className?: string;
+  ariaLabel?: string;                  // default 'Bar chart'
+  onBarClick?: (series: ChartBarSeries) => void;
+  tickCount?: number;                  // default 4
+  maxOverride?: number;
+}
+```
+
+### Behaviour
+
+- Renders a `<svg>` with a
+  configurable viewBox; bars are
+  per-series `<g>` groups
+  containing a `<rect>` (the bar
+  itself) and a `<text>` axis
+  label.
+- Vertical orientation: bar
+  height scales to the value;
+  category labels sit beneath
+  the x-axis. Horizontal: bar
+  width scales; category labels
+  sit to the left of the
+  y-axis.
+- Grid lines render at every
+  tick value (default 5
+  ticks, including 0 and max);
+  matching tick labels render
+  along the value axis.
+- Per-series `color` overrides
+  the default palette color
+  (`DEFAULT_CHART_BAR_PALETTE`)
+  picked by the series index.
+- Hover (mouse-enter / focus)
+  on a bar shows an absolutely-
+  positioned tooltip with the
+  series label + formatted
+  value. Mouse-leave / blur
+  hides it. `showTooltip=
+  false` suppresses the
+  tooltip layer entirely.
+- `animate=true` (default)
+  applies the
+  `motion-safe:animate-fade-in`
+  utility so the bar fade-in
+  honours
+  `prefers-reduced-motion`.
+- `onBarClick` makes each bar
+  clickable + focusable; the
+  callback receives the full
+  series object.
+
+### Pure helpers (exported)
+
+```ts
+DEFAULT_CHART_BAR_WIDTH = 480
+DEFAULT_CHART_BAR_HEIGHT = 280
+DEFAULT_CHART_BAR_PADDING = 32
+DEFAULT_CHART_BAR_TICK_COUNT = 4
+DEFAULT_CHART_BAR_PALETTE = [
+  '#3b82f6', '#22c55e', '#f59e0b',
+  '#ef4444', '#a855f7', '#06b6d4',
+  '#eab308', '#14b8a6',
+]
+getDefaultBarColor(index): string
+getChartBarMax(data, override?): number
+getChartBarScale(max, length): (value: number) => number
+formatChartBarTick(value, formatter?): string
+getChartBarTicks(max, count?): number[]
+```
+
+- `getDefaultBarColor` cycles
+  through the 8-color palette;
+  NaN / negative -> palette[0].
+- `getChartBarMax` returns the
+  highest positive value;
+  floors at 1 when no positive
+  values; non-finite series
+  values are ignored; `override`
+  wins when supplied.
+- `getChartBarScale` is a
+  pure linear mapping from
+  value -> pixel length;
+  safely defaults to a 1-to-1
+  pass-through for zero max
+  / zero length.
+- `formatChartBarTick` pretty-
+  prints integers; trims
+  trailing zeros from floats
+  (2-decimal precision);
+  `formatter` override fully
+  controls the rendered tick
+  label.
+- `getChartBarTicks` returns
+  `count + 1` evenly-spaced
+  ticks from `0` to `max`; safe
+  defaults for max=0 / negative
+  count.
+
+### ARIA + data attributes
+
+- Region: `role="region"` +
+  `aria-label`.
+- SVG: `role="img"` +
+  `aria-label`.
+- Bars: `role="graphics-symbol"`
+  + `aria-label="<label>:
+  <value>"` + `tabIndex=0` so
+  keyboard users can land on
+  each bar.
+- Tooltip: `role="tooltip"`.
+- `data-section` on every node:
+  `chart-bar` (root),
+  `chart-bar-svg`,
+  `chart-bar-axis-x`,
+  `chart-bar-axis-y`,
+  `chart-bar-grid`,
+  `chart-bar-tick-label`,
+  `chart-bar-bar` (per series),
+  `chart-bar-rect`,
+  `chart-bar-label` (per-bar
+  category label),
+  `chart-bar-tooltip`,
+  `chart-bar-tooltip-label`,
+  `chart-bar-tooltip-value`,
+  `chart-bar-axis-x-label`,
+  `chart-bar-axis-y-label`.
+- Root mirrors
+  `data-orientation`,
+  `data-bar-count`,
+  `data-animate`. Each bar
+  mirrors `data-bar-id` +
+  `data-hovered`. Each grid
+  line mirrors
+  `data-tick-value`.
+
+### Tests
+
+47 cases in
+`web/src/components/ui/chart-bar.test.tsx`,
+covering:
+
+- `getDefaultBarColor` palette
+  cycle; NaN / negative ->
+  palette[0].
+- `getChartBarMax`: highest
+  positive value; floor at 1
+  for empty / all-zero / all-
+  negative; override wins;
+  non-finite values ignored.
+- `getChartBarScale`: linear
+  mapping; non-finite /
+  negative input -> 0; zero
+  max / zero length safe
+  default.
+- `formatChartBarTick`:
+  integer pass-through; float
+  trimming;
+  custom formatter; NaN -> 0.
+- `getChartBarTicks`: count+1
+  evenly spaced; default count;
+  safe for max=0 / negative
+  count.
+- Constants - default width /
+  height / padding / tick
+  count.
+- Component: region + default
+  + custom `ariaLabel`; one
+  bar per series; default
+  orientation vertical;
+  horizontal mode flips
+  `data-orientation`.
+- Each bar has
+  `role="graphics-symbol"` +
+  `aria-label="<label>:
+  <value>"`.
+- Per-bar `data-bar-id`
+  mirrors series id.
+- Vertical: rect height
+  scales with value;
+  horizontal: rect width
+  scales.
+- Per-series color override;
+  default palette cycling.
+- Grid renders the default
+  tick count; `showGrid=
+  false` hides every grid
+  line.
+- Tick labels reflect the
+  value; `formatValue` formats
+  every tick.
+- Hover shows tooltip with
+  label + value;
+  mouse-leave hides it;
+  `showTooltip=false`
+  suppresses entirely; focus
+  opens the tooltip.
+- `onBarClick` fires with the
+  series.
+- Axis title labels render
+  when supplied.
+- Axis lines render.
+- Empty data renders zero
+  bars.
+- `animate=false` flips
+  `data-animate`.
+- `data-hovered` mirrors
+  hover state.
+- Stable `displayName` +
+  `forwardRef` to the root.
+- Root `data-bar-count`
+  mirrors length; SVG viewBox
+  respects width + height.
+
+### Pairs with existing primitives
+
+- `<Sparkline>` for compact
+  inline value series.
+- `<Gauge>` / `<Meter>`
+  (11.412) for single-value
+  readouts.
+- `<DataTable>` for raw row
+  display beside the chart.
+
+### Out of scope
+
+- Multi-series / stacked /
+  grouped bars (this primitive
+  is single-series by design;
+  host composes multiple
+  `<ChartBar>` instances side
+  by side).
+- Server-side data
+  subscription (host owns the
+  network + passes a
+  refreshed `data` array).
+- Pixel-perfect tick
+  algorithms like d3-scale's
+  `nice()` -- the built-in
+  ticks divide the max into
+  even slices.
+- Pan / zoom (host wraps with
+  `<ScrollArea>` if needed).
+
 ## [1.11.455] - 2026-05-19 -- UI: text-diff primitive (TODO 11.437)
 
 New **TextDiff** UI primitive in
