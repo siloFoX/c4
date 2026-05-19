@@ -2,7 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { useState, createRef } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Rating } from './rating';
+import {
+  Rating,
+  clampRating,
+  getRatingAriaChecked,
+  getRatingStarFillPercent,
+} from './rating';
 
 describe('<Rating>', () => {
   it('renders 5 stars by default', () => {
@@ -207,5 +212,241 @@ describe('<Rating>', () => {
       'aria-label',
       'Helpfulness',
     );
+  });
+
+  // -- v1.11.434 (TODO 11.416) extensions ----------------------
+
+  describe('clampRating helper', () => {
+    it('clamps below 0', () => {
+      expect(clampRating(-5, 5)).toBe(0);
+    });
+    it('clamps above max', () => {
+      expect(clampRating(7, 5)).toBe(5);
+    });
+    it('passes through in-range', () => {
+      expect(clampRating(3, 5)).toBe(3);
+    });
+    it('handles NaN -> 0', () => {
+      expect(clampRating(Number.NaN, 5)).toBe(0);
+    });
+    it('handles negative max -> 0', () => {
+      expect(clampRating(2, -1)).toBe(0);
+    });
+  });
+
+  describe('getRatingStarFillPercent helper', () => {
+    it('returns 100 when value covers the star', () => {
+      expect(getRatingStarFillPercent(0, 3, true)).toBe(100);
+      expect(getRatingStarFillPercent(2, 3, true)).toBe(100);
+    });
+    it('returns 50 for half-filled star with allowHalf', () => {
+      expect(getRatingStarFillPercent(3, 3.5, true)).toBe(50);
+    });
+    it('returns 0 when star is past the value', () => {
+      expect(getRatingStarFillPercent(4, 3, true)).toBe(0);
+    });
+    it('rounds up to 100 when allowHalf=false and diff > 0', () => {
+      expect(getRatingStarFillPercent(0, 0.5, false)).toBe(100);
+    });
+  });
+
+  describe('getRatingAriaChecked helper', () => {
+    it('returns "true" when star is fully covered', () => {
+      expect(getRatingAriaChecked(0, 3, true)).toBe('true');
+      expect(getRatingAriaChecked(2, 3, true)).toBe('true');
+    });
+    it('returns "mixed" for half-star with allowHalf', () => {
+      expect(getRatingAriaChecked(3, 3.5, true)).toBe('mixed');
+    });
+    it('returns "false" when star is past value', () => {
+      expect(getRatingAriaChecked(4, 3, true)).toBe('false');
+    });
+    it('treats < 0.5 as "false" with allowHalf', () => {
+      expect(getRatingAriaChecked(3, 3.4, true)).toBe('false');
+    });
+    it('allowHalf=false never returns "mixed"', () => {
+      expect(getRatingAriaChecked(3, 3.5, false)).toBe('false');
+    });
+  });
+
+  describe('ariaRole="radiogroup"', () => {
+    it('root carries role=radiogroup instead of slider', () => {
+      render(
+        <Rating
+          value={3}
+          onChange={() => {}}
+          ariaRole="radiogroup"
+        />,
+      );
+      expect(screen.getByRole('radiogroup')).toBeInTheDocument();
+      expect(screen.queryByRole('slider')).toBeNull();
+    });
+
+    it('each star carries role=radio + aria-checked', () => {
+      render(
+        <Rating
+          value={3}
+          onChange={() => {}}
+          ariaRole="radiogroup"
+        />,
+      );
+      const radios = screen.getAllByRole('radio');
+      expect(radios).toHaveLength(5);
+      expect(radios[0]).toHaveAttribute('aria-checked', 'true');
+      expect(radios[2]).toHaveAttribute('aria-checked', 'true');
+      expect(radios[3]).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('half-star fills aria-checked="mixed"', () => {
+      render(
+        <Rating
+          value={3.5}
+          onChange={() => {}}
+          ariaRole="radiogroup"
+        />,
+      );
+      const radios = screen.getAllByRole('radio');
+      expect(radios[3]).toHaveAttribute('aria-checked', 'mixed');
+    });
+
+    it('readonly + radiogroup: stars stay as spans with role=radio', () => {
+      render(
+        <Rating
+          value={3}
+          readonly
+          ariaRole="radiogroup"
+        />,
+      );
+      const radios = screen.getAllByRole('radio');
+      expect(radios).toHaveLength(5);
+      // Readonly should not render <button>
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
+      // aria-disabled mirrors readonly
+      radios.forEach((r) =>
+        expect(r).toHaveAttribute('aria-disabled', 'true'),
+      );
+    });
+
+    it('aria-valuenow / aria-valuemax omitted in radiogroup mode', () => {
+      render(
+        <Rating
+          value={3}
+          onChange={() => {}}
+          ariaRole="radiogroup"
+        />,
+      );
+      const root = screen.getByRole('radiogroup');
+      expect(root).not.toHaveAttribute('aria-valuenow');
+      expect(root).not.toHaveAttribute('aria-valuemax');
+    });
+
+    it('data-aria-role mirrors the prop', () => {
+      const { rerender } = render(
+        <Rating value={3} onChange={() => {}} />,
+      );
+      expect(screen.getByRole('slider')).toHaveAttribute(
+        'data-aria-role',
+        'slider',
+      );
+      rerender(
+        <Rating
+          value={3}
+          onChange={() => {}}
+          ariaRole="radiogroup"
+        />,
+      );
+      expect(screen.getByRole('radiogroup')).toHaveAttribute(
+        'data-aria-role',
+        'radiogroup',
+      );
+    });
+  });
+
+  describe('custom icon slot', () => {
+    it('icon prop replaces the filled glyph', () => {
+      const { container } = render(
+        <Rating
+          value={3}
+          onChange={() => {}}
+          icon={<svg data-testid="custom-fill" />}
+        />,
+      );
+      // 3 fully-filled stars => 3 custom icons appear inside the
+      // fill wrappers; the unfilled stars still have NO custom
+      // icon inside fill (because the fill is 0% wide it is hidden
+      // but the icon DOM is still there). So expect 5 custom-fill
+      // (one per star).
+      const matches = container.querySelectorAll(
+        '[data-testid="custom-fill"]',
+      );
+      expect(matches.length).toBe(5);
+    });
+
+    it('emptyIcon prop replaces the unfilled base glyph', () => {
+      const { container } = render(
+        <Rating
+          value={3}
+          onChange={() => {}}
+          emptyIcon={<svg data-testid="custom-empty" />}
+        />,
+      );
+      const matches = container.querySelectorAll(
+        '[data-testid="custom-empty"]',
+      );
+      expect(matches.length).toBe(5);
+    });
+  });
+
+  describe('root data attrs', () => {
+    it('exposes data-section / data-readonly / data-allow-half / data-value / data-max', () => {
+      render(
+        <Rating
+          value={3.5}
+          max={7}
+          onChange={() => {}}
+          allowHalf
+        />,
+      );
+      const root = screen.getByRole('slider');
+      expect(root).toHaveAttribute('data-section', 'rating');
+      expect(root).toHaveAttribute('data-readonly', 'false');
+      expect(root).toHaveAttribute('data-allow-half', 'true');
+      expect(root).toHaveAttribute('data-value', '3.5');
+      expect(root).toHaveAttribute('data-max', '7');
+    });
+
+    it('data-readonly flips to true in readonly mode', () => {
+      render(<Rating value={3} readonly />);
+      expect(screen.getByRole('slider')).toHaveAttribute(
+        'data-readonly',
+        'true',
+      );
+    });
+
+    it('data-allow-half flips to false when allowHalf=false', () => {
+      render(
+        <Rating value={3} onChange={() => {}} allowHalf={false} />,
+      );
+      expect(screen.getByRole('slider')).toHaveAttribute(
+        'data-allow-half',
+        'false',
+      );
+    });
+  });
+
+  describe('star data attrs', () => {
+    it('each star button carries data-section + data-star-index + data-fill-pct', () => {
+      const { container } = render(
+        <Rating value={3.5} onChange={() => {}} />,
+      );
+      const stars = container.querySelectorAll(
+        '[data-section="rating-star"]',
+      );
+      expect(stars).toHaveLength(5);
+      expect(stars[0]).toHaveAttribute('data-star-index', '0');
+      expect(stars[0]).toHaveAttribute('data-fill-pct', '100');
+      expect(stars[3]).toHaveAttribute('data-fill-pct', '50');
+      expect(stars[4]).toHaveAttribute('data-fill-pct', '0');
+    });
   });
 });

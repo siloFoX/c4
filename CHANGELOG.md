@@ -4,6 +4,202 @@
 
 (no entries -- next release window)
 
+## [1.11.434] - 2026-05-19 -- UI: rating custom icon + ARIA radiogroup (TODO 11.416)
+
+`<Rating>` already shipped the star
+rating input with half-star support,
+readonly mode, and keyboard
+navigation (Arrow / Home / End).
+This patch closes the remaining
+dispatched bullets: **custom icon
+slot** and **ARIA radiogroup**.
+
+### New props
+
+```ts
+icon?: ReactNode;
+emptyIcon?: ReactNode;
+ariaRole?: 'slider' | 'radiogroup';   // default 'slider'
+```
+
+### Custom icon slot
+
+- `icon` replaces the filled glyph
+  (default `<Star>` from lucide-
+  react).
+- `emptyIcon` replaces the unfilled
+  background glyph.
+- Both slots accept any ReactNode.
+  When omitted, the lucide Star is
+  used as before -- byte-identical
+  legacy rendering.
+
+The DOM structure is preserved
+verbatim from the v1.11.143 layout:
+the base glyph renders as a direct
+child of the glyph wrapper; the
+fill wrapper contains the filled
+glyph. Existing tests that select
+via `[data-rating-star] > span >
+span` keep working.
+
+### ARIA radiogroup mode
+
+`ariaRole='radiogroup'` opts into
+the canonical W3C radiogroup
+pattern:
+
+- Root: `role="radiogroup"` (instead
+  of `role="slider"`).
+- Each star (button or readonly
+  span): `role="radio"` +
+  `aria-checked` ('true', 'false',
+  or 'mixed' for the half-star
+  case).
+- `aria-valuenow` / `aria-valuemin`
+  / `aria-valuemax` omitted on the
+  root.
+- Readonly + radiogroup: stars
+  render as `<span role="radio"
+  aria-disabled="true">`.
+
+Default mode remains `'slider'`
+for byte-identical legacy
+behaviour -- existing adopters
+need no change.
+
+### Pure helpers (exported)
+
+```ts
+export function clampRating(
+  value: number, max: number,
+): number;
+
+export function getRatingStarFillPercent(
+  starIndex: number,
+  value: number,
+  allowHalf: boolean,
+): 0 | 50 | 100;
+
+export function getRatingAriaChecked(
+  starIndex: number,
+  value: number,
+  allowHalf: boolean,
+): 'true' | 'false' | 'mixed';
+```
+
+- `clampRating`: NaN -> 0, negative
+  max -> 0, clamps to [0, max].
+- `getRatingStarFillPercent`: 100
+  when star is fully covered, 50
+  for half (allowHalf only), 0
+  when past the value.
+- `getRatingAriaChecked`: 'true'
+  when star is at/below value,
+  'mixed' for half-star (allowHalf
+  only), 'false' otherwise.
+
+### New data attributes
+
+Root:
+
+- `data-section="rating"`
+- `data-aria-role` ('slider' /
+  'radiogroup')
+- `data-readonly` ('true' /
+  'false')
+- `data-allow-half`
+- `data-value`
+- `data-max`
+
+Star:
+
+- `data-section="rating-star"`
+- `data-star-index`
+- `data-fill-pct` (0 / 50 / 100)
+- Legacy `data-rating-star` (1-
+  based position) retained
+  byte-identical.
+
+Sub-nodes:
+
+- `data-section="rating-star-glyph"`
+  (inner aria-hidden wrapper)
+- `data-section="rating-star-fill"`
+  (fill wrapper) + `data-fill-pct`
+
+### Tests
+
+26 new test cases (46 total = 20
+legacy + 26 new):
+
+- `clampRating` (5): below 0,
+  above max, in-range, NaN, neg
+  max
+- `getRatingStarFillPercent` (4):
+  full / half / past / allowHalf=
+  false rounding
+- `getRatingAriaChecked` (5):
+  true / mixed / false / <0.5
+  edge / allowHalf=false
+- ariaRole=radiogroup (6): root
+  role swap, per-star role=radio
+  + aria-checked, half-star
+  aria-checked=mixed, readonly +
+  radiogroup, aria-valuenow
+  omitted, data-aria-role mirror
+- custom icon slot (2): icon
+  prop, emptyIcon prop
+- root data attrs (3): data-
+  section / readonly / allow-
+  half / value / max, readonly
+  flip, allow-half flip
+- star data attrs (1): data-
+  star-index + data-fill-pct
+  per star
+
+46/46 pass under vitest 4.1.5;
+TypeScript clean for touched
+files. Legacy 20 tests pass
+byte-identical (no surface
+breakage).
+
+### Pairs with existing primitives
+
+- `<Slider>` -- generic numeric
+  slider; Rating is the
+  star-flavoured variant.
+- `<RadioGroup>` -- canonical
+  W3C radiogroup primitive.
+  Rating with ariaRole=
+  'radiogroup' inherits the
+  same accessibility model.
+- ThemeCustomizer (11.394) --
+  the rating reads token-based
+  classes so it auto-themes.
+
+### Out of scope (deferred)
+
+- Per-star tooltip on hover.
+  Adopters wrap with the
+  existing `<Tooltip>`.
+- Animated fill transition on
+  value change. Snap for v1;
+  CSS transitions belong in a
+  follow-on motion layer.
+- Granularity less than 0.5
+  (quarter / tenth star). The
+  dispatched contract is half-
+  star; finer granularity is a
+  follow-on.
+- Mass migration of legacy
+  call sites to ariaRole=
+  'radiogroup'. New adopters
+  opt in; existing call sites
+  keep the slider semantics
+  until an explicit migration
+  dispatch.
+
 ## [1.11.433] - 2026-05-19 -- UI: timeline-step primitive (TODO 11.415)
 
 New `web/src/components/ui/timeline-step.tsx`
