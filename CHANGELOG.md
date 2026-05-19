@@ -4,6 +4,178 @@
 
 (no entries -- next release window)
 
+## [1.11.555] - 2026-05-19 -- UI: chart-line-bollinger primitive (TODO 11.537)
+
+New **ChartLineBollinger** UI
+primitive in
+`web/src/components/ui/chart-line-bollinger.tsx`:
+pure-SVG **Bollinger Bands**
+technical indicator (John
+Bollinger, 1980s). Each series
+renders against three
+coordinated **rolling** rules
+driven by a sliding window of
+size `window` (default 20):
+the middle band is the rolling
+SMA (dashed) and the upper /
+lower bands are at `SMA +-
+kSigma * rolling_std` (default
+k = 2 sigma, the canonical
+Bollinger configuration). The
+region between upper and lower
+is shaded with the band color,
+and points that pierce the
+bands ("breakouts") are tinted
+green when above or red when
+below at a slightly larger
+radius. A breakout badge in
+the top-left tells operators
+how many points sit outside
+the envelope. The canonical
+trader's volatility indicator
+-- showing where "normal" lies
+given RECENT history, so
+breakouts mean a regime shift,
+not just deviation from a
+global mean. Pure helpers
+`computeRollingMean` (leading
+nulls then rolling SMA;
+non-finite excluded from sum),
+`computeRollingStd` (rolling
+POPULATION std; reuses
+pre-computed means; leading
+nulls), `classifyLineBollingerState`
+(`'inside' | 'above' |
+'below'`; bands null -> inside;
+non-finite y -> inside),
+`computeLineBollingerBands`
+(returns per-point
+`{middle, upper, lower, sigma,
+bandwidth, percentB, state}`
+where `bandwidth = (upper -
+lower) / |middle|` and
+`percentB = (y - lower) /
+(upper - lower)`; sorts
+ascending; drops non-finite;
+leading window-1 nulls),
+`computeLineBollingerLayout`
+(returns segmented band /
+middle / upper / lower paths
+with proper null-gap handling
++ closed band polygon walking
+upper forward then lower
+backward + per-point projected
+pys + per-series counts; y
+range expanded to cover the
+band envelope), and
+`describeLineBollingerChart`.
+Distinct from
+`<ChartLineConfidence>`
+(11.502; per-point upper/lower
+bounds supplied EXTERNALLY --
+Bollinger DERIVES them
+statistically from a ROLLING
+window),
+`<ChartLineMovingAvg>` (11.513;
+SMA overlay only -- Bollinger
+adds the +/- kSigma
+envelope),
+`<ChartLinePercentile>`
+(11.514; per-x-bucket
+percentile bands requiring
+multi-sample input --
+Bollinger uses single-sample
+input with rolling stats),
+`<ChartLineAnomaly>` (11.524;
+per-point z-score outliers --
+Bollinger surfaces the BANDS
+as a visible envelope), and
+`<ChartLineControl>` (11.534;
+GLOBAL mean+/-k*sigma --
+Bollinger is ROLLING, so the
+bands track LOCAL volatility
+and the same threshold means
+different things in different
+regimes). Single-spike
+breakout math: for window N
++ k sigma, single outlier
+breaks out iff `sqrt(N-1) >
+k` -- with canonical k=2 that
+means N > 5. Per-instance
+`breakoutUpColor` /
+`breakoutDownColor` /
+`insideColor` always beats
+defaults; per-series `color`
+/ `window` / `kSigma` /
+`bandColor` always beats
+chart-level. Tooltip on dots
+shows label, x, bold y, three
+reference rows (`middle`,
+`upper`, `lower` each n/a
+when window unfilled), and
+a coloured `inside bands` /
+`breakout above` / `breakout
+below` row with %B. ARIA:
+root `role="region"` +
+`aria-describedby`; SVG
+`role="img"`; upper/middle/
+lower band lines, price
+path, dots all
+`role="graphics-symbol"
+tabIndex={0}` with
+descriptive aria-labels.
+Data-attrs: root
+`data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-window`,
+`data-k-sigma`,
+`data-breakout-count`,
+`data-dominant-state`,
+`data-animate`; price path
+`data-kind="price"`; band
+lines `data-kind` (upper /
+middle / lower); dots
+`data-middle`, `data-upper`,
+`data-lower`,
+`data-percent-b`,
+`data-bandwidth`,
+`data-state`. 71 vitest
+cases pass (defaults,
+helpers incl. rolling mean
++ std + classify state +
+computeLineBollingerBands
+incl. leading nulls /
+breakout / %B / bandwidth /
+bandwidth null when middle=0
+/ sort ascending,
+computeLineBollingerLayout
+incl. per-series band paths
+/ counts / y range expands /
+projected pys null leading /
+hidden / bounds / window
+override / latest state /
+empty band path for short
+series, describeLineBollingerChart
+No data + window + k +
+latest %B, component render
+incl. empty / price kind=price
+/ upper+middle+lower band
+lines + middle dashed /
+band polygon + hide / hide
+middle / dots with state /
+hide dots / breakout badge +
+omit / ARIA / root data-* /
+group data-* / tooltip
+middle+upper+lower rows + n/a
+for leading + hide on leave +
+omit / onPointClick / legend
+BB(window, k) + breakouts +
+toggle + omit / animate /
+ref / displayName).
+Implementation patch:
+`docs/patches/11.537-ui-chart-line-bollinger.md`.
+
 ## [1.11.554] - 2026-05-19 -- UI: chart-line-pareto primitive (TODO 11.536)
 
 New **ChartLinePareto** UI
