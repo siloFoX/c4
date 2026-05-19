@@ -153,3 +153,4 @@ export * from './chart-pie';
 export * from './chart-area';
 export * from './chart-heatmap';
 export * from './chart-sparkline';
+export * from './chart-scatter';

@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.462] - 2026-05-19 -- UI: chart-scatter primitive (TODO 11.444)
+
+New **ChartScatter** UI primitive in
+`web/src/components/ui/chart-scatter.tsx`:
+pure-SVG scatter / bubble plot.
+Multi-series with per-series colour
+and shape (circle / square /
+triangle / diamond), hover tooltip
+with series label + x / y / size
+lines, optional bubble-size
+mapping, click handler, axis grid +
+ticks, optional legend with right /
+bottom placement, and a
+`motion-safe:animate-fade-in` mount
+animation. Re-uses
+`getLinearScale`, `getChartLineTicks`,
+and `formatChartLineTick` from
+`<ChartLine>` (11.439) along with
+the default colour palette from
+`<ChartBar>` (11.438). Exports pure
+helpers `getChartScatterBounds`,
+`getSizeScale`,
+`findNearestScatterPoint`, and
+`buildShapePath` for downstream
+overlays. 47 vitest cases cover
+helpers + every render branch
+including custom shapes, formatters,
+empty data, click events, tooltip
+visibility toggles, legend
+placement, and ref forwarding.
+
 ## [1.11.461] - 2026-05-19 -- UI: chart-sparkline primitive (TODO 11.443)
 
 New **ChartSparkline** UI primitive
