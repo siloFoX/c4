@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.660] - 2026-05-20 -- UI: chart-line-envelope primitive (TODO 11.642)
+
+New **ChartLineEnvelope** UI primitive in
+`web/src/components/ui/chart-line-envelope.tsx`: pure-SVG line
+chart with a moving average envelope of fixed percentage bands
+above and below.
+
+computeLineEnvelopeBasis is the period-bar simple moving
+average. computeLineEnvelopeBands derives the envelope edges --
+`upper = basis * (1 + percent/100)` and
+`lower = basis * (1 - percent/100)`. Because the offset is a
+fixed percentage of the basis it scales with the basis, so the
+envelope keeps a constant relative width; even a flat series
+carries a band. Both series are null through the warm-up.
+
+runLineEnvelope sorts the finite price points by x, computes
+the basis and envelope series, and returns per-bar samples
+classified above / below / on the basis, plus the final basis
+and envelope readings and the above / below counts.
+computeLineEnvelopeLayout projects the price, basis, upper and
+lower paths plus a filled band area on one shared panel.
+
+ChartLineEnvelope renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge showing the period and percent, a
+three-series legend (Price / Basis / Envelope) with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in. It
+consumes `{ x, value }` points. Distinct from the standard
+deviation band: the envelope offset is a constant fraction of
+the basis rather than a multiple of the rolling dispersion, so
+its relative width never changes with volatility.
+
+59 vitest cases in `chart-line-envelope.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.660.
+
 ## [1.11.659] - 2026-05-20 -- UI: chart-line-bandwidth primitive (TODO 11.641)
 
 New **ChartLineBandwidth** UI primitive in
