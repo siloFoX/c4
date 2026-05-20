@@ -282,3 +282,4 @@ export * from './chart-line-lag-plot';
 export * from './chart-line-zigzag';
 export * from './chart-line-fibonacci';
 export * from './chart-line-ichimoku';
+export * from './chart-line-keltner';

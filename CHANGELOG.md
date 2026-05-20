@@ -4,6 +4,59 @@
 
 (no entries -- next release window)
 
+## [1.11.591] - 2026-05-20 -- UI: chart-line-keltner primitive (TODO 11.573)
+
+New **ChartLineKeltner** UI primitive in
+`web/src/components/ui/chart-line-keltner.tsx`: pure-SVG line
+chart with Keltner channels -- a volatility envelope built
+from an EMA centre line and an ATR-scaled band. The middle
+line is an exponential moving average of the price; the
+upper and lower bands sit a multiple of the Average True
+Range above and below it.
+
+computeLineKeltnerEMA is the exponential moving average with
+smoothing factor alpha = 2/(period+1), seeded with the first
+value so the EMA is defined at every index.
+computeLineKeltnerATR is the Average True Range,
+Wilder-smoothed: for a single-value series the true range at
+index i is the absolute period-over-period change
+|v[i]-v[i-1]|, the first ATR (at index period) is the simple
+mean of the first period true ranges, and subsequent values
+use Wilder smoothing (prev*(period-1)+tr)/period; indices
+before the window is full are null. runLineKeltner combines
+them -- the middle line is the EMA, the upper band is
+middle + multiplier*ATR and the lower band is
+middle - multiplier*ATR. The component fixture (EMA 3, ATR 2,
+multiplier 2 on a 6-point series) makes every value exact:
+the EMA is [10,15,22.5,21.25,30.625,30.3125], the ATR is
+[null,null,10,10,15,12.5], so the band at index 2 is
+2.5..42.5 (22.5 +/- 2*10).
+
+Distinct from chart-line-bollinger: both are volatility
+envelopes but they differ in BOTH components -- Bollinger
+centres on a SIMPLE moving average whereas Keltner centres
+on an EXPONENTIAL moving average (faster to react), and
+Bollinger scales the band by the STANDARD DEVIATION of price
+(a dispersion measure) whereas Keltner scales it by the
+Average True Range (a range-based, Wilder-smoothed
+volatility measure that reacts to the size of each step, not
+the spread around a mean). It also differs from
+chart-line-ewmsd (EWMA centre + exponentially-weighted
+standard deviation band): again the band is deviation-based
+there and range-based (ATR) here. All exported helpers carry
+a LineKeltner infix so the barrel export * cannot collide.
+
+Exported helpers: `getLineKeltnerFinitePoints`,
+`normalizeLineKeltnerPeriod`,
+`normalizeLineKeltnerMultiplier`, `computeLineKeltnerEMA`,
+`computeLineKeltnerATR`, `runLineKeltner`,
+`computeLineKeltnerLayout`, `describeLineKeltnerChart`.
+Tooltip on a price dot shows x, price, the EMA value, the
+band range and the ATR; config badge `KC ema=.. atr=.. x..`;
+the legend has three toggle items (Price / EMA / Channel).
+58 vitest cases in `chart-line-keltner.test.tsx`, all
+passing. Exported from the `ui` barrel.
+
 ## [1.11.590] - 2026-05-20 -- UI: chart-line-ichimoku primitive (TODO 11.572)
 
 New **ChartLineIchimoku** UI primitive in
