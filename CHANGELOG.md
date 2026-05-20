@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.622] - 2026-05-20 -- UI: chart-line-ultimate primitive (TODO 11.604)
+
+New **ChartLineUltimate** UI primitive in
+`web/src/components/ui/chart-line-ultimate.tsx`: pure-SVG line
+chart with an Ultimate Oscillator panel blending three lookback
+windows. The top panel renders the close price line; the bottom
+panel renders the oscillator line on a fixed 0-100 axis with
+shaded overbought and oversold zones, dashed threshold lines,
+and markers coloured by zone.
+
+computeLineUltimate is Larry Williams' Ultimate Oscillator.
+computeLineUltimateBpTr derives each bar's buying pressure
+(close minus the lower of the bar's low and the prior close)
+and true range (the higher of the bar's high and the prior
+close, minus that same lower bound). computeLineUltimateAvg
+sums buying pressure and true range over a lookback window and
+divides them -- a zero total true range reads the neutral 0.5.
+The oscillator blends three such ratios over short, medium and
+long windows (defaults 7/14/28) at the fixed descending weights
+4/2/1 and scales to 0-100; the shortest window carries the most
+weight.
+
+runLineUltimate sorts the finite points by x, computes the
+oscillator, and returns per-period samples (each carrying an
+overbought/oversold/neutral zone), the final reading, the
+oscillator range, and counts of overbought and oversold
+readings. computeLineUltimateLayout stacks a price panel above
+an oscillator panel whose y-axis is fixed 0-100, and projects
+the price path, the oscillator path, zone-coloured markers, the
+zone rects, and the threshold lines.
+
+ChartLineUltimate renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked panels
+with axis ticks and grid, a config badge showing the three
+lookback periods, a two-series legend (Price / Ultimate) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, high, low, close }` points. Distinct
+from chart-line-rsi and chart-line-stochastic (single-window
+oscillators): the Ultimate Oscillator blends three windows at
+weights 4/2/1 from buying pressure and true range. 61 vitest
+cases cover the buying-pressure/true-range, average and
+oscillator primitives, the pipeline against a hand-verified
+fixture, the 0-100 bound, layout geometry, the description
+text, and component rendering.
+
 ## [1.11.621] - 2026-05-20 -- UI: chart-line-elder-ray primitive (TODO 11.603)
 
 New **ChartLineElderRay** UI primitive in
