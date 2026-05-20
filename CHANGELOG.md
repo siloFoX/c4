@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.623] - 2026-05-20 -- UI: chart-line-hma primitive (TODO 11.605)
+
+New **ChartLineHma** UI primitive in
+`web/src/components/ui/chart-line-hma.tsx`: pure-SVG line
+chart with a Hull Moving Average overlay that reduces lag
+while staying smooth. Unlike the recent two-panel indicator
+primitives, this is a single-panel chart -- the HMA line is
+drawn directly over the price line on shared axes.
+
+computeLineHma is Alan Hull's Hull Moving Average.
+computeLineHmaWma is a linearly weighted moving average (the
+oldest window value carries weight 1, the newest weight
+`period`). The HMA blends a half-length and a full-length
+weighted moving average into a lag-reduced raw line,
+`2 * WMA(period / 2) - WMA(period)`, then smooths that raw
+line with a square-root-length weighted moving average. The
+result cuts lag while staying smooth -- on a perfectly linear
+trend the HMA tracks the price with zero lag.
+
+runLineHma sorts the finite points by x, computes the HMA,
+and returns per-period samples (each tagged with whether the
+price sits above, below, or on the HMA), the derived half and
+square-root lengths, the final / min / max HMA readings, and
+counts of bars where the price runs above and below the HMA.
+computeLineHmaLayout fits one panel whose y-domain spans both
+the price and the HMA so the overlay never clips, and
+projects the price path, the HMA path, the price dots, and
+the HMA markers.
+
+ChartLineHma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a single panel
+with axis ticks and grid, a config badge showing the period,
+a two-series legend (Price / HMA) with toggle buttons,
+hover/focus tooltips, and a `motion-safe` fade-in. Distinct
+from chart-line-ewma and chart-line-moving-avg: the HMA nests
+three weighted moving averages -- a half, a full, and a
+square-root length -- specifically to cancel lag, which a
+single EMA or SMA cannot. 53 vitest cases cover the weighted
+moving average and HMA primitives, the pipeline against a
+hand-verified fixture, the zero-lag property on a linear
+trend, layout geometry, the description text, and component
+rendering.
+
 ## [1.11.622] - 2026-05-20 -- UI: chart-line-ultimate primitive (TODO 11.604)
 
 New **ChartLineUltimate** UI primitive in
