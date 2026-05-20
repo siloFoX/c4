@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.637] - 2026-05-20 -- UI: chart-line-trima primitive (TODO 11.619)
+
+New **ChartLineTrima** UI primitive in
+`web/src/components/ui/chart-line-trima.tsx`: pure-SVG line
+chart with a Triangular Moving Average overlay drawn on the
+same axes as the price.
+
+computeLineTrima is the Triangular Moving Average -- a
+doubly-smoothed average. The price is run through a simple
+moving average, and that average is run through a second simple
+moving average. For an odd period both sub-averages span
+`(period + 1) / 2`; for an even period the first spans
+`period / 2 + 1` and the second `period / 2`. Either way the
+two sub-periods sum to `period + 1`, so the combined warm-up is
+`period - 1` -- the same as a plain simple moving average.
+Composing the two box-car averages makes the effective weights
+form a triangle peaking in the middle of the window, so the
+TRIMA emphasises the centre of the window and produces an
+exceptionally smooth line.
+
+runLineTrima sorts the finite points by x, computes the inner
+simple average and the TRIMA, and returns per-period samples
+(each tagged with the price's above / below / on position
+versus the TRIMA), the two resolved sub-periods, the
+final / min / max TRIMA readings, and counts of bars above and
+below. computeLineTrimaLayout projects the price path and the
+TRIMA path onto one shared panel with a y-domain spanning both,
+plus markers wherever the TRIMA is defined.
+
+ChartLineTrima renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge calling out the period and the two
+sub-periods, a two-series legend (Price / TRIMA) with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in. It
+consumes `{ x, value }` points. Distinct from chart-line-wma:
+the WMA weights the window with a linear ramp peaking at the
+*newest* bar, while the TRIMA's triangular weights peak in the
+*middle* of the window, so it lags more but smooths more.
+Distinct from a plain simple moving average, which weights
+every value equally; and from the EMA-based lag reducers
+chart-line-dema / chart-line-tema, which cut lag -- the TRIMA
+deliberately adds smoothing instead. 57 vitest cases cover the
+sub-period split, the SMA helper, the pipeline against a
+hand-verified bit-exact fixture, the warm-up, layout geometry,
+the description text, and component rendering.
+
 ## [1.11.636] - 2026-05-20 -- UI: chart-line-wma primitive (TODO 11.618)
 
 New **ChartLineWma** UI primitive in

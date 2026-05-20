@@ -328,3 +328,4 @@ export * from './chart-line-rwi';
 export * from './chart-line-dema';
 export * from './chart-line-tema';
 export * from './chart-line-wma';
+export * from './chart-line-trima';
