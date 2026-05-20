@@ -378,3 +378,4 @@ export * from './chart-line-pvi';
 export * from './chart-line-trin';
 export * from './chart-line-twiggs';
 export * from './chart-line-mama';
+export * from './chart-line-vix-fix';

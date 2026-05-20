@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.687] - 2026-05-20 -- UI: chart-line-vix-fix primitive (TODO 11.669)
+
+New **ChartLineVixFix** UI primitive in
+`web/src/components/ui/chart-line-vix-fix.tsx`: pure-SVG
+two-panel chart with a Williams VIX Fix panel estimating implied
+volatility from the recent highest close.
+
+computeLineVixFixHighest is the rolling highest close over the
+trailing period. computeLineVixFix is the Williams VIX Fix --
+`100 * (highestClose - close) / highestClose` -- the percent the
+close has fallen below its recent peak. It sits at zero on a new
+high and spikes when the price drops sharply, mirroring a fear
+gauge.
+
+runLineVixFix sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified spike / calm
+against the threshold, the zone counts and the final reading.
+computeLineVixFixLayout stacks the price panel above a VIX Fix
+panel on a non-negative scale, with the indicator line, one
+marker per defined bar coloured by zone, and a dashed threshold
+reference line.
+
+ChartLineVixFix renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a three-series legend (Price /
+VIX Fix / Threshold) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. Distinct from the volatility-band
+indicators: the VIX Fix is a one-sided drawdown gauge with no
+options data, only price.
+
+62 vitest cases in `chart-line-vix-fix.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.687.
+
 ## [1.11.686] - 2026-05-20 -- UI: chart-line-mama primitive (TODO 11.668)
 
 New **ChartLineMama** UI primitive in
