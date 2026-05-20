@@ -4,6 +4,57 @@
 
 (no entries -- next release window)
 
+## [1.11.588] - 2026-05-20 -- UI: chart-line-zigzag primitive (TODO 11.570)
+
+New **ChartLineZigzag** UI primitive in
+`web/src/components/ui/chart-line-zigzag.tsx`: pure-SVG line
+chart with a ZigZag overlay. The ZigZag indicator filters
+out every reversal smaller than a percent threshold and
+connects only the significant pivots -- the swing highs and
+swing lows that survive the filter. The raw series renders
+as a dimmed line beneath the bold ZigZag so the major trend
+structure stands out from the noise.
+
+runLineZigzag sorts the series by x (the first point is
+always the starting pivot), then scans forward tracking a
+running high and a running low since the last confirmed
+pivot; when price retraces from the running extreme by at
+least the percent threshold, that extreme is confirmed as a
+pivot (a peak off a running high, a trough off a running
+low) and the trend reverses, with the scan rewinding to the
+confirmed pivot so the next swing's running extreme is built
+correctly. The final point is appended as an end pivot
+unless it is already the last confirmed pivot. A pivot takes
+the extreme value of its swing, not the value at the
+confirmation point, and carries moveFromPrev (the percent
+move from the previous pivot). The component fixture
+[100,102,110,105,95,98,120,115,90] makes the filtering
+visible: at a 5% threshold all five pivots survive (start,
+peak 110, trough 95, peak 120, end) but at 20% the 110 peak
+is filtered out because the retracement from 110 to 95 is
+only 13.6% (4 pivots); at a threshold no swing can clear,
+only start and end remain.
+
+Distinct from neighbouring primitives: chart-line-changepoint
+detects statistical changepoints (shifts in the mean)
+whereas the ZigZag detects swing pivots by a percent-reversal
+rule (a geometric filter, not a statistical test);
+chart-line-min-max draws a rolling min/max envelope and never
+connects discrete pivots; chart-line-trend / chart-line-segment
+fit or split a line and neither filters reversals by
+magnitude. All exported helpers carry a LineZigzag infix so
+the barrel export * cannot collide.
+
+Exported helpers: `getLineZigzagFinitePoints`,
+`normalizeLineZigzagThreshold`, `runLineZigzag`,
+`computeLineZigzagLayout`, `describeLineZigzagChart`. Pivot
+markers are coloured by kind (peak / trough / endpoint);
+tooltip shows the pivot kind, x, value and the percent move
+from the previous pivot; config badge `ZZ thr=..% pivots=..`;
+the footer reports the threshold, pivot count and raw point
+count. 49 vitest cases in `chart-line-zigzag.test.tsx`, all
+passing. Exported from the `ui` barrel.
+
 ## [1.11.587] - 2026-05-20 -- UI: chart-line-lag-plot primitive (TODO 11.569)
 
 New **ChartLineLagPlot** UI primitive in
