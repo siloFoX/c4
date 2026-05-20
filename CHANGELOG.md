@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.664] - 2026-05-20 -- UI: chart-line-hurst primitive (TODO 11.646)
+
+New **ChartLineHurst** UI primitive in
+`web/src/components/ui/chart-line-hurst.tsx`: pure-SVG two-panel
+chart with a rolling Hurst exponent panel classifying the series
+as trending or mean reverting.
+
+computeLineHurstRescaledRange runs rescaled range (R/S) analysis
+on a single window: the window is mean-adjusted, the cumulative
+deviation is tracked, the range R is its spread, S is the
+population standard deviation, and the rescaled range is R/S.
+computeLineHurst is the rolling estimate: for each bar the
+trailing window of `period` values gives `H = log(R/S) /
+log(period)`, clamped into the unit interval. A flat window has
+an undefined R/S and is null.
+
+H above 0.5 marks a trending (persistent) series, below 0.5 a
+mean reverting (anti-persistent) series, near 0.5 a random walk.
+runLineHurst sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified trending /
+reverting / random, plus the final reading and the trending /
+reverting counts. computeLineHurstLayout stacks the price panel
+above a Hurst panel with a fixed [0, 1] y-domain, a dashed 0.5
+reference line and class-coloured markers.
+
+ChartLineHurst renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / Hurst) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the oscillator panels: the Hurst panel is a fixed
+unit-interval gauge, not a zero-centred oscillator.
+
+65 vitest cases in `chart-line-hurst.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.664.
+
 ## [1.11.663] - 2026-05-20 -- UI: chart-line-reflex primitive (TODO 11.645)
 
 New **ChartLineReflex** UI primitive in
