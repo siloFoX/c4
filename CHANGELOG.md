@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.645] - 2026-05-20 -- UI: chart-line-lsma primitive (TODO 11.627)
+
+New **ChartLineLsma** UI primitive in
+`web/src/components/ui/chart-line-lsma.tsx`: pure-SVG line chart
+with a Least Squares Moving Average overlay tracing the endpoint
+of a rolling linear regression.
+
+computeLineLsma fits an ordinary least-squares straight line
+`y = a + b*x` across each window of the last `period` prices and
+reads the line at its newest end `x = period - 1`. With
+`meanX = (period-1)/2` the endpoint simplifies to
+`meanY + slope*meanX` because `(period-1) - meanX === meanX`.
+Because the regression line is read at its endpoint rather than
+averaged across the whole window, the LSMA tracks price more
+closely and turns sooner than a same-length simple moving
+average, while the linear fit filters single-bar noise. The LSMA
+is defined from index `period - 1` onward. computeLineLsmaSlope
+exposes the regression slope per window -- the local linear
+trend per bar. A perfectly linear series reproduces itself
+exactly from index `period - 1` (the regression line IS the
+data); a flat series holds at its constant with slope zero; a
+`period` of 1 is the identity and a `period` of 2 reads the
+latest value (two points fix an exact line).
+
+runLineLsma sorts the finite points by x, computes the LSMA and
+slope series, and returns per-period samples (each tagged with
+the price's above / below / on position versus the LSMA), the
+final / min / max LSMA readings, the final slope, and counts of
+bars above and below. computeLineLsmaLayout projects the price
+path and the LSMA path onto one shared panel with a y-domain
+spanning both, plus markers wherever the LSMA is defined.
+
+ChartLineLsma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / LSMA) with
+toggle buttons, hover/focus tooltips (value, LSMA, slope,
+position), and a `motion-safe` fade-in. It consumes
+`{ x, value }` points. Distinct from the moving averages that
+weight a window into an *average* (SMA, the just-shipped SMMA,
+WMA, EMA): the LSMA is the *endpoint of a regression line* that
+extrapolates the linear trend to the current bar, removing the
+half-window centering lag of a simple average, and it is the
+only one of the family that also yields a per-bar slope.
+
+60 vitest cases in `chart-line-lsma.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.645.
+
 ## [1.11.644] - 2026-05-20 -- UI: chart-line-smma primitive (TODO 11.626)
 
 New **ChartLineSmma** UI primitive in
