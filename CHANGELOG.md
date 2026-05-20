@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.666] - 2026-05-20 -- UI: chart-line-vwma primitive (TODO 11.648)
+
+New **ChartLineVwma** UI primitive in
+`web/src/components/ui/chart-line-vwma.tsx`: pure-SVG line chart
+with a Volume Weighted Moving Average overlay weighting each
+price by its bar volume.
+
+This is the first chart primitive to consume a per-bar `volume`
+field -- `ChartLineVwmaPoint` is `{ x, value, volume }`.
+computeLineVwma averages the trailing `period` bars with each
+price weighted by its volume: `VWMA = sum(price * volume) /
+sum(volume)` over the window. A high-volume bar pulls the
+average toward its price more strongly than a low-volume bar. A
+window whose total volume is zero has an undefined average and
+is null, as are bars before the window is full.
+
+runLineVwma sorts the finite price points by x, computes the
+VWMA, and returns per-bar samples classified above / below / on
+the VWMA, plus the final reading and the above / below counts.
+computeLineVwmaLayout projects the price and VWMA paths onto one
+shared panel with a y-domain spanning both.
+
+ChartLineVwma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge showing the period, a two-series legend
+(Price / VWMA) with toggle buttons, hover/focus tooltips
+exposing the bar volume, and a `motion-safe` fade-in. Distinct
+from a simple moving average: where the SMA weights every bar
+equally, the VWMA tracks where the trading volume actually
+concentrated.
+
+54 vitest cases in `chart-line-vwma.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.666.
+
 ## [1.11.665] - 2026-05-20 -- UI: chart-line-entropy primitive (TODO 11.647)
 
 New **ChartLineEntropy** UI primitive in
