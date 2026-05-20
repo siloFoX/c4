@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.604] - 2026-05-20 -- UI: chart-line-trix primitive (TODO 11.586)
+
+New **ChartLineTrix** UI primitive in
+`web/src/components/ui/chart-line-trix.tsx`: pure-SVG line
+chart with a TRIX triple-smoothed exponential moving average
+oscillator panel. The value line sits in the top panel; the
+bottom panel renders the TRIX line and its signal line on a
+symmetric y-axis with a dashed zero centerline.
+
+computeLineTrixEma is an exponential moving average seeded
+with the first value, rolling forward with the smoothing
+factor k = 2/(period+1). computeLineTrix is Jack Hutson's
+TRIX: the series is smoothed by three successive EMAs of the
+same period, and TRIX is the 1-period percentage rate of
+change of that triple-smoothed line, TRIX[i] = 100 *
+(ema3[i] - ema3[i-1]) / ema3[i-1]. Index 0 has no prior
+value and reads null; an all-zero series reads TRIX 0
+without dividing by zero. computeLineTrixSignal is an EMA of
+the TRIX series, seeded at the first defined TRIX value.
+
+runLineTrix sorts the finite points by x, computes the TRIX
+and signal series, and returns per-period samples plus the
+final TRIX and signal values. computeLineTrixLayout stacks a
+value panel above a TRIX panel with a symmetric y-bound
+covering the TRIX and signal extent so the zero centerline
+sits in the middle.
+
+This is distinct from chart-line-macd, which is the
+difference of two EMAs of *different* periods: TRIX applies
+three EMAs of the *same* period and then takes a rate of
+change, so it filters short-term noise far more aggressively
+and reads as a smoothed momentum oscillator. It is also
+distinct from chart-line-ewma, which plots a single
+smoothing EMA rather than a triple-smoothed rate of change.
+
+Helpers exported: getLineTrixFinitePoints,
+normalizeLineTrixPeriod, computeLineTrixEma, computeLineTrix,
+computeLineTrixSignal, runLineTrix, computeLineTrixLayout,
+describeLineTrixChart. The component is a forwardRef region
+with an ARIA description, config badge, three-series legend
+(Value / TRIX / Signal) with toggle, hover tooltip exposing
+value / ema3 / TRIX / signal, and motion-safe fade-in. 92
+vitest cases cover the math, layout, description, and
+rendering.
+
 ## [1.11.603] - 2026-05-20 -- UI: chart-line-williams-r primitive (TODO 11.585)
 
 New **ChartLineWilliamsR** UI primitive in
