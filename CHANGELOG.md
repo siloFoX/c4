@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.608] - 2026-05-20 -- UI: chart-line-survival primitive (TODO 11.590)
+
+New **ChartLineSurvival** UI primitive in
+`web/src/components/ui/chart-line-survival.tsx`: pure-SVG
+Kaplan-Meier survival curve with a descending step line and
+optional censoring ticks. The curve plots the estimated
+survival probability against time on a single 0 to 1 panel,
+with a dashed median-survival reference line.
+
+computeKaplanMeier is the Kaplan-Meier survival estimate.
+Observations -- each a time plus an event flag (true = the
+event occurred, false = censored) -- are grouped by distinct
+time; at each time with `d` events out of `n` subjects at
+risk the survival estimate is multiplied by (1 - d/n).
+Censored observations do not lower the estimate but reduce
+the at-risk count for later times, and are marked with
+ticks. The result is a descending step function.
+computeLineSurvivalMedian reports the earliest time the
+estimate falls to 0.5 or below.
+
+runLineSurvival drops non-finite observations, sorts by
+time, computes the Kaplan-Meier steps, and returns the run
+plus the final survival, the event and censored counts, and
+the median survival. computeLineSurvivalLayout builds the
+descending staircase path -- flat between event times,
+dropping at each -- plus the censoring tick positions and
+the projected median reference line.
+
+This primitive is a biostatistics chart rather than a
+financial indicator: it is distinct from every chart-line-*
+oscillator in the library in that its input is time-to-event
+data with a censoring flag, and its curve is a
+right-continuous step function that only ever descends,
+never recovering.
+
+Helpers exported: getLineSurvivalFiniteObservations,
+computeLineSurvivalMedian, computeKaplanMeier,
+runLineSurvival, computeLineSurvivalLayout,
+describeLineSurvivalChart. The component is a forwardRef
+region with an ARIA description, config badge, two-series
+legend (Survival / Censored) with toggle, step markers,
+censoring ticks, a hover tooltip exposing time / survival /
+at-risk / events / censored, and motion-safe fade-in. 82
+vitest cases cover the math, layout, description, and
+rendering.
+
 ## [1.11.607] - 2026-05-20 -- UI: chart-line-dpo primitive (TODO 11.589)
 
 New **ChartLineDpo** UI primitive in
