@@ -352,3 +352,4 @@ export * from './chart-line-hilbert';
 export * from './chart-line-stddev';
 export * from './chart-line-bandwidth';
 export * from './chart-line-envelope';
+export * from './chart-line-pmo';
