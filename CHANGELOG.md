@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.599] - 2026-05-20 -- UI: chart-line-adx primitive (TODO 11.581)
+
+New **ChartLineAdx** UI primitive in
+`web/src/components/ui/chart-line-adx.tsx`: pure-SVG line
+chart with an Average Directional Index panel. The value
+line sits in the top panel; the bottom panel renders the
+ADX trend-strength line alongside the +DI and -DI
+directional indicators, with a dashed reference line at the
+conventional trend threshold.
+
+computeLineAdxDirectionalMovement is Wilder's directional
+movement for a single-value series. For each period the
+change value[i] - value[i-1] splits into a plus directional
+movement (the positive part), a minus directional movement
+(the magnitude of the negative part), and a true range (the
+absolute change). Index 0 has no prior value and reads null.
+
+computeLineAdx is Welles Wilder's Average Directional Index
+system. The directional movements are Wilder-smoothed, then
++DI = 100 * smoothedPlusDM / smoothedTR and -DI likewise;
+the directional index DX = 100 * |+DI - -DI| / (+DI + -DI)
+is itself Wilder-smoothed into the ADX. +DI / -DI / DX are
+defined from index period; the ADX from index 2*period - 1.
+For a single-value series +DI + -DI sum to 100 exactly,
+since each period's plus and minus movement partition the
+true range.
+
+runLineAdx sorts the finite points by x, computes the four
+series, and returns per-period samples plus the final ADX,
++DI, and -DI. computeLineAdxLayout stacks a value panel
+above a fixed 0-100 ADX panel sharing one x-axis, projects
+the three indicator lines, and places the threshold
+reference line.
+
+This is distinct from the volatility-only chart-line-atr,
+which plots the Wilder ATR alone: chart-line-adx uses the
+true range only as the denominator that normalizes the
+directional movements into a 0-100 trend-strength reading.
+It is also distinct from the momentum oscillators
+chart-line-macd / -rsi / -stochastic, which measure price
+direction rather than the strength of a trend.
+
+Helpers exported: getLineAdxFinitePoints,
+normalizeLineAdxPeriod, computeLineAdxDirectionalMovement,
+computeLineAdx, runLineAdx, computeLineAdxLayout,
+describeLineAdxChart. The component is a forwardRef region
+with an ARIA description, config badge, four-series legend
+(Value / ADX / +DI / -DI) with toggle, hover tooltip
+exposing value / +DI / -DI / DX / ADX, and motion-safe
+fade-in. 93 vitest cases cover the math, layout,
+description, and rendering.
+
 ## [1.11.598] - 2026-05-20 -- UI: chart-line-obv primitive (TODO 11.580)
 
 New **ChartLineObv** UI primitive in

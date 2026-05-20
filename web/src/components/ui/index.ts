@@ -290,3 +290,4 @@ export * from './chart-line-rsi';
 export * from './chart-line-stochastic';
 export * from './chart-line-atr';
 export * from './chart-line-obv';
+export * from './chart-line-adx';
