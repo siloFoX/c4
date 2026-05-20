@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.675] - 2026-05-20 -- UI: chart-line-squeeze primitive (TODO 11.657)
+
+New **ChartLineSqueeze** UI primitive in
+`web/src/components/ui/chart-line-squeeze.tsx`: pure-SVG
+two-panel chart with a TTM Squeeze panel flagging when the
+Bollinger Bands sit inside the Keltner Channels.
+
+computeLineSqueezeSma is the moving average; computeLineSqueezeStd
+the rolling population standard deviation; computeLineSqueezeRange
+the close-only true range -- the absolute bar-to-bar change.
+computeLineSqueeze builds the TTM Squeeze: Bollinger Bands and
+Keltner Channels around a shared moving average of the close --
+the Bollinger half-width is `bbMult` standard deviations, the
+Keltner half-width is `kcMult` times the average true range --
+and the `compression`, the Keltner half-width minus the Bollinger
+half-width, positive exactly when the Bollinger Bands sit inside
+the Keltner Channels.
+
+runLineSqueeze sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified on / off / none
+by the literal band-containment test, the squeeze-on and
+squeeze-off counts, the longest unbroken squeeze run, and the
+final state. computeLineSqueezeLayout stacks the price panel
+(price line, the Bollinger Bands as a shaded area, the Keltner
+Channels as two channel lines) above a squeeze panel with the
+compression line, a dashed zero line and one squeeze dot per
+classified bar.
+
+ChartLineSqueeze renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period and the two multipliers, a
+four-series legend (Price / Bollinger / Keltner / Squeeze) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. Distinct from the prior band primitives: it co-plots two
+volatility bands and flags their containment, rather than drawing
+one band.
+
+75 vitest cases in `chart-line-squeeze.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.675.
+
 ## [1.11.674] - 2026-05-20 -- UI: chart-line-tdi primitive (TODO 11.656)
 
 New **ChartLineTdi** UI primitive in
