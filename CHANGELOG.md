@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.582] - 2026-05-20 -- UI: chart-line-winsorized primitive (TODO 11.564)
+
+New **ChartLineWinsorized** UI primitive in
+`web/src/components/ui/chart-line-winsorized.tsx`: pure-SVG
+line chart that overlays a winsorized copy of a series
+against the raw line. Winsorization is a global percentile
+clamp -- any value below the lower-quantile bound is clamped
+up to that bound, any value above the upper-quantile bound is
+clamped down to it. Unlike trimming (which discards
+outliers), winsorizing replaces them with the boundary value,
+so the sample count is preserved.
+
+computeLineWinsorizedQuantile is a linear-interpolation
+quantile (numpy linear / R type-7): position h = (n-1)*q,
+interpolating between the two surrounding order statistics;
+non-finite values dropped; empty -> NaN; q clamped to [0,1].
+runLineWinsorized sorts the finite points ascending by x,
+computes lowerBound = quantile(y, lowerQuantile) and
+upperBound = quantile(y, upperQuantile) once over the whole
+series (a global clamp, not a rolling-window filter), then
+per sample winsorized = clamp(y, lowerBound, upperBound) with
+clampedLow / clampedHigh flags and delta = winsorized - y.
+The quantile arguments are clamped to [0,1] and swapped if
+the lower exceeds the upper. The component fixture makes the
+bounds exact: y sorted [0,10,20,30,100] with quantiles
+0.25/0.75 gives lowerBound 10 and upperBound 30, so the
+winsorized series is [10,10,20,30,30] -- the 0 clamped up to
+10 (delta +10) and the 100 down to 30 (delta -70).
+
+Distinct from neighbouring primitives: chart-line-hampel
+replaces outliers via a rolling-window MAD test (a local
+decision) whereas winsorize uses a single global percentile
+band; chart-line-percentile draws a percentile band as
+context but never transforms the series; chart-line-threshold
+clips against fixed user-supplied thresholds whereas
+winsorize derives its bounds from the data's own quantiles;
+chart-line-savgol / chart-line-loess smooth rather than
+clamp. All exported helpers carry a LineWinsorized infix so
+the barrel export * cannot collide.
+
+Exported helpers: `getLineWinsorizedDefaultColor`,
+`getLineWinsorizedFinitePoints`,
+`computeLineWinsorizedQuantile`, `runLineWinsorized`,
+`computeLineWinsorizedLayout`, `describeLineWinsorizedChart`.
+The raw line is dashed + dimmed, the winsorized line solid;
+the two quantile bounds render as dashed reference lines with
+a faint band; clamped points are flagged with amber diamond
+markers. Tooltip shows the sample, x, raw, winsorized and the
+clamp row; config badge `WIN lo=.. hi=.. clamp=..`. 64 vitest
+cases in `chart-line-winsorized.test.tsx`, all passing.
+Exported from the `ui` barrel.
+
 ## [1.11.581] - 2026-05-20 -- UI: chart-line-crossover primitive (TODO 11.563)
 
 New **ChartLineCrossover** UI primitive in
