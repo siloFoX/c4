@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.647] - 2026-05-20 -- UI: chart-line-pivot-points primitive (TODO 11.629)
+
+New **ChartLinePivotPoints** UI primitive in
+`web/src/components/ui/chart-line-pivot-points.tsx`: pure-SVG
+line chart with classic pivot point levels rendering the pivot
+plus three support and three resistance lines.
+
+computeLinePivotPoints derives the seven classic ("floor
+trader" / standard) pivot levels from the prior period's high,
+low and close. The pivot `P = (H + L + C) / 3` anchors three
+resistance levels above and three support levels below:
+`R1 = 2P-L`, `S1 = 2P-H`, `R2 = P+(H-L)`, `S2 = P-(H-L)`,
+`R3 = H+2(P-L)`, `S3 = L-2(H-P)`. It returns null when any of
+high / low / close is not finite. getLinePivotPointsLevelList
+orders the seven levels top to bottom (R3, R2, R1, pivot, S1,
+S2, S3), each tagged with a stable id, a short label, its
+value, and whether it is a resistance, the pivot, or a support.
+
+runLinePivotPoints sorts the finite price points by x, computes
+the levels from the supplied prior period, and returns per-bar
+samples (each classified above / below / on the pivot), the
+above and below counts, and the level list. It reports not-ok
+when there are fewer than two price points or the prior period
+is missing or invalid. computeLinePivotPointsLayout projects the
+price path plus one horizontal line per level, with a y-domain
+spanning both the price series and all seven levels.
+
+ChartLinePivotPoints renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a four-series legend (Price / Pivot /
+Resistance / Support) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. It consumes `{ x, value }` price
+points plus a `{ high, low, close }` prior period. The pivot
+line is solid; resistance and support lines are dashed and each
+carries its label and value at the right edge. Distinct from
+the moving-average overlays and the fractal markers: the levels
+are seven static horizontal support/resistance lines derived
+once from a separate prior-period HLC, not a per-bar transform
+of the price series.
+
+56 vitest cases in `chart-line-pivot-points.test.tsx`, all
+passing; typecheck clean for the new files. Version bumped to
+1.11.647.
+
 ## [1.11.646] - 2026-05-20 -- UI: chart-line-fractal primitive (TODO 11.628)
 
 New **ChartLineFractal** UI primitive in
