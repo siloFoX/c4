@@ -4,6 +4,215 @@
 
 (no entries -- next release window)
 
+## [1.11.564] - 2026-05-20 -- UI: chart-line-changepoint primitive (TODO 11.546)
+
+New **ChartLineChangepoint** UI
+primitive in
+`web/src/components/ui/chart-line-changepoint.tsx`:
+pure-SVG line chart that
+DETECTS structural change
+points via a **variance-shift
+heuristic** and renders
+dashed vertical markers at
+each detected boundary.
+Between markers, the chart
+shades each "regime" with a
+different segment color
+(cycled from a 6-color
+palette) so the regime
+boundaries are visible at a
+glance. An optional
+segment-mean overlay draws
+the per-segment mean as a
+dashed horizontal rule within
+the segment. Algorithm: for
+each candidate index i in
+[minSegment, N-minSegment]
+compute `score = |log(var(
+y[i..N]) / var(y[0..i]))|`
+with variance floored at
+1e-9; threshold filter keeps
+score >= threshold; non-
+maximum suppression walks
+surviving candidates in
+descending score order and
+keeps one only if no
+already-kept detection is
+within suppressionWindow
+indices. Each detected
+index marks the FIRST sample
+of the new segment (left-
+edge convention). The
+canonical "find me the
+regime shifts in this time
+series" primitive used in
+monitoring, financial regime
+detection, EEG state
+changes. Pure helpers
+`computeLineChangepointScores`
+(per-index variance-shift
+score; null at edges; non-
+array -> []; all-null when
+input shorter than
+2*minSegment; variance
+floored to avoid log(0)),
+`detectLineChangepoints`
+(canonical detector
+pipeline; sorts ascending;
+drops non-finite; computes
+scores; applies threshold;
+applies non-max suppression;
+builds segments from cut
+points; returns `{ok,
+samples, scores, detections,
+segments, minSegment,
+threshold, suppressionWindow}`;
+each detection carries
+`{index, x, leftMean,
+rightMean, leftVariance,
+rightVariance, score,
+meanShift}`; detections
+sorted ascending by index),
+`getLineChangepointSegmentColor`
+(cycles segment palette),
+`normaliseLineChangepointMinSegment`
+(clamps to >= 2),
+`normaliseLineChangepointThreshold`
+(non-finite / negative ->
+default; zero allowed),
+`normaliseLineChangepointSuppressionWindow`
+(clamps to >= 1),
+`computeLineChangepointLayout`,
+and `describeLineChangepointChart`.
+Distinct from
+`<ChartLineAnomaly>` (11.524;
+per-point z-score outlier --
+changepoint detects
+PERSISTENT regime shifts not
+isolated outliers),
+`<ChartLineControl>` (11.534;
+global SPC mean+/-k*sigma --
+changepoint splits series
+into multiple regimes each
+with own mean / variance),
+`<ChartLineEvent>` (11.515;
+external event markers --
+changepoint markers are
+DETECTED from data),
+`<ChartLineStreak>` (11.527;
+consecutive same-direction
+RUNS -- changepoint marks
+ANY regime shift not
+direction-specific), and
+`<ChartLineDecompose>`
+(11.543; periodic trend +
+seasonal split -- changepoint
+marks ABRUPT structural
+breaks with no periodicity
+assumption). Per-series
+`minSegment` / `threshold` /
+`suppressionWindow` always
+beats chart-level. Tooltip
+on markers shows score,
+mean shift (left -> right),
+variance shift; on dots
+shows segment info incl.
+segment mean and sigma.
+Detection badge in top-left
+with `⌇` icon + count +
+threshold. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; series path +
+markers + dots
+`role="graphics-symbol"
+tabIndex={0}`; marker
+aria-label includes index +
+score + mean shift; dot
+aria-label includes segment
+number. Data-attrs: root
+`data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-total-detections`,
+`data-min-segment`,
+`data-threshold`,
+`data-suppression-window`,
+`data-animate`; path
+`data-kind="signal"`;
+markers `data-index`,
+`data-score`,
+`data-left-mean`,
+`data-right-mean`,
+`data-left-variance`,
+`data-right-variance`,
+`data-mean-shift`; segments
+`data-segment-index`,
+`data-start-index`,
+`data-end-index`,
+`data-mean`,
+`data-variance`,
+`data-std`, `data-count`;
+dots `data-segment-index`.
+74 vitest cases pass
+(defaults, helpers,
+computeLineChangepointScores
+incl. non-array -> [] / all-
+null when too short / null
+edges + finite interior /
+**high variance-shift
+produces high score near
+boundary** / flat input
+produces zero scores,
+detectLineChangepoints
+empty -> ok=false / **detects
+variance shift around true
+boundary index 30** / no
+detections on flat at
+default threshold / higher
+threshold suppresses all /
+lower threshold allows more
+/ sorted ascending / NMS
+spacing / segments cover
+all samples / per-sample
+segmentIndex valid /
+**right/left variance ratio
+> 10x for fixture** / sort
+ascending / drops non-finite,
+computeLineChangepointLayout
+empty / degenerate / path +
+markers + segments = K+1 /
+markers within panel bounds
+/ hidden / bounds / per-
+series threshold override /
+totalDetections sums / per-
+point segmentColor /
+segments px0<=px1,
+describeLineChangepointChart
+No data + summary, component
+render incl. empty / signal
+path kind=signal / detection
+markers + dashed vertical /
+hide markers via prop /
+segment shading + hide /
+segment mean lines via
+showSegmentMeans=true / dots
+via showDots + hide by
+default / detection badge +
+hide / ARIA / root data-* /
+tooltip marker (score +
+mean shift + variance) +
+tooltip point (segment) +
+hide on leave + omit via
+prop / onMarkerClick +
+onPointClick payloads /
+legend cp + seg counts +
+toggle + omit / animate
+flag + class / ref /
+displayName).
+Implementation patch:
+`docs/patches/11.546-ui-chart-line-changepoint.md`.
+
 ## [1.11.563] - 2026-05-20 -- UI: chart-line-spectrogram primitive (TODO 11.545)
 
 New **ChartLineSpectrogram** UI
