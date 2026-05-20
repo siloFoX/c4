@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.606] - 2026-05-20 -- UI: chart-line-vortex primitive (TODO 11.588)
+
+New **ChartLineVortex** UI primitive in
+`web/src/components/ui/chart-line-vortex.tsx`: pure-SVG line
+chart with a Vortex Indicator panel plotting the positive
+and negative vortex movement lines. The value line sits in
+the top panel; the bottom panel renders the VI+ and VI-
+lines on a 0 to 1 scale with a dashed 0.5 crossover midline
+and amber crossover markers.
+
+computeLineVortexMovement is the per-period vortex movement
+for a single-value series: the positive vortex movement is
+the up-part of the period's change, the negative is the
+down-part, and the true range is their sum. computeLineVortex
+is the Vortex Indicator: over a trailing window of `period`
+movements, VI+ = sum(VM+) / sum(TR) and VI- = sum(VM-) /
+sum(TR) via simple window sums. With the single-value
+adaptation the two lines sum to 1 and cross at 0.5 as the
+trend turns; a flat window reads 0.5 for both. VI is defined
+from index `period` onward.
+
+runLineVortex sorts the finite points by x, computes the VI
+series, classifies each sample's trend (VI+ above VI- is an
+uptrend), detects the bullish/bearish crossings, and returns
+per-period samples plus the final VI lines and trend.
+computeLineVortexLayout stacks a value panel above a fixed
+0 to 1 Vortex panel and places the 0.5 crossover midline.
+
+This is distinct from chart-line-adx, which Wilder-smooths
+the directional movement and derives a separate ADX
+trend-strength line: the Vortex Indicator uses plain window
+sums and is just the two VI lines, read by their crossover
+rather than by a strength magnitude.
+
+Helpers exported: getLineVortexFinitePoints,
+normalizeLineVortexPeriod, computeLineVortexMovement,
+computeLineVortex, runLineVortex, computeLineVortexLayout,
+describeLineVortexChart. The component is a forwardRef region
+with an ARIA description, config badge, three-series legend
+(Value / VI+ / VI-) with toggle, trend-coloured markers with
+crossover highlighting, hover tooltip exposing value / VI+ /
+VI- / trend, and motion-safe fade-in. 94 vitest cases cover
+the math, layout, description, and rendering.
+
 ## [1.11.605] - 2026-05-20 -- UI: chart-line-mfi primitive (TODO 11.587)
 
 New **ChartLineMfi** UI primitive in
