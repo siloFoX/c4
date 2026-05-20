@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.671] - 2026-05-20 -- UI: chart-line-vhf primitive (TODO 11.653)
+
+New **ChartLineVhf** UI primitive in
+`web/src/components/ui/chart-line-vhf.tsx`: pure-SVG two-panel
+chart with a Vertical Horizontal Filter panel scoring trend
+versus range from price travel.
+
+computeLineVhfWindow scores a single window: the `range` is the
+net travel of the close (highest minus lowest), the `travel` is
+the total distance walked (the sum of the absolute bar-to-bar
+moves), and the `vhf` is `range / travel`. computeLineVhf is the
+rolling estimate over a `period` window. The VHF sits in [0, 1]:
+near 1 marks a trending market (the price moved in one direction
+so the range nearly equals the path), near 0 a ranging market
+(the price travelled far but went nowhere).
+
+runLineVhf sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified trending /
+ranging / neutral against the 0.5 level, plus the final reading
+and the trending / ranging counts. computeLineVhfLayout stacks
+the price panel above a VHF panel with a fixed [0, 1] y-domain,
+a dashed 0.5 reference line and regime-coloured markers.
+
+ChartLineVhf renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / VHF) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. Distinct from the deviation oscillators:
+the VHF measures the geometry of the price path -- net
+displacement over total distance -- not its position relative
+to a reference.
+
+62 vitest cases in `chart-line-vhf.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.671.
+
 ## [1.11.670] - 2026-05-20 -- UI: chart-line-tii primitive (TODO 11.652)
 
 New **ChartLineTii** UI primitive in
