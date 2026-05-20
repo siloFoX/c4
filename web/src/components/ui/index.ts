@@ -375,3 +375,4 @@ export * from './chart-line-vzo';
 export * from './chart-line-cfo';
 export * from './chart-line-nvi';
 export * from './chart-line-pvi';
+export * from './chart-line-trin';

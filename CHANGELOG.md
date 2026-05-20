@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.684] - 2026-05-20 -- UI: chart-line-trin primitive (TODO 11.666)
+
+New **ChartLineTrin** UI primitive in
+`web/src/components/ui/chart-line-trin.tsx`: pure-SVG two-panel
+chart with an Arms Index TRIN panel from the ratio of advancing
+issues to advancing volume.
+
+computeLineTrinValue computes the Arms Index for one bar -- the
+advance/decline issue ratio divided by the advance/decline volume
+ratio, `(advIssues * decVolume) / (decIssues * advVolume)`. A
+zero denominator returns null. computeLineTrin maps it over a
+series of `{ x, value, advIssues, decIssues, advVolume,
+decVolume }` points.
+
+runLineTrin sorts the finite points by x, runs the pipeline, and
+returns per-bar samples classified bullish / bearish / neutral
+against the neutral band around 1, the zone counts and the final
+reading. computeLineTrinLayout stacks the market-index panel
+above a TRIN panel with the index line, one marker per bar
+coloured by zone, and dashed balance and band reference lines.
+
+ChartLineTrin renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the band threshold, a three-series legend
+(Price / TRIN / Levels) with toggle buttons, hover/focus
+tooltips, and a `motion-safe` fade-in. Distinct from the
+single-series oscillators: the TRIN is a market-breadth indicator
+fed by four advance/decline counts per bar.
+
+62 vitest cases in `chart-line-trin.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.684.
+
 ## [1.11.683] - 2026-05-20 -- UI: chart-line-pvi primitive (TODO 11.665)
 
 New **ChartLinePvi** UI primitive in
