@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.672] - 2026-05-20 -- UI: chart-line-ravi primitive (TODO 11.654)
+
+New **ChartLineRavi** UI primitive in
+`web/src/components/ui/chart-line-ravi.tsx`: pure-SVG two-panel
+chart with a Range Action Verification Index panel comparing a
+fast and a slow moving average spread.
+
+computeLineRaviSma is the simple moving average of the series.
+computeLineRavi is the Range Action Verification Index: the
+spread between a fast and a slow moving average, expressed as a
+percentage of the slow average -- `RAVI = 100 * (fastMA -
+slowMA) / slowMA`. A positive RAVI marks the fast average above
+the slow (an uptrend), a negative RAVI below; the further from
+zero, the stronger the trend.
+
+runLineRavi sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified positive /
+negative / zero by the sign of the RAVI, plus the final reading
+and the positive / negative counts. computeLineRaviLayout stacks
+the price panel above a zero-centred RAVI panel carrying the
+oscillator line, a dashed zero line and sign-coloured markers.
+
+ChartLineRavi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the fast and slow periods, a two-series
+legend (Price / RAVI) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. Distinct from a single moving
+average overlay: the RAVI does not plot a level, it plots the
+gap between two averages of different speed.
+
+61 vitest cases in `chart-line-ravi.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.672.
+
 ## [1.11.671] - 2026-05-20 -- UI: chart-line-vhf primitive (TODO 11.653)
 
 New **ChartLineVhf** UI primitive in
