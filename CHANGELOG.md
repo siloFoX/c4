@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.595] - 2026-05-20 -- UI: chart-line-rsi primitive (TODO 11.577)
+
+New **ChartLineRsi** UI primitive in
+`web/src/components/ui/chart-line-rsi.tsx`: pure-SVG line
+chart with a Relative Strength Index (RSI) oscillator
+sub-panel. The price line sits in the top panel; the bottom
+panel renders the RSI line bounded to 0-100, with shaded
+overbought and oversold zones.
+
+computeLineRsi is Welles Wilder's RSI: period-over-period
+changes are split into gains (max(delta,0)) and losses
+(max(-delta,0)); the average gain and average loss are
+Wilder-smoothed (the first average is the simple mean of the
+first period changes, then avg = (avg*(period-1)+change)/
+period); RSI = 100 - 100/(1 + avgGain/avgLoss), bounded to
+[0,100]. Three edge cases are handled deterministically: an
+all-gain window reads 100, an all-loss window reads 0, and a
+flat window reads 50; indices before the window is full are
+null. runLineRsi classifies each reading into a zone:
+overbought at or above the overbought threshold (default
+70), oversold at or below the oversold threshold (default
+30), neutral between. The component fixture (period 2) rises
+10 -> 30 then falls hard to 5: the RSI is
+[null,null,100,33.333,25], visiting the overbought, neutral
+and oversold zones in turn -- one overbought reading, one
+oversold.
+
+Distinct from neighbouring primitives: RSI is a bounded
+0-100 momentum oscillator built from the ratio of
+Wilder-smoothed gains to losses, with shaded
+overbought/oversold zones -- chart-line-macd is an unbounded
+momentum study (a difference of EMAs), chart-line-momentum
+is a derivative oscillator, chart-line-zscore is a rolling
+standardised score; none compute the gain/loss ratio, the
+0-100 bound or the overbought/oversold zoning. All exported
+helpers carry a LineRsi infix so the barrel export * cannot
+collide.
+
+Exported helpers: `getLineRsiFinitePoints`,
+`normalizeLineRsiPeriod`, `computeLineRsi`, `runLineRsi`,
+`computeLineRsiLayout`, `describeLineRsiChart`. The layout
+stacks a price panel above the RSI panel; the RSI panel y
+axis is fixed 0-100 with the two zones shaded and dashed
+threshold lines. RSI markers are zone-coloured; tooltip
+shows x, price, the RSI value and the zone; config badge
+`RSI p=.. ob=.. os=..`; the legend has three toggle items
+(Price / RSI / Zones). 55 vitest cases in
+`chart-line-rsi.test.tsx`, all passing. Exported from the
+`ui` barrel.
+
 ## [1.11.594] - 2026-05-20 -- UI: chart-line-macd primitive (TODO 11.576)
 
 New **ChartLineMacd** UI primitive in
