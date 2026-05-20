@@ -330,3 +330,4 @@ export * from './chart-line-tema';
 export * from './chart-line-wma';
 export * from './chart-line-trima';
 export * from './chart-line-vidya';
+export * from './chart-line-t3';

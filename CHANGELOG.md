@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.639] - 2026-05-20 -- UI: chart-line-t3 primitive (TODO 11.621)
+
+New **ChartLineT3** UI primitive in
+`web/src/components/ui/chart-line-t3.tsx`: pure-SVG line chart
+with a Tillson T3 Moving Average overlay using a cascaded
+smoothing factor.
+
+computeLineT3 is Tim Tillson's T3 Moving Average. The price is
+run through a cascade of six exponential moving averages, and
+four of them are blended with coefficients derived from a
+volume factor `v`: `T3 = c1*EMA6 + c2*EMA5 + c3*EMA4 + c4*EMA3`
+where `c1 = -v^3`, `c2 = 3v^2 + 3v^3`,
+`c3 = -6v^2 - 3v - 3v^3`, `c4 = 1 + 3v + 3v^2 + v^3`. The four
+coefficients always sum to 1, so the T3 of a constant series is
+that constant. The volume factor -- the cascaded smoothing
+factor -- dials how responsive the average is: at 0 the blend
+collapses to a plain triple-nested EMA, while a higher factor
+sharpens the response. EMA1 is defined from index `period - 1`;
+each later nesting needs another `period` defined values, so
+EMA6 -- and therefore the T3 -- is defined from index
+`6 * period - 6` onward.
+
+runLineT3 sorts the finite points by x, computes the six-EMA
+cascade and the T3, and returns per-period samples (each tagged
+with the price's above / below / on position versus the T3),
+the final / min / max T3 readings, and counts of bars above and
+below. computeLineT3Layout projects the price path and the T3
+path onto one shared panel with a y-domain spanning both, plus
+markers wherever the T3 is defined.
+
+ChartLineT3 renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge calling out the period and the volume
+factor, a two-series legend (Price / T3) with toggle buttons,
+hover/focus tooltips, and a `motion-safe` fade-in. It consumes
+`{ x, value }` points and takes `period` / `vfactor`. Distinct
+from chart-line-dema and chart-line-tema: those combine two and
+three EMAs with fixed integer coefficients, while the T3 uses a
+six-EMA cascade and four volume-factor coefficients -- a
+generalised, tunable smoother that collapses to a plain triple
+EMA when the volume factor is 0. 63 vitest cases cover the
+coefficient and EMA helpers, the pipeline against a
+hand-verified bit-exact fixture, the volume-factor-zero
+collapse, the warm-up, layout geometry, the description text,
+and component rendering.
+
 ## [1.11.638] - 2026-05-20 -- UI: chart-line-vidya primitive (TODO 11.620)
 
 New **ChartLineVidya** UI primitive in
