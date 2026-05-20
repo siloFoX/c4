@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.663] - 2026-05-20 -- UI: chart-line-reflex primitive (TODO 11.645)
+
+New **ChartLineReflex** UI primitive in
+`web/src/components/ui/chart-line-reflex.tsx`: pure-SVG two-panel
+chart with an Ehlers Reflex indicator detecting cycle turning
+points from a Super Smoother.
+
+computeLineReflexSmoother is the Ehlers Super Smoother of the
+price -- a two-pole low-pass filter run at half the period.
+computeLineReflexSum is the Reflex sum: the deviation of the
+smoother from a straight trendline drawn from the current
+filtered value back to the value `period` bars ago. Because the
+trendline is subtracted, the Reflex has no trend response -- a
+perfectly linear filter returns zero, so it reacts only to the
+cyclic swings away from the line. computeLineReflex normalizes
+that sum by the square root of an adaptively accumulated mean
+square, `ms = 0.04*sum^2 + 0.96*ms[1]`.
+
+runLineReflex sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified positive /
+negative / zero by the sign of the Reflex, plus the final
+reading and the positive / negative counts.
+computeLineReflexLayout stacks the price panel above a
+zero-centred Reflex panel carrying the indicator line, a dashed
+zero line and sign-coloured markers.
+
+ChartLineReflex renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / Reflex) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the Trendflex: the Trendflex sums the smoother's
+displacement directly (full trend response); the Reflex
+subtracts a trendline first, so it carries no trend lag and
+crosses zero at cycle turning points.
+
+68 vitest cases in `chart-line-reflex.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.663.
+
 ## [1.11.662] - 2026-05-20 -- UI: chart-line-trendflex primitive (TODO 11.644)
 
 New **ChartLineTrendflex** UI primitive in
