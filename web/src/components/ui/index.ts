@@ -342,3 +342,4 @@ export * from './chart-line-pivot-points';
 export * from './chart-line-gann';
 export * from './chart-line-andrews';
 export * from './chart-line-heikin-ashi';
+export * from './chart-line-renko';

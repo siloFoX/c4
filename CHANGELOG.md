@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.651] - 2026-05-20 -- UI: chart-line-renko primitive (TODO 11.633)
+
+New **ChartLineRenko** UI primitive in
+`web/src/components/ui/chart-line-renko.tsx`: pure-SVG chart
+rendering a Renko brick transform that advances only on fixed
+price moves.
+
+computeLineRenkoBricks walks the price series from the first
+value and emits a brick only when the price has moved a full
+`brickSize` from the last brick boundary. An up move emits up
+bricks, a down move emits down bricks, and a single large move
+emits several bricks at once; time and sub-brick wiggles are
+discarded. Each brick carries its ordinal index, the source
+price index that triggered it, a direction, and its open and
+close price levels.
+
+runLineRenko sorts the finite price points by x, runs the
+transform, and returns the brick series, the up and down counts,
+the price range and the last brick close. It reports not-ok when
+no brick forms (a low-volatility series). computeLineRenkoLayout
+lays the bricks out one per column and projects each to a rect,
+plus a trend line through the brick closes.
+
+ChartLineRenko renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge showing the brick size, a three-series
+legend (Up brick / Down brick / Trend) with toggle buttons,
+hover/focus tooltips, and a `motion-safe` fade-in. It consumes
+`{ x, value }` points plus a `brickSize`. Up bricks are green,
+down bricks red, and a trend line connects the brick closes.
+Distinct from the time-based line charts: the Renko x-axis is a
+brick ordinal, not time, and a brick is added only on a full
+price move rather than once per bar.
+
+49 vitest cases in `chart-line-renko.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.651.
+
 ## [1.11.650] - 2026-05-20 -- UI: chart-line-heikin-ashi primitive (TODO 11.632)
 
 New **ChartLineHeikinAshi** UI primitive in
