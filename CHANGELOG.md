@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.641] - 2026-05-20 -- UI: chart-line-disparity primitive (TODO 11.623)
+
+New **ChartLineDisparity** UI primitive in
+`web/src/components/ui/chart-line-disparity.tsx`: pure-SVG line
+chart with a Disparity Index panel rating the price distance
+from its moving average as a percent.
+
+computeLineDisparity is Steve Nison's Disparity Index. It rates
+how far the price sits from its own simple moving average as a
+percentage: `disparity = 100 * (price - SMA) / SMA`. The index
+swings around zero -- positive when the price is above its
+moving average, negative when below -- and the size of the
+swing shows how stretched the price has become. It is defined
+from index `period - 1` onward; a zero moving average reads 0
+rather than dividing by zero.
+
+runLineDisparity sorts the finite points by x, computes the
+moving average and the Disparity Index, and returns per-period
+samples (each tagged with a positive / negative / zero sign),
+the final / min / max readings, and counts of positive and
+negative readings. computeLineDisparityLayout stacks a price
+panel above a Disparity panel sharing one x-axis, gives the
+Disparity panel a symmetric data-driven y-domain around zero
+with a centred dashed zero line, and projects the price path,
+the Disparity path, and sign-coloured markers.
+
+ChartLineDisparity renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked panels
+with axis ticks and grid, a config badge, a two-series legend
+(Price / Disparity) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from chart-line-roc, which measures the percentage
+change from a *past price* N bars ago: the Disparity Index
+measures the percentage gap from the *moving average*. Distinct
+from the moving-average overlays (ema, sma, dema and the rest),
+which plot the average itself as a line over the price: the
+Disparity Index plots the price's percentage deviation from
+that average as a separate zero-centred oscillator. 57 vitest
+cases cover the SMA and Disparity helpers, the pipeline against
+a hand-verified bit-exact fixture, the zero-MA guard, the
+warm-up, layout geometry, the description text, and component
+rendering.
+
 ## [1.11.640] - 2026-05-20 -- UI: chart-line-gmma primitive (TODO 11.622)
 
 New **ChartLineGmma** UI primitive in
