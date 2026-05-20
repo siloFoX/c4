@@ -4,6 +4,57 @@
 
 (no entries -- next release window)
 
+## [1.11.592] - 2026-05-20 -- UI: chart-line-parabolic-sar primitive (TODO 11.574)
+
+New **ChartLineParabolicSar** UI primitive in
+`web/src/components/ui/chart-line-parabolic-sar.tsx`:
+pure-SVG line chart with a Parabolic SAR (Stop And Reverse)
+overlay -- Welles Wilder's trend-following trailing-stop
+indicator. A dot is plotted each period: when the dots sit
+below the price the trend is up, when they sit above it the
+trend is down, and when price pierces the dot the trend
+stops and reverses.
+
+runLineParabolicSar adapts Wilder's algorithm to a
+single-value series: the initial trend is taken from the
+first move (up if the second value is at or above the first,
+else down); each period the SAR advances toward the extreme
+point by an acceleration factor (sar += af*(ep - sar)), the
+factor starting at step (default 0.02) and growing by step
+-- capped at maxStep (default 0.2) -- every time the trend
+posts a new extreme; the SAR is clamped so it cannot cross
+into the prior one or two values; and when price pierces the
+SAR the trend stops and reverses (the SAR jumps to the prior
+extreme point, the new extreme point becomes the current
+value, and the acceleration factor resets). maxStep is
+clamped up to at least step. The component fixture rises
+from 10 to 16 then falls to 8: the SAR accelerates to 10.24
+and 10.7008, then at index 5 price drops to 9 (below the
+clamped SAR of 11) so the trend flips to down, the SAR jumps
+to the prior extreme point 16, and the next period settles
+at 15.86 -- one reversal, five up periods, two down.
+
+Distinct from neighbouring primitives: the Parabolic SAR is
+a trend-following trailing stop with an accelerating
+recursion and a hard stop-and-reverse flip -- no existing
+primitive computes it; chart-line-zigzag filters swing
+pivots by a percent reversal (a static geometric filter, not
+an accelerating stop), chart-line-keltner / chart-line-bollinger
+draw volatility bands, chart-line-trend fits a regression
+line. All exported helpers carry a LineParabolicSar infix so
+the barrel export * cannot collide.
+
+Exported helpers: `getLineParabolicSarFinitePoints`,
+`normalizeLineParabolicSarStep`, `runLineParabolicSar`,
+`computeLineParabolicSarLayout`,
+`describeLineParabolicSarChart`. SAR dots are trend-coloured
+(green up / red down); reversal periods get an amber ring
+marker; tooltip shows the trend, the SAR stop value, the
+price and a stop-and-reverse note; config badge
+`SAR af=.. max=.. flips=..`. 49 vitest cases in
+`chart-line-parabolic-sar.test.tsx`, all passing. Exported
+from the `ui` barrel.
+
 ## [1.11.591] - 2026-05-20 -- UI: chart-line-keltner primitive (TODO 11.573)
 
 New **ChartLineKeltner** UI primitive in

@@ -283,3 +283,4 @@ export * from './chart-line-zigzag';
 export * from './chart-line-fibonacci';
 export * from './chart-line-ichimoku';
 export * from './chart-line-keltner';
+export * from './chart-line-parabolic-sar';
