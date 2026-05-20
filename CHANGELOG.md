@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.631] - 2026-05-20 -- UI: chart-line-kama primitive (TODO 11.613)
+
+New **ChartLineKama** UI primitive in
+`web/src/components/ui/chart-line-kama.tsx`: pure-SVG line
+chart with a Kaufman Adaptive Moving Average overlay drawn on
+the same axes as the price.
+
+computeLineKama is Perry Kaufman's Adaptive Moving Average. The
+Efficiency Ratio measures trend quality -- the net price change
+over the window divided by the sum of the bar-to-bar moves, so
+it runs 0 for pure noise (the moves cancel out) to 1 for a
+clean one-directional trend. That ratio drives a per-bar
+smoothing constant `SC = (ER * (fastSC - slowSC) + slowSC)^2`,
+and the KAMA folds each bar in at its own SC:
+`KAMA[i] = KAMA[i-1] + SC * (value[i] - KAMA[i-1])`. A clean
+trend pushes SC toward the fast constant so the average speeds
+up; choppy noise pushes it toward the slow constant so the
+average flattens and stops chasing the chop. The KAMA is seeded
+at index `erPeriod - 1` with that bar's price and is recursive
+from index `erPeriod` onward; a flat window reads an efficiency
+ratio of 0 rather than dividing by zero.
+
+runLineKama sorts the finite points by x, computes the
+efficiency ratio, smoothing constant and KAMA series, and
+returns per-period samples (each tagged with the price's
+above / below / on position versus the KAMA), the final / min /
+max KAMA readings, and counts of bars above and below.
+computeLineKamaLayout projects the price path and the KAMA path
+onto one shared panel with a y-domain spanning both, plus
+markers wherever the KAMA is defined.
+
+ChartLineKama renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / KAMA) with
+toggle buttons, hover/focus tooltips exposing the efficiency
+ratio, and a `motion-safe` fade-in. It consumes `{ x, value }`
+points and takes `erPeriod` / `fastPeriod` / `slowPeriod`.
+Distinct from chart-line-zlema and the other moving-average
+overlays: those reduce lag with a *fixed* weighting scheme,
+while the KAMA *varies its own responsiveness* every bar from
+the efficiency ratio -- no other primitive computes a
+signal-to-noise efficiency ratio. 59 vitest cases cover the
+efficiency-ratio and KAMA helpers, the pipeline against a
+hand-verified fixture, the warm-up, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.630] - 2026-05-20 -- UI: chart-line-cmf primitive (TODO 11.612)
 
 New **ChartLineCmf** UI primitive in
