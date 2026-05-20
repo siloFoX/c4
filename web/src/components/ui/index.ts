@@ -355,3 +355,4 @@ export * from './chart-line-envelope';
 export * from './chart-line-pmo';
 export * from './chart-line-trendflex';
 export * from './chart-line-reflex';
+export * from './chart-line-hurst';
