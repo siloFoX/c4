@@ -285,3 +285,4 @@ export * from './chart-line-ichimoku';
 export * from './chart-line-keltner';
 export * from './chart-line-parabolic-sar';
 export * from './chart-line-vwap';
+export * from './chart-line-macd';
