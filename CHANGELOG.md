@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.634] - 2026-05-20 -- UI: chart-line-dema primitive (TODO 11.616)
+
+New **ChartLineDema** UI primitive in
+`web/src/components/ui/chart-line-dema.tsx`: pure-SVG line chart
+with a Double Exponential Moving Average overlay drawn on the
+same axes as the price.
+
+computeLineDema is Patrick Mulloy's Double Exponential Moving
+Average. A plain EMA lags the price; the EMA of that EMA lags
+twice as much, so the gap `EMA - EMA(EMA)` is itself a measure
+of the lag. Adding that gap back to the EMA --
+`DEMA = 2 * EMA - EMA(EMA)` -- cancels most of the lag while
+keeping the line smooth. The first EMA is seeded with the
+simple mean of the first `period` values and defined from index
+`period - 1`; the EMA of the EMA needs another `period` defined
+values, so the DEMA is defined from index `2 * period - 2`
+onward. Because the DEMA is a second-order lag corrector it
+reproduces a linear price ramp with zero lag once warmed up.
+
+runLineDema sorts the finite points by x, computes the EMA, the
+EMA-of-EMA and the DEMA series, and returns per-period samples
+(each tagged with the price's above / below / on position
+versus the DEMA), the final / min / max DEMA readings, and
+counts of bars above and below. computeLineDemaLayout projects
+the price path and the DEMA path onto one shared panel with a
+y-domain spanning both, plus markers wherever the DEMA is
+defined.
+
+ChartLineDema renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / DEMA) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, value }` points. Distinct from
+chart-line-zlema: the ZLEMA removes lag by feeding a *de-lagged
+input* (the price plus its own momentum) through one EMA, while
+the DEMA leaves the input untouched and removes lag through an
+*algebraic combination of two EMAs*. Distinct from
+chart-line-kama, which adapts its smoothing from an efficiency
+ratio rather than applying a fixed two-EMA formula. 57 vitest
+cases cover the EMA and DEMA helpers, the pipeline against a
+hand-verified linear-ramp fixture (bit-exact end to end), the
+zero-lag property, the warm-up, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.633] - 2026-05-20 -- UI: chart-line-rwi primitive (TODO 11.615)
 
 New **ChartLineRwi** UI primitive in
