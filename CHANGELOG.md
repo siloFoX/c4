@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.644] - 2026-05-20 -- UI: chart-line-smma primitive (TODO 11.626)
+
+New **ChartLineSmma** UI primitive in
+`web/src/components/ui/chart-line-smma.tsx`: pure-SVG line chart
+with a Smoothed Moving Average overlay using Wilder
+running-mean smoothing.
+
+computeLineSmma is Welles Wilder's Smoothed Moving Average. The
+first value is the simple mean of the first `period` prices;
+each later bar folds in as
+`SMMA = (SMMA_prev * (period - 1) + price) / period`. That is a
+running mean with the slow weight `1 / period` -- every past
+value still contributes with an exponentially decaying weight,
+so no value is ever fully dropped and the average stays
+exceptionally smooth. The SMMA is defined from index
+`period - 1` onward.
+
+runLineSmma sorts the finite points by x, computes the SMMA
+series, and returns per-period samples (each tagged with the
+price's above / below / on position versus the SMMA), the
+final / min / max readings, and counts of bars above and below.
+computeLineSmmaLayout projects the price path and the SMMA path
+onto one shared panel with a y-domain spanning both, plus
+markers wherever the SMMA is defined.
+
+ChartLineSmma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / SMMA) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, value }` points. Distinct from a
+plain exponential moving average, which uses the faster weight
+`2 / (period + 1)`: the SMMA's slower `1 / period` weight makes
+it equivalent to an EMA of period `2*period - 1`, so it lags
+more and stays smoother. Distinct from a simple moving average,
+which is a finite windowed mean that fully drops the oldest
+value each bar; the SMMA is a running mean that never fully
+drops a value. It is the smoothing Wilder built his RSI, ATR
+and ADX on. 51 vitest cases cover the SMMA helper, the pipeline
+against a hand-verified bit-exact fixture, the running-mean
+recursion, the warm-up, layout geometry, the description text,
+and component rendering.
+
 ## [1.11.643] - 2026-05-20 -- UI: chart-line-jma primitive (TODO 11.625)
 
 New **ChartLineJma** UI primitive in
