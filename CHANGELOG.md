@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.602] - 2026-05-20 -- UI: chart-line-cci primitive (TODO 11.584)
+
+New **ChartLineCci** UI primitive in
+`web/src/components/ui/chart-line-cci.tsx`: pure-SVG line
+chart with a Commodity Channel Index oscillator panel and
+shaded extreme zones. The value line sits in the top panel;
+the bottom panel renders the CCI oscillator on a symmetric
+y-axis with a dashed zero centerline, dashed +/-100 level
+lines, and shaded overbought/oversold zones beyond those
+levels.
+
+computeLineCci is Donald Lambert's Commodity Channel Index.
+For each index from period - 1 onward the window of `period`
+values is reduced to CCI = (value - SMA) / (0.015 *
+meanDeviation), where SMA is the window mean and
+meanDeviation is the mean of the absolute deviations from
+that mean. The 0.015 constant scales the result so most
+readings fall within +/-100. A flat window (zero deviation)
+reads 0. Indices before the window fills read null.
+
+runLineCci sorts the finite points by x, computes the CCI
+series, classifies each reading as overbought (above +100),
+oversold (below -100), or neutral, and returns per-period
+samples plus the final CCI and the extreme counts.
+computeLineCciLayout stacks a value panel above a CCI panel
+with a symmetric y-bound (the larger of the +/-100 band and
+the data range) so the unbounded oscillator and its zero
+centerline always fit.
+
+This is distinct from chart-line-zscore, which standardizes
+a value against the rolling *standard deviation*: CCI
+normalizes against the *mean absolute deviation* and applies
+Lambert's 0.015 constant, a different dispersion measure that
+yields the conventional +/-100 banding. It is also distinct
+from the bounded 0-100 oscillators chart-line-rsi and
+chart-line-stochastic -- CCI is unbounded and can run well
+past +/-100.
+
+Helpers exported: getLineCciFinitePoints,
+normalizeLineCciPeriod, computeLineCci, runLineCci,
+computeLineCciLayout, describeLineCciChart. The component is
+a forwardRef region with an ARIA description, config badge,
+two-series legend (Value / CCI) with toggle, zone-coloured
+markers, hover tooltip exposing value / CCI / zone, and
+motion-safe fade-in. 87 vitest cases cover the math, layout,
+description, and rendering.
+
 ## [1.11.601] - 2026-05-20 -- UI: chart-line-aroon primitive (TODO 11.583)
 
 New **ChartLineAroon** UI primitive in
