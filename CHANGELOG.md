@@ -4,6 +4,203 @@
 
 (no entries -- next release window)
 
+## [1.11.565] - 2026-05-20 -- UI: chart-line-savgol primitive (TODO 11.547)
+
+New **ChartLineSavgol** UI
+primitive in
+`web/src/components/ui/chart-line-savgol.tsx`:
+pure-SVG line chart with a
+**Savitzky-Golay** polynomial
+smoothing overlay. For each
+interior position, fits a
+polynomial of degree p
+(default 2) to a sliding
+window of windowLength
+samples (default 7, must be
+odd) by least squares and
+uses the polynomial's value
+at the window center as the
+smoothed estimate. The
+first and last `m =
+(W-1)/2` samples have no
+smoothed value because the
+window cannot be centered
+there. Distinct from
+`<ChartLineMovingAvg>`
+(11.513; SMA == SG with
+polyOrder=0; doesn't
+preserve peaks),
+`<ChartLineEwma>` (11.539;
+exponential decay --
+recursive single-parameter
+smoother), `<ChartLineKalman>`
+(11.538; recursive Bayesian
+filter with Q/R noise
+model), `<ChartLineBollinger>`
+(11.537; rolling SMA +
+envelope -- no polynomial
+fit), `<ChartLineFftWindow>`
+(11.544; frequency-domain
+filtering -- SG is
+time-domain polynomial fit),
+and `<ChartLineDecompose>`
+(11.543; seasonal split with
+centered moving average --
+different decomposition
+goal). The canonical scipy
+`savgol_filter` reference
+smoother used in
+spectroscopy, sensor signal
+processing, and any context
+where peak shapes matter --
+SG fits a polynomial
+locally so it preserves
+features that match the
+polynomial's complexity:
+order 0 == SMA, order 1
+preserves linear trends,
+order 2 preserves quadratic
+features (peaks, valleys),
+order 3 additionally
+preserves cubic asymmetries.
+Algorithm: build symmetric
+`(p+1) x (p+1)` matrix
+`M[j][k] = sum_{i=-m..m}
+i^(j+k)`; solve `M alpha =
+e_0` via Gauss-Jordan
+elimination; smoothing
+kernel `c_i = sum_j
+alpha_j * (i - m)^j` for
+i=0..N-1; apply via
+`smoothed[i] = sum_k
+coeffs[k] * y[i - m + k]`
+for i in `[m, N - m)`. The
+kernel is **symmetric**
+about the center and its
+coefficients **sum to 1**
+(preserves DC). Pure
+helpers
+`computeSavgolCoefficients`
+(canonical kernel
+generator; returns null for
+invalid configs; the
+verified canonical SG
+window=5 order=2 kernel is
+`[-3, 12, 17, 12, -3] / 35`
+and SG window=7 order=2 is
+`[-2, 3, 6, 7, 6, 3, -2] /
+21`), `applyLineSavgol`
+(smooths a numeric array
+with leading/trailing m
+nulls; non-finite within
+window -> null; polyOrder
+silently capped at W-1),
+`runLineSavgol` (canonical
+pipeline; sorts ascending;
+drops non-finite),
+`normaliseLineSavgolWindow`
+(clamps to odd >= 3; even
+rounded up to next odd),
+`normaliseLineSavgolPolyOrder`
+(clamps to >= 0),
+`classifyLineSavgolResidualSign`,
+`computeLineSavgolLayout`,
+and `describeLineSavgolChart`.
+Per-series `windowLength` /
+`polyOrder` overrides
+always beat chart-level.
+Tooltip on dots shows
+label, x, raw, bold
+smoothed (or n/a at
+edges), residual (with
++/- prefix), and SG config
+`W=<w>, p=<p>`. Config
+badge in top-left calls
+out `SG W=<w> p=<p>
+sum=<coefficient sum>`
+with the kernel sum
+verified at 1.0. ARIA:
+root role=region +
+aria-describedby; SVG
+role=img; raw path +
+smoothed path + dots
+role=graphics-symbol +
+tabIndex=0. Data-attrs:
+root `data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-window-length`,
+`data-poly-order`,
+`data-dominant-coefficient-sum`,
+`data-animate`; raw path
+`data-kind="raw"`;
+smoothed path
+`data-kind="smoothed"`;
+dots `data-raw` +
+`data-smoothed` +
+`data-residual` +
+`data-residual-sign`;
+residual sticks
+`data-sign`; series groups
+expose window + order +
+RMSE + counts. 76 vitest
+cases pass (defaults +
+helpers,
+computeSavgolCoefficients
+incl. invalid configs ->
+null + polyOrder 0 gives
+uniform 1/N + **canonical
+SG W=5 p=2 coefficients
+verified at [-3,12,17,12,-3]
+/35** + **canonical SG
+W=7 p=2 coefficients
+verified at
+[-2,3,6,7,6,3,-2]/21** +
+kernel symmetric +
+coefficient sum = 1
+verified, applyLineSavgol
+incl. **constant input
+passes through unchanged**
++ **linear input preserved
+exactly when order >= 1**
++ **quadratic input
+preserved exactly when
+order >= 2** + edges null
++ non-finite null +
+polyOrder capped at W-1,
+runLineSavgol incl. **noise
+reduction RMSE < raw noise
+amplitude on noisy
+parabola** + sort
+ascending + drops non-
+finite,
+computeLineSavgolLayout
+incl. paths + window +
+order + coefficients +
+RMSE + hidden + bounds +
+overrides + edges null +
+totalPoints,
+describeLineSavgolChart No
+data + window + order,
+component render incl.
+empty / raw kind=raw /
+smoothed kind=smoothed /
+hide raw / residual sticks
++ omit / dots + hide /
+config badge + sum=1 +
+omit / ARIA / root data-*
+incl. coefficient-sum /
+group data-* / tooltip raw
++ smoothed + residual +
+config + hide on leave +
+omit / onPointClick /
+legend W= + p= + rmse +
+toggle + omit / animate
+flag + class / ref /
+displayName).
+Implementation patch:
+`docs/patches/11.547-ui-chart-line-savgol.md`.
+
 ## [1.11.564] - 2026-05-20 -- UI: chart-line-changepoint primitive (TODO 11.546)
 
 New **ChartLineChangepoint** UI
