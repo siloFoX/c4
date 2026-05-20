@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.686] - 2026-05-20 -- UI: chart-line-mama primitive (TODO 11.668)
+
+New **ChartLineMama** UI primitive in
+`web/src/components/ui/chart-line-mama.tsx`: pure-SVG line chart
+with a MESA Adaptive Moving Average overlay adapting its alpha to
+the measured cycle phase.
+
+computeLineMamaPhase detrends the price -- subtracting a moving
+average to expose its cycle -- and measures the cycle phase each
+bar as `atan2(cycle - cycle[-1], cycle)`. computeLineMama derives
+an adaptive smoothing factor from the phase rate of change: a
+fast-advancing phase drives alpha toward the fast limit (close
+tracking), a slow phase toward the slow limit (heavy smoothing).
+The MAMA is the EMA at that alpha; the FAMA follows it at half
+the alpha.
+
+runLineMama sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified bullish /
+bearish / neutral by the MAMA versus its FAMA, the cross counts
+and the final readings. computeLineMamaLayout projects the price,
+MAMA and FAMA as three overlaid lines in a single panel.
+
+ChartLineMama renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+showing the period, a three-series legend (Price / MAMA / FAMA)
+with toggle buttons, one marker per MAMA bar, hover/focus
+tooltips, and a `motion-safe` fade-in. Distinct from the
+fixed-weight moving averages: the MAMA changes its own smoothing
+speed bar by bar from the cycle it measures.
+
+65 vitest cases in `chart-line-mama.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.686.
+
 ## [1.11.685] - 2026-05-20 -- UI: chart-line-twiggs primitive (TODO 11.667)
 
 New **ChartLineTwiggs** UI primitive in
