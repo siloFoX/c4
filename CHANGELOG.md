@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.638] - 2026-05-20 -- UI: chart-line-vidya primitive (TODO 11.620)
+
+New **ChartLineVidya** UI primitive in
+`web/src/components/ui/chart-line-vidya.tsx`: pure-SVG line
+chart with a Variable Index Dynamic Average overlay whose
+smoothing adapts to volatility.
+
+computeLineVidya is Tushar Chande's Variable Index Dynamic
+Average -- an exponential moving average whose smoothing
+constant is scaled, bar by bar, by a volatility index. The
+index `k = |CMO| / 100` is the absolute Chande Momentum
+Oscillator divided by 100, so it runs 0 to 1. The recursion is
+`VIDYA[i] = alpha*k*value[i] + (1 - alpha*k)*VIDYA[i-1]` where
+`alpha = 2 / (period + 1)` is the base smoothing constant. A
+strong trend pushes the CMO toward +/-100 so `k` approaches 1
+and the average tracks the price closely; a directionless
+market pushes the CMO toward 0 so `k` approaches 0 and the
+average freezes, holding its prior value. The VIDYA is seeded
+at index `cmoPeriod - 1` with that bar's price and is recursive
+from index `cmoPeriod` onward.
+
+runLineVidya sorts the finite points by x, computes the CMO,
+the volatility index and the VIDYA, and returns per-period
+samples (each tagged with the price's above / below / on
+position versus the VIDYA), the final / min / max VIDYA
+readings, and counts of bars above and below.
+computeLineVidyaLayout projects the price path and the VIDYA
+path onto one shared panel with a y-domain spanning both, plus
+markers wherever the VIDYA is defined.
+
+ChartLineVidya renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge calling out the period and the CMO
+period, a two-series legend (Price / VIDYA) with toggle
+buttons, hover/focus tooltips exposing the volatility index,
+and a `motion-safe` fade-in. It consumes `{ x, value }` points
+and takes `period` / `cmoPeriod`. Distinct from chart-line-kama:
+both are adaptive recursive averages, but the KAMA scales its
+smoothing by an efficiency ratio that never reaches zero, while
+the VIDYA scales by the absolute CMO so a directionless market
+fully freezes the line. Distinct from chart-line-cmo, which
+plots the CMO as an oscillator panel -- the VIDYA consumes the
+CMO internally as a volatility gauge. 57 vitest cases cover the
+CMO and VIDYA helpers, the pipeline against a hand-verified
+bit-exact fixture, the zero-volatility freeze, the warm-up,
+layout geometry, the description text, and component rendering.
+
 ## [1.11.637] - 2026-05-20 -- UI: chart-line-trima primitive (TODO 11.619)
 
 New **ChartLineTrima** UI primitive in
