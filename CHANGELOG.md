@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.594] - 2026-05-20 -- UI: chart-line-macd primitive (TODO 11.576)
+
+New **ChartLineMacd** UI primitive in
+`web/src/components/ui/chart-line-macd.tsx`: pure-SVG line
+chart with a MACD (Moving Average Convergence Divergence)
+sub-panel. The price line sits in the top panel; the bottom
+panel renders the MACD momentum study -- the MACD line, the
+signal line and the convergence histogram.
+
+computeLineMacdEMA is an exponential moving average
+(alpha = 2/(period+1), seeded with the first value so it is
+defined at every index). The MACD line is the fast EMA minus
+the slow EMA of the price (default periods 12 and 26); the
+signal line is an EMA of the MACD line (default period 9);
+the histogram is macd - signal (the convergence/divergence
+of the two lines), with positive bars reading green and
+negative red. All three series are defined at every index
+because the EMAs are seeded. The component fixture (periods
+1/3/3 on a 4-point series) makes every value exact: the MACD
+line is [0,5,7.5,-1.25], the signal line [0,2.5,5,1.875],
+and the histogram [0,2.5,2.5,-3.125].
+
+Distinct from neighbouring primitives: MACD layers three
+EMAs into one momentum study with a sign-tinted histogram --
+chart-line-ewma overlays a single EMA, chart-line-keltner
+builds an EMA centre with an ATR band, chart-line-momentum
+is a sub-panel oscillator driven by a derivative rather than
+a difference-of-EMAs; none compute the fast/slow EMA spread,
+the signal smoothing or the convergence histogram. All
+exported helpers carry a LineMacd infix so the barrel
+export * cannot collide.
+
+Exported helpers: `getLineMacdFinitePoints`,
+`normalizeLineMacdPeriod`, `computeLineMacdEMA`,
+`runLineMacd`, `computeLineMacdLayout`,
+`describeLineMacdChart`. The layout stacks a price panel
+above the MACD panel; the MACD panel y range is symmetric
+about zero with a dashed zero line. Tooltip shows x, price
+and the MACD / signal / histogram values; config badge
+`MACD <fast>/<slow>/<signal>`; the legend has four toggle
+items (Price / MACD / Signal / Histogram). 53 vitest cases
+in `chart-line-macd.test.tsx`, all passing. Exported from
+the `ui` barrel.
+
 ## [1.11.593] - 2026-05-20 -- UI: chart-line-vwap primitive (TODO 11.575)
 
 New **ChartLineVwap** UI primitive in
