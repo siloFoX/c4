@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.640] - 2026-05-20 -- UI: chart-line-gmma primitive (TODO 11.622)
+
+New **ChartLineGmma** UI primitive in
+`web/src/components/ui/chart-line-gmma.tsx`: pure-SVG line chart
+with a Guppy Multiple Moving Average ribbon of short and long
+EMA groups.
+
+computeLineGmma is Daryl Guppy's Multiple Moving Average. The
+price is run through a fast trader group of short-period
+exponential moving averages and a slow investor group of
+long-period ones, producing a ribbon of EMA lines (the Guppy
+defaults are short 3/5/8/10/12/15 and long 30/35/40/45/50/60).
+The signal is the relationship between the two ribbons, not any
+single line: when the short ribbon holds entirely above the
+long ribbon the trend is bullish, entirely below it is bearish,
+and when the two ribbons tangle the trend is changing
+(crossing). Each per-bar state is `forming` until every EMA in
+both groups is defined.
+
+runLineGmma sorts the finite points by x, computes every EMA in
+both groups, and returns per-period samples (each carrying the
+short and long ribbon bands and the bullish / bearish /
+crossing / forming state), plus counts of bullish, bearish and
+crossing bars. computeLineGmmaLayout projects the price path
+and one path per ribbon line onto a shared panel with a
+y-domain spanning the price and every EMA.
+
+ChartLineGmma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge calling out the group sizes, a two-ribbon
+SVG (the short group in one colour, the long group in another),
+a three-series legend (Price / Short / Long) with toggle
+buttons, hover/focus tooltips exposing the two ribbon bands and
+the state, and a `motion-safe` fade-in. It consumes
+`{ x, value }` points and takes `shortPeriods` / `longPeriods`
+arrays. Distinct from every single-line moving-average
+primitive (ema, dema, tema, wma, trima, t3 and the rest): those
+plot one average line, while the GMMA plots a ribbon of twelve
+EMAs in two groups and reads the trend from the separation
+between the groups. 55 vitest cases cover the period-list
+normalizer and the EMA helper, the pipeline against a
+hand-verified bit-exact ramp fixture, the bullish / bearish /
+crossing / forming states, layout geometry, the description
+text, and component rendering.
+
 ## [1.11.639] - 2026-05-20 -- UI: chart-line-t3 primitive (TODO 11.621)
 
 New **ChartLineT3** UI primitive in
