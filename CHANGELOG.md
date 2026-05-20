@@ -4,6 +4,139 @@
 
 (no entries -- next release window)
 
+## [1.11.572] - 2026-05-20 -- UI: chart-line-cusum primitive (TODO 11.554)
+
+New **ChartLineCusum** UI primitive in
+`web/src/components/ui/chart-line-cusum.tsx`: pure-SVG
+two-panel line chart with a **CUSUM (cumulative sum) drift
+detector** and **reset-on-trigger markers**. The main panel
+renders the raw series plus a dashed target reference line;
+the CUSUM sub-panel renders the two cumulative sums with
+their decision thresholds; drift triggers are marked on both
+panels.
+
+The two-sided tabular CUSUM is the canonical sequential
+change-detection method. For a target mean T and reference
+allowance k it tracks two non-negative running sums:
+`C+_t = max(0, C+_{t-1} + (y_t - T) - allowance)` accumulates
+persistent upward drift; `C-_t = max(0, C-_{t-1} - (y_t - T)
+- allowance)` accumulates persistent downward drift. Both
+are floored at 0 so a brief excursion that reverts decays
+back rather than persisting. An alarm fires when either sum
+crosses the decision interval h. Slack and threshold are
+expressed in sigma units: `allowance = slack * sigma`,
+`decisionInterval = threshold * sigma`, with defaults
+slack = 0.5 and threshold = 5 (the textbook k = 0.5 sigma,
+h = 5 sigma tuning that catches a 1-sigma sustained shift
+quickly with a low false-alarm rate). Reset-on-trigger: when
+a sum crosses its decision interval the chart records the
+crossing value (so the spike is visible) then resets that
+sum to 0, so a process that drifts, is corrected, and drifts
+again produces a separate trigger each time.
+
+Verified properties: a series constant at the target
+produces C+ = C- = 0 throughout and zero triggers; an upward
+shift accumulates C+ step by step (3 -> 6 -> 9 -> 12) and
+triggers when it crosses h = 10; a downward shift accumulates
+C- symmetrically; after a trigger the sum resets to 0; a
+threshold of 0 disables triggering; both sums are always
+non-negative.
+
+Distinct from `<ChartLineControl>` (11.534; a Shewhart SPC
+chart with CL/UCL/LCL at mean +- k*sigma -- the control
+chart is MEMORYLESS, each point judged independently, so it
+only catches LARGE single excursions, whereas CUSUM has
+MEMORY and accumulates small deviations so a small
+PERSISTENT shift is caught far sooner -- CUSUM is the
+standard answer to "the control chart is too slow to notice
+a 1-sigma drift"), `<ChartLineChangepoint>` (11.546; detects
+VARIANCE shifts via a windowed variance-ratio score -- CUSUM
+detects MEAN shifts via the cumulative sum and signals
+sequentially), `<ChartLineCumulative>` (11.520; a plain
+running sum of the raw values -- CUSUM is the running sum of
+DEVIATIONS from a target minus a slack, floored at 0, with
+reset -- a detector not an accumulator), and
+`<ChartLineAnomaly>` (11.524; per-point z-score outlier
+flags, each point independent -- CUSUM is sequential and
+cumulative). Control charts and anomaly detection answer "is
+this point unusual?"; CUSUM answers "has the process mean
+shifted, and when?".
+
+Pure helpers exported: `computeLineCusumStats` (the
+reference statistics: mean, computedSigma, sigma, target,
+slack, threshold, allowance, decisionInterval, ok),
+`runLineCusum` (the full CUSUM pipeline; sorts ascending;
+drops non-finite; runs the two-sided recursion with
+reset-on-trigger; returns per-sample deviation + cusumPos +
+cusumNeg + trigger flags plus trigger counts and
+maxCusumPos/maxCusumNeg), `classifyLineCusumTriggerSide`
+('upper' | 'lower' | 'both' | 'none'),
+`normaliseLineCusumSlack` (>= 0; default 0.5),
+`normaliseLineCusumThreshold` (>= 0; default 5; 0 disables
+triggering), `normaliseLineCusumSubHeightRatio` (clamped to
+[0.1, 0.9]), `getLineCusumDefaultColor`,
+`getLineCusumFinitePoints`, `computeLineCusumLayout`
+(projects the main + sub panels, raw + CUSUM paths, target
+line, thresholds, and the trigger list),
+`describeLineCusumChart`.
+
+API: `series: ChartLineCusumSeries[]` (per-series target /
+sigma overrides beat chart-level); `target` (defaults to the
+series mean); `sigma` (defaults to the population standard
+deviation); `slack` (default 0.5; sigma units; clamped >= 0);
+`threshold` (default 5; sigma units; clamped >= 0);
+`subHeightRatio` (default 0.4; clamped to [0.1, 0.9]);
+`targetColor` / `thresholdColor` / `triggerColor`; toggle
+flags `showAxis` / `showGrid` / `showDots` / `showLegend` /
+`showTooltip` / `showConfigBadge` / `showTargetLine` /
+`showThresholds` / `showTriggers` / `showTriggerLines` /
+`animate`; controlled + uncontrolled visibility; standard
+sizing + format + a11y props; `formatValue` / `formatX` /
+`formatCusum`; `onPointClick({series, point})` +
+`onTriggerClick({series, trigger})`.
+
+Layout: two stacked SVG panels sharing the x axis -- main
+panel (top, ~60%) with the raw line + dashed target
+reference line; CUSUM sub-panel (bottom, ~40%) with C+
+plotted upward from a centred zero line, C- plotted downward
+(negated), dashed decision-interval thresholds at +h and -h,
+sub-panel y range symmetric around zero. Drift triggers
+render as diamond markers on the sub-panel plus a dashed
+vertical trigger line through the main panel.
+
+Tooltip on dots shows label, x, raw, deviation from target
+(+/- prefix), bold CUSUM+, CUSUM-, and a coloured drift
+trigger row on triggered samples. Config badge: `CUSUM
+T=<target> k=<slack> h=<threshold> drift=<count>`. Legend
+stats: per-series target + drift count.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + both CUSUM paths + trigger markers
++ dots role=graphics-symbol + tabIndex=0. data-section on
+every node. Root mirrors data-total-triggers + data-target +
+data-slack + data-threshold + data-animate. Raw path
+data-kind=raw; CUSUM paths data-kind=cusum-pos/cusum-neg;
+threshold lines data-side=upper/lower; trigger markers +
+lines data-side + data-point-index. Series groups expose
+target + sigma + slack + threshold + allowance +
+decisionInterval + trigger counts + maxCusum values.
+
+80 vitest cases pass (defaults + helpers, computeLineCusumStats
+incl. mean + population sigma + overrides + allowance/decision
+formulae, runLineCusum incl. no drift -> zero CUSUM + upward
+drift accumulates C+ 3/6/9/12 + downward drift + reset to 0
+after trigger + threshold 0 disables + sums non-negative,
+computeLineCusumLayout incl. stacked panels + paths + stats +
+trigger list + symmetric sub y range + per-series + bounds +
+totalPoints, describeLineCusumChart, render incl. empty + raw
+path + cusum paths + zero line + target line + threshold
+lines + trigger marker + trigger line + dots + config badge +
+ARIA + root data-* + group data-* + tooltip with deviation +
+CUSUM + trigger rows + onPointClick + onTriggerClick + legend
++ animate + ref + displayName + xLabel + yLabel + subLabel +
+no-drift zero triggers). TypeScript clean. Exported via
+barrel.
+
 ## [1.11.571] - 2026-05-20 -- UI: chart-line-holtwinters primitive (TODO 11.553)
 
 New **ChartLineHoltWinters** UI primitive in
