@@ -332,3 +332,4 @@ export * from './chart-line-trima';
 export * from './chart-line-vidya';
 export * from './chart-line-t3';
 export * from './chart-line-gmma';
+export * from './chart-line-disparity';
