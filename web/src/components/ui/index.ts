@@ -356,3 +356,4 @@ export * from './chart-line-pmo';
 export * from './chart-line-trendflex';
 export * from './chart-line-reflex';
 export * from './chart-line-hurst';
+export * from './chart-line-entropy';

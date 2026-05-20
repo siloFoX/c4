@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.665] - 2026-05-20 -- UI: chart-line-entropy primitive (TODO 11.647)
+
+New **ChartLineEntropy** UI primitive in
+`web/src/components/ui/chart-line-entropy.tsx`: pure-SVG
+two-panel chart with a rolling Shannon entropy panel measuring
+local signal disorder.
+
+computeLineEntropyHistogram bins a window of values into an
+equal-width histogram. computeLineEntropyValue is the Shannon
+entropy of a distribution in bits, `H = -sum(p * log2(p))`.
+computeLineEntropy is the rolling estimate: for each bar the
+trailing window of `period` values is binned into `bins`
+buckets and the Shannon entropy of that distribution is taken;
+the normalized entropy divides it by `log2(bins)` so it lands in
+`[0, 1]`. A normalized entropy near 1 marks a disordered (noisy)
+window, near 0 an ordered (concentrated) window.
+
+runLineEntropy sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified disordered /
+ordered / neutral against the 0.5 level, plus the final reading
+and the disordered / ordered counts. computeLineEntropyLayout
+stacks the price panel above an entropy panel with a fixed
+[0, 1] y-domain, a dashed 0.5 reference line and class-coloured
+markers.
+
+ChartLineEntropy renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period and bins, a two-series legend
+(Price / Entropy) with toggle buttons, hover/focus tooltips, and
+a `motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the Hurst panel: entropy measures the disorder of
+the local amplitude distribution, not the long-term memory of
+the series.
+
+72 vitest cases in `chart-line-entropy.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.665.
+
 ## [1.11.664] - 2026-05-20 -- UI: chart-line-hurst primitive (TODO 11.646)
 
 New **ChartLineHurst** UI primitive in
