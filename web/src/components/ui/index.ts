@@ -278,3 +278,4 @@ export * from './chart-line-bump';
 export * from './chart-line-slopegraph';
 export * from './chart-line-heatline';
 export * from './chart-line-qqplot';
+export * from './chart-line-lag-plot';

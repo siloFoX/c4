@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.587] - 2026-05-20 -- UI: chart-line-lag-plot primitive (TODO 11.569)
+
+New **ChartLineLagPlot** UI primitive in
+`web/src/components/ui/chart-line-lag-plot.tsx`: pure-SVG
+line chart with a lag-k scatter side panel. The left panel
+shows the raw time series; the right panel is a lag plot --
+each value y[t] scattered against the value k steps earlier,
+y[t-k]. A tight cluster along the diagonal signals strong
+lag-k serial dependence; a structureless cloud signals
+randomness.
+
+runLineLagPlot sorts the series by x, coerces the lag to a
+positive integer (normalizeLineLagPlotLag: a non-finite or
+sub-1 lag falls back to 1, a fractional lag is floored),
+then for every t from k to n-1 forms a pair laggedValue =
+y[t-k] (the scatter x) and currentValue = y[t] (the scatter
+y) -- there are n-k pairs. The lag-k autocorrelation is the
+Pearson correlation between the lagged column and the
+current column. Each pair carries an aboveDiagonal flag
+(currentValue > laggedValue). The component fixtures make
+the correlation exact: the perfectly linear series
+[0,2,4,6,8,10] has every lag-1 pair on the line
+current = lagged + 2 so the lag-1 correlation is 1; the
+strictly alternating series [0,10,0,10,...] flips every step
+so its lag-1 correlation is -1.
+
+Distinct from chart-line-autocorrelation: that draws the
+correlogram -- a bar chart of the autocorrelation r_k across
+many lags k=0,1,2,... whereas ChartLineLagPlot draws the
+actual scatter cloud at one chosen lag k; the correlogram
+reduces each lag to a single number while the lag plot keeps
+every (y[t-k], y[t]) pair so the shape of the dependence
+(linear, curved, clustered, outlier-driven) is visible. They
+are complementary -- the correlogram picks the interesting
+lag, the lag plot inspects it. All exported helpers carry a
+LineLagPlot infix so the barrel export * cannot collide.
+
+Exported helpers: `getLineLagPlotFinitePoints`,
+`normalizeLineLagPlotLag`, `runLineLagPlot`,
+`computeLineLagPlotLayout`, `describeLineLagPlotChart`. The
+scatter panel shares one value domain across both axes so
+the identity line is a true y=x diagonal. Tooltip shows
+x + value on a series dot and the pair t + lagged + current
++ delta on a scatter dot; config badge `LAG k=.. r=.. n=..`;
+the footer reports lag / pairs / r. 51 vitest cases in
+`chart-line-lag-plot.test.tsx`, all passing. Exported from
+the `ui` barrel.
+
 ## [1.11.586] - 2026-05-20 -- UI: chart-line-qqplot primitive (TODO 11.568)
 
 New **ChartLineQQPlot** UI primitive in
