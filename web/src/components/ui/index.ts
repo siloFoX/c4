@@ -292,3 +292,4 @@ export * from './chart-line-atr';
 export * from './chart-line-obv';
 export * from './chart-line-adx';
 export * from './chart-line-supertrend';
+export * from './chart-line-aroon';

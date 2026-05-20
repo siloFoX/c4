@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.601] - 2026-05-20 -- UI: chart-line-aroon primitive (TODO 11.583)
+
+New **ChartLineAroon** UI primitive in
+`web/src/components/ui/chart-line-aroon.tsx`: pure-SVG line
+chart with an Aroon panel plotting the Aroon-up and
+Aroon-down trend-age lines. The value line sits in the top
+panel; the bottom panel renders the two 0-100 Aroon lines
+with dashed reference levels at the conventional weak/strong
+trend bands.
+
+computeLineAroon is Tushar Chande's Aroon. For each index
+from `period` onward the window of period + 1 values ending
+at that index is scanned: Aroon-up = 100 * (period -
+periodsSinceHigh) / period, and Aroon-down likewise from the
+low. A reading of 100 means the extreme is the current bar
+(a fresh high or low); 0 means the extreme is the oldest bar
+in the window. On ties the most recent occurrence wins, so a
+flat series reads both lines at 100. Indices before the
+window fills read null.
+
+runLineAroon sorts the finite points by x, computes the
+Aroon-up and Aroon-down series plus the Aroon oscillator
+(up minus down), and returns per-period samples plus the
+final readings. computeLineAroonLayout stacks a value panel
+above a fixed 0-100 Aroon panel sharing one x-axis and
+places the two reference level lines.
+
+This is distinct from chart-line-adx, which measures trend
+*strength* from the magnitude of smoothed directional
+movement: Aroon measures trend *age* -- the count of periods
+since the window's extreme, a purely time-based reading. It
+is also distinct from chart-line-stochastic, whose %K
+measures where the value sits within the high-low range (a
+position); Aroon measures how long ago the extreme occurred
+(an age), not where the current value sits.
+
+Helpers exported: getLineAroonFinitePoints,
+normalizeLineAroonPeriod, computeLineAroon, runLineAroon,
+computeLineAroonLayout, describeLineAroonChart. The component
+is a forwardRef region with an ARIA description, config
+badge, three-series legend (Value / Aroon-up / Aroon-down)
+with toggle, hover tooltip exposing value / Aroon-up /
+Aroon-down / oscillator, and motion-safe fade-in. 86 vitest
+cases cover the math, layout, description, and rendering.
+
 ## [1.11.600] - 2026-05-20 -- UI: chart-line-supertrend primitive (TODO 11.582)
 
 New **ChartLineSupertrend** UI primitive in
