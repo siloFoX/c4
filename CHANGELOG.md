@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.685] - 2026-05-20 -- UI: chart-line-twiggs primitive (TODO 11.667)
+
+New **ChartLineTwiggs** UI primitive in
+`web/src/components/ui/chart-line-twiggs.tsx`: pure-SVG two-panel
+chart with a Twiggs Money Flow panel from volume weighted by a
+smoothed range position.
+
+computeLineTwiggsClv computes the close location value -- where
+the close sits within the true range, in [-1, 1], with the range
+extended to take in the prior close. computeLineTwiggs weights
+each bar's volume by that close location value, smooths the
+weighted volume and the raw volume with a moving average, and
+takes their ratio.
+
+runLineTwiggs sorts the finite points by x, runs the pipeline,
+and returns per-bar samples classified bullish / bearish /
+neutral against the threshold band, the zone counts and the
+final reading. computeLineTwiggsLayout stacks the price panel
+above a TMF panel on a fixed -1 to +1 scale, the TMF line, one
+marker per defined bar coloured by zone, and dashed zero and
+trigger reference lines.
+
+ChartLineTwiggs renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a three-series legend (Price /
+TMF / Levels) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value, high, low,
+volume }` points. Distinct from the volume-index primitives: the
+TMF weights volume by where the close lands in the range, not by
+which bars to count.
+
+67 vitest cases in `chart-line-twiggs.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.685.
+
 ## [1.11.684] - 2026-05-20 -- UI: chart-line-trin primitive (TODO 11.666)
 
 New **ChartLineTrin** UI primitive in
