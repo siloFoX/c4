@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.657] - 2026-05-20 -- UI: chart-line-hilbert primitive (TODO 11.639)
+
+New **ChartLineHilbert** UI primitive in
+`web/src/components/ui/chart-line-hilbert.tsx`: pure-SVG
+two-panel chart with a Hilbert Transform dominant-cycle period
+panel.
+
+computeLineHilbertSmooth is Ehlers' 4-3-2-1 weighted
+pre-smoother. computeLineHilbertTransform is the Ehlers Hilbert
+transform filter, a seven-tap quadrature FIR
+`0.0962*(v[i]-v[i-6]) + 0.5769*(v[i-2]-v[i-4])` that detrends
+and shifts the signal 90 degrees; a constant series transforms
+to zero exactly. computeLineHilbertCycle chains them: the price
+is smoothed, detrended through the transform, and a second
+transform gives the quadrature component. The instantaneous
+phase `atan2(quadrature, in-phase)` rotates once per cycle, so
+the per-bar rate of phase change yields the dominant cycle
+period `2*PI / deltaPhase`. The period is clamped to a
+`[minPeriod, maxPeriod]` band and exponentially smoothed, so
+every reading stays inside the band; a flat series reports the
+maximum period.
+
+runLineHilbert sorts the finite price points by x, runs the
+pipeline, and returns the smooth and period series, per-bar
+samples classified fast / slow / mid relative to the band
+midpoint, and the fast / slow counts. computeLineHilbertLayout
+stacks a price panel above a cycle-period panel fixed to the
+`[minPeriod, maxPeriod]` band, with a dashed midline at the
+fast/slow boundary.
+
+ChartLineHilbert renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid for both panels, a config badge showing the period band, a
+two-series legend (Price / Cycle period) with toggle buttons,
+class-coloured cycle markers, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the smoothing filters: this primitive measures
+the period of the price cycle rather than smoothing the price
+itself.
+
+62 vitest cases in `chart-line-hilbert.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.657.
+
 ## [1.11.656] - 2026-05-20 -- UI: chart-line-roofing primitive (TODO 11.638)
 
 New **ChartLineRoofing** UI primitive in
