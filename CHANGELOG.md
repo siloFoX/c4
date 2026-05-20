@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.628] - 2026-05-20 -- UI: chart-line-klinger primitive (TODO 11.610)
+
+New **ChartLineKlinger** UI primitive in
+`web/src/components/ui/chart-line-klinger.tsx`: pure-SVG line
+chart with a Klinger Volume Oscillator panel and signal line.
+The top panel renders the close price line; the bottom panel
+renders the oscillator line and a dashed signal line on a
+symmetric y-axis with a dashed zero centerline and sign-coloured
+markers.
+
+computeLineKlingerVf is Stephen Klinger's Volume Force. Each
+bar's typical price `(high + low + close) / 3` sets a +1/-1
+trend; the daily measurement `high - low` accumulates into a
+cumulative measurement that resets to the prior plus current
+daily measurement when the trend flips; the volume force scales
+volume by the trend and the daily/cumulative ratio.
+computeLineKlinger then takes the oscillator as the difference
+between a fast (default 34) and a slow (default 55) EMA of the
+volume force, and the signal line as an EMA of the oscillator
+(default 13).
+
+runLineKlinger sorts the finite points by x, computes the
+volume force, oscillator and signal, and returns per-period
+samples (each carrying a positive/negative/zero sign), the
+final oscillator and signal readings, the oscillator range, and
+counts of readings above and below the zero line.
+computeLineKlingerLayout stacks a price panel above an
+oscillator panel sharing one x-axis, derives a symmetric
+y-bound around zero, and projects the price path, the
+oscillator path, the signal path, sign-coloured markers, and a
+zero centerline.
+
+ChartLineKlinger renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked panels
+with axis ticks and grid, a config badge showing the EMA and
+signal periods, a three-series legend (Price / KVO / Signal)
+with toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, high, low, close, volume }` points.
+Distinct from chart-line-chaikin-osc: where the Chaikin
+Oscillator is the MACD of the cumulative ADL, the Klinger
+builds a trend-resetting volume force first, then takes the EMA
+difference of that. 60 vitest cases cover the volume force, EMA
+and oscillator primitives, the pipeline against a hand-verified
+fixture, layout geometry, the description text, and component
+rendering.
+
 ## [1.11.627] - 2026-05-20 -- UI: chart-line-chaikin-osc primitive (TODO 11.609)
 
 New **ChartLineChaikinOsc** UI primitive in
