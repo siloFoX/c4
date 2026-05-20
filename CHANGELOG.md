@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.656] - 2026-05-20 -- UI: chart-line-roofing primitive (TODO 11.638)
+
+New **ChartLineRoofing** UI primitive in
+`web/src/components/ui/chart-line-roofing.tsx`: pure-SVG
+two-panel chart with an Ehlers Roofing filter combining a
+high-pass and a smoother.
+
+computeLineRoofingHighpass is stage one -- a two-pole high-pass
+that strips the low-frequency trend, leaving a detrended series
+centred on zero. computeLineRoofingSmoother is stage two -- an
+Ehlers Super Smoother (two-pole low-pass) that strips the
+high-frequency noise. computeLineRoofing chains them: the
+Roofing filter is the Super Smoother of the high-pass of the
+price, a clean band-pass oscillator. The high-pass alpha and the
+smoother coefficients are exposed separately
+(computeLineRoofingHighpassAlpha,
+computeLineRoofingSmootherCoefficients); a flat price series
+stays at zero through both stages.
+
+runLineRoofing sorts the finite price points by x, runs both
+filter stages, and returns the high-pass and roofing series,
+per-bar samples classified positive / negative / zero, and the
+positive / negative counts. computeLineRoofingLayout stacks a
+price panel above a roofing panel, gives the roofing panel a
+symmetric y-bound around zero, and projects both lines plus a
+zero centerline.
+
+ChartLineRoofing renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid for both panels, a config badge showing both periods, a
+two-series legend (Price / Roofing filter) with toggle buttons,
+sign-coloured roofing markers, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the single-stage smoothers: the Roofing filter is
+a band-pass, removing both the trend and the noise, so its
+output is a detrended oscillator shown on its own sub-panel.
+
+65 vitest cases in `chart-line-roofing.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.656.
+
 ## [1.11.655] - 2026-05-20 -- UI: chart-line-supersmoother primitive (TODO 11.637)
 
 New **ChartLineSuperSmoother** UI primitive in
