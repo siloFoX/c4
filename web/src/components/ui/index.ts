@@ -325,3 +325,4 @@ export * from './chart-line-cmf';
 export * from './chart-line-kama';
 export * from './chart-line-choppiness';
 export * from './chart-line-rwi';
+export * from './chart-line-dema';
