@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.659] - 2026-05-20 -- UI: chart-line-bandwidth primitive (TODO 11.641)
+
+New **ChartLineBandwidth** UI primitive in
+`web/src/components/ui/chart-line-bandwidth.tsx`: pure-SVG
+two-panel chart with a Bollinger Bandwidth indicator panel
+measuring band width relative to the middle line.
+
+computeLineBandwidthBasis is the period-bar simple moving
+average; computeLineBandwidthStdDev is the rolling population
+standard deviation over the same window. computeLineBandwidth
+derives the Bollinger Bandwidth -- the width of the Bollinger
+band as a fraction of its middle line, `(upper - lower) / basis`
+where `upper = basis + multiplier*stddev` and
+`lower = basis - multiplier*stddev`. A low reading marks a
+volatility squeeze, often the prelude to a breakout; a high
+reading marks an expansion. All three series are null through
+the warm-up; a flat series reports zero bandwidth.
+
+runLineBandwidth sorts the finite price points by x, runs the
+pipeline, and returns the basis, stddev and bandwidth series,
+per-bar samples classified wide / narrow / mid relative to the
+mean bandwidth, the mean reading, and the wide / narrow counts.
+computeLineBandwidthLayout stacks a price panel above a
+bandwidth panel anchored at zero, with a dashed mean line.
+
+ChartLineBandwidth renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid for both panels, a config badge showing the period and
+multiplier, a two-series legend (Price / Bandwidth) with toggle
+buttons, class-coloured bandwidth markers, hover/focus tooltips,
+and a `motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the standard deviation band primitive: this
+primitive does not draw the band itself but reduces it to a
+single scalar -- the band width over the basis -- in its own
+sub-panel.
+
+65 vitest cases in `chart-line-bandwidth.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.659.
+
 ## [1.11.658] - 2026-05-20 -- UI: chart-line-stddev primitive (TODO 11.640)
 
 New **ChartLineStdDev** UI primitive in
