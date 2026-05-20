@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.633] - 2026-05-20 -- UI: chart-line-rwi primitive (TODO 11.615)
+
+New **ChartLineRwi** UI primitive in
+`web/src/components/ui/chart-line-rwi.tsx`: pure-SVG line chart
+with a Random Walk Index panel plotting the RWI-high and
+RWI-low trend-strength lines. The close price line occupies the
+top panel; the bottom panel renders the two RWI lines on a
+data-driven y-axis with a dashed threshold reference line.
+
+computeLineRwi is E. Michael Poulos's Random Walk Index. For
+each bar and each lookback `k` from 2 to `period` the index
+compares the high-low displacement over the lookback against
+what a random walk of the same volatility would be expected to
+cover -- the average True Range across the `k` bars scaled by
+`sqrt(k)`, since a random walk's expected travel grows as the
+square root of time. The RWI-high line is the largest
+`(high[i] - low[i-k]) / (atr(k) * sqrt(k))` across all `k`; the
+RWI-low line is the largest `(high[i-k] - low[i]) / (atr(k) *
+sqrt(k))`. A reading above 1 means the price has travelled
+further than random noise would explain -- a real trend. Both
+lines are clamped non-negative and are defined from index
+`period` onward; a zero-volatility window reads 0 and a period
+below 2 leaves the index undefined.
+
+runLineRwi sorts the finite points by x, computes the true
+range and the two RWI lines, and returns per-period samples
+(each tagged uptrend / downtrend / ranging from which line
+leads above the threshold), the final readings, and counts of
+uptrend and downtrend periods. computeLineRwiLayout stacks a
+price panel above an RWI panel sharing one x-axis, anchors the
+RWI y-domain at zero, and projects the price path, the two RWI
+paths, per-line markers, and the threshold line.
+
+ChartLineRwi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked panels
+with axis ticks and grid, a config badge, a three-series legend
+(Price / RWI-H / RWI-L) with toggle buttons, hover/focus
+tooltips, and a `motion-safe` fade-in. It consumes
+`{ x, high, low, close }` points. Distinct from chart-line-adx:
+ADX rates trend strength from smoothed directional movement,
+while the RWI benchmarks the price's displacement against a
+random walk of equal volatility -- it asks whether the move is
+statistically larger than noise, not how persistent the
+direction has been. 62 vitest cases cover the true-range and
+RWI helpers, the pipeline against a hand-verified fixture, the
+max-over-lookbacks selection, the warm-up, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.632] - 2026-05-20 -- UI: chart-line-choppiness primitive (TODO 11.614)
 
 New **ChartLineChoppiness** UI primitive in
