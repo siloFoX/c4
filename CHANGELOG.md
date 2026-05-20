@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.668] - 2026-05-20 -- UI: chart-line-cog primitive (TODO 11.650)
+
+New **ChartLineCog** UI primitive in
+`web/src/components/ui/chart-line-cog.tsx`: pure-SVG two-panel
+chart with an Ehlers Center of Gravity oscillator panel from a
+weighted price sum.
+
+computeLineCogWeightedSum reduces a window to its weighted price
+sum: each bar is weighted by its age, the oldest bar carrying
+the heaviest weight. computeLineCog is the Center of Gravity:
+the centroid `numerator / denominator` negated and offset by
+`(period + 1) / 2` so it oscillates around zero. The offset is
+the centroid of a flat window, so a flat series reads exactly
+zero. A positive CoG marks recent prices outweighing older ones
+(a rising window), a negative CoG the reverse.
+
+runLineCog sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified positive /
+negative / zero by the sign of the CoG, plus the final reading
+and the positive / negative counts. computeLineCogLayout stacks
+the price panel above a zero-centred CoG panel carrying the
+oscillator line, a dashed zero line and sign-coloured markers.
+
+ChartLineCog renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / CoG) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. Distinct from the moving-average
+overlays: the CoG measures the centroid of the price window --
+where its weight sits in time -- not the price level.
+
+62 vitest cases in `chart-line-cog.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.668.
+
 ## [1.11.667] - 2026-05-20 -- UI: chart-line-qstick primitive (TODO 11.649)
 
 New **ChartLineQstick** UI primitive in
