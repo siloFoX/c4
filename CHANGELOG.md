@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.626] - 2026-05-20 -- UI: chart-line-adl primitive (TODO 11.608)
+
+New **ChartLineAdl** UI primitive in
+`web/src/components/ui/chart-line-adl.tsx`: pure-SVG line
+chart with an Accumulation Distribution Line cumulative
+volume-flow panel. The top panel renders the close price
+line; the bottom panel renders the ADL line on its own
+data-driven y-axis with a dashed zero reference line and
+markers coloured by money flow direction.
+
+computeLineAdlMfm is Marc Chaikin's Money Flow Multiplier --
+where the close sits within the bar's high-low range, scaled
+to [-1, +1] (close at the high reads +1, at the low -1, at the
+midpoint 0; a zero-range bar reads 0). computeLineAdl scales
+each multiplier by volume into Money Flow Volume and
+accumulates it into a running cumulative total: the
+Accumulation Distribution Line. Unlike the moving-average
+primitives the ADL has no warm-up -- it is defined from the
+first bar (the ADL seeds with the first bar's money flow
+volume).
+
+runLineAdl sorts the finite points by x, computes the money
+flow multiplier, money flow volume and ADL series, and returns
+per-period samples (each tagged with an
+accumulation/distribution/neutral flow), the final / min / max
+ADL readings, and counts of accumulation and distribution
+bars. computeLineAdlLayout stacks a price panel above an ADL
+panel sharing one x-axis, gives the ADL panel a data-driven
+y-domain, and projects the price path, the ADL path,
+flow-coloured markers, and a zero reference line drawn only
+when zero is within the panel's range.
+
+ChartLineAdl renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge, a two-series
+legend (Price / ADL) with toggle buttons, hover/focus
+tooltips, and a `motion-safe` fade-in. It consumes
+`{ x, high, low, close, volume }` points. Distinct from
+chart-line-obv: where OBV adds or subtracts the whole volume
+by the close's direction, the ADL weights volume by the
+multiplier -- a close near the high accumulates more than a
+close near the low, even on the same volume. 53 vitest cases
+cover the multiplier and ADL primitives, the pipeline against
+a hand-verified fixture, the no-warm-up property, layout
+geometry, the description text, and component rendering.
+
 ## [1.11.625] - 2026-05-20 -- UI: chart-line-alma primitive (TODO 11.607)
 
 New **ChartLineAlma** UI primitive in
