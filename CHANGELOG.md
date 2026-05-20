@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.646] - 2026-05-20 -- UI: chart-line-fractal primitive (TODO 11.628)
+
+New **ChartLineFractal** UI primitive in
+`web/src/components/ui/chart-line-fractal.tsx`: pure-SVG line
+chart with Williams Fractal up and down reversal markers.
+
+computeLineFractals detects Williams Fractal swing pivots on the
+price series. An `up` fractal is a bar whose value strictly
+exceeds the values of the `wing` bars on each side (a local
+swing high marking a potential reversal down); a `down` fractal
+is a bar strictly below the `wing` bars on each side (a swing
+low marking a potential reversal up). The classic Williams
+fractal uses `wing = 2` (a 5-bar window). Comparisons are
+strict, so a tie with any neighbour disqualifies the bar -- a
+flat or strictly monotonic series carries no fractals. Because a
+fractal needs `wing` bars of confirmation on both sides, the
+first `wing` and last `wing` bars can never be fractals. It
+returns an array parallel to the values carrying `up` / `down` /
+`null` per bar.
+
+runLineFractals sorts the finite points by x, computes the
+fractal array, and returns the detected fractals as `signals`,
+per-bar `samples` (each tagged with its fractal type), the up
+and down counts, and the value of the most recent up and down
+fractal. computeLineFractalLayout projects the price path plus
+one marker per detected fractal.
+
+ChartLineFractal renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a three-series legend (Price / Up fractal
+/ Down fractal) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points. Up
+fractals draw as an up-pointing triangle above the price line,
+down fractals as a down-pointing triangle below it. Distinct
+from the moving-average overlays, which plot a continuous
+smoothed line: the fractal primitive plots discrete swing-pivot
+markers and detects local extrema rather than averaging, so it
+takes a `wing` (bars per side) rather than a smoothing `period`.
+
+54 vitest cases in `chart-line-fractal.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.646.
+
 ## [1.11.645] - 2026-05-20 -- UI: chart-line-lsma primitive (TODO 11.627)
 
 New **ChartLineLsma** UI primitive in
