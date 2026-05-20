@@ -4,6 +4,57 @@
 
 (no entries -- next release window)
 
+## [1.11.583] - 2026-05-20 -- UI: chart-line-bump primitive (TODO 11.565)
+
+New **ChartLineBump** UI primitive in
+`web/src/components/ui/chart-line-bump.tsx`: pure-SVG bump
+chart (a.k.a. rank chart). Where an ordinary multi-series
+line chart plots raw values, a bump chart plots rank -- at
+every x value the series are sorted by value and assigned
+positions 1..N, and each series is drawn as a line
+connecting its rank position from column to column. Lines
+bump up and down as series overtake one another; the y-axis
+is rank, inverted so rank 1 sits at the top.
+
+computeLineBumpColumns ranks every series at every x: (1)
+the union of x values across all series defines the columns
+(sorted ascending); (2) within each column the series
+present there are sorted by value -- desc (default) puts the
+highest value at rank 1, asc puts the lowest at rank 1; (3)
+each series in the column gets an ordinal rank 1..k so every
+series gets a distinct rank even on a tie, with ties broken
+deterministically by series declaration order. A series
+missing at some x is simply absent from that column.
+runLineBump walks the columns and collects each series' rank
+trajectory plus best/worst/mean rank and the chart-wide
+maxRank. The component fixture is a symmetric carousel:
+three series, three columns, every series visiting ranks 1,
+2 and 3 in turn (A's trajectory [3,1,2], B's [2,3,1], C's
+[1,2,3], all mean rank 2).
+
+Distinct from neighbouring primitives: chart-line-multi
+plots raw values on a value axis whereas the bump chart
+plots rank on a rank axis (the same data produces a
+completely different shape -- y position depends only on the
+ordering, not the magnitudes); chart-slope / chart-line-slope
+connect exactly two columns whereas the bump chart tracks
+rank across an arbitrary number of columns;
+chart-line-comparison / chart-line-period-compare compare
+values rather than ordinal ranks. All exported helpers carry
+a LineBump infix so the barrel export * cannot collide.
+
+Exported helpers: `getLineBumpDefaultColor`,
+`getLineBumpFinitePoints`, `computeLineBumpColumns`,
+`runLineBump`, `computeLineBumpLayout`,
+`describeLineBumpChart`. Connectors are smooth cubic-bezier
+S-curves by default (the classic bump shape; curved=false
+draws straight segments). Ranking is global -- hiding a
+series via the legend only hides its line, it does not
+re-rank the others. Tooltip shows the series, x, rank of
+maxRank, and the value; config badge `BUMP series=.. cols=..`.
+60 vitest cases in `chart-line-bump.test.tsx`, all passing.
+Exported from the `ui` barrel.
+
 ## [1.11.582] - 2026-05-20 -- UI: chart-line-winsorized primitive (TODO 11.564)
 
 New **ChartLineWinsorized** UI primitive in
