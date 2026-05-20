@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.586] - 2026-05-20 -- UI: chart-line-qqplot primitive (TODO 11.568)
+
+New **ChartLineQQPlot** UI primitive in
+`web/src/components/ui/chart-line-qqplot.tsx`: pure-SVG line
+chart with a quantile-quantile (Q-Q) plot side panel. The
+left panel shows the raw time series; the right panel is a
+normal probability plot -- the sample quantiles charted
+against the quantiles of a standard normal distribution. If
+the sample is normally distributed the Q-Q points fall on a
+straight line; departures reveal skew, heavy tails and other
+non-normality.
+
+normalInverseCDF is the probit / quantile function -- the
+inverse of the standard normal CDF -- via Peter Acklam's
+rational approximation (relative error below ~1.15e-9 across
+the open interval); p outside [0,1] yields NaN, p of exactly
+0/1 yields -/+ Infinity, and it is exactly 0 at p=0.5.
+computeLineQQPlotStats reports the mean, variance and sample
+standard deviation (unbiased n-1 denominator). runLineQQPlot
+sorts the sample ascending and, for each order statistic at
+rank i of n, computes the plotting position p = (i-0.5)/n,
+the theoretical normal quantile z = normalInverseCDF(p), and
+pairs it with the observed value; the reference line is
+sample = mean + stddev*z, and it reports the Pearson
+correlation between the theoretical and sample quantiles (a
+value near 1.0 means close to normal -- the statistic behind
+the Filliben normality test). The component fixture is the
+symmetric sample [-2,-1,0,1,2] (mean 0, sample variance
+10/4 = 2.5): its five plotting positions are [.1,.3,.5,.7,.9],
+the median quantile maps to theoretical z=0 exactly, and the
+Q-Q correlation lands above 0.99.
+
+Distinct from chart-line-distribution: that summarises a
+series with a histogram / density side panel (the shape of
+the distribution), whereas ChartLineQQPlot plots quantile
+against theoretical quantile with a straight-line reference,
+answering whether the sample is normal and how it deviates;
+the defining transform is the probit (normalInverseCDF),
+which a histogram never needs. All exported helpers carry a
+LineQQPlot infix (or the clearly-namespaced normalInverseCDF)
+so the barrel export * cannot collide.
+
+Exported helpers: `getLineQQPlotFinitePoints`,
+`normalInverseCDF`, `computeLineQQPlotStats`,
+`runLineQQPlot`, `computeLineQQPlotLayout`,
+`describeLineQQPlotChart`. Tooltip shows x + value on a
+series dot and rank + theoretical z + sample + residual on a
+Q-Q dot; config badge `QQ r=.. n=..`; the footer reports
+n / mean / sd and the reference-line equation. 54 vitest
+cases in `chart-line-qqplot.test.tsx`, all passing. Exported
+from the `ui` barrel.
+
 ## [1.11.585] - 2026-05-20 -- UI: chart-line-heatline primitive (TODO 11.567)
 
 New **ChartLineHeatline** UI primitive in
