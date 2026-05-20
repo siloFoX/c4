@@ -373,3 +373,4 @@ export * from './chart-line-ift';
 export * from './chart-line-pzo';
 export * from './chart-line-vzo';
 export * from './chart-line-cfo';
+export * from './chart-line-nvi';
