@@ -4,6 +4,114 @@
 
 (no entries -- next release window)
 
+## [1.11.576] - 2026-05-20 -- UI: chart-line-spearman primitive (TODO 11.558)
+
+New **ChartLineSpearman** UI primitive in
+`web/src/components/ui/chart-line-spearman.tsx`: pure-SVG
+**dual-axis line chart** with a **Spearman rank-correlation
+badge**. A primary series renders against the left y-axis
+and a secondary series against the right y-axis; a top-left
+badge reports Spearman's rho between the two, classified
+into a strength bucket and a direction.
+
+Spearman's rho is the Pearson correlation coefficient
+applied to the RANKS of the two variables, not their raw
+values: pair the two series by exact x match, convert each
+variable's paired values to ranks, then compute the Pearson
+correlation of the rank pairs. computeRanks assigns rank 1
+to the smallest value and so on; tied values receive the
+average (midrank) of the ranks they span -- e.g.
+[10,20,20,30] ranks to [1,2.5,2.5,4] -- which makes the
+resulting coefficient the correct tie-corrected Spearman's
+rho. For tie-free data the rank-Pearson result equals the
+classic shortcut formula rho = 1 - 6 * sum(d^2) / (n *
+(n^2 - 1)), where d is the per-pair rank difference (the
+suite verifies this: one swapped pair -> rho = 0.9, a fully
+reversed series -> rho = -1).
+
+Because it works on ranks, Spearman measures MONOTONIC
+association of any shape -- not just linear -- and is robust
+to outliers (ranks compress extreme values). The decisive
+distinction: the pair ([1,2,3,4], [1,10,100,1000]) is a
+perfectly monotonic but strongly non-linear relationship;
+Pearson would score it below 1 (about 0.91), Spearman scores
+it exactly 1 because the ranks [1,2,3,4] line up perfectly.
+ok = false (rho NaN) is returned when fewer than 2 pairs
+exist or when either variable is constant (zero rank
+variance).
+
+Distinct from `<ChartLineCorrelation>` -- that is the
+PEARSON dual-axis chart, correlating the raw values and
+measuring LINEAR association. ChartLineSpearman is the
+rank-correlation counterpart: it correlates the ranks and
+measures MONOTONIC association. The two answer different
+questions ("do these move together linearly?" vs "do these
+move together in the same order, however non-linearly?"),
+and ChartLineSpearman additionally reports whether ties are
+present.
+
+Pure helpers exported: `computeRanks` (ranks with midranks
+for ties; original order; empty -> []), `pairLineSpearmanByX`
+(pairs two series by exact x match),
+`computeSpearmanCorrelation` (the rank-Pearson coefficient;
+returns {rho, ok, hasTies}; ok = false for fewer than 2
+pairs or a constant variable),
+`classifyLineSpearmanStrength` ('strong' | 'moderate' |
+'weak' | 'none'), `classifyLineSpearmanDirection`
+('positive' | 'negative' | 'neutral'), `computeLineSpearman`
+(the full result: rho, ok, pairCount, strength, direction,
+hasTies), `computeLineSpearmanLayout` (dual-axis layout:
+primary on left, secondary on right, x / left / right tick
+arrays, the Spearman result), `getLineSpearmanFinitePoints`,
+`describeLineSpearmanChart`.
+
+API: `primary` / `secondary` (ChartLineSpearmanSeries | null
+-- {id, label, data, color?}; primary draws on the left
+axis, secondary on the right); `strongThreshold` /
+`moderateThreshold` / `weakThreshold` (defaults 0.7 / 0.4 /
+0.2); `primaryColor` / `secondaryColor` / `positiveColor` /
+`negativeColor` / `neutralColor`; bounds overrides xMin /
+xMax / primaryYMin / primaryYMax / secondaryYMin /
+secondaryYMax; toggle flags `showAxis` / `showGrid` /
+`showDots` / `showLegend` / `showTooltip` / `showBadge` /
+`animate`; standard sizing + format + a11y props;
+`formatValue` / `formatX` / `formatRho`; `xLabel` /
+`primaryYLabel` / `secondaryYLabel`;
+`onPointClick({series, point})`.
+
+Badge: top-left, `SR rho=<rho> <strength> <direction>
+n=<pairCount>` plus a ties marker when tied ranks are
+present; tinted by the correlation direction. Tooltip on
+dots shows label + x + y. Legend lists both series with
+their axis.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, series paths + dots role=graphics-symbol +
+tabIndex=0. data-section on every node. Root mirrors
+data-total-points + data-pair-count + data-spearman-ok +
+data-rho + data-strength + data-direction + data-has-ties +
+data-animate. Series groups expose data-role
+(primary/secondary) + data-axis (left/right) + colour +
+counts. Axes and ticks carry data-axis (x / left / right).
+
+65 vitest cases pass (defaults + helpers, computeRanks incl.
+ties get the midrank [10,20,20,30] -> [1,2.5,2.5,4] +
+all-equal -> average rank, pairLineSpearmanByX,
+computeSpearmanCorrelation incl. perfect monotonic +/- 1 +
+non-linear monotonic still rho 1 + one swapped pair -> 0.9 +
+anti-monotonic -> -1 + constant -> ok=false + ties detected
+with midranks, classifyStrength/Direction, computeLineSpearman,
+computeLineSpearmanLayout incl. primary-left/secondary-right
+axes + line paths + Spearman result + primary-only + bounds
++ tick arrays, describeLineSpearmanChart, render incl. empty
++ path per series + series groups role+axis + badge with rho
++ strength + direction + pairs + ties marker + hide badge +
+left/right/x axes + dots + ARIA + root data-* + tooltip with
+x + y + onPointClick + legend + primary-only + animate + ref
++ displayName + ariaLabel + xLabel + y-axis labels +
+anti-monotonic strong negative badge). TypeScript clean.
+Exported via barrel.
+
 ## [1.11.575] - 2026-05-20 -- UI: chart-line-mad primitive (TODO 11.557)
 
 New **ChartLineMad** UI primitive in
