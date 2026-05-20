@@ -359,3 +359,4 @@ export * from './chart-line-hurst';
 export * from './chart-line-entropy';
 export * from './chart-line-vwma';
 export * from './chart-line-qstick';
+export * from './chart-line-cog';
