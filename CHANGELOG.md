@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.585] - 2026-05-20 -- UI: chart-line-heatline primitive (TODO 11.567)
+
+New **ChartLineHeatline** UI primitive in
+`web/src/components/ui/chart-line-heatline.tsx`: pure-SVG
+heatline -- a single-series line chart whose stroke is
+colour-graded by value along its length. Instead of one
+solid stroke colour, the line is split into per-pair
+segments and each segment is painted with a colour sampled
+from a value-to-colour scale, so the line's hue encodes
+magnitude alongside its y-position.
+
+The line is rendered as N solid-colour segments (one per
+consecutive pair of points), not a single SVG gradient,
+which keeps the rendering deterministic for any line shape.
+parseHexColor parses a 6-digit #rrggbb string into RGB
+channels; interpolateLineHeatlineColor samples a multi-stop
+colour scale at normalized position t (stops spread evenly
+across [0,1], t selects a pair of surrounding stops and the
+RGB channels are linearly interpolated, t clamped to [0,1],
+non-finite t falls back to 0); normalizeLineHeatlineValue
+maps a value to t with a zero-width domain collapsing to the
+scale midpoint. runLineHeatline grades every point by its
+value and every segment by the midpoint value of its two
+endpoints. The colour domain defaults to the data's value
+range but can be pinned via domainMin / domainMax so the
+scale is comparable across charts; an inverted domain is
+swapped. The component fixture makes the grading exact:
+values [0,25,50,75,100] over the default 5-stop scale give
+point t values [0,.25,.5,.75,1] -- each landing directly on
+a scale stop -- and segment midpoint t values
+[.125,.375,.625,.875].
+
+Distinct from neighbouring primitives: chart-line-area-gradient
+applies a gradient FILL to the area beneath the line whereas
+the heatline grades the STROKE itself segment by segment
+along the line's length; chart-line / chart-line-marker draw
+a single solid stroke colour; chart-heatmap /
+chart-calendar-heatmap are 2D grid heatmaps. All exported
+helpers carry a LineHeatline infix (and the shared
+parseHexColor) so the barrel export * cannot collide.
+
+Exported helpers: `getLineHeatlineFinitePoints`,
+`parseHexColor`, `interpolateLineHeatlineColor`,
+`normalizeLineHeatlineValue`, `runLineHeatline`,
+`computeLineHeatlineLayout`, `describeLineHeatlineChart`.
+Tooltip shows a colour swatch, x, value and the level (t as
+a percentage); config badge `HEAT lo=.. hi=..`; the colour
+scale legend below the chart shows one swatch per scale stop
+flanked by the domain min / max labels. 61 vitest cases in
+`chart-line-heatline.test.tsx`, all passing. Exported from
+the `ui` barrel.
+
 ## [1.11.584] - 2026-05-20 -- UI: chart-line-slopegraph primitive (TODO 11.566)
 
 New **ChartLineSlopegraph** UI primitive in
