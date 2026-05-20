@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.629] - 2026-05-20 -- UI: chart-line-pvt primitive (TODO 11.611)
+
+New **ChartLinePvt** UI primitive in
+`web/src/components/ui/chart-line-pvt.tsx`: pure-SVG line
+chart with a Price Volume Trend cumulative line. The top panel
+renders the close price line; the bottom panel renders the PVT
+line on its own data-driven y-axis with a dashed zero
+reference line and markers coloured by money flow direction.
+
+computeLinePvt is the Price Volume Trend. Each bar's volume is
+scaled by its percentage price change
+`(close[i] - close[i-1]) / close[i-1]` into a price-volume
+contribution, and the PVT is the running cumulative total of
+that contribution. Index 0 has no prior close so its
+contribution is zero; a zero prior close reads a zero rate of
+change. Like the ADL the PVT has no warm-up -- it is defined
+from the first bar.
+
+runLinePvt sorts the finite points by x, computes the
+rate-of-change, contribution and PVT series, and returns
+per-period samples (each tagged with a rising/falling/flat
+flow), the final / min / max PVT readings, and counts of
+rising and falling bars. computeLinePvtLayout stacks a price
+panel above a PVT panel sharing one x-axis, gives the PVT
+panel a data-driven y-domain, and projects the price path, the
+PVT path, flow-coloured markers, and a zero reference line
+drawn only when zero is within the panel's range.
+
+ChartLinePvt renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge, a two-series
+legend (Price / PVT) with toggle buttons, hover/focus
+tooltips, and a `motion-safe` fade-in. It consumes
+`{ x, close, volume }` points. Distinct from chart-line-obv:
+where OBV adds or subtracts the *whole* volume by the close's
+direction, the PVT adds only the *fraction* of volume
+proportional to the size of the percentage price move. 50
+vitest cases cover the PVT primitive, the pipeline against a
+hand-verified fixture, the no-warm-up property, layout
+geometry, the description text, and component rendering.
+
 ## [1.11.628] - 2026-05-20 -- UI: chart-line-klinger primitive (TODO 11.610)
 
 New **ChartLineKlinger** UI primitive in
