@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.650] - 2026-05-20 -- UI: chart-line-heikin-ashi primitive (TODO 11.632)
+
+New **ChartLineHeikinAshi** UI primitive in
+`web/src/components/ui/chart-line-heikin-ashi.tsx`: pure-SVG line
+chart overlaying a Heikin-Ashi smoothed close series that filters
+noise from the raw close line.
+
+computeLineHeikinAshi applies the Heikin-Ashi ("average bar")
+transform to OHLC bars. Each Heikin-Ashi close is the mean of the
+bar's open, high, low and close; each Heikin-Ashi open carries
+forward as the mean of the previous Heikin-Ashi open and close
+(the first bar seeds it with the raw open-close mean); haHigh and
+haLow are the max and min of the bar's high/low and the two
+Heikin-Ashi values. The recursive haOpen averages a noisy close
+down rather than letting it swing the line.
+
+runLineHeikinAshi sorts the finite OHLC bars by x, runs the
+transform, and returns per-bar samples classified bullish (the
+Heikin-Ashi close above its open), bearish (below) or doji
+(equal), plus the bullish / bearish / doji counts and the final
+Heikin-Ashi close. computeLineHeikinAshiLayout projects the raw
+close path and the Heikin-Ashi close path on one shared panel,
+with markers on the Heikin-Ashi line coloured by trend.
+
+ChartLineHeikinAshi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge showing the latest bar's trend, a
+two-series legend (Close / HA Close) with toggle buttons,
+hover/focus tooltips, and a `motion-safe` fade-in. It consumes
+`{ x, open, high, low, close }` bars. Distinct from the
+moving-average overlays, which weight a sliding window of one
+value: the Heikin-Ashi transform blends all four OHLC fields and
+carries a recursive open forward, and each bar carries a
+bullish / bearish / doji trend.
+
+48 vitest cases in `chart-line-heikin-ashi.test.tsx`, all
+passing; typecheck clean for the new files. Version bumped to
+1.11.650.
+
 ## [1.11.649] - 2026-05-20 -- UI: chart-line-andrews primitive (TODO 11.631)
 
 New **ChartLineAndrews** UI primitive in
