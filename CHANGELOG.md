@@ -4,6 +4,102 @@
 
 (no entries -- next release window)
 
+## [1.11.579] - 2026-05-20 -- UI: chart-line-theilsen primitive (TODO 11.561)
+
+New **ChartLineTheilSen** UI primitive in
+`web/src/components/ui/chart-line-theilsen.tsx`: pure-SVG
+line chart with a **Theil-Sen robust median-slope trend
+estimator** overlay. The raw observations render as a dimmed
+line; the Theil-Sen trend renders as a solid coloured line;
+an optional dashed OLS line can be overlaid for a
+side-by-side robustness comparison.
+
+The Theil-Sen estimator fits a straight line by taking
+medians instead of least squares: for every pair of points
+(i, j) with distinct x, compute the pairwise slope
+`(y_j - y_i) / (x_j - x_i)` (vertical pairs are skipped);
+the Theil-Sen slope is the MEDIAN of all those pairwise
+slopes; the intercept is the median of `y_i - slope * x_i`
+over the points. Because both the slope and the intercept
+are medians, the estimator has a ~29.3% breakdown point --
+up to ~29% of the data can be arbitrary outliers without
+moving the fit. ok = false when there are fewer than 2
+finite points or every point shares the same x (no
+non-vertical pair exists).
+
+Distinct from the OLS `chart-line-trend`: that fits the
+ordinary least squares line, minimising the sum of squared
+residuals. ChartLineTheilSen fits the ROBUST line. The
+difference is decisive on outlier-contaminated data -- the
+component's own test fixture demonstrates it with four
+points on y = x plus one extreme outlier at (4, 100):
+Theil-Sen slope = 1.0 (the median of the 10 pairwise slopes
+[1,1,1,1,1,1,25,33,49,97] is 1, the outlier is outvoted),
+while OLS slope = 20.2 (the squared-error objective is
+dominated by the lone outlier, dragging the line twenty
+times steeper). OLS has a 0% breakdown point: a single
+outlier can swing the least-squares line by an arbitrary
+amount. computeOlsFit is exported and the OLS fit is always
+computed, so the legend and tooltip can surface the OLS
+slope next to the robust slope even when the comparison line
+is not drawn.
+
+Pure helpers exported: `computeLineTheilSenMedian` (median;
+drops non-finite; NaN for empty), `computeTheilSenSlopes`
+(every pairwise slope, vertical pairs skipped),
+`computeTheilSenFit` (the robust fit: {ok, slope, intercept,
+pairCount, slopeMin, slopeMax}), `computeOlsFit` (the
+ordinary least-squares fit for the comparison overlay),
+`runLineTheilSen` (sorts ascending, computes both fits,
+reports the x range), `computeLineTheilSenLayout` (projects
+raw paths and the Theil-Sen / OLS trend-line endpoints;
+includeOls controls whether the OLS endpoints widen the y
+range), `getLineTheilSenDefaultColor`,
+`getLineTheilSenFinitePoints`, `describeLineTheilSenChart`.
+
+API: `series: ChartLineTheilSenSeries[]` (`{id, label, data,
+color?}`; Theil-Sen is parameter-free -- no per-series
+tuning options); `olsColor` (the optional OLS comparison
+line); toggle flags `showAxis` / `showGrid` / `showDots` /
+`showLegend` / `showTooltip` / `showConfigBadge` / `showRaw`
+/ `showTrend` / `showOlsComparison` / `animate`; controlled
++ uncontrolled visibility; standard sizing + format + a11y
+props; `formatValue` / `formatX` / `formatCoefficient`;
+`onPointClick({series, point})`.
+
+Tooltip on dots shows label, x, y, the bold trend value (the
+Theil-Sen line at that x), and the residual (y - trend, +/-
+prefix). Config badge: `TS m=<slope> b=<intercept>
+n=<pairCount>`. Legend shows the robust slope alongside the
+OLS slope per series.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + Theil-Sen trend line + dots
+role=graphics-symbol + tabIndex=0. data-section on every
+node. Root mirrors data-slope + data-intercept +
+data-ols-slope + data-fit-ok + data-animate. Raw path
+data-kind=raw; trend line data-kind=theil-sen; OLS line
+data-kind=ols. Series groups expose slope + intercept +
+pair count + OLS slope + fit-ok + finite count.
+
+63 vitest cases pass (defaults + helpers,
+computeLineTheilSenMedian, computeTheilSenSlopes incl.
+collinear -> every pairwise slope equals the line slope +
+skips vertical pairs, computeTheilSenFit incl. guards +
+collinear exact + robust single-outlier slope unchanged +
+pair count / slope range, computeOlsFit incl. collinear
+exact + outlier swings the OLS slope to 20.2 + Theil-Sen vs
+OLS divergence, runLineTheilSen, computeLineTheilSenLayout
+incl. raw path + trend endpoints + both fits + includeOls
+widens the y range + same-x series renders raw but no trend
++ bounds + totalPoints, describeLineTheilSenChart, render
+incl. empty + raw path + trend line + hide trend/raw + OLS
+comparison omit/show + dots + config badge + ARIA + root
+data-* + group data-* + tooltip with x + y + trend +
+residual + onPointClick + legend + animate + ref +
+displayName + ariaLabel + xLabel + yLabel + collinear exact
+slope-2). TypeScript clean. Exported via barrel.
+
 ## [1.11.578] - 2026-05-20 -- UI: chart-line-kalman-smoother primitive (TODO 11.560)
 
 New **ChartLineKalmanSmoother** UI primitive in
