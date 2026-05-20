@@ -4,6 +4,57 @@
 
 (no entries -- next release window)
 
+## [1.11.596] - 2026-05-20 -- UI: chart-line-stochastic primitive (TODO 11.578)
+
+New **ChartLineStochastic** UI primitive in
+`web/src/components/ui/chart-line-stochastic.tsx`: pure-SVG
+line chart with a stochastic oscillator sub-panel. The price
+line sits in the top panel; the bottom panel plots the %K
+and %D lines, bounded to 0-100, with shaded overbought and
+oversold zones.
+
+computeLineStochasticK is George Lane's %K: for each period
+it measures where the current value sits within its
+trailing high-low range, %K = 100*(value - lowestLow)/
+(highestHigh - lowestLow) over a window of period values; a
+flat window reads 50, the middle of a range reads 50, the
+top reads 100 and the bottom 0; indices before the window
+is full are null. computeLineStochasticD is the %D signal
+line -- a simple moving average of %K over dPeriod values,
+defined only where the full %K window is itself defined.
+runLineStochastic classifies each reading into a zone from
+%K: overbought at or above the overbought threshold (default
+80), oversold at or below the oversold threshold (default
+20), neutral between. The component fixture (period 3, %D
+period 2) makes the math exact: %K is
+[null,null,100,0,0,100], %D is [null,null,null,50,0,50] --
+two overbought readings, two oversold.
+
+Distinct from neighbouring primitives: both the stochastic
+and chart-line-rsi are 0-100 oscillators with
+overbought/oversold zones, but the computation is different
+-- RSI is a gain/loss ratio whereas the stochastic is a
+range-position measure (where the close sits between its
+recent low and high) -- and the stochastic plots TWO lines
+(%K and its %D signal SMA) where RSI plots one;
+chart-line-macd is an unbounded EMA-difference study and
+chart-line-momentum is a derivative oscillator, neither
+computing the trailing range position. All exported helpers
+carry a LineStochastic infix so the barrel export * cannot
+collide.
+
+Exported helpers: `getLineStochasticFinitePoints`,
+`normalizeLineStochasticPeriod`, `computeLineStochasticK`,
+`computeLineStochasticD`, `runLineStochastic`,
+`computeLineStochasticLayout`, `describeLineStochasticChart`.
+The layout stacks a price panel above the stochastic panel;
+the stochastic panel y axis is fixed 0-100. %K markers are
+zone-coloured; tooltip shows x, price, %K, %D and the zone;
+config badge `STOCH k=.. d=.. ob=.. os=..`; the legend has
+four toggle items (Price / %K / %D / Zones). 58 vitest cases
+in `chart-line-stochastic.test.tsx`, all passing. Exported
+from the `ui` barrel.
+
 ## [1.11.595] - 2026-05-20 -- UI: chart-line-rsi primitive (TODO 11.577)
 
 New **ChartLineRsi** UI primitive in
