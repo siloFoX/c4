@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.653] - 2026-05-20 -- UI: chart-line-mcginley primitive (TODO 11.635)
+
+New **ChartLineMcGinley** UI primitive in
+`web/src/components/ui/chart-line-mcginley.tsx`: pure-SVG line
+chart with a McGinley Dynamic adaptive moving average overlay
+that self-adjusts to speed.
+
+computeLineMcGinley is John R. McGinley's adaptive moving
+average. It seeds with the first price and folds each later bar
+in as `MD = MD_prev + (price - MD_prev) / (N * (price/MD_prev)^4)`.
+The `(price/MD_prev)^4` divisor is the adaptive term: in an up
+market the ratio exceeds one so the divisor grows and the
+average slows, while in a down market the divisor shrinks and
+the average speeds up to track the fall. The line is defined
+from index 0 with no warm-up; a flat series holds at its
+constant.
+
+runLineMcGinley sorts the finite price points by x, computes the
+McGinley series, and returns per-bar samples classified above /
+below / on the McGinley line, plus the final / min / max
+readings and the above / below counts. computeLineMcGinleyLayout
+projects the price path and the McGinley path on one shared
+panel with a marker per bar.
+
+ChartLineMcGinley renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / McGinley)
+with toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, value }` points. Distinct from the
+fixed-weight moving averages: the McGinley divisor changes every
+bar with the price-to-average ratio, so the line accelerates
+into declines and decelerates into rallies rather than lagging
+at a constant rate.
+
+49 vitest cases in `chart-line-mcginley.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.653.
+
 ## [1.11.652] - 2026-05-20 -- UI: chart-line-kagi primitive (TODO 11.634)
 
 New **ChartLineKagi** UI primitive in
