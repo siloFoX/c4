@@ -316,3 +316,4 @@ export * from './chart-line-elder-ray';
 export * from './chart-line-ultimate';
 export * from './chart-line-hma';
 export * from './chart-line-zlema';
+export * from './chart-line-alma';

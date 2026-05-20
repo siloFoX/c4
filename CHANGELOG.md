@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.625] - 2026-05-20 -- UI: chart-line-alma primitive (TODO 11.607)
+
+New **ChartLineAlma** UI primitive in
+`web/src/components/ui/chart-line-alma.tsx`: pure-SVG line
+chart with an Arnaud Legoux Moving Average overlay using a
+gaussian-weighted window. Like chart-line-hma and
+chart-line-zlema it is a single-panel chart -- the ALMA line is
+drawn directly over the price line on shared axes.
+
+computeLineAlmaWeights builds the ALMA window weights: a
+Gaussian curve over `period` slots, centred at
+`offset * (period - 1)` (default offset 0.85, which pushes the
+peak toward the recent end of the window) with width
+`period / sigma` (default sigma 6). computeLineAlma averages
+each `period`-length window with those weights, normalised by
+their sum. The offset shifts weight toward recent bars to cut
+lag, while the Gaussian shape filters noise. Because the
+weights are all positive, every ALMA reading stays inside its
+window's value range.
+
+runLineAlma sorts the finite points by x, computes the ALMA,
+and returns per-period samples (each tagged with whether the
+price sits above, below, or on the ALMA), the resolved offset
+and sigma, the window weights, the final / min / max ALMA
+readings, and counts of bars where the price runs above and
+below the ALMA. computeLineAlmaLayout fits one panel whose
+y-domain spans both the price and the ALMA so the overlay
+never clips.
+
+ChartLineAlma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a single panel
+with axis ticks and grid, a config badge showing the period,
+offset and sigma, a two-series legend (Price / ALMA) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. Distinct from chart-line-hma and chart-line-zlema:
+those cancel lag with nested or shifted moving averages,
+whereas the ALMA reshapes a single window's weight curve --
+a Gaussian whose peak is slid toward the recent end. 55 vitest
+cases cover the weight and ALMA primitives, the pipeline
+against a hand-verified fixture, the within-window-range
+property, layout geometry, the description text, and component
+rendering.
+
 ## [1.11.624] - 2026-05-20 -- UI: chart-line-zlema primitive (TODO 11.606)
 
 New **ChartLineZlema** UI primitive in
