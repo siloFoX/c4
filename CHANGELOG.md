@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.590] - 2026-05-20 -- UI: chart-line-ichimoku primitive (TODO 11.572)
+
+New **ChartLineIchimoku** UI primitive in
+`web/src/components/ui/chart-line-ichimoku.tsx`: pure-SVG
+line chart with an Ichimoku Kinko Hyo overlay -- the "one
+glance equilibrium chart". On top of the raw price line it
+draws the conversion line (Tenkan-sen), the base line
+(Kijun-sen), the lagging span (Chikou) and the kumo cloud
+formed between the two leading spans (Senkou Span A / B).
+
+Every Ichimoku line is built from the donchian-midpoint
+formula -- computeLineIchimokuMidline computes
+(highest + lowest)/2 over a trailing window. Tenkan is the
+midline over the conversion period (default 9), Kijun the
+midline over the base period (default 26), Senkou Span A is
+(Tenkan + Kijun)/2 plotted displacement periods ahead
+(default 26), Senkou Span B the midline over the leading
+period (default 52) plotted ahead, and Chikou the price
+itself plotted displacement periods behind. The forward /
+backward shift extends the x-axis -- x positions beyond the
+data are extrapolated from the average x-step. The kumo is
+the band between Span A and Span B: a sample is bullish when
+Span A is at or above Span B, bearish otherwise, and the
+cloud is drawn as per-segment polygons tinted green
+(bullish) or orange (bearish) -- the canonical two-tone
+cloud. The component fixture (periods 2/3/4, displacement 2
+on an 8-point series) produces a mixed cloud: five samples
+with bullish flags [true,false,false,true,true] -- 3 bullish,
+2 bearish.
+
+Distinct from neighbouring primitives: Ichimoku bundles five
+derived lines plus the two-tone cloud into one overlay -- no
+existing primitive computes the donchian-midpoint family,
+the forward-displaced leading spans or the lagging span;
+chart-line-bollinger / chart-line-band draw a single
+statistical band, chart-line-moving-avg overlays one smoothed
+line, whereas the Ichimoku cloud is a forward-projected,
+sign-tinted band between two distinct leading spans. All
+exported helpers carry a LineIchimoku infix so the barrel
+export * cannot collide.
+
+Exported helpers: `getLineIchimokuFinitePoints`,
+`normalizeLineIchimokuPeriod`, `computeLineIchimokuMidline`,
+`runLineIchimoku`, `computeLineIchimokuLayout`,
+`describeLineIchimokuChart`. Tooltip on a price dot shows x,
+price and the Tenkan/Kijun values at that index (the "one
+glance" read); config badge `ICHI <conv>-<base>-<leading>
+cloud=<bull/bear/flat>`; the legend has five toggle items
+(Price / Tenkan / Kijun / Chikou / Kumo). 58 vitest cases in
+`chart-line-ichimoku.test.tsx`, all passing. Exported from
+the `ui` barrel.
+
 ## [1.11.589] - 2026-05-20 -- UI: chart-line-fibonacci primitive (TODO 11.571)
 
 New **ChartLineFibonacci** UI primitive in

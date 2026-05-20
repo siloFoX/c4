@@ -281,3 +281,4 @@ export * from './chart-line-qqplot';
 export * from './chart-line-lag-plot';
 export * from './chart-line-zigzag';
 export * from './chart-line-fibonacci';
+export * from './chart-line-ichimoku';
