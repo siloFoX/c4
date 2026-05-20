@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.669] - 2026-05-20 -- UI: chart-line-pgo primitive (TODO 11.651)
+
+New **ChartLinePgo** UI primitive in
+`web/src/components/ui/chart-line-pgo.tsx`: pure-SVG two-panel
+chart with a Pretty Good Oscillator panel normalizing price
+distance from a moving average by the average true range.
+
+`ChartLinePgoPoint` is `{ x, value, high, low }` -- `value` is
+the bar close. computeLinePgoTrueRange is the per-bar true
+range; computeLinePgoAtr is its `period`-bar moving average (the
+ATR). computeLinePgo is the Pretty Good Oscillator:
+`PGO = (close - SMA(close, period)) / ATR(period)` -- the
+displacement of the close from its moving average, read in ATR
+units. A positive PGO marks the close above its moving average,
+a negative PGO below; a perfectly flat market (zero ATR) is
+null.
+
+runLinePgo sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified positive /
+negative / zero by the sign of the PGO, plus the final reading
+and the positive / negative counts. computeLinePgoLayout stacks
+the price panel above a zero-centred PGO panel carrying the
+oscillator line, a dashed zero line and sign-coloured markers.
+
+ChartLinePgo renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / PGO) with toggle buttons, hover/focus tooltips exposing
+the bar high and low, and a `motion-safe` fade-in. Distinct from
+the raw distance-from-MA oscillators: the PGO normalizes by the
+ATR, so the reading is scale-free -- comparable across
+instruments of different volatility.
+
+65 vitest cases in `chart-line-pgo.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.669.
+
 ## [1.11.668] - 2026-05-20 -- UI: chart-line-cog primitive (TODO 11.650)
 
 New **ChartLineCog** UI primitive in
