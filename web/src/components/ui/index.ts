@@ -334,3 +334,4 @@ export * from './chart-line-t3';
 export * from './chart-line-gmma';
 export * from './chart-line-disparity';
 export * from './chart-line-frama';
+export * from './chart-line-jma';

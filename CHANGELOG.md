@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.643] - 2026-05-20 -- UI: chart-line-jma primitive (TODO 11.625)
+
+New **ChartLineJma** UI primitive in
+`web/src/components/ui/chart-line-jma.tsx`: pure-SVG line chart
+with a Jurik-style low-lag low-noise moving average overlay.
+
+computeLineJma runs the price through a three-stage adaptive
+filter that delivers low lag with low noise.
+`beta = 0.45*(length-1) / (0.45*(length-1)+2)` sets the
+smoothing, `alpha = beta^2`, and the phase (clamped to
+[-100, 100], folded into `phaseRatio = phase/100 + 1.5`) trades
+a touch of overshoot for even less lag. The three filter stages
+are `e0 = (1-alpha)*price + alpha*e0'`,
+`e1 = (price-e0)*(1-beta) + beta*e1'` and
+`e2 = (e0 + phaseRatio*e1 - jma')*(1-alpha)^2 + alpha^2*e2'`, and
+the JMA is `e2 + jma'`. It is seeded at the first bar with that
+bar's price -- so a flat series stays flat and there is no
+warm-up period -- and is recursive from the second bar onward.
+
+runLineJma sorts the finite points by x, computes the JMA
+series, and returns per-period samples (each tagged with the
+price's above / below / on position versus the JMA), the
+final / min / max readings, and counts of bars above and below.
+computeLineJmaLayout projects the price path and the JMA path
+onto one shared panel with a y-domain spanning both, plus a
+marker on every bar.
+
+ChartLineJma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge calling out the length and phase, a
+two-series legend (Price / JMA) with toggle buttons,
+hover/focus tooltips, and a `motion-safe` fade-in. It consumes
+`{ x, value }` points and takes `length` / `phase`. Distinct
+from the EMA-cascade lag reducers chart-line-dema and
+chart-line-tema: those are fixed linear combinations of nested
+EMAs, while the JMA is a three-stage adaptive filter with a
+phase parameter that explicitly tunes the lag-versus-overshoot
+tradeoff, and it produces a value from the very first bar with
+no warm-up. 55 vitest cases cover the length and phase
+normalizers and the JMA helper, the pipeline against a
+hand-verified filter computation (the flat-series and length-1
+exact anchors plus a fraction-exact step-input value), the
+no-warm-up property, layout geometry, the description text, and
+component rendering.
+
 ## [1.11.642] - 2026-05-20 -- UI: chart-line-frama primitive (TODO 11.624)
 
 New **ChartLineFrama** UI primitive in
