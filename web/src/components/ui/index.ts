@@ -301,3 +301,4 @@ export * from './chart-line-vortex';
 export * from './chart-line-dpo';
 export * from './chart-line-survival';
 export * from './chart-line-cdf';
+export * from './chart-line-tsi';
