@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.635] - 2026-05-20 -- UI: chart-line-tema primitive (TODO 11.617)
+
+New **ChartLineTema** UI primitive in
+`web/src/components/ui/chart-line-tema.tsx`: pure-SVG line chart
+with a Triple Exponential Moving Average overlay drawn on the
+same axes as the price, for very low lag smoothing.
+
+computeLineTema is Patrick Mulloy's Triple Exponential Moving
+Average. A plain EMA lags the price; nesting three EMAs and
+combining them as `TEMA = 3 * EMA1 - 3 * EMA2 + EMA3` cancels
+the lag to third order, driving it lower than a double EMA can
+while keeping the line smooth. EMA1 is seeded with the simple
+mean of the first `period` values and defined from index
+`period - 1`; each later nesting needs another `period` defined
+values, so EMA2 begins at `2 * period - 2`, EMA3 at
+`3 * period - 3`, and the TEMA is defined from index
+`3 * period - 3` onward. As a third-order lag corrector the
+TEMA reproduces a linear price ramp with zero lag once warmed
+up.
+
+runLineTema sorts the finite points by x, computes the three
+nested EMA series and the TEMA, and returns per-period samples
+(each tagged with the price's above / below / on position
+versus the TEMA), the final / min / max TEMA readings, and
+counts of bars above and below. computeLineTemaLayout projects
+the price path and the TEMA path onto one shared panel with a
+y-domain spanning both, plus markers wherever the TEMA is
+defined.
+
+ChartLineTema renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / TEMA) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, value }` points. Distinct from
+chart-line-dema: the DEMA stops at two EMA stages
+(`2 * EMA - EMA(EMA)`, a second-order corrector), while the
+TEMA adds a third nested EMA and the `3 / -3 / 1` coefficient
+combination for a third-order correction -- lower lag, but a
+longer `3 * period - 3` warm-up. 58 vitest cases cover the EMA
+and TEMA helpers, the pipeline against a hand-verified
+linear-ramp fixture (bit-exact end to end), the zero-lag
+property, the warm-up, layout geometry, the description text,
+and component rendering.
+
 ## [1.11.634] - 2026-05-20 -- UI: chart-line-dema primitive (TODO 11.616)
 
 New **ChartLineDema** UI primitive in
