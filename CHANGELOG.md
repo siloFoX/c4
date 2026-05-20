@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.661] - 2026-05-20 -- UI: chart-line-pmo primitive (TODO 11.643)
+
+New **ChartLinePmo** UI primitive in
+`web/src/components/ui/chart-line-pmo.tsx`: pure-SVG two-panel
+chart with a DecisionPoint Price Momentum Oscillator -- a
+double-smoothed rate of change.
+
+computeLinePmoRoc is the 1-period rate of change as a percentage,
+`100 * (price / prevPrice - 1)`, null for the first bar and for a
+zero prior price. computeLinePmoCustomEma is the DecisionPoint
+custom EMA with constant `2 / period`, seeded at the first
+defined value. computeLinePmo chains them: the ROC is smoothed by
+a custom EMA and scaled by ten, smoothed again into the PMO line,
+and smoothed once more into the signal line.
+
+runLinePmo sorts the finite price points by x, runs the pipeline,
+and returns per-bar samples classified positive / negative / zero
+by the sign of the PMO, plus the final PMO and signal readings
+and the positive / negative counts. computeLinePmoLayout stacks
+the price panel above a zero-centred PMO panel that carries the
+PMO line, the dashed signal line and sign-coloured markers.
+
+ChartLinePmo renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config badge
+showing the smoothing and signal periods, a three-series legend
+(Price / PMO / Signal) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the standard deviation / envelope band primitives:
+the PMO is a momentum oscillator on its own panel, not a band
+drawn on the price.
+
+67 vitest cases in `chart-line-pmo.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.661.
+
 ## [1.11.660] - 2026-05-20 -- UI: chart-line-envelope primitive (TODO 11.642)
 
 New **ChartLineEnvelope** UI primitive in
