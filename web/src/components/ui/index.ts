@@ -263,3 +263,4 @@ export * from './chart-line-spline-bspline';
 export * from './chart-line-autocorrelation';
 export * from './chart-line-arima';
 export * from './chart-line-holtwinters';
+export * from './chart-line-cusum';
