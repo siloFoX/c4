@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.600] - 2026-05-20 -- UI: chart-line-supertrend primitive (TODO 11.582)
+
+New **ChartLineSupertrend** UI primitive in
+`web/src/components/ui/chart-line-supertrend.tsx`: pure-SVG
+line chart with a SuperTrend ATR-based trailing-stop band
+that flips with trend direction. The price line and the
+SuperTrend line share one panel; the SuperTrend renders as
+colour-coded segments -- green when it trails below price as
+a support line in an uptrend, red when it trails above price
+as a resistance line in a downtrend -- with amber flip
+markers at the bars where the trend reverses.
+
+computeLineSupertrendATR is Welles Wilder's Average True
+Range over the absolute period-over-period changes.
+computeLineSupertrend builds the indicator: the ATR-scaled
+basic bands value +/- multiplier * ATR feed the final
+trailing bands -- the upper band only ratchets down and the
+lower band only ratchets up unless price breaks through. The
+SuperTrend line is the final lower band in an uptrend and
+the final upper band in a downtrend, flipping side whenever
+price crosses the active band.
+
+runLineSupertrend sorts the finite points by x, computes the
+core series, and returns per-period samples plus the final
+SuperTrend value, the final trend direction, and the flip
+count. computeLineSupertrendLayout projects the price line
+and splits the SuperTrend into one segment per contiguous
+trend run so each segment can be coloured by direction.
+
+This is distinct from chart-line-keltner, which draws two
+persistent ATR bands around an EMA centre as a static
+channel: the SuperTrend is a single line that is only ever
+one band at a time and jumps sides at a flip. It is also
+distinct from chart-line-parabolic-sar, whose trailing stop
+follows a parabolic acceleration formula rather than ATR
+bands, and from chart-line-atr, which plots the raw ATR.
+
+Helpers exported: getLineSupertrendFinitePoints,
+normalizeLineSupertrendPeriod,
+normalizeLineSupertrendMultiplier,
+computeLineSupertrendTrueRanges, computeLineSupertrendATR,
+computeLineSupertrend, runLineSupertrend,
+computeLineSupertrendLayout, describeLineSupertrendChart. The
+component is a forwardRef region with an ARIA description,
+config badge, three-series legend (Price / Uptrend /
+Downtrend) with toggle, hover tooltip exposing value / ATR /
+SuperTrend / direction, and motion-safe fade-in. 98 vitest
+cases cover the math, layout, description, and rendering.
+
 ## [1.11.599] - 2026-05-20 -- UI: chart-line-adx primitive (TODO 11.581)
 
 New **ChartLineAdx** UI primitive in
