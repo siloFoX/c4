@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.680] - 2026-05-20 -- UI: chart-line-vzo primitive (TODO 11.662)
+
+New **ChartLineVzo** UI primitive in
+`web/src/components/ui/chart-line-vzo.tsx`: pure-SVG two-panel
+chart with a Volume Zone Oscillator panel from the ratio of
+signed volume to total volume.
+
+computeLineVzoSignedVolume sums each bar's volume signed by its
+price direction -- positive on an up bar, negative on a down bar.
+computeLineVzoTotalVolume sums the raw bar volumes. computeLineVzo
+is their ratio scaled to -100..+100: dominant buying volume reads
+near +100, dominant selling volume near -100.
+
+runLineVzo sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified bullish /
+bearish / neutral against the threshold, the zone counts and the
+final reading. computeLineVzoLayout stacks the price panel above
+a VZO panel on a fixed -100 to +100 scale, the VZO line, one
+marker per defined bar coloured by zone, and dashed zero and
+trigger reference lines.
+
+ChartLineVzo renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config badge
+showing the period, a three-series legend (Price / VZO / Levels)
+with toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. Distinct from chart-line-pzo: the VZO weights each bar
+by its volume rather than its price change, so it reads
+conviction rather than directional efficiency.
+
+70 vitest cases in `chart-line-vzo.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.680.
+
 ## [1.11.679] - 2026-05-20 -- UI: chart-line-pzo primitive (TODO 11.661)
 
 New **ChartLinePzo** UI primitive in
