@@ -361,3 +361,4 @@ export * from './chart-line-vwma';
 export * from './chart-line-qstick';
 export * from './chart-line-cog';
 export * from './chart-line-pgo';
+export * from './chart-line-tii';

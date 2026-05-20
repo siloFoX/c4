@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.670] - 2026-05-20 -- UI: chart-line-tii primitive (TODO 11.652)
+
+New **ChartLineTii** UI primitive in
+`web/src/components/ui/chart-line-tii.tsx`: pure-SVG two-panel
+chart with a Trend Intensity Index panel measuring the share of
+deviations above a moving average.
+
+computeLineTiiDeviations is the per-bar deviation of the close
+from its `period`-bar moving average. computeLineTii is the
+Trend Intensity Index: over the trailing `period` window the
+positive deviations are summed (SDPos) and the negative
+deviations summed in magnitude (SDNeg), and the TII is
+`100 * SDPos / (SDPos + SDNeg)` -- the percentage share of the
+positive deviation sum. The TII runs 0 to 100: above 50 marks
+an uptrend, below 50 a downtrend.
+
+runLineTii sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified up / down /
+neutral against the 50 level, plus the final reading and the
+up / down counts. computeLineTiiLayout stacks the price panel
+above a TII panel with a fixed [0, 100] y-domain, a dashed 50
+reference line and trend-coloured markers.
+
+ChartLineTii renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / TII) with toggle buttons, hover/focus tooltips exposing
+the deviation, and a `motion-safe` fade-in. Distinct from the
+zero-centred deviation oscillators: the TII reports the share of
+the deviation that is positive, a 0 to 100 gauge.
+
+62 vitest cases in `chart-line-tii.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.670.
+
 ## [1.11.669] - 2026-05-20 -- UI: chart-line-pgo primitive (TODO 11.651)
 
 New **ChartLinePgo** UI primitive in
