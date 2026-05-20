@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.615] - 2026-05-20 -- UI: chart-line-mass-index primitive (TODO 11.597)
+
+New **ChartLineMassIndex** UI primitive in
+`web/src/components/ui/chart-line-mass-index.tsx`: pure-SVG
+line chart with a Mass Index panel detecting reversals from
+range-expansion bulges. The top panel renders the high and low
+lines with a shaded band between them; the bottom panel
+renders the Mass Index line with dashed setup and trigger
+threshold lines and markers coloured by reversal phase.
+
+computeLineMassIndex is Donald Dorsey's Mass Index. The
+high-low range is smoothed by a single EMA (default 9), that
+single EMA is smoothed again into a double EMA, and the ratio
+of the single to the double EMA is summed over the sum period
+(default 25). A widening range pushes the single EMA above the
+double EMA, so the ratio climbs above one and the running sum
+bulges. computeLineMassIndexEma is an EMA that tolerates the
+leading nulls of the single-EMA series: it seeds with the
+simple mean of the first `period` defined values, then folds
+each later value in at weight `2 / (period + 1)`.
+
+runLineMassIndex sorts the finite points by x, computes the
+range, single, double, ratio and Mass Index series, and walks
+the reversal-bulge state machine: a reading at or above the
+setup threshold (default 27) arms a bulge, and a later reading
+below the trigger threshold (default 26.5) fires a reversal
+signal. Each sample is tagged `calm` / `bulge` / `signal`.
+computeLineMassIndexLayout stacks a range panel above a Mass
+Index panel sharing one x-axis, fits the Mass Index y-domain
+around both threshold lines, and projects the high/low/band
+paths, the Mass Index path, phase-coloured markers, and the
+two threshold lines.
+
+ChartLineMassIndex renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+EMA and sum periods, a three-series legend (High / Low / Mass
+Index) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. Unlike the other chart-line primitives,
+it consumes `{ x, high, low }` points -- the Mass Index is
+intrinsically a high-low range study. 60 vitest cases cover
+the EMA and Mass Index primitives, the full pipeline against a
+hand-verified fixture, the bulge-detection state machine,
+layout geometry, the description text, and component
+rendering.
+
 ## [1.11.614] - 2026-05-20 -- UI: chart-line-ppo primitive (TODO 11.596)
 
 New **ChartLinePpo** UI primitive in
