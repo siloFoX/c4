@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.610] - 2026-05-20 -- UI: chart-line-tsi primitive (TODO 11.592)
+
+New **ChartLineTsi** UI primitive in
+`web/src/components/ui/chart-line-tsi.tsx`: pure-SVG line
+chart with a True Strength Index double-smoothed momentum
+oscillator panel. The value line sits in the top panel; the
+bottom panel renders the TSI line and its signal line on a
+fixed -100 to +100 scale with a dashed zero centerline and
++25/-25 reference lines.
+
+computeLineTsiMomentum is the per-period price momentum and
+its absolute value. computeLineTsiEma is an exponential
+moving average that tolerates leading nulls, seeding at the
+first defined value. computeLineTsi is William Blau's True
+Strength Index: the price momentum is double-smoothed (an
+EMA of longPeriod then an EMA of shortPeriod) and the
+absolute momentum is double-smoothed the same way, then
+TSI = 100 * doubleSmoothedMomentum /
+doubleSmoothedAbsMomentum. Because the absolute momentum
+dominates the signed momentum the ratio is bounded, so TSI
+stays within -100 to +100; a flat series reads 0 without
+dividing by zero.
+
+runLineTsi sorts the finite points by x, computes the TSI
+and a signal EMA, and returns per-period samples plus the
+final TSI and signal. computeLineTsiLayout stacks a value
+panel above a fixed -100 to +100 TSI panel and places the
+zero centerline and the two level lines.
+
+This is distinct from chart-line-trix, which triple-smooths
+the price itself and then takes a rate of change, producing
+an unbounded oscillator. TSI double-smooths the momentum and
+normalizes by the double-smoothed absolute momentum: the
+normalization step is what bounds it to -100..+100, a
+property TRIX does not have.
+
+Helpers exported: getLineTsiFinitePoints,
+normalizeLineTsiPeriod, computeLineTsiMomentum,
+computeLineTsiEma, computeLineTsi, runLineTsi,
+computeLineTsiLayout, describeLineTsiChart. The component is
+a forwardRef region with an ARIA description, config badge,
+three-series legend (Value / TSI / Signal) with toggle,
+hover tooltip exposing value / TSI / signal, and motion-safe
+fade-in. 98 vitest cases cover the math, layout,
+description, and rendering.
+
 ## [1.11.609] - 2026-05-20 -- UI: chart-line-cdf primitive (TODO 11.591)
 
 New **ChartLineCdf** UI primitive in
