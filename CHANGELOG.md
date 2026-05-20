@@ -4,6 +4,150 @@
 
 (no entries -- next release window)
 
+## [1.11.575] - 2026-05-20 -- UI: chart-line-mad primitive (TODO 11.557)
+
+New **ChartLineMad** UI primitive in
+`web/src/components/ui/chart-line-mad.tsx`: pure-SVG line
+chart with a **rolling Median Absolute Deviation (MAD) band
+overlay**. Raw observations render as a dimmed reference
+line; the rolling median renders as a solid coloured centre
+line; a translucent `median +/- k * scaledMAD` band fills
+the robust spread envelope; points outside the band are
+flagged as robust outliers.
+
+For index t the trailing window is the slice
+`values[max(0, t - W + 1) .. t]` -- it expands from a single
+point until it reaches the full window length W. Over that
+window: `median = median of the window`, `MAD = median(|v -
+median| for v in the window)`, `scaledMAD = MAD * madScale`,
+`upper = median + k * scaledMAD`, `lower = median - k *
+scaledMAD`. MAD is the Median Absolute Deviation -- the
+median of the absolute deviations from the window median.
+madScale (default 1.4826) is the Gaussian-consistency
+constant that makes scale * MAD an unbiased estimator of the
+standard deviation for normal data. k (default 3) is the
+band-width multiplier (the canonical Hampel-style robust
+threshold). A point is a robust outlier when it falls
+strictly outside the band ('above' or 'below').
+
+MAD has a 50% breakdown point: up to half the window can be
+arbitrarily corrupted without changing it. A lone outlier
+inside the window does NOT inflate the MAD, so the band does
+not widen to swallow the outlier -- the outlier stays
+visibly outside the band. This is the decisive difference
+from mean/standard-deviation bands.
+
+Verified properties: MAD([1,2,3,4,5]) = 1, MAD([1,2,3,4,5,6])
+= 1.5; MAD([1,2,3,4,1000]) = 1 -- unchanged from [1,2,3,4,5]
+despite the 1000; a constant window has MAD = 0 (the band
+collapses onto the median); for the OUTLIER_FIXTURE
+([1,2,3,4,5,50], window 5) the final window [2,3,4,5,50] has
+median = 4, MAD = 1, scaledMAD = 1.4826, band [~-0.45,
+~8.45], and the 50 lands far above it; a lone spike inside
+an otherwise-constant window ([10,10,10,10,100]) has MAD = 0
+so the band collapses and the 100 is caught -- a
+mean/stddev band would have been inflated by the 100 itself
+and missed it.
+
+Distinct from `<ChartLineHampel>` (11.548; the Hampel
+FILTER also uses the rolling median + MAD, but it REPLACES
+flagged outliers with the window median and draws an
+original-vs-filtered overlay -- it cleans the data --
+whereas ChartLineMad draws the MAD BAND as an overlay, does
+not modify any value, and shows the robust spread envelope
+and which points fall outside it), `<ChartLineBollinger>`
+(11.537; Bollinger Bands use a rolling MEAN +/- k * rolling
+sample STANDARD DEVIATION -- both NON-robust, a single
+outlier shifts the mean and inflates the stddev so the band
+widens and the outlier hides inside it -- ChartLineMad uses
+the rolling MEDIAN and MAD, both robust, so the band stays
+tight and the outlier stands out), `<ChartLineEwmsd>`
+(11.555; plots an EWMA mean and an exponentially-weighted
+standard-deviation band -- still a non-robust mean/variance
+pair with exponential weighting -- ChartLineMad uses robust
+order statistics over a flat trailing window),
+`<ChartLineControl>` (11.534; a Shewhart SPC chart with
+GLOBAL constant non-robust mean +- k*sigma limits --
+ChartLineMad's band is rolling and robust), and
+`<ChartLineZscore>` (11.556; a rolling z-score panel using
+mean / standard deviation -- ChartLineMad uses the robust
+median / MAD pair and shows the band on the main panel
+rather than a separate z-score panel). The robust
+counterpart of Bollinger Bands -- the order-statistic
+spread envelope that does not let outliers hide themselves.
+
+Pure helpers exported: `computeLineMadMedian` (median; drops
+non-finite; NaN for empty), `computeLineMadDeviation` (the
+MAD, the median of absolute deviations from the median;
+accepts a pre-computed centre median; NaN for empty),
+`computeRollingMad` (rolling median + MAD per index; returns
+{median, mad, windowSize}; drops non-finite), `runLineMad`
+(canonical pipeline; sorts ascending; drops non-finite;
+builds the band and the outlier flags; returns per-sample
+median + mad + scaledMad + upper + lower + outlier +
+windowSize plus outlier counts and finalMedian /
+finalScaledMad / maxScaledMad), `classifyLineMadOutlier`
+('above' | 'below' | 'within'; strict comparison),
+`normaliseLineMadWindow` (integer >= 2),
+`normaliseLineMadMultiplier` (>= 0),
+`normaliseLineMadScale` (> 0; default 1.4826),
+`getLineMadDefaultColor`, `getLineMadFinitePoints`,
+`computeLineMadLayout` (projects raw + median paths, the
+band fill + edge paths, and the outlier list),
+`describeLineMadChart`.
+
+API: `series: ChartLineMadSeries[]` (per-series window /
+multiplier overrides beat chart-level); `window` (default
+20; rolling window length; clamped to integer >= 2);
+`multiplier` (default 3; band-width k; clamped >= 0);
+`madScale` (default 1.4826; MAD-to-sigma scale; clamped
+> 0); `rawColor` / `outlierColor`; `bandOpacity` (default
+0.15); toggle flags `showAxis` / `showGrid` / `showDots` /
+`showLegend` / `showTooltip` / `showConfigBadge` /
+`showRaw` / `showMedian` / `showBand` / `showOutliers` /
+`animate`; controlled + uncontrolled visibility; standard
+sizing + format + a11y props; `formatValue` / `formatX` /
+`formatCoefficient`; `onPointClick({series, point})`.
+
+Tooltip on dots shows label, x, raw, bold rolling median,
+scaled MAD, the band [lower, upper] range, and a coloured
+robust outlier row on points outside the band. Config
+badge: `MAD W=<window> k=<multiplier> c=<madScale>
+out=<count>`. Legend stats: per-series window + outlier
+count.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + median path + outlier markers +
+dots role=graphics-symbol + tabIndex=0. data-section on
+every node. Root mirrors data-total-outliers + data-window
++ data-multiplier + data-mad-scale + data-animate. Raw path
+data-kind=raw; median path data-kind=median; band edge
+paths data-kind=upper/lower. Dots expose data-median +
+data-mad + data-scaled-mad + data-upper + data-lower +
+data-outlier. Series groups expose window + multiplier +
+madScale + finalMedian + finalScaledMad + maxScaledMad +
+outlier counts.
+
+86 vitest cases pass (defaults + helpers, computeLineMadMedian
+incl. odd/even/sort/non-finite, computeLineMadDeviation incl.
+MAD([1..5]) = 1 + MAD([1..6]) = 1.5 + robust
+MAD([1,2,3,4,1000]) = 1 + constant 0 + pre-computed centre,
+computeRollingMad incl. window expands 1,2,3,3,3 + rolling
+median + MAD + single-point MAD 0 + constant MAD 0,
+classifyLineMadOutlier, runLineMad incl. band = median +/- k
+* scaledMAD + flags outlier + robustness lone spike still
+flagged + constant no outliers + index 0 within + finalMedian
+/ scaledMad / maxScaledMad, computeLineMadLayout incl. raw +
+median + band fill + edge paths + per-series overrides + y
+range covers band + bounds + totalPoints, describeLineMadChart,
+render incl. empty + raw path + median path + band fill +
+edge paths + hide band/raw/median + outlier marker + dots +
+config badge + ARIA + root data-* + group data-* + tooltip
+with median + MAD + band + outlier rows + onPointClick +
+legend + animate + ref + displayName + xLabel + yLabel +
+constant zero outliers). TypeScript clean. Exported via
+barrel.
+
 ## [1.11.574] - 2026-05-20 -- UI: chart-line-zscore primitive (TODO 11.556)
 
 New **ChartLineZscore** UI primitive in
