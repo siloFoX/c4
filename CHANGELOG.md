@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.609] - 2026-05-20 -- UI: chart-line-cdf primitive (TODO 11.591)
+
+New **ChartLineCdf** UI primitive in
+`web/src/components/ui/chart-line-cdf.tsx`: pure-SVG
+empirical cumulative distribution function curve rising from
+zero to one across the sorted series. The x-axis is the
+sample value, the y-axis the cumulative probability 0 to 1,
+with a dashed median reference line.
+
+computeLineCdf is the empirical cumulative distribution
+function. The finite sample values are sorted ascending and
+grouped by distinct value; each distinct value carries a
+count (its multiplicity), a cumulative count of sample
+values at or below it, and a probability = cumulative / n.
+The result is a non-decreasing step function whose last step
+always reaches 1. computeLineCdfMedian reports the smallest
+value at which the ECDF reaches 0.5 or more.
+
+runLineCdf drops non-finite values, sorts ascending,
+computes the ECDF steps, and returns the run plus the
+sample size, distinct count, min, max, and median.
+computeLineCdfLayout builds the rising staircase path --
+flat between distinct values, jumping up at each.
+
+This is a statistics chart distinct from chart-line-survival
+and chart-line-distribution. Where the survival curve
+descends from one to zero and handles censored
+observations, the ECDF ascends from zero to one and every
+observation contributes a plain 1/n jump. Where a
+distribution chart shows the density, the ECDF shows the
+cumulative fraction, read straight off the curve at any
+value.
+
+Helpers exported: getLineCdfFiniteValues,
+computeLineCdfMedian, computeLineCdf, runLineCdf,
+computeLineCdfLayout, describeLineCdfChart. The component is
+a forwardRef region with an ARIA description, config badge,
+two-series legend (ECDF / Median) with toggle, step markers,
+a dashed median line, a hover tooltip exposing value /
+probability / count / cumulative, and motion-safe fade-in.
+77 vitest cases cover the math, layout, description, and
+rendering.
+
 ## [1.11.608] - 2026-05-20 -- UI: chart-line-survival primitive (TODO 11.590)
 
 New **ChartLineSurvival** UI primitive in
