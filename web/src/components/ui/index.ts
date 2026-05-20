@@ -277,3 +277,4 @@ export * from './chart-line-winsorized';
 export * from './chart-line-bump';
 export * from './chart-line-slopegraph';
 export * from './chart-line-heatline';
+export * from './chart-line-qqplot';
