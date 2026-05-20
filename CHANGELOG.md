@@ -4,6 +4,104 @@
 
 (no entries -- next release window)
 
+## [1.11.568] - 2026-05-20 -- UI: chart-line-spline-bspline primitive (TODO 11.550)
+
+New **ChartLineSplineBspline** UI primitive in
+`web/src/components/ui/chart-line-spline-bspline.tsx`:
+pure-SVG line chart with a **cubic B-spline interpolation
+overlay**. For each cubic B-spline segment with 4
+consecutive control points (P_0, P_1, P_2, P_3) and
+parameter t in [0, 1], the canonical uniform basis is
+`B(t) = (1/6) * [ (1-t)^3 * P_0 + (3t^3 - 6t^2 + 4) * P_1
++ (-3t^3 + 3t^2 + 3t + 1) * P_2 + t^3 * P_3 ]`. Each
+segment converts to a cubic Bezier with control points
+`b_0 = (P_0 + 4*P_1 + P_2)/6`, `b_1 = (2*P_1 + P_2)/3`,
+`b_2 = (P_1 + 2*P_2)/3`, `b_3 = (P_1 + 4*P_2 + P_3)/6`,
+emitted as a single SVG `C` command per segment. When
+`clamp = true` (default) the first and last raw points are
+duplicated twice so the curve passes through them exactly;
+when `clamp = false` the curve starts and ends at blended
+interior points and has the linear-precision property
+(linear input is reproduced exactly in the interior).
+
+Distinct from `<ChartLineSmooth>` Catmull-Rom and
+monotone-cubic (interpolating splines that pass through
+**every** control point -- B-spline is *approximating* and
+does not pass through interior controls), `<ChartLineSavgol>`
+(polynomial fit on a fixed window), `<ChartLineLoess>`
+(11.549; local weighted regression), `<ChartLineMovingAvg>`
+(uniform-weight window), `<ChartLineEwma>` (exponential
+decay), `<ChartLineKalman>` (Bayesian filter),
+`<ChartLineHampel>` (robust outlier filter), and
+`<ChartLineDecompose>` (trend + seasonal split).
+
+Pure helpers exported:
+`buildLineSplineBsplineClampedControlPoints` (duplicates
+first and last twice each), `evaluateCubicBSplineSegment`
+(canonical uniform basis evaluation; verified at t=0, t=1,
+t=0.5 with exact values `0.125, 2.875, 2.875, 0.125`),
+`convertCubicBSplineSegmentToBezier` (B-spline-to-Bezier
+conversion; verified `b_0` and `b_3` match
+`evaluateCubicBSplineSegment` at the endpoints),
+`buildLineSplineBsplineBezierPath` (SVG path string with M +
+C commands), `sampleLineSplineBsplineCurve` (dense
+parametric samples; verified clamped curve starts/ends
+exactly at the first/last raw points),
+`interpolateLineSplineBsplineSmoothedAt` (linear
+interpolation for per-point smoothed value), `runLineBSpline`
+(canonical pipeline; verified constant input -> every
+smoothed = constant, open + linear input reproduces line in
+interior).
+
+API: `series: ChartLineSplineBsplineSeries[]` (per-series
+clamp + samplesPerSegment overrides always beat
+chart-level), `samplesPerSegment` (default 16; clamped to
+[2, 256]), `controlColor`, `rawColor`,
+`residualPosColor` / `residualNegColor`, toggle flags
+`showAxis` / `showGrid` / `showDots` / `showLegend` /
+`showTooltip` / `showConfigBadge` / `showRaw` /
+`showControlPolygon` / `showResidualSticks` / `animate`,
+controlled + uncontrolled visibility, standard sizing +
+format + a11y props, `formatValue` / `formatX`,
+`onPointClick({series, point})`. Tooltip on dots shows
+label, x, raw, bold smoothed (or n/a), residual (+/-
+prefix), and config `d=3, <clamped|open>, seg=<count>,
+cp=<count>`. Config badge `BS d=3 <clamped|open>
+seg=<count> cp=<count>`. Legend stats show clamp + seg +
+rmse.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + smoothed path + dots
+role=graphics-symbol + tabIndex=0. data-section on every
+node. Root mirrors data-series-count + data-total-points +
+data-clamp + data-samples-per-segment + data-degree (always
+3) + data-dominant-control-count + data-dominant-segment-count
++ data-animate. Raw path data-kind=raw; smoothed path
+data-kind=smoothed; control polygon data-kind=control.
+Series groups expose clamp + samplesPerSegment + control +
+segment + curveSample + RMSE + counts.
+
+89 vitest cases pass (defaults + helpers,
+evaluateCubicBSplineSegment incl. canonical t=0/t=1/t=0.5
+values + partition-of-unity, convertCubicBSplineSegmentToBezier
+incl. constant input + endpoint match,
+buildLineSplineBsplineBezierPath incl. M+C commands +
+clamped vs. open segment count difference,
+sampleLineSplineBsplineCurve incl. clamped curve passes
+through endpoints + constant input,
+interpolateLineSplineBsplineSmoothedAt incl. linear
+interpolation, runLineBSpline incl. constant -> constant +
+clamped first/last = raw + open + linear interior
+reproduction, computeLineSplineBsplineLayout incl. paths +
+per-series clamp/samplesPerSegment overrides + bounds +
+totalPoints, describeLineSplineBsplineChart incl. summary
+mentions cubic B-spline + clamped/open + segments, render
+incl. raw + smoothed + control polygon + residual sticks +
+dots + config badge + ARIA + root data-* + group data-* +
+tooltip + onPointClick + legend stats + animate + ref +
+displayName + custom ariaLabel + formatX/formatValue +
+xLabel/yLabel). TypeScript clean. Exported via barrel.
+
 ## [1.11.567] - 2026-05-20 -- UI: chart-line-loess primitive (TODO 11.549)
 
 New **ChartLineLoess** UI
