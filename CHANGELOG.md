@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.613] - 2026-05-20 -- UI: chart-line-coppock primitive (TODO 11.595)
+
+New **ChartLineCoppock** UI primitive in
+`web/src/components/ui/chart-line-coppock.tsx`: pure-SVG line
+chart with a Coppock Curve long-term momentum panel. The value
+line sits in the top panel; the bottom panel renders the
+single Coppock Curve line on a symmetric y-axis with a dashed
+zero centerline, and markers coloured by sign.
+
+computeLineCoppock is Edwin Coppock's long-term momentum
+oscillator. Two percentage rate-of-change series of different
+lookbacks (default 14 and 11 bars) are summed bar by bar, and
+the running total is smoothed by a linearly weighted moving
+average (default 10 bars) whose most recent value carries the
+heaviest weight. The result oscillates around zero; a cross up
+through the zero line is the classic long-term momentum buy
+signal. computeLineCoppockRoc fills indices before the lookback
+with null and reads zero when the base value is zero;
+computeLineCoppockWma divides the triangular-weighted sum and
+leaves any window touching a null undefined, so the curve only
+begins once both ROC legs and a full WMA window are defined.
+
+runLineCoppock sorts the finite points by x, computes the
+Coppock series, and returns per-period samples (each carrying a
+positive/negative/zero sign), the final/min/max Coppock
+readings, and counts of readings above and below the zero
+line. computeLineCoppockLayout stacks a value panel above a
+Coppock panel sharing one x-axis, derives a symmetric y-bound
+around zero, and projects the value path, the Coppock path,
+sign-coloured markers, and a zero centerline.
+
+ChartLineCoppock renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+ROC and WMA periods, a value/Coppock legend with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in.
+Distinct from chart-line-rate (a single raw ROC line) and
+chart-line-trix (a triple-EMA oscillator): the Coppock Curve
+is uniquely the WMA-smoothed sum of two ROC legs. 58 vitest
+cases cover the ROC and WMA primitives, the full pipeline
+against a hand-verified fixture, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.612] - 2026-05-20 -- UI: chart-line-fisher primitive (TODO 11.594)
 
 New **ChartLineFisher** UI primitive in
