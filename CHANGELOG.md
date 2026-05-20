@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.605] - 2026-05-20 -- UI: chart-line-mfi primitive (TODO 11.587)
+
+New **ChartLineMfi** UI primitive in
+`web/src/components/ui/chart-line-mfi.tsx`: pure-SVG line
+chart with a Money Flow Index panel computed from paired
+price and volume series. The price line sits in the top
+panel; the bottom panel renders the MFI oscillator on a
+0-100 scale with dashed 80/20 level lines and shaded
+overbought/oversold zones.
+
+computeLineMfi is the Money Flow Index, a volume-weighted
+momentum oscillator. Each period's raw money flow is price *
+volume; the flow counts as positive when the price rose from
+the prior period and negative when it fell. Over a trailing
+window of `period` flows, MFI = 100 * positiveFlow /
+(positiveFlow + negativeFlow). A window with no directional
+flow reads 50. MFI is defined from index `period` onward;
+earlier indices read null.
+
+runLineMfi sorts the finite points by x, computes the MFI
+series, classifies each reading as overbought (above 80),
+oversold (below 20), or neutral, and returns per-period
+samples plus the final MFI and the extreme counts.
+computeLineMfiLayout stacks a price panel above a fixed
+0-100 MFI panel and places the two reference level lines and
+shaded zones.
+
+This is distinct from chart-line-rsi, which measures
+momentum from price changes alone: MFI weights each move by
+the money flow (price times volume) behind it, so a move on
+heavy volume shifts the oscillator far more than the same
+move on thin volume. It is also distinct from chart-line-obv
+(an unbounded cumulative signed-volume line) and
+chart-line-vwap (a price-domain volume-weighted average
+overlay): MFI is a bounded 0-100 windowed oscillator.
+
+Helpers exported: getLineMfiFinitePoints,
+normalizeLineMfiPeriod, computeLineMfi, runLineMfi,
+computeLineMfiLayout, describeLineMfiChart. The component is
+a forwardRef region with an ARIA description, config badge,
+two-series legend (Price / MFI) with toggle, zone-coloured
+markers, hover tooltip exposing price / volume / MFI / zone,
+and motion-safe fade-in. 86 vitest cases cover the math,
+layout, description, and rendering.
+
 ## [1.11.604] - 2026-05-20 -- UI: chart-line-trix primitive (TODO 11.586)
 
 New **ChartLineTrix** UI primitive in
