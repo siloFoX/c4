@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.632] - 2026-05-20 -- UI: chart-line-choppiness primitive (TODO 11.614)
+
+New **ChartLineChoppiness** UI primitive in
+`web/src/components/ui/chart-line-choppiness.tsx`: pure-SVG
+line chart with a Choppiness Index panel. The close price line
+occupies the top panel; the bottom panel renders the
+Choppiness Index on a fixed 0 to 100 scale with dashed choppy /
+trending threshold lines and shaded zones.
+
+computeLineChoppiness is E.W. Dreiss's Choppiness Index. For
+each bar the True Range -- the greatest of the bar's high-low
+span, the gap up from the prior close, and the gap down from
+the prior close -- captures the distance the price travelled.
+Over a trailing window of `period` bars the summed True Range
+(the total path) is divided by the window's high-low extent
+(the net ground covered), and the ratio is rescaled by
+`100 * log10(ratio) / log10(period)` onto a 0 to 100 scale. A
+strong trend travels little more than its net extent so the
+index sits near 0; a choppy range retraces constantly so the
+summed range dwarfs the extent and the index climbs toward 100.
+The index is defined from index `period - 1` onward, a
+zero-extent window reads 0, and the result is clamped to
+0..100; a period below 2 leaves the index undefined.
+
+runLineChoppiness sorts the finite points by x, computes the
+true range and Choppiness Index series, and returns per-period
+samples (each tagged choppy / trending / neutral against the
+two thresholds), the final reading, and counts of choppy and
+trending periods. computeLineChoppinessLayout stacks a price
+panel above a Choppiness panel sharing one x-axis, fixes the
+Choppiness panel to 0..100, and projects the price path, the
+Choppiness path, state-coloured markers, the two threshold
+lines, and the two shaded zones.
+
+ChartLineChoppiness renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked panels
+with axis ticks and grid, a config badge, a two-series legend
+(Price / CHOP) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, high, low, close }`
+points. Distinct from chart-line-adx: ADX rates trend
+*strength* from directional movement, while the Choppiness
+Index makes no directional judgement at all -- it only measures
+how much the price *retraced* relative to the ground it
+covered, so a strong uptrend and a strong downtrend both read
+near 0. 62 vitest cases cover the true-range and Choppiness
+helpers, the pipeline against a hand-verified fixture, the
+warm-up, layout geometry, the description text, and component
+rendering.
+
 ## [1.11.631] - 2026-05-20 -- UI: chart-line-kama primitive (TODO 11.613)
 
 New **ChartLineKama** UI primitive in
