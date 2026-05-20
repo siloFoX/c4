@@ -368,3 +368,4 @@ export * from './chart-line-gator';
 export * from './chart-line-tdi';
 export * from './chart-line-squeeze';
 export * from './chart-line-rmi';
+export * from './chart-line-decycler';
