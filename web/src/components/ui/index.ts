@@ -279,3 +279,4 @@ export * from './chart-line-slopegraph';
 export * from './chart-line-heatline';
 export * from './chart-line-qqplot';
 export * from './chart-line-lag-plot';
+export * from './chart-line-zigzag';
