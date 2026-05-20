@@ -308,3 +308,4 @@ export * from './chart-line-coppock';
 export * from './chart-line-ppo';
 export * from './chart-line-mass-index';
 export * from './chart-line-force-index';
+export * from './chart-line-emv';

@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.617] - 2026-05-20 -- UI: chart-line-emv primitive (TODO 11.599)
+
+New **ChartLineEmv** UI primitive in
+`web/src/components/ui/chart-line-emv.tsx`: pure-SVG line
+chart with an Ease of Movement panel relating price change to
+volume. The top panel renders the midpoint line with a shaded
+high-low band behind it; the bottom panel renders the Ease of
+Movement line on a symmetric y-axis with a dashed zero
+centerline and sign-coloured markers.
+
+computeLineEmvRaw is Richard Arms' raw one-period Ease of
+Movement: each bar's midpoint move
+(`(high + low) / 2` minus the prior bar's midpoint) is divided
+by its box ratio -- volume, scaled by the divisor, over the
+high-low range -- which works out to
+`distanceMoved * range * divisor / volume`. Index 0 has no
+prior midpoint so it reads null; a zero volume reads zero.
+computeLineEmv smooths the raw series with computeLineEmvSma,
+a simple moving average (default 14-period) that tolerates the
+leading null. The Ease of Movement rises when price advances
+on light volume and falls when price drops on light volume,
+swinging around zero.
+
+runLineEmv sorts the finite points by x, computes the
+midpoint, range, raw and smoothed series, and returns
+per-period samples (each carrying a positive/negative/zero
+sign from the smoothed EMV), the final EMV reading, the EMV
+range, and counts of readings above and below the zero line.
+computeLineEmvLayout stacks a price panel above an Ease of
+Movement panel sharing one x-axis, derives a symmetric y-bound
+around zero, and projects the midpoint path, the high-low band
+path, the EMV path, sign-coloured markers, and a zero
+centerline.
+
+ChartLineEmv renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+SMA period, a two-series legend (Midpoint / EMV) with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in. It
+consumes the richest point shape of the chart-line family --
+`{ x, high, low, volume }` -- since the Ease of Movement
+combines the bar range, the midpoint move, and volume.
+Distinct from chart-line-force-index (price change times
+volume) and chart-line-obv (a cumulative volume total): the
+Ease of Movement divides the move by volume rather than
+multiplying, measuring how *easily* price moves. 63 vitest
+cases cover the SMA, raw and full EMV primitives, the pipeline
+against a hand-verified fixture, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.616] - 2026-05-20 -- UI: chart-line-force-index primitive (TODO 11.598)
 
 New **ChartLineForceIndex** UI primitive in
