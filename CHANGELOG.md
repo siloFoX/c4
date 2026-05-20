@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.627] - 2026-05-20 -- UI: chart-line-chaikin-osc primitive (TODO 11.609)
+
+New **ChartLineChaikinOsc** UI primitive in
+`web/src/components/ui/chart-line-chaikin-osc.tsx`: pure-SVG
+line chart with a Chaikin Oscillator panel measuring
+accumulation-distribution momentum. The top panel renders the
+close price line; the bottom panel renders the oscillator line
+on a symmetric y-axis with a dashed zero centerline and
+sign-coloured markers.
+
+computeLineChaikinOsc is Marc Chaikin's Oscillator -- the MACD
+of the Accumulation/Distribution Line. computeLineChaikinOscMfm
+is the Money Flow Multiplier (where the close sits in the
+high-low range, scaled to [-1, +1]); computeLineChaikinOscAdl
+scales it by volume and accumulates the running ADL;
+computeLineChaikinOscEma is an exponential moving average. The
+oscillator is the difference between a fast (default 3) and a
+slow (default 10) EMA of the ADL: it swings around zero,
+positive when accumulation momentum is building and negative
+when distribution momentum dominates.
+
+runLineChaikinOsc sorts the finite points by x, computes the
+ADL and the oscillator, and returns per-period samples (each
+carrying a positive/negative/zero sign), the final / min / max
+oscillator readings, and counts of readings above and below
+the zero line. computeLineChaikinOscLayout stacks a price
+panel above an oscillator panel sharing one x-axis, derives a
+symmetric y-bound around zero, and projects the price path,
+the oscillator path, sign-coloured markers, and a zero
+centerline.
+
+ChartLineChaikinOsc renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+EMA periods, a two-series legend (Price / Chaikin) with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in. It
+consumes `{ x, high, low, close, volume }` points. Distinct
+from chart-line-adl (the cumulative line itself) and
+chart-line-macd (the MACD of price): the Chaikin Oscillator is
+the MACD of the *ADL*, so it measures the momentum of money
+flow rather than of price. 61 vitest cases cover the
+multiplier, ADL, EMA and oscillator primitives, the pipeline
+against a hand-verified fixture, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.626] - 2026-05-20 -- UI: chart-line-adl primitive (TODO 11.608)
 
 New **ChartLineAdl** UI primitive in
