@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.603] - 2026-05-20 -- UI: chart-line-williams-r primitive (TODO 11.585)
+
+New **ChartLineWilliamsR** UI primitive in
+`web/src/components/ui/chart-line-williams-r.tsx`: pure-SVG
+line chart with a Williams %R momentum oscillator panel. The
+value line sits in the top panel; the bottom panel renders
+the %R oscillator on a 0 to -100 scale (0 at the top, -100
+at the bottom) with dashed -20/-80 level lines and shaded
+overbought/oversold zones.
+
+computeLineWilliamsR is Larry Williams' Percent Range. For
+each index from period - 1 onward the window of `period`
+values yields %R = -100 * (highestHigh - value) /
+(highestHigh - lowestLow). The result runs 0 when the value
+is at the window high down to -100 when it is at the window
+low. A flat window (zero range) reads -50, the neutral
+middle. Indices before the window fills read null.
+
+runLineWilliamsR sorts the finite points by x, computes the
+%R series, classifies each reading as overbought (above
+-20), oversold (below -80), or neutral, and returns
+per-period samples plus the final %R and the extreme counts.
+computeLineWilliamsRLayout stacks a value panel above a
+fixed 0 to -100 %R panel and places the two reference level
+lines and shaded zones.
+
+This is distinct from chart-line-stochastic: although %R is
+algebraically %K - 100, the stochastic plots two bounded
+0-100 lines (%K and a smoothed %D signal) and reads a high
+%K as overbought, whereas Williams %R is a single line on a
+negative 0 to -100 scale with the orientation inverted -- a
+%R near 0 is overbought and near -100 is oversold -- and
+carries no signal line. The numerator is measured from the
+window high rather than the window low.
+
+Helpers exported: getLineWilliamsRFinitePoints,
+normalizeLineWilliamsRPeriod, computeLineWilliamsR,
+runLineWilliamsR, computeLineWilliamsRLayout,
+describeLineWilliamsRChart. The component is a forwardRef
+region with an ARIA description, config badge, two-series
+legend (Value / %R) with toggle, zone-coloured markers,
+hover tooltip exposing value / %R / zone, and motion-safe
+fade-in. 85 vitest cases cover the math, layout,
+description, and rendering.
+
 ## [1.11.602] - 2026-05-20 -- UI: chart-line-cci primitive (TODO 11.584)
 
 New **ChartLineCci** UI primitive in
