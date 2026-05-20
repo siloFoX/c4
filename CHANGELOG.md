@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.682] - 2026-05-20 -- UI: chart-line-nvi primitive (TODO 11.664)
+
+New **ChartLineNvi** UI primitive in
+`web/src/components/ui/chart-line-nvi.tsx`: pure-SVG two-panel
+chart with a Negative Volume Index panel tracking cumulative
+change on lower-volume bars.
+
+computeLineNviIndex builds the cumulative index. Seeded at a base
+value, it updates only on bars whose volume fell from the prior
+bar -- `NVI[i] = NVI[i-1] * close[i] / close[i-1]` -- and holds
+flat on every other bar, so it compounds the price's percent
+change on the quiet bars only.
+
+runLineNvi sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified up / down / flat
+by the index movement, the movement counts and the final
+reading. computeLineNviLayout stacks the price panel above an NVI
+panel with the index line, one marker per bar coloured by
+movement, and a dashed base reference line.
+
+ChartLineNvi renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config badge
+showing the base, a two-series legend (Price / NVI) with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in. It
+consumes `{ x, value, volume }` points. Distinct from the
+running-volume indicators: the NVI is selective -- it advances
+only on the quiet bars and ignores the loud ones.
+
+59 vitest cases in `chart-line-nvi.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.682.
+
 ## [1.11.681] - 2026-05-20 -- UI: chart-line-cfo primitive (TODO 11.663)
 
 New **ChartLineCfo** UI primitive in
