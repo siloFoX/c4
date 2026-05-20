@@ -4,6 +4,114 @@
 
 (no entries -- next release window)
 
+## [1.11.570] - 2026-05-20 -- UI: chart-line-arima primitive (TODO 11.552)
+
+New **ChartLineArima** UI primitive in
+`web/src/components/ui/chart-line-arima.tsx`: pure-SVG line
+chart with a simple **ARIMA(1,0,0) / AR(1) one-step
+prediction overlay**. Raw observations render as a dimmed
+reference line; the fitted AR(1) one-step prediction renders
+as a solid coloured overlay; an optional dashed forecast
+segment extends one step beyond the data.
+
+ARIMA(1,0,0) is a pure first-order autoregressive model
+(AR order 1, zero differencing, zero MA terms):
+`y_t = c + phi * y_{t-1} + epsilon_t`. The model is fitted
+by conditional ordinary least squares -- regress `y_t` on
+`y_{t-1}` over the pairs `(y_{t-1}, y_t)` for t = 1..N-1:
+`phi = sum (x_i - xbar)(y_i - ybar) / sum (x_i - xbar)^2`,
+`c = ybar - phi * xbar`. This is the standard estimator at
+the starting point of Box-Jenkins ARIMA fitting. One-step
+prediction: `yhat_t = c + phi * y_{t-1}` (index 0 null, no
+prior value). Forecast: `yhat_N = c + phi * y_{N-1}` placed
+at `x_{N-1} + step`. Stationarity flag: `|phi| < 1`.
+
+Verified properties: linear series [1,2,3,4,5] fits to
+phi = 1, c = 1 exactly (predictions reproduce the series,
+residuals 0, RMSE 0; phi = 1 is the boundary non-stationary
+unit-root case); constant series fits to phi = 0, c = mean;
+geometric decay y_t = 0.5*y_{t-1} recovers phi = 0.5, c = 0
+exactly (stationary); explosive series y_t = 2*y_{t-1} fits
+to phi ~ 2 (non-stationary).
+
+Distinct from `<ChartLineForecast>` (renders PRE-COMPUTED
+forecast data with a forecastFrom split + optional
+yLower/yUpper bands -- it fits NO model; AR(1) fits the
+model from the data and computes the prediction itself),
+`<ChartLineEwma>` (11.539; exponential smoothing,
+equivalent to an ARIMA(0,1,1) -- a different model class,
+MA-on-differences vs. autoregressive), `<ChartLineKalman>`
+(11.538; Bayesian state-space filter with process /
+measurement noise -- AR(1) is closed-form least squares with
+no noise model), `<ChartLineAutocorrelation>` (11.551; the
+ACF diagnostic plot -- ACF at lag 1 relates to phi but ACF
+is a diagnostic whereas AR(1) is the fitted model and
+prediction), `<ChartLineTrend>` (11.512; global linear
+regression of y on x -- AR(1) regresses y_t on y_{t-1}, the
+previous VALUE not the x position), and the smoothers
+`<ChartLineLoess>` (11.549), `<ChartLineSavgol>` (11.547),
+`<ChartLineMovingAvg>` (11.513) (noise filters -- AR(1) is a
+PREDICTIVE model where each point is predicted purely from
+the one before it).
+
+The simplest member of the ARIMA family, AR(1) is the
+canonical introduction to autoregressive time-series
+modelling and the natural baseline a one-step forecast is
+measured against.
+
+Pure helpers exported: `fitLineArimaAR1` (conditional OLS
+fit; returns {phi, intercept, mean, stationary}),
+`predictLineArimaOneStep` (one-step predictions; index 0
+null; non-finite prior -> null), `forecastLineArimaNext`
+(single forecast beyond the data; null for empty series),
+`classifyLineArimaResidualSign`, `getLineArimaDefaultColor`,
+`getLineArimaFinitePoints`, `runLineArima` (canonical
+pipeline; sorts ascending; drops non-finite; fits the model;
+computes predictions + residuals + RMSE + forecast),
+`computeLineArimaLayout` (projects raw + predicted paths +
+residual segments + forecast point), `describeLineArimaChart`.
+
+API: `series: ChartLineArimaSeries[]` (AR(1) coefficients
+always fitted from the data -- no per-series model
+parameters); `forecastColor` / `rawColor` /
+`residualPosColor` / `residualNegColor`; toggle flags
+`showAxis` / `showGrid` / `showDots` / `showLegend` /
+`showTooltip` / `showConfigBadge` / `showRaw` /
+`showForecast` / `showResidualSticks` / `animate`;
+controlled + uncontrolled visibility; standard sizing +
+format + a11y props; `formatValue` / `formatX` /
+`formatCoefficient`; `onPointClick({series, point})`.
+
+Tooltip on dots shows label, x, raw, bold predicted (or n/a
+at index 0), residual (+/- prefix), config phi=<phi>,
+c=<intercept>. Config badge: `AR1 phi=<phi> c=<intercept>
+rmse=<rmse> <stationary|non-stationary>`. Legend stats:
+per-series phi + rmse.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + predicted path + forecast dot +
+dots role=graphics-symbol + tabIndex=0. data-section on
+every node. Root mirrors data-phi + data-intercept +
+data-rmse + data-stationary + data-animate. Raw path
+data-kind=raw; predicted path data-kind=predicted. Series
+groups expose phi + intercept + mean + stationary + rmse +
+residual counts + forecast.
+
+70 vitest cases pass (defaults + helpers, fitLineArimaAR1
+incl. linear -> phi 1 + geometric -> phi 0.5 + constant +
+explosive + stationary flag, predictLineArimaOneStep incl.
+index 0 null + exact linear reproduction,
+forecastLineArimaNext, runLineArima incl. exact predictions
++ zero RMSE + forecast + residual counts,
+computeLineArimaLayout incl. paths + forecast point +
+extendForForecast toggle + bounds + totalPoints,
+describeLineArimaChart, render incl. empty + raw path +
+predicted path + forecast segment + dot + residual sticks +
+dots + config badge + ARIA + root data-* + group data-* +
+tooltip + onPointClick + legend + animate + ref +
+displayName + xLabel + yLabel + zero-RMSE badge for linear
+input). TypeScript clean. Exported via barrel.
+
 ## [1.11.569] - 2026-05-20 -- UI: chart-line-autocorrelation primitive (TODO 11.551)
 
 New **ChartLineAutocorrelation** UI primitive in
