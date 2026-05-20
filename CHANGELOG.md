@@ -4,6 +4,209 @@
 
 (no entries -- next release window)
 
+## [1.11.562] - 2026-05-20 -- UI: chart-line-fft-window primitive (TODO 11.544)
+
+New **ChartLineFftWindow** UI
+primitive in
+`web/src/components/ui/chart-line-fft-window.tsx`:
+pure-SVG **windowed-FFT** chart
+that applies a tapering window
+(Rectangular / Hann / Hamming
+/ Blackman, toggleable at
+runtime) to the time series
+BEFORE running the DFT. Pairs
+a time-domain panel (left)
+with a frequency-spectrum
+panel (right), and overlays a
+dashed window envelope on the
+time panel so operators can
+SEE the taper being applied.
+Distinct from
+`<ChartLineFft>` (11.540)
+which used no window
+(implicit rectangular with
+full spectral leakage). The
+canonical "I need clean
+spectral peaks instead of
+smeared leakage" frequency-
+domain primitive used in
+audio analysis, vibration
+diagnostics, and any context
+where the question is
+"what's the true dominant
+frequency, not the leakage
+ghosts?". Window formulas
+(verified by test): Hann
+`0.5 * (1 - cos(2*pi*n/(N-1)))`
+endpoints 0 + center 1;
+Hamming `0.54 - 0.46 *
+cos(2*pi*n/(N-1))` endpoints
+0.08; Blackman `0.42 - 0.5*
+cos(arg) + 0.08*cos(2*arg)`
+endpoints 0 + center 1.
+Reports per-spectrum
+**coherent gain** = sum(w)/N
+(amplitude scale factor) and
+**processing gain** =
+sum(w^2)/N (noise power
+scale factor) so callers can
+recover the un-windowed
+amplitude by dividing by
+coherent gain. Pure helpers
+`computeLineFftWindowCoefficients(N,
+mode)` (canonical window
+weights; N <= 0 -> []),
+`applyLineFftWindowToValues`
+(element-wise multiply;
+non-finite slots -> 0; uses
+min length),
+`computeLineFftWindowDft`
+(real-input half-spectrum
+DFT length N/2+1),
+`computeLineFftWindowSpectrum`
+(canonical pipeline: sort
+ascending, drop non-finite,
+detrend (default true),
+window, DFT, magnitudes,
+dominant bin excluding DC by
+default, coherent +
+processing gain),
+`findLineFftWindowDominantBin`,
+`computeLineFftWindowLayout`,
+and `describeLineFftWindowChart`.
+Distinct from
+`<ChartLineFft>` (11.540; no
+window -- this primitive is
+the windowed equivalent with
+4 canonical window options +
+toggle + per-bin gain
+reporting),
+`<ChartLineDecompose>`
+(11.543; time-domain seasonal
+decomposition --
+FFT-window is frequency-
+domain), and
+`<ChartLineMomentum>`
+(11.533; sub-panel oscillator
+with DERIVATIVE -- not a
+spectrum). Controlled +
+uncontrolled `windowMode`
+state via `windowMode` /
+`defaultWindowMode` +
+`onWindowModeChange`. Window
+mode toggle is a
+`role="radiogroup"` with 4
+`role="radio"` buttons +
+`aria-checked` flag.
+Per-instance `dominantColor`
+/ `spectrumColor` /
+`windowColor` always beats
+defaults; per-series
+`windowMode` / `detrend` /
+`excludeDc` always beats
+chart-level. Tooltip on
+time dots shows label, x,
+raw, bold windowed value,
+and the per-point window
+coefficient; on bin bars
+shows label + bin number,
+frequency, period, bold
+magnitude, window mode + CG,
+and (when dominant) a
+coloured "dominant" row.
+Dominant badge in top-left
+calls out the strongest
+series' frequency + period
++ window mode with icon
+`f`. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; raw +
+windowed + envelope paths +
+time dots + spectrum bars
+all
+`role="graphics-symbol"
+tabIndex={0}`. Data-attrs:
+root `data-window-mode`,
+`data-detrend`,
+`data-exclude-dc`,
+`data-dominant-frequency`,
+`data-dominant-period`,
+`data-dominant-coherent-gain`,
+`data-total-points`,
+`data-series-count`,
+`data-visible-series-count`,
+`data-animate`; paths
+`data-kind` (`raw` /
+`windowed` / `envelope`);
+spectrum bars `data-bin-k`,
+`data-frequency`,
+`data-period`,
+`data-magnitude`,
+`data-normalised-magnitude`,
+`data-dominant`; time dots
+`data-raw-y`,
+`data-windowed-y`,
+`data-window-weight`;
+series groups
+`data-series-window-mode`,
+`data-series-coherent-gain`,
+`data-series-processing-gain`,
++ all the standard
+per-series fields. 90 vitest
+cases pass (defaults +
+canonical 4 modes,
+coefficients incl. Hann
+endpoints 0 + center 1 +
+symmetric / Hamming
+endpoints 0.08 / Blackman
+endpoints 0 + center 1 /
+N=1 returns [1],
+applyLineFftWindowToValues
+incl. verified element-wise
+multiply / min length /
+non-finite -> 0,
+computeLineFftWindowSpectrum
+incl. **Hann detects
+period-4 cosine** /
+rectangular CG=PG=1 / **Hann
+CG approx 0.5 PG approx
+0.375** / two-tone picks
+larger amplitude / windowed
+length matches / Hann[0]=0
+multiplication verified,
+findDominantBin DC handling,
+computeLineFftWindowLayout
+incl. splits canvas + raw +
+windowed + envelope paths +
+dominant mark + per-series
+window override + per-point
+weight projected to
+envelope py at panel bottom
+when Hann[0]=0,
+describeLineFftWindowChart,
+component render incl.
+empty / raw kind=raw /
+windowed kind=windowed /
+envelope kind=envelope /
+hide raw + envelope /
+spectrum bars + dominant
+flag / time dots + hide /
+window toggle 4 buttons +
+aria-checked + uncontrolled
++ controlled + hide /
+dominant badge + omit /
+ARIA / root data-* / group
+data-* / tooltip time dot +
+bin bar + hide on leave +
+omit / onPointClick +
+onBinClick / legend with
+window mode + CG + toggle +
+omit / animate / ref /
+displayName). Implementation
+patch:
+`docs/patches/11.544-ui-chart-line-fft-window.md`.
+
 ## [1.11.561] - 2026-05-19 -- UI: chart-line-decompose primitive (TODO 11.543)
 
 New **ChartLineDecompose** UI
