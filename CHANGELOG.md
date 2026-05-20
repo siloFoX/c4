@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.589] - 2026-05-20 -- UI: chart-line-fibonacci primitive (TODO 11.571)
+
+New **ChartLineFibonacci** UI primitive in
+`web/src/components/ui/chart-line-fibonacci.tsx`: pure-SVG
+line chart that overlays Fibonacci retracement levels. The
+chart detects the series' swing high and swing low, then
+draws the canonical Fibonacci ratio lines between them --
+horizontal support/resistance levels at 0%, 23.6%, 38.2%,
+50%, 61.8%, 78.6% and 100% of the swing range.
+
+runLineFibonacci sorts the series by x, detects the swing
+high (max value) and swing low (min value), classifies the
+trend (up when the high occurs at or after the low, down
+otherwise), and computes the level at ratio r measured from
+the swing END (the later extreme) back toward the swing
+START: value = end - r*(end - start). So r=0 sits on the
+most recent extreme and r=1 on the older one -- for an up
+swing that puts 0% at the high and 100% at the low, and a
+down swing mirrors it. A series whose values are all equal
+has no range and is not ok. normalizeLineFibonacciRatios
+coerces a ratio set to an ascending, de-duplicated list of
+finite values clamped to [0,1], falling back to the standard
+seven ratios. The component fixture is an up swing -- low 0
+at x=1, high 100 at x=4 -- so the levels land on round
+values: 100, 76.4, 61.8, 50, 38.2, 21.4, 0; the down-swing
+fixture mirrors the grid.
+
+Distinct from neighbouring primitives: chart-line-threshold
+draws horizontal lines at user-supplied fixed thresholds
+whereas the Fibonacci levels are DERIVED from the detected
+swing high/low at the fixed Fibonacci ratios (the operator
+supplies no values); chart-line-zigzag filters swing pivots
+by a percent reversal and never draws ratio levels;
+chart-line-min-max draws a rolling min/max envelope rather
+than discrete horizontal levels; chart-line-target /
+chart-line-baseline mark a single reference value. All
+exported helpers carry a LineFibonacci infix so the barrel
+export * cannot collide.
+
+Exported helpers: `getLineFibonacciFinitePoints`,
+`normalizeLineFibonacciRatios`, `runLineFibonacci`,
+`computeLineFibonacciLayout`, `describeLineFibonacciChart`.
+The chart also draws a swing anchor (the swing-low-to-swing-
+high diagonal) and swing high/low markers. Tooltip shows the
+ratio percent + level value on a level and x + value on a
+dot; config badge `FIB <trend> H=.. L=..`; the footer
+reports the trend, the swing range and the level count. 59
+vitest cases in `chart-line-fibonacci.test.tsx`, all
+passing. Exported from the `ui` barrel.
+
 ## [1.11.588] - 2026-05-20 -- UI: chart-line-zigzag primitive (TODO 11.570)
 
 New **ChartLineZigzag** UI primitive in
