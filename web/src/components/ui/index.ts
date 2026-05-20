@@ -265,3 +265,4 @@ export * from './chart-line-arima';
 export * from './chart-line-holtwinters';
 export * from './chart-line-cusum';
 export * from './chart-line-ewmsd';
+export * from './chart-line-zscore';

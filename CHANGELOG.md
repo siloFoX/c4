@@ -4,6 +4,134 @@
 
 (no entries -- next release window)
 
+## [1.11.574] - 2026-05-20 -- UI: chart-line-zscore primitive (TODO 11.556)
+
+New **ChartLineZscore** UI primitive in
+`web/src/components/ui/chart-line-zscore.tsx`: pure-SVG
+two-panel line chart with a **rolling z-score panel**. The
+main panel renders the raw series; the sub-panel renders the
+rolling z-score as a CONTINUOUS line -- the standardized
+deviation of every point, not a set of threshold flags.
+
+For index t the trailing window is the slice
+`values[max(0, t - W + 1) .. t]` -- it expands from a single
+point until it reaches the full window length W. Over that
+window: `mean = average`, `std = population standard
+deviation` (sum of squared deviations / n), `z_t = (values[t]
+- mean) / std`. When std = 0 (a constant window, including
+the single-point window at index 0) the z-score is defined
+as 0 -- the value sits exactly on the window mean -- so the
+z-score is a continuous signal with no gaps from the first
+point. The z-score answers "how many standard deviations is
+the current value from its recent rolling mean?" -- a
+scale-free, locally-standardized view of the series.
+
+Verified properties: a constant series has std = 0 and z = 0
+throughout; a linear ramp produces, once the window is full,
+a CONSTANT z-score of sqrt(3/2) for W = 3 (window
+[a, a+d, a+2d] has mean a+d, std d*sqrt(2/3), so the last
+point's z is d / (d*sqrt(2/3)) = sqrt(3/2)); a two-point
+window gives z = +/- 1; a single spike at the end of a
+W-length window of zeros has z = sqrt(W-1), so the
+SPIKE_BEYOND fixture ([0]*9 + [50], W = 10) yields exactly
+mean = 5, std = 15, z = 3; the trailing window size grows
+1, 2, ..., W, W, W.
+
+The primitive is deliberately distinct from
+`<ChartLineAnomaly>` (11.524): anomaly detection FLAGS the
+points whose rolling z-score exceeds a threshold, drawing
+discrete markers only on the extremes. ChartLineZscore
+instead shows the ENTIRE z-score curve as a continuous line
+in its own panel -- every point's standardized deviation,
+plotted over time. Optional dashed reference guide lines at
++/- referenceLevel (default 2) give visual context, but no
+point is marked or flagged; the continuous curve is the
+whole point. A band field ('within' | 'beyond') is computed
+per sample purely for the tooltip text, not for any on-chart
+marker.
+
+Also distinct from `<ChartLineControl>` (11.534; a Shewhart
+SPC chart with GLOBAL constant mean +- k*sigma limits
+computed once over the whole series -- the z-score uses a
+ROLLING window so the standardization is local and adapts to
+a changing baseline), `<ChartLineCusum>` (11.554;
+accumulates deviations into a cumulative sum to detect drift
+-- the z-score is the PER-POINT standardized deviation not a
+cumulative quantity), and `<ChartLineEwmsd>` (11.555; plots
+an EWMA mean and an exponentially-weighted standard-deviation
+band around the raw series -- ChartLineZscore plots the
+standardized deviation itself (y - mean) / std as a separate
+signal, using a flat trailing window rather than exponential
+weighting). The canonical rolling-standardization view --
+the building block under z-score anomaly detection, shown
+here in full rather than reduced to flags.
+
+Pure helpers exported: `computeRollingZScores` (the rolling
+mean / std / z recursion; returns per-index {mean, std, z,
+windowSize}; drops non-finite), `runLineZscore` (canonical
+pipeline; sorts ascending; drops non-finite; computes the
+rolling z-score; returns per-sample mean + std + z +
+windowSize + band plus maxAbsZ + finalZ + beyondCount),
+`classifyLineZscoreBand` ('within' | 'beyond'; strict
+comparison |z| > referenceLevel),
+`normaliseLineZscoreWindow` (integer >= 2; default 20),
+`normaliseLineZscoreReferenceLevel` (>= 0; default 2),
+`normaliseLineZscoreSubHeightRatio` (clamped to [0.1, 0.9]),
+`getLineZscoreDefaultColor`, `getLineZscoreFinitePoints`,
+`computeLineZscoreLayout` (projects the main + sub panels
+and the raw + z-score paths), `describeLineZscoreChart`.
+
+API: `series: ChartLineZscoreSeries[]` (per-series window
+override beats chart-level); `window` (default 20; rolling
+window length; clamped to integer >= 2); `referenceLevel`
+(default 2; magnitude of the +/- guide lines; clamped >= 0);
+`subHeightRatio` (default 0.4; clamped to [0.1, 0.9]);
+`referenceColor`; toggle flags `showAxis` / `showGrid` /
+`showDots` / `showLegend` / `showTooltip` /
+`showConfigBadge` / `showRaw` / `showZscore` /
+`showZeroLine` / `showReferenceLines` / `animate`;
+controlled + uncontrolled visibility; standard sizing +
+format + a11y props; `formatValue` / `formatX` /
+`formatZscore`; `onPointClick({series, point})`.
+
+Layout: two stacked SVG panels sharing the x axis -- main
+panel (top, ~60%) with the raw series line; z-score
+sub-panel (bottom, ~40%) with the continuous z-score line, a
+centred zero reference line, and dashed +/- referenceLevel
+guide lines, sub-panel y range symmetric around zero.
+
+Tooltip on dots shows label, x, raw, window mean, window
+std, bold z-score, and a coloured within/beyond
+<referenceLevel> sigma row. Config badge: `ZS W=<window>
+ref=<referenceLevel> maxZ=<maxAbsZ>`. Legend stats:
+per-series window + max z.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + z-score path + dots
+role=graphics-symbol + tabIndex=0. data-section on every
+node. Root mirrors data-window + data-reference-level +
+data-max-abs-z + data-animate. Raw path data-kind=raw;
+z-score path data-kind=zscore; reference lines data-side.
+Dots expose data-mean + data-std + data-zscore +
+data-window-size + data-band. Series groups expose window +
+referenceLevel + maxAbsZ + finalZ + beyondCount.
+
+77 vitest cases pass (defaults + helpers, computeRollingZScores
+incl. constant -> std/z 0 + window expands 1,2,3,3,3 + linear
+ramp z = sqrt(3/2) + two-point z = +/- 1 + SPIKE_BEYOND mean
+5/std 15/z 3, runLineZscore incl. per-sample z + classifies
+beyond + z at reference stays within + constant within +
+maxAbsZ/finalZ + window size, computeLineZscoreLayout incl.
+stacked panels + raw + z-score paths + symmetric sub y range
++ per-series window override + bounds + totalPoints,
+describeLineZscoreChart, render incl. empty + raw path +
+continuous z-score path + zero line + reference guide lines
++ hide raw/zscore + dots + config badge + ARIA + root data-*
++ group data-* + tooltip with mean + std + z-score + band
+rows + onPointClick + legend + animate + ref + displayName +
+xLabel + yLabel + subLabel + dot z-score/band attrs).
+TypeScript clean. Exported via barrel.
+
 ## [1.11.573] - 2026-05-20 -- UI: chart-line-ewmsd primitive (TODO 11.555)
 
 New **ChartLineEwmsd** UI primitive in
