@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.598] - 2026-05-20 -- UI: chart-line-obv primitive (TODO 11.580)
+
+New **ChartLineObv** UI primitive in
+`web/src/components/ui/chart-line-obv.tsx`: pure-SVG line
+chart with an On-Balance Volume cumulative sub-panel
+computed from paired price and volume series. The price line
+sits in the top panel; the bottom panel plots the OBV
+cumulative line with a dashed zero baseline and
+direction-coloured markers.
+
+computeLineObvDirections is the per-period close direction:
+index 0 has no prior close and reads flat; later indices
+read up / down / flat from the sign of price[i] -
+price[i-1].
+
+computeLineObv is Joe Granville's On-Balance Volume, a
+running cumulative total of volume. OBV starts at 0; each
+period adds that period's volume on an up close, subtracts
+it on a down close, and leaves the running total unchanged
+on a flat close. The line is defined at every index.
+
+runLineObv sorts the finite points by x, computes the OBV
+and direction series, and returns per-period samples plus
+obvFinal (last OBV), obvMin and obvMax. computeLineObvLayout
+stacks a price panel above an OBV panel sharing one x-axis;
+the OBV panel y-range spans 0 through the OBV extent so the
+dashed zero baseline is always placed, and each OBV marker
+carries its close direction for colour coding.
+
+This is distinct from chart-line-vwap, which is a
+volume-weighted average *price* -- a price-domain line
+(cumulative price*volume / cumulative volume) overlaid on
+the price. chart-line-obv is a volume-domain momentum line:
+it signs each period's volume by the price-change direction
+and accumulates. It is also distinct from the generic
+single-series running sum of chart-line-cumulative.
+
+Helpers exported: getLineObvFinitePoints,
+computeLineObvDirections, computeLineObv, runLineObv,
+computeLineObvLayout, describeLineObvChart. The component is
+a forwardRef region with an ARIA description, config badge,
+two-series legend (Price / OBV) with toggle, hover tooltip
+exposing price / volume / OBV / direction, and motion-safe
+fade-in. 83 vitest cases cover the math, layout,
+description, and rendering.
+
 ## [1.11.597] - 2026-05-20 -- UI: chart-line-atr primitive (TODO 11.579)
 
 New **ChartLineAtr** UI primitive in

@@ -289,3 +289,4 @@ export * from './chart-line-macd';
 export * from './chart-line-rsi';
 export * from './chart-line-stochastic';
 export * from './chart-line-atr';
+export * from './chart-line-obv';
