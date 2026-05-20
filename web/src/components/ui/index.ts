@@ -336,3 +336,4 @@ export * from './chart-line-disparity';
 export * from './chart-line-frama';
 export * from './chart-line-jma';
 export * from './chart-line-smma';
+export * from './chart-line-lsma';
