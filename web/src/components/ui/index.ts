@@ -268,3 +268,4 @@ export * from './chart-line-ewmsd';
 export * from './chart-line-zscore';
 export * from './chart-line-mad';
 export * from './chart-line-spearman';
+export * from './chart-line-tsne';

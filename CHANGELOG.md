@@ -4,6 +4,128 @@
 
 (no entries -- next release window)
 
+## [1.11.577] - 2026-05-20 -- UI: chart-line-tsne primitive (TODO 11.559)
+
+New **ChartLineTsne** UI primitive in
+`web/src/components/ui/chart-line-tsne.tsx`: pure-SVG line
+chart with a **2D embedding side panel**. The main panel
+(left) draws a multivariate time series -- one line per
+channel; the side panel (right) projects every shared time
+point into a 2D scatter via a **simple PCA-based
+projection**. This is the placeholder for a t-SNE-style
+nonlinear embedding visual -- a fast, deterministic linear
+stand-in.
+
+Each time point (an x value present in every channel) is
+treated as a D-dimensional observation, D = the channel
+count. The N x D observation matrix is projected to 2D by
+classical PCA: centre each column on its mean, form the
+D x D covariance matrix, extract the top-2 principal
+components by power iteration with deflation (PC1 is the
+dominant eigenvector of the covariance; the covariance is
+deflated by lambda1 * pc1 pc1^T and PC2 is iterated in the
+subspace orthogonal to PC1), then project each centred
+observation onto PC1 / PC2. The eigenvectors are sign-fixed
+(the largest-magnitude component is forced positive) so the
+embedding is fully deterministic and reproducible -- no
+random seed, no iteration jitter. explainedVariance[k] =
+eigenvalue_k / totalVariance, where totalVariance is the
+trace of the covariance; the fraction captured by the 2D
+embedding is explainedVariance[0] + explainedVariance[1].
+ok = false when there are fewer than 2 channels or fewer
+than 2 shared time points (the main line chart still
+renders).
+
+Verified properties: for y=x data (a 2-channel matrix whose
+rows all lie on the (1,1) line) PC1 aligns with
+(1,1)/sqrt(2), captures 100% of the variance, and the PC2
+embedding coordinate is zero for every point; for 3-channel
+data where channel B = 2*A and C is constant the covariance
+is rank 1, PC1 is (1,2,0)/sqrt(5) with eigenvalue 10
+capturing 100% of the variance; the principal components are
+unit vectors and mutually orthogonal; non-finite rows are
+dropped before the fit.
+
+Why PCA as a placeholder: real t-SNE is an iterative,
+stochastic, nonlinear embedding -- expensive and
+non-deterministic. For a chart primitive a linear PCA
+projection is the standard lightweight stand-in -- O(N D^2),
+deterministic, no training loop -- while still giving the
+"high-dimensional state -> 2D scatter trajectory" visual
+that an embedding panel is for. The component is named
+chart-line-tsne to mark its intent as the embedding
+primitive; the projection is documented as PCA-based.
+
+Pure helpers exported: `buildLineTsneMatrix` (pairs all
+channels by exact x match into the N x D observation matrix;
+one row per x present in every channel), `computePcaProjection`
+(the PCA projection: {ok, sampleCount, dimensions, mean,
+components, eigenvalues, totalVariance, explainedVariance,
+embedding}; drops non-finite rows), `runLineTsne`
+(buildLineTsneMatrix + computePcaProjection together),
+`computeLineTsneLayout` (the dual-panel layout: the main
+multi-line chart, the embedding scatter + trajectory path,
+tick arrays, the PCA result), `getLineTsneDefaultColor`,
+`getLineTsneFinitePoints`, `describeLineTsneChart`.
+
+API: `series: ChartLineTsneSeries[]` (each series is one
+channel / dimension); `mainPanelRatio` (default 0.58;
+clamped to [0.2, 0.8]); `embeddingColor`; toggle flags
+`showAxis` / `showGrid` / `showDots` / `showLegend` /
+`showTooltip` / `showBadge` / `showTrajectory` /
+`showEmbeddingDots` / `animate`; standard sizing + format +
+a11y props; `formatValue` / `formatX` / `formatEmbedding`;
+`xLabel` / `yLabel`; `onPointClick({channel, point})` (main
+panel) + `onEmbeddingPointClick({point})` (embedding panel).
+
+Layout: two side-by-side panels -- main panel (left, ~58%)
+with one line per channel over the time axis on a shared
+y-axis; embedding panel (right, ~42%) with a 2D scatter of
+the embedded time points (PC1 on x, PC2 on y), a dashed
+origin crosshair at the data centroid, and a faint
+trajectory path connecting consecutive time points; the
+dots ramp in opacity from the first time point (0.35) to
+the last (1.0) so the direction of travel through embedding
+space is visible.
+
+Tooltip on a main-panel dot shows the channel label, x, y;
+on an embedding point shows the time x, PC1 and PC2. Config
+badge: `PCA d=<channels> n=<samples> var=<explained variance
+%>` (or `embedding n/a`). Legend lists each channel +
+embedding stats.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, channel paths + main-panel dots + embedding
+points role=graphics-symbol + tabIndex=0. data-section on
+every node. Root mirrors data-channel-count +
+data-sample-count + data-pca-ok + data-explained-variance +
+data-total-points + data-animate. Series groups expose
+colour + counts. Embedding points expose data-x + data-e1 +
+data-e2. Grid lines / axes carry data-panel (main /
+embedding). The tooltip carries data-tooltip-kind (series /
+embedding).
+
+64 vitest cases pass (defaults + helpers, buildLineTsneMatrix
+incl. pairs by exact x + keeps only shared x + drops
+non-finite, computePcaProjection incl. ok=false guards +
+y=x PC1 aligns with (1,1)/sqrt(2) + y=x captures all
+variance + y=x PC2 spread zero + 3D one-dominant-direction
+PC1 ~ (1,2,0)/sqrt(5) eigenvalue 10 + unit + orthogonal
+components + drops non-finite rows, runLineTsne,
+computeLineTsneLayout incl. main + embedding panels + path
+per channel + embedding point per sample + opacity ramp +
+PCA result + main renders when embedding unavailable +
+bounds + totalPoints, describeLineTsneChart, render incl.
+empty + path per channel + embedding trajectory + point per
+sample + origin crosshair + hide trajectory + hide
+embedding dots + config badge + hide badge + main dots +
+ARIA + root data-* + embedding point e1/e2 attrs + series
+tooltip + embedding tooltip + omit tooltip + onPointClick +
+onEmbeddingPointClick + legend + omit legend +
+single-channel render + animate + ref + displayName +
+ariaLabel + xLabel + yLabel). TypeScript clean. Exported
+via barrel.
+
 ## [1.11.576] - 2026-05-20 -- UI: chart-line-spearman primitive (TODO 11.558)
 
 New **ChartLineSpearman** UI primitive in
