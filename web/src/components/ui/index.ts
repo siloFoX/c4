@@ -314,3 +314,4 @@ export * from './chart-line-rvi';
 export * from './chart-line-stc';
 export * from './chart-line-elder-ray';
 export * from './chart-line-ultimate';
+export * from './chart-line-hma';
