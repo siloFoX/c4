@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.658] - 2026-05-20 -- UI: chart-line-stddev primitive (TODO 11.640)
+
+New **ChartLineStdDev** UI primitive in
+`web/src/components/ui/chart-line-stddev.tsx`: pure-SVG line
+chart with a rolling standard deviation band overlay around a
+moving average.
+
+computeLineStdDevBasis is the period-bar simple moving average
+(the basis). computeLineStdDev is the rolling population
+standard deviation over the same window,
+`sqrt(mean of (value - mean)^2)`; a flat window reports zero.
+Both are null through the warm-up. runLineStdDev derives the
+band edges -- `upper = basis + multiplier*stddev` and
+`lower = basis - multiplier*stddev` -- so the band widens when
+the price turns volatile and tightens when it settles.
+
+runLineStdDev sorts the finite price points by x, computes the
+basis, standard deviation and band series, and returns per-bar
+samples classified above / below / on the basis, plus the final
+basis and band readings and the above / below counts.
+computeLineStdDevLayout projects the price, basis, upper and
+lower paths plus a filled band area on one shared panel.
+
+ChartLineStdDev renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge showing the period and multiplier, a
+three-series legend (Price / Basis / Std dev band) with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in. It
+consumes `{ x, value }` points. Distinct from the smoothing
+overlays: this primitive draws a volatility *channel* -- a basis
+line with an upper and a lower edge -- rather than a single
+smoothed line.
+
+60 vitest cases in `chart-line-stddev.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.658.
+
 ## [1.11.657] - 2026-05-20 -- UI: chart-line-hilbert primitive (TODO 11.639)
 
 New **ChartLineHilbert** UI primitive in
