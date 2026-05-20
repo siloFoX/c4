@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.614] - 2026-05-20 -- UI: chart-line-ppo primitive (TODO 11.596)
+
+New **ChartLinePpo** UI primitive in
+`web/src/components/ui/chart-line-ppo.tsx`: pure-SVG line chart
+with a Percentage Price Oscillator panel rendering the PPO
+line, signal line, and histogram. The value line sits in the
+top panel; the bottom panel renders the PPO line, a dashed
+signal line, and sign-coloured histogram bars anchored on a
+dashed zero centerline.
+
+computeLinePpoEma is an exponential moving average that
+tolerates leading `null` placeholders: the seed is the simple
+mean of the first `period` defined values placed at that
+value's index, then each later defined value folds in at
+weight `2 / (period + 1)`. computeLinePpo runs that EMA at a
+fast and a slow period (default 12 and 26), takes the PPO line
+as the percentage gap `100 * (fastEMA - slowEMA) / slowEMA`,
+runs the EMA again over the PPO line for the signal line
+(default 9), and takes the histogram as PPO minus signal. The
+percentage normalisation -- dividing by the slow EMA -- is the
+step MACD omits; it makes the reading comparable across price
+levels and instruments.
+
+runLinePpo sorts the finite points by x, computes the three
+series, and returns per-period samples (each carrying a
+positive/negative/zero histogram sign), the final PPO, signal
+and histogram readings, the PPO range, and counts of histogram
+readings above and below the zero line.
+computeLinePpoLayout stacks a value panel above a PPO panel
+sharing one x-axis, derives a symmetric y-bound covering the
+PPO, signal and histogram readings, and projects the value
+path, the PPO path, the signal path, zero-anchored histogram
+bars, sign-coloured markers, and a zero centerline.
+
+ChartLinePpo renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+EMA and signal periods, a four-series legend (Value / PPO /
+Signal / Histogram) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. Distinct from chart-line-macd:
+MACD plots the raw EMA difference in absolute price units,
+whereas the PPO normalises that difference by the slow EMA
+into a percentage. 59 vitest cases cover the EMA and PPO
+primitives, the full pipeline against a hand-verified fixture,
+layout geometry, the description text, and component
+rendering.
+
 ## [1.11.613] - 2026-05-20 -- UI: chart-line-coppock primitive (TODO 11.595)
 
 New **ChartLineCoppock** UI primitive in

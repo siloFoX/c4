@@ -305,3 +305,4 @@ export * from './chart-line-tsi';
 export * from './chart-line-cmo';
 export * from './chart-line-fisher';
 export * from './chart-line-coppock';
+export * from './chart-line-ppo';
