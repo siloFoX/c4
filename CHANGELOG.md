@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.667] - 2026-05-20 -- UI: chart-line-qstick primitive (TODO 11.649)
+
+New **ChartLineQstick** UI primitive in
+`web/src/components/ui/chart-line-qstick.tsx`: pure-SVG
+two-panel chart with a Qstick indicator panel showing a moving
+average of the close minus open spread.
+
+`ChartLineQstickPoint` is `{ x, value, open }` -- `value` is the
+bar close, `open` the bar open. computeLineQstickSpread is the
+per-bar `close - open` spread; computeLineQstick is the
+`period`-bar simple moving average of that spread. A positive
+Qstick marks sustained buying pressure (closes consistently
+above opens), a negative Qstick selling pressure, and a reading
+near zero a balanced market.
+
+runLineQstick sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified bullish /
+bearish / neutral by the sign of the Qstick, plus the final
+reading and the bullish / bearish counts. computeLineQstickLayout
+stacks the price panel above a zero-centred Qstick panel
+carrying the indicator line, a dashed zero line and
+sentiment-coloured markers.
+
+ChartLineQstick renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / Qstick) with toggle buttons, hover/focus tooltips
+exposing the open and the spread, and a `motion-safe` fade-in.
+Distinct from the moving-average overlays: the Qstick averages
+the intrabar close-minus-open spread, a sentiment measure, not
+the price level itself.
+
+62 vitest cases in `chart-line-qstick.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.667.
+
 ## [1.11.666] - 2026-05-20 -- UI: chart-line-vwma primitive (TODO 11.648)
 
 New **ChartLineVwma** UI primitive in
