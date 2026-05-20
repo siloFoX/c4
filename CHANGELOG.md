@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.654] - 2026-05-20 -- UI: chart-line-laguerre primitive (TODO 11.636)
+
+New **ChartLineLaguerre** UI primitive in
+`web/src/components/ui/chart-line-laguerre.tsx`: pure-SVG line
+chart with an Ehlers Laguerre filter overlay using a four-stage
+cascade.
+
+computeLineLaguerreStages runs John Ehlers' four-stage Laguerre
+cascade. Seeded with the first price, each bar advances the
+stages: `L0 = (1-gamma)*price + gamma*L0_prev`, then each later
+stage damps the one before it as
+`L_k = -gamma*L_{k-1} + L_{k-1}_prev + gamma*L_k_prev`.
+computeLineLaguerre blends the four stages into the filter,
+`(L0 + 2*L1 + 2*L2 + L3) / 6`. The line is defined from index 0
+with no warm-up; a flat series holds at its constant. The gamma
+damping factor lives in `[0, 1)` and trades smoothness against
+lag.
+
+runLineLaguerre sorts the finite price points by x, computes the
+filter, and returns per-bar samples classified above / below /
+on the filter, plus the final / min / max readings and the
+above / below counts. computeLineLaguerreLayout projects the
+price path and the filter path on one shared panel with a marker
+per bar.
+
+ChartLineLaguerre renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / Laguerre)
+with toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, value }` points. Distinct from the
+windowed and single-stage moving averages: the Laguerre filter
+chains four damped stages, so one gamma yields a smooth, low-lag
+curve without a look-back window.
+
+54 vitest cases in `chart-line-laguerre.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.654.
+
 ## [1.11.653] - 2026-05-20 -- UI: chart-line-mcginley primitive (TODO 11.635)
 
 New **ChartLineMcGinley** UI primitive in

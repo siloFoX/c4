@@ -345,3 +345,4 @@ export * from './chart-line-heikin-ashi';
 export * from './chart-line-renko';
 export * from './chart-line-kagi';
 export * from './chart-line-mcginley';
+export * from './chart-line-laguerre';
