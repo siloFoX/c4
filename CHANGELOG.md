@@ -4,6 +4,124 @@
 
 (no entries -- next release window)
 
+## [1.11.573] - 2026-05-20 -- UI: chart-line-ewmsd primitive (TODO 11.555)
+
+New **ChartLineEwmsd** UI primitive in
+`web/src/components/ui/chart-line-ewmsd.tsx`: pure-SVG line
+chart with an **EWMA mean** line and an
+**exponentially-weighted standard deviation band** overlay.
+Raw observations render as a dimmed reference line; the EWMA
+mean renders as a solid coloured line; a translucent
+`mean +/- k * EWM-std` band fills the volatility envelope
+around it; points outside the band are flagged as
+exceedances.
+
+The chart uses Finch's incremental exponentially-weighted
+mean and variance recursion: for each new value y_t,
+`delta_t = y_t - mean_{t-1}`, `mean_t = mean_{t-1} + alpha *
+delta_t`, `var_t = (1 - alpha) * (var_{t-1} + alpha *
+delta_t^2)`. The mean recursion is exactly the standard EWMA
+`mean_t = alpha * y_t + (1 - alpha) * mean_{t-1}`; var_t is
+the exponentially-weighted variance where every past squared
+deviation contributes with a geometrically decaying weight,
+so the EWM standard deviation sqrt(var_t) tracks recent
+volatility. Seed: mean_0 = y_0, var_0 = 0. The band at index
+t is [mean_t - k*std_t, mean_t + k*std_t] with band-width
+multiplier k (default 2, a roughly 95% Gaussian envelope). A
+point is an exceedance when it falls strictly outside the
+band ('above' or 'below').
+
+Verified properties: a constant series has var = std = 0
+throughout (band collapses onto the mean); a step series
+[0,0,0,10] with alpha 0.5 yields mean = 5, var = 25, std = 5
+at the jump; the calm-then-spike fixture [10,10,10,10,10,100]
+with alpha 0.1 yields exactly mean = 19, var = 729, std = 27
+at the spike; the variance is always non-negative; index 0
+is always within the band; a spike exceeds the band only
+when alpha < 1/(1+k^2) (with k=2 that is alpha < 0.2).
+
+Distinct from `<ChartLineEwma>` (11.539; plots only the
+EWMA mean line -- a single exponential smoother with NO
+variance and NO band -- EWMSD adds the second moment, the
+exponentially-weighted standard deviation and the volatility
+envelope), `<ChartLineBollinger>` (11.537; Bollinger Bands
+use a ROLLING fixed-window simple moving average plus a
+ROLLING sample standard deviation -- the window has a hard
+edge, whereas EWMSD has INFINITE MEMORY with geometric
+decay so the band reacts faster to a volatility regime
+change and has no abrupt window-drop artifacts),
+`<ChartLineControl>` (11.534; a Shewhart SPC chart with
+GLOBAL constant control limits at mean +- k*sigma computed
+once over the whole series -- EWMSD's band is ADAPTIVE and
+breathes with local volatility), `<ChartLineConfidence>`
+(11.502; renders externally supplied per-point bounds --
+EWMSD derives its band from the data), and `<ChartLineCusum>`
+(11.554; a cumulative-sum drift detector for the mean --
+EWMSD models the spread). The volatility-adaptive cousin of
+Bollinger Bands -- the RiskMetrics-style
+exponentially-weighted view used when recent volatility
+should dominate the envelope.
+
+Pure helpers exported: `computeLineEwmsd` (the incremental
+EWM mean/variance recursion; returns per-index {mean,
+variance, std}; drops non-finite), `runLineEwmsd` (canonical
+pipeline; sorts ascending; drops non-finite; runs the
+recursion; builds the band and the exceedance flags; returns
+per-sample mean + variance + std + upper + lower +
+exceedance plus exceedance counts and finalMean / finalStd /
+maxStd), `classifyLineEwmsdExceedance` ('above' | 'below' |
+'within'; strict comparison), `normaliseLineEwmsdAlpha`
+(clamps to (0, 1]; default 0.3), `normaliseLineEwmsdBandMultiplier`
+(>= 0; default 2), `getLineEwmsdDefaultColor`,
+`getLineEwmsdFinitePoints`, `computeLineEwmsdLayout`
+(projects raw + mean paths, the band fill + edge paths, and
+the exceedance list), `describeLineEwmsdChart`.
+
+API: `series: ChartLineEwmsdSeries[]` (per-series alpha /
+bandMultiplier overrides beat chart-level); `alpha` (default
+0.3; clamped to (0, 1]); `bandMultiplier` (default 2; band
+width k; clamped >= 0); `rawColor` / `exceedanceColor`;
+`bandOpacity` (default 0.15); toggle flags `showAxis` /
+`showGrid` / `showDots` / `showLegend` / `showTooltip` /
+`showConfigBadge` / `showRaw` / `showMean` / `showBand` /
+`showExceedances` / `animate`; controlled + uncontrolled
+visibility; standard sizing + format + a11y props;
+`formatValue` / `formatX` / `formatCoefficient`;
+`onPointClick({series, point})`.
+
+Tooltip on dots shows label, x, raw, bold EWMA mean, EWM
+std, the band [lower, upper] range, and a coloured band
+exceedance row on points outside the band. Config badge:
+`EWMSD a=<alpha> k=<multiplier> sd=<finalStd> exc=<count>`.
+Legend stats: per-series alpha + exceedance count.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + mean path + exceedance markers +
+dots role=graphics-symbol + tabIndex=0. data-section on
+every node. Root mirrors data-total-exceedances + data-alpha
++ data-band-multiplier + data-animate. Raw path
+data-kind=raw; mean path data-kind=mean; band edge paths
+data-kind=upper/lower. Dots expose data-mean + data-std +
+data-upper + data-lower + data-exceedance. Series groups
+expose alpha + bandMultiplier + finalMean + finalStd +
+maxStd + exceedance counts.
+
+75 vitest cases pass (defaults + helpers, computeLineEwmsd
+incl. constant -> var/std 0 + EWMA mean recursion + step
+variance 25/std 5 + EXCEED_UP std 27 + variance non-negative,
+runLineEwmsd incl. band = mean +/- k*std + upward + downward
+exceedance detection + calm series no exceedances + index 0
+within + finalMean/finalStd/maxStd, computeLineEwmsdLayout
+incl. raw + mean + band fill + edge paths + per-series
+overrides + y range covers band + bounds + totalPoints,
+describeLineEwmsdChart, render incl. empty + raw path + mean
+path + band fill + edge paths + hide band/raw/mean +
+exceedance marker + dots + config badge + ARIA + root data-*
++ group data-* + tooltip with mean + std + band +
+exceedance rows + onPointClick + legend + animate + ref +
+displayName + xLabel + yLabel + calm zero exceedances).
+TypeScript clean. Exported via barrel.
+
 ## [1.11.572] - 2026-05-20 -- UI: chart-line-cusum primitive (TODO 11.554)
 
 New **ChartLineCusum** UI primitive in
