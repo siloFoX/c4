@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.674] - 2026-05-20 -- UI: chart-line-tdi primitive (TODO 11.656)
+
+New **ChartLineTdi** UI primitive in
+`web/src/components/ui/chart-line-tdi.tsx`: pure-SVG two-panel
+chart with a Traders Dynamic Index panel combining an RSI line, a
+smoothed signal line and a volatility band.
+
+computeLineTdiRsi computes Cutler's RSI of the close -- the share
+`100 * avgGain / (avgGain + avgLoss)` over a simple moving
+average of the bar gains and losses; a window with no movement
+reads 50. computeLineTdiSma is the moving average of a nullable
+series. computeLineTdiBand builds a Bollinger band on the RSI:
+the middle is the RSI moving average, the upper and lower sit a
+multiplier of population standard deviations away. computeLineTdi
+wires all three together -- the RSI, a signalPeriod moving
+average of that RSI, and a bandPeriod volatility band.
+
+runLineTdi sorts the finite price points by x, runs the pipeline,
+and returns per-bar samples classified bullish / bearish /
+neutral by the RSI versus the signal, plus the final readings and
+the bullish / bearish counts. computeLineTdiLayout stacks the
+price panel above a TDI panel that renders the band as a filled
+area, the signal and RSI as lines, RSI markers, and a dashed 50
+reference line.
+
+ChartLineTdi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the three periods, a four-series legend
+(Price / RSI / Signal / Band) with toggle buttons, hover/focus
+tooltips, and a `motion-safe` fade-in. Distinct from the prior
+oscillators: the TDI is a composite that layers an RSI line, a
+moving-average signal of that RSI, and a Bollinger band on the
+RSI in one panel.
+
+76 vitest cases in `chart-line-tdi.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.674.
+
 ## [1.11.673] - 2026-05-20 -- UI: chart-line-gator primitive (TODO 11.655)
 
 New **ChartLineGator** UI primitive in
