@@ -4,6 +4,130 @@
 
 (no entries -- next release window)
 
+## [1.11.578] - 2026-05-20 -- UI: chart-line-kalman-smoother primitive (TODO 11.560)
+
+New **ChartLineKalmanSmoother** UI primitive in
+`web/src/components/ui/chart-line-kalman-smoother.tsx`:
+pure-SVG line chart with a 1D **Rauch-Tung-Striebel (RTS)
+smoother** and a shaded uncertainty band.
+
+TODO 11.560 was dispatched as "Build chart-line-kalman.tsx"
+-- but that file already exists (shipped by TODO 11.538,
+v1.11.556) with the Kalman filter, the smoothed-estimate
+overlay and the shaded uncertainty band. 11.560 is a
+verbatim duplicate. Per operator direction it is delivered
+as a NEW, distinct primitive that leaves `chart-line-kalman`
+untouched and adds the genuinely missing piece -- the
+backward smoother -- rather than rebuilding (and discarding)
+working, tested, shipped code.
+
+The forward Kalman filter is causal: at step k it estimates
+the state from observations z_1..z_k only -- x_k | z_1..z_k,
+the online estimate. The RTS smoother adds a backward pass
+that refines every estimate using ALL observations z_1..z_N,
+so each smoothed estimate is x_k | z_1..z_N. Backward
+recursion for the random-walk model (run from k=N-2 down to
+0; the final point's smoothed estimate equals the filter
+estimate): `C_k = P_filt_k / P_pred_{k+1}`, `x_smooth_k =
+x_filt_k + C_k * (x_smooth_{k+1} - x_pred_{k+1})`,
+`P_smooth_k = P_filt_k + C_k^2 * (P_smooth_{k+1} -
+P_pred_{k+1})`. The forward pass is reused directly --
+runRtsSmoother calls runLineKalmanFilter (imported from
+./chart-line-kalman) and layers the backward recursion on
+top, so the smoother literally is "the filter plus a
+backward pass".
+
+Key property: P_smooth_k <= P_filt_k for every k -- the
+smoother is at least as confident as the filter everywhere,
+strictly tighter except at the final point, so the smoothed
+uncertainty band is narrower than the filter band.
+
+Verified properties: with Q = 0 (constant-state model) the
+smoother collapses every estimate onto the final filter
+estimate and every variance onto the final (smallest)
+filter variance -- for the fixture [10,12,8,10] the forward
+filter estimates are [10, 32/3, 10, 10], the smoothed
+estimates are all 10 and the smoothed variances all 0.2; the
+final point's smoothed estimate and variance equal the
+filter's for any Q; the smoother never increases the
+variance over the filter; a single point: the smoother
+equals the filter; the smoother gain is 0 at the final
+point.
+
+Distinct from `<ChartLineKalman>` (11.538): that runs the
+FORWARD FILTER ONLY -- causal, online, x_k | z_1..z_k, each
+estimate is "best so far". ChartLineKalmanSmoother runs the
+filter PLUS the RTS backward pass -- non-causal, offline,
+x_k | z_1..z_N, each estimate is "best given everything" and
+is strictly lower-variance. The smoother chart draws all
+three lines on shared axes -- raw observations, the dashed
+causal forward-filter estimate, and the solid RTS smoothed
+estimate -- so the difference between filtering and
+smoothing is visible; it fills the smoothed uncertainty band
+as the primary band and optionally overlays the filter band
+edges (showFilterBand) so the band-narrowing is visible.
+
+Pure helpers exported: `runRtsSmoother` (forward filter via
+runLineKalmanFilter plus the RTS backward pass; returns
+per-point filterEstimate + filterVariance + smoothedEstimate
++ smoothedVariance + smootherGain + filter/smoothed band
+bounds), `computeLineKalmanSmootherLayout` (projects the
+observation / filter / smoothed paths and the smoothed band
++ filter band edges; per-series carries the mean filter /
+smoothed variance and the variance-reduction percentage),
+`getLineKalmanSmootherDefaultColor`,
+`getLineKalmanSmootherFinitePoints`,
+`describeLineKalmanSmootherChart`.
+
+API: `series: ChartLineKalmanSmootherSeries[]` (per-series
+Q / R / x_0 / P_0 / k always beat chart-level); `processNoise`
+Q (default 0.01); `measurementNoise` R (default 1);
+`initialVariance` P_0 (default 1); `kSigma` (default 2);
+`obsColor` / `filterColor`; `bandOpacity` / `obsOpacity`;
+toggle flags `showAxis` / `showGrid` / `showDots` /
+`showLegend` / `showTooltip` / `showConfigBadge` /
+`showObservations` / `showFilter` / `showSmoothed` /
+`showBand` / `showFilterBand` / `animate`; controlled +
+uncontrolled visibility; standard sizing + format + a11y
+props; `formatValue` / `formatX` / `formatCoefficient`;
+`onPointClick({series, point})`.
+
+Tooltip on dots shows label, x, observation, filter
+estimate, bold smoothed estimate, filter variance and
+smoothed variance. Config badge: `RTS Q=<q> R=<r>
+-<reduction>% var`. Legend stats: per-series Q + variance
+reduction.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, observation / filter / smoothed paths + dots
+role=graphics-symbol + tabIndex=0. data-section on every
+node. Root mirrors data-process-noise + data-measurement-noise
++ data-variance-reduction + data-animate. Observation path
+data-kind=observation; filter path data-kind=filter;
+smoothed path / band data-kind=smoothed. Dots expose
+data-observation + data-filter-estimate +
+data-smoothed-estimate + data-filter-variance +
+data-smoothed-variance + data-smoother-gain. Series groups
+expose Q + R + kSigma + mean filter / smoothed variance +
+variance reduction + final smoothed estimate.
+
+55 vitest cases pass; the existing chart-line-kalman suite
+still passes 60/60 (chart-line-kalman.tsx unchanged --
+runRtsSmoother imports its forward filter). Cases cover
+defaults + helpers, runRtsSmoother incl. last point = filter
++ Q=0 estimate/variance collapse + variance never increases
++ smoother differs from filter at interior points + gain 0
+at final + band straddles estimate + sort/drop-non-finite,
+computeLineKalmanSmootherLayout incl. paths + variance
+reduction stats + per-series overrides + bounds +
+totalPoints, describeLineKalmanSmootherChart, render incl.
+empty + obs/filter/smoothed path kinds + band + hide
+band/observations/filter + filter band omit/show + dots +
+config badge + ARIA + root data-* + group data-* + tooltip
++ onPointClick + legend + animate + ref + displayName +
+ariaLabel + xLabel + yLabel + dot estimate attrs.
+TypeScript clean. Exported via barrel.
+
 ## [1.11.577] - 2026-05-20 -- UI: chart-line-tsne primitive (TODO 11.559)
 
 New **ChartLineTsne** UI primitive in
