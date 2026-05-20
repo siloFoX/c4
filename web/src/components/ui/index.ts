@@ -261,3 +261,4 @@ export * from './chart-line-hampel';
 export * from './chart-line-loess';
 export * from './chart-line-spline-bspline';
 export * from './chart-line-autocorrelation';
+export * from './chart-line-arima';
