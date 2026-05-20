@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.636] - 2026-05-20 -- UI: chart-line-wma primitive (TODO 11.618)
+
+New **ChartLineWma** UI primitive in
+`web/src/components/ui/chart-line-wma.tsx`: pure-SVG line chart
+with a linearly Weighted Moving Average overlay drawn on the
+same axes as the price.
+
+computeLineWma is the linearly Weighted Moving Average. Over a
+trailing window of `period` values each value is weighted by
+its recency -- the oldest value in the window carries weight 1,
+the next weight 2, and the newest weight `period` -- and the
+weighted sum is divided by the triangular weight total
+`period * (period + 1) / 2`. Because the newest value carries
+the heaviest weight, the WMA reacts to the latest price faster
+than a simple equal-weight moving average. Unlike the EMA-based
+moving averages it is a non-recursive fixed-window average,
+defined from index `period - 1` onward.
+
+runLineWma sorts the finite points by x, computes the WMA
+series, and returns per-period samples (each tagged with the
+price's above / below / on position versus the WMA), the
+final / min / max WMA readings, and counts of bars above and
+below. computeLineWmaLayout projects the price path and the WMA
+path onto one shared panel with a y-domain spanning both, plus
+markers wherever the WMA is defined.
+
+ChartLineWma renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / WMA) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes `{ x, value }` points. Distinct from a
+simple moving average, which weights every value in the window
+equally; from chart-line-alma, which weights the window with a
+gaussian rather than a linear ramp; and from the EMA-based
+lag reducers chart-line-dema / chart-line-tema, which combine
+recursive exponential averages -- the WMA is the non-recursive
+linear-weight average that the Hull moving average is itself
+composed from. 52 vitest cases cover the WMA helper, the
+pipeline against a hand-verified bit-exact fixture, the
+recency weighting, the warm-up, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.635] - 2026-05-20 -- UI: chart-line-tema primitive (TODO 11.617)
 
 New **ChartLineTema** UI primitive in
