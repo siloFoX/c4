@@ -340,3 +340,4 @@ export * from './chart-line-lsma';
 export * from './chart-line-fractal';
 export * from './chart-line-pivot-points';
 export * from './chart-line-gann';
+export * from './chart-line-andrews';
