@@ -4,6 +4,216 @@
 
 (no entries -- next release window)
 
+## [1.11.563] - 2026-05-20 -- UI: chart-line-spectrogram primitive (TODO 11.545)
+
+New **ChartLineSpectrogram** UI
+primitive in
+`web/src/components/ui/chart-line-spectrogram.tsx`:
+pure-SVG **STFT spectrogram**
+chart. Pairs a time-domain
+line on top with a 2D
+frequency-vs-time heatmap
+below, where each column is
+one Short-Time Fourier
+Transform frame, each row is
+a frequency bin, and the
+cell color encodes the
+magnitude. A dominant-
+frequency track overlays the
+heatmap as a dashed line
+showing how the dominant
+frequency evolves across
+frames. The canonical
+librosa / matplotlib /
+Audacity spectrogram output
+used for visualising audio,
+vibration, EEG, or any
+signal where the dominant
+frequency shifts over time.
+STFT algorithm: for each
+window position start = 0,
+hop, 2*hop, ... extract
+samples y[start..start+W-1]
+(optionally pre-detrended by
+subtracting the global
+mean), multiply element-wise
+by window coefficients
+w[0..W-1], compute the
+half-spectrum DFT (length
+W/2 + 1), take per-bin
+magnitude. Frames = `floor((N
+- W) / hop) + 1`. Frequency
+at bin k = `k / (W *
+sampleStep)`. Bin 0 (DC) is
+dropped from the heatmap by
+default. Pure helpers
+`computeLineSpectrogram`
+(canonical STFT pipeline;
+sorts ascending; drops
+non-finite; returns
+`{ok, frames, windowSize,
+hopSize, windowMode,
+binCount, maxMagnitude,
+frequencies, totalSamples,
+sampleStep}`; each frame
+carries `{frameIndex,
+centerSampleIndex, centerX,
+startX, endX, magnitudes,
+dominantBin,
+dominantFrequency,
+dominantMagnitude}`; input
+shorter than window ->
+ok=false),
+`computeLineSpectrogramWindowCoefficients`
+(canonical window weights;
+same formulas as 11.544),
+`getLineSpectrogramScaleColor`
+(3-stop linear interpolation
+in RGB; clamps to [0, 1];
+non-finite -> low),
+`normaliseLineSpectrogramWindowSize`
+(clamps to >= 2),
+`normaliseLineSpectrogramHopSize`
+(default half window; clamps
+to [1, windowSize]),
+`normaliseLineSpectrogramWindowMode`
+(default 'hann'),
+`normaliseLineSpectrogramPanelRatio`
+(clamps to [0.1, 0.6]),
+`computeLineSpectrogramLayout`
+(projects line path + heatmap
+cells + dominant-track
+polyline; cells.length =
+frames * (binCount - 1 with
+default excludeDc); per-cell
+projected color from
+normalised magnitude),
+and `describeLineSpectrogramChart`.
+Distinct from
+`<ChartLineFft>` (11.540;
+single 1D spectrum of whole
+signal -- spectrogram is a
+SEQUENCE of windowed
+spectra over sliding
+windows), `<ChartLineFftWindow>`
+(11.544; single windowed
+1D spectrum of whole signal
+-- spectrogram applies the
+same windowing PER WINDOW
+POSITION and stacks results
+into a 2D heatmap), and
+`<ChartLineDecompose>`
+(11.543; time-domain
+seasonal split --
+spectrogram is frequency-
+domain and TIME-VARYING).
+Controlled + uncontrolled
+window mode toggle via
+`windowMode` (controlled)
+or `defaultWindowMode`
+(uncontrolled; default
+'hann') + `onWindowModeChange`.
+Color scale 3-stop gradient
+(low / mid / high) shown
+below the chart with the
+maximum magnitude label.
+Tooltip on cells shows
+frame number, bin,
+frequency, bold magnitude,
+and (when dominant)
+coloured "dominant" row.
+Dominant badge in top-left
+calls out frame count +
+window mode + window size
++ peak frequency with
+icon ▦. ARIA: root
+`role="region"` +
+`aria-describedby`; SVG
+`role="img"`; time path +
+time dots + every cell +
+dominant track all
+`role="graphics-symbol"
+tabIndex={0}` where
+interactive; window mode
+toggle is role=radiogroup
+with role=radio buttons +
+aria-checked. Data-attrs:
+root `data-window-size`,
+`data-hop-size`,
+`data-window-mode`,
+`data-frame-count`,
+`data-bin-count`,
+`data-total-points`,
+`data-max-magnitude`,
+`data-peak-frame-index`,
+`data-peak-frequency`,
+`data-detrend`,
+`data-exclude-dc`; cells
+`data-frame-index`,
+`data-bin-index`,
+`data-frequency`,
+`data-magnitude`,
+`data-normalised-magnitude`,
+`data-dominant`; dominant
+track `data-kind="dominant"`.
+84 vitest cases pass
+(defaults + 4 canonical
+window modes, helpers,
+computeLineSpectrogramWindowCoefficients
+incl. canonical window
+formulas (Hann endpoints 0
++ center 1 / Hamming
+endpoints 0.08 / Blackman
+endpoints 0 + center 1),
+getLineSpectrogramScaleColor
+incl. t=0/0.5/1 verified
+at #000000/#888888/#ffffff
++ clamps + non-finite,
+computeLineSpectrogram
+incl. ok=false when input
+< window / **chirp
+dominant bin shifts from 4
+to 8** (period-4 -> period-2
+verified) / steady cosine
+same dominant in every
+frame / drops non-finite /
+sort ascending / max
+magnitude > 0 / frame
+centerX in [startX, endX],
+computeLineSpectrogramLayout
+incl. splits canvas + time
+path + cells + cells.length
+= frames * (binCount-1) +
+one dominant cell per frame
++ dominant track length =
+frames + rgb cell colors +
+normalised in [0,1] +
+higher frequency at top of
+screen,
+describeLineSpectrogramChart
+No data + STFT frames +
+window + bins, component
+render incl. empty + time
+path kind=time + hide line
++ cells + dominant
+data-dominant=true + track
++ hide track + badge +
+omit + window toggle 4
+buttons + active aria-
+checked + uncontrolled
+click + controlled stays +
+hide toggle + color scale
++ omit + ARIA + root
+data-* + tooltip cell rows
++ dominant row + hide on
+leave + omit + onCellClick
++ onPointClick + legend
+frames+bins+window+hop +
+omit + animate + ref +
+displayName). Implementation
+patch:
+`docs/patches/11.545-ui-chart-line-spectrogram.md`.
+
 ## [1.11.562] - 2026-05-20 -- UI: chart-line-fft-window primitive (TODO 11.544)
 
 New **ChartLineFftWindow** UI

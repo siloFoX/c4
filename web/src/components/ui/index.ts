@@ -254,3 +254,4 @@ export * from './chart-line-resample';
 export * from './chart-line-rangefocus';
 export * from './chart-line-decompose';
 export * from './chart-line-fft-window';
+export * from './chart-line-spectrogram';
