@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.683] - 2026-05-20 -- UI: chart-line-pvi primitive (TODO 11.665)
+
+New **ChartLinePvi** UI primitive in
+`web/src/components/ui/chart-line-pvi.tsx`: pure-SVG two-panel
+chart with a Positive Volume Index panel tracking cumulative
+change on higher-volume bars.
+
+computeLinePviIndex builds the cumulative index. Seeded at a base
+value, it updates only on bars whose volume rose from the prior
+bar -- `PVI[i] = PVI[i-1] * close[i] / close[i-1]` -- and holds
+flat on every other bar, so it compounds the price's percent
+change on the loud bars only. It is the mirror of the Negative
+Volume Index, which moves on the quiet bars.
+
+runLinePvi sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified up / down / flat
+by the index movement, the movement counts and the final
+reading. computeLinePviLayout stacks the price panel above a PVI
+panel with the index line, one marker per bar coloured by
+movement, and a dashed base reference line.
+
+ChartLinePvi renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config badge
+showing the base, a two-series legend (Price / PVI) with toggle
+buttons, hover/focus tooltips, and a `motion-safe` fade-in. It
+consumes `{ x, value, volume }` points. Distinct from
+chart-line-nvi: the PVI advances on the high-volume bars where
+the crowd is active rather than the quiet ones.
+
+59 vitest cases in `chart-line-pvi.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.683.
+
 ## [1.11.682] - 2026-05-20 -- UI: chart-line-nvi primitive (TODO 11.664)
 
 New **ChartLineNvi** UI primitive in
