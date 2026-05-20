@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.662] - 2026-05-20 -- UI: chart-line-trendflex primitive (TODO 11.644)
+
+New **ChartLineTrendflex** UI primitive in
+`web/src/components/ui/chart-line-trendflex.tsx`: pure-SVG
+two-panel chart with an Ehlers Trendflex indicator measuring
+trend strength from a Super Smoother.
+
+computeLineTrendflexSmoother is the Ehlers Super Smoother of the
+price -- a two-pole low-pass filter run at half the period.
+computeLineTrendflexSum is the trend sum: the average bar-to-bar
+displacement of the smoother over the lookback window, equal to
+the filtered value minus the mean of the previous `period`
+filtered values. computeLineTrendflex normalizes that sum by the
+square root of an adaptively accumulated mean square,
+`ms = 0.04*sum^2 + 0.96*ms[1]`, giving a zero-centred oscillator.
+
+runLineTrendflex sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified up / down / flat
+by the sign of the Trendflex, plus the final reading and the
+up / down counts. computeLineTrendflexLayout stacks the price
+panel above a zero-centred Trendflex panel carrying the indicator
+line, a dashed zero line and trend-coloured markers.
+
+ChartLineTrendflex renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a two-series legend
+(Price / Trendflex) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the Roofing filter: the Trendflex measures trend
+strength via the smoother's displacement, not a band of cycle
+frequencies.
+
+68 vitest cases in `chart-line-trendflex.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.662.
+
 ## [1.11.661] - 2026-05-20 -- UI: chart-line-pmo primitive (TODO 11.643)
 
 New **ChartLinePmo** UI primitive in

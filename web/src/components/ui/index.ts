@@ -353,3 +353,4 @@ export * from './chart-line-stddev';
 export * from './chart-line-bandwidth';
 export * from './chart-line-envelope';
 export * from './chart-line-pmo';
+export * from './chart-line-trendflex';
