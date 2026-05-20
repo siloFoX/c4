@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.677] - 2026-05-20 -- UI: chart-line-decycler primitive (TODO 11.659)
+
+New **ChartLineDecycler** UI primitive in
+`web/src/components/ui/chart-line-decycler.tsx`: pure-SVG line
+chart with an Ehlers Decycler overlay removing the dominant short
+cycle with a highpass subtraction.
+
+computeLineDecyclerAlpha is the Ehlers one-pole highpass
+coefficient for a cutoff period, clamped to the stable range
+[0, 1]. computeLineDecyclerHighpass runs the one-pole highpass
+recursion `HP[i] = (1 - alpha/2)*(v[i] - v[i-1]) +
+(1 - alpha)*HP[i-1]` seeded at zero -- the fast cycle component.
+computeLineDecycler subtracts it: `decycler[i] = v[i] - HP[i]`.
+Since price is the sum of a trend and a cycle, removing the
+highpass cycle leaves a smooth trend line.
+
+runLineDecycler sorts the finite price points by x, runs the
+filter, and returns per-bar samples classified rising / falling /
+flat by the decycler slope, the trend counts and the final
+reading. computeLineDecyclerLayout projects the price and
+decycler as two overlaid lines in a single panel sharing one
+y-domain.
+
+ChartLineDecycler renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+showing the period, a two-series legend (Price / Decycler) with
+toggle buttons, one marker per decycler bar, hover/focus
+tooltips, and a `motion-safe` fade-in. Distinct from the
+smoothing overlays: the decycler is defined as price minus a
+highpass, so it tracks the price without the lag of a moving
+average.
+
+66 vitest cases in `chart-line-decycler.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.677.
+
 ## [1.11.676] - 2026-05-20 -- UI: chart-line-rmi primitive (TODO 11.658)
 
 New **ChartLineRmi** UI primitive in
