@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.621] - 2026-05-20 -- UI: chart-line-elder-ray primitive (TODO 11.603)
+
+New **ChartLineElderRay** UI primitive in
+`web/src/components/ui/chart-line-elder-ray.tsx`: pure-SVG
+line chart with an Elder Ray panel rendering bull power and
+bear power around an EMA baseline. The top panel renders the
+close line with a dashed EMA baseline; the bottom panel
+renders the bull power and bear power lines on a symmetric
+y-axis with a dashed zero centerline.
+
+computeLineElderRay is Alexander Elder's Elder Ray. An EMA of
+the close (computeLineElderRayEma, default 13-period) is the
+trend baseline; bull power is each bar's high minus the
+baseline -- how far buyers can lift price above the trend --
+and bear power is its low minus the baseline -- how far
+sellers can press it below. Both swing around zero: positive
+bull power means buyers can reach above the trend, negative
+bear power means sellers can reach below it.
+
+runLineElderRay sorts the finite points by x, computes the
+EMA baseline, the bull power and the bear power series, and
+returns per-period samples, the final bull and bear readings,
+the bull-power max and bear-power min, and counts of positive
+bull-power and negative bear-power bars.
+computeLineElderRayLayout stacks a price panel above an Elder
+Ray panel sharing one x-axis, derives a symmetric y-bound
+around zero covering both power series, and projects the
+close path, the EMA path, the bull power path, the bear power
+path, the bull and bear markers, and a zero centerline.
+
+ChartLineElderRay renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+EMA period, a four-series legend (Close / EMA / Bull Power /
+Bear Power) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, high, low, close }`
+points. Distinct from chart-line-force-index (price change
+times volume) and chart-line-macd (a difference of two EMAs):
+the Elder Ray measures the high and the low separately
+against one EMA baseline, producing two power series rather
+than one. 54 vitest cases cover the EMA and Elder Ray
+primitives, the pipeline against a hand-verified fixture,
+layout geometry, the description text, and component
+rendering.
+
 ## [1.11.620] - 2026-05-20 -- UI: chart-line-stc primitive (TODO 11.602)
 
 New **ChartLineStc** UI primitive in
