@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.584] - 2026-05-20 -- UI: chart-line-slopegraph primitive (TODO 11.566)
+
+New **ChartLineSlopegraph** UI primitive in
+`web/src/components/ui/chart-line-slopegraph.tsx`: pure-SVG
+slopegraph (Tufte's slope graph) for the chart-line family.
+Each series is drawn as a single straight line connecting
+its value at a start time endpoint (left column) to its
+value at an end time endpoint (right column); the slope
+shows whether the series rose or fell, and how steeply,
+between the two points.
+
+Where the existing chart-slope (ChartSlope) takes
+pre-computed {before, after} scalar pairs, ChartLineSlopegraph
+is the time-series-native slopegraph: it takes full
+{x, value}[] series and extracts the two time endpoints
+itself. resolveLineSlopegraphEndpoints uses explicit
+startX / endX when both are supplied, otherwise defaults to
+the global min / max x. runLineSlopegraph looks up each
+series' value at startX and endX by exact x match -- a
+series present at both endpoints is complete and gets a
+slope, one missing an endpoint is flagged incomplete and
+gets no slope line. Per series it reports delta = end -
+start, direction (up / down / flat) and pctChange = delta /
+|start| (NaN when the start value is 0). Because the input
+is a full series, the component also draws the optional
+intermediate trajectory -- a faint ghost polyline through
+every point of the series, behind the bold slope line -- so
+the reader sees both the net change and the path taken.
+
+Distinct from chart-slope: input shape (chart-slope consumes
+already-reduced before/after numbers, ChartLineSlopegraph
+consumes time series and does the endpoint reduction
+internally with a configurable startX/endX window); only
+ChartLineSlopegraph can draw the intermediate trajectory
+because it has the full series; chart-slope colours by
+direction whereas ChartLineSlopegraph defaults to per-series
+palette colours (colorMode='series', the chart-line-family
+convention) with colorMode='direction' available. All
+exported helpers carry a LineSlopegraph infix so the barrel
+export * cannot collide.
+
+Exported helpers: `getLineSlopegraphDefaultColor`,
+`getLineSlopegraphFinitePoints`, `getLineSlopegraphDirection`,
+`resolveLineSlopegraphEndpoints`, `runLineSlopegraph`,
+`computeLineSlopegraphLayout`, `describeLineSlopegraphChart`.
+Tooltip shows the series, start, end, delta and percentage
+change; config badge `SLOPE up=.. down=.. flat=..`. 63
+vitest cases in `chart-line-slopegraph.test.tsx`, all
+passing. Exported from the `ui` barrel.
+
 ## [1.11.583] - 2026-05-20 -- UI: chart-line-bump primitive (TODO 11.565)
 
 New **ChartLineBump** UI primitive in

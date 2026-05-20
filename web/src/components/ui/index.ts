@@ -275,3 +275,4 @@ export * from './chart-line-error-bars';
 export * from './chart-line-crossover';
 export * from './chart-line-winsorized';
 export * from './chart-line-bump';
+export * from './chart-line-slopegraph';
