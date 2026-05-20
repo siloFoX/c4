@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.652] - 2026-05-20 -- UI: chart-line-kagi primitive (TODO 11.634)
+
+New **ChartLineKagi** UI primitive in
+`web/src/components/ui/chart-line-kagi.tsx`: pure-SVG Kagi line
+transform that reverses direction only on a reversal threshold
+and thickens on trend confirmation.
+
+computeLineKagiTurns walks the price series from the first
+value. The line extends with the price while it advances and
+reverses direction only when the price moves back by at least
+`reversalAmount` from the current segment extreme. It returns
+the sequence of turning-point vertices; the price never moving a
+full reversal amount yields a single starting vertex.
+computeLineKagiSegments derives the segments between consecutive
+turns: each is up or down, and the line's thickness is a
+persistent state that starts thin (yin), flips to thick (yang)
+when an up segment pushes past the vertex two turns back (the
+prior shoulder), and back to thin when a down segment breaks
+below the vertex two turns back (the prior waist). A segment
+that confirms nothing carries the previous thickness.
+
+runLineKagi sorts the finite price points by x, runs the
+transform, and returns the turns, the segments, and the up /
+down / thin / thick counts. It reports not-ok when the price
+never reverses. computeLineKagiLayout lays the segments out one
+per column and projects each to a right-angled vertical-plus-
+connector path.
+
+ChartLineKagi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge showing the reversal amount, a two-series
+legend (Yin / Yang) with toggle buttons, hover/focus tooltips,
+and a `motion-safe` fade-in. It consumes `{ x, value }` points
+plus a `reversalAmount`. Yin segments are drawn thin, yang
+segments thick. Distinct from the Renko bricks: a Kagi segment
+has a variable length and the line reverses only on a
+counter-move, where Renko fixes the brick size and steps once
+per full move.
+
+49 vitest cases in `chart-line-kagi.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.652.
+
 ## [1.11.651] - 2026-05-20 -- UI: chart-line-renko primitive (TODO 11.633)
 
 New **ChartLineRenko** UI primitive in
