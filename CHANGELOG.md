@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.688] - 2026-05-20 -- UI: chart-line-ulcer primitive (TODO 11.670)
+
+New **ChartLineUlcer** UI primitive in
+`web/src/components/ui/chart-line-ulcer.tsx`: pure-SVG two-panel
+chart with an Ulcer Index panel from the root mean square of
+drawdowns off the running peak.
+
+computeLineUlcerDrawdown tracks the running peak -- the highest
+close from the start up to each bar -- and the percentage
+drawdown the close sits below it. computeLineUlcer is the Ulcer
+Index: the root mean square of those drawdowns over the trailing
+period. It is zero when the price holds at its peak and rises as
+drawdowns deepen and persist, penalising long, deep declines.
+
+runLineUlcer sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified stress / calm
+against the threshold, the zone counts and the final reading.
+computeLineUlcerLayout stacks the price panel above an Ulcer
+panel on a non-negative scale, with the indicator line, one
+marker per defined bar coloured by zone, and a dashed threshold
+reference line.
+
+ChartLineUlcer renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period, a three-series legend (Price /
+Ulcer / Threshold) with toggle buttons, hover/focus tooltips, and
+a `motion-safe` fade-in. Distinct from the symmetric volatility
+measures: the Ulcer Index counts only downside, weighted by how
+long it lasts.
+
+63 vitest cases in `chart-line-ulcer.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.688.
+
 ## [1.11.687] - 2026-05-20 -- UI: chart-line-vix-fix primitive (TODO 11.669)
 
 New **ChartLineVixFix** UI primitive in
