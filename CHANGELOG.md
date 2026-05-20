@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.581] - 2026-05-20 -- UI: chart-line-crossover primitive (TODO 11.563)
+
+New **ChartLineCrossover** UI primitive in
+`web/src/components/ui/chart-line-crossover.tsx`: pure-SVG
+line chart that draws a primary and a reference series and
+marks every point where they intersect. A rising
+intersection (the primary crossing above the reference) is a
+golden cross; a falling intersection (the primary crossing
+below) is a death cross -- the classic two-moving-average
+crossover chart from technical analysis.
+
+Detection runs in four steps: (1) align -- keep only the x
+values present in both series, sorted ascending, each
+carrying diff = primaryY - referenceY; (2) detect -- a
+crossover sits between two consecutive aligned samples whose
+diffs have strictly opposite signs (d0 * d1 < 0); (3)
+interpolate -- the crossing is the zero of the linearly
+interpolated diff, t = d0 / (d0 - d1) (always in the open
+interval (0, 1) for a strict sign change), x = x0 + t*(x1-x0),
+y = primaryY0 + t*(primaryY1-primaryY0); (4) classify --
+golden when the diff rises through zero, death when it falls.
+A sample sitting exactly on zero does not trigger a crossover
+-- a strict sign change is required, which keeps the detector
+deterministic and free of double-counting. Fixture: primary
+[10,8,6,10,14], reference [6,9,9,8,9] at x 0..4 gives diffs
+[4,-1,-3,2,5], yielding a death cross at x 0.8 and a golden
+cross at x 2.6, both at y 8.4.
+
+Distinct from neighbouring primitives: chart-line-multi draws
+many series but detects no intersection events;
+chart-line-comparison / chart-line-correlation relate two
+series in aggregate, whereas ChartLineCrossover localises the
+discrete events where the ordering of the two series flips;
+chart-line-moving-avg overlays a single smoothed line and
+crossover is the natural consumer of two such lines. All
+exported helpers carry a LineCrossover infix so the barrel
+export * cannot collide.
+
+Exported helpers: `getLineCrossoverDefaultColor`,
+`getLineCrossoverFinitePoints`, `alignLineCrossoverSamples`,
+`detectLineCrossovers`, `runLineCrossover`,
+`computeLineCrossoverLayout`, `describeLineCrossoverChart`.
+Hiding either series suppresses every crossover marker.
+Crossover markers are golden/death-coloured triangles with a
+dashed guide to the x-axis; tooltip shows the cross kind, x,
+y and the fromDiff -> toDiff transition; config badge
+`XO gold=.. death=.. aligned=..`. 62 vitest cases in
+`chart-line-crossover.test.tsx`, all passing. Exported from
+the `ui` barrel.
+
 ## [1.11.580] - 2026-05-20 -- UI: chart-line-error-bars primitive (TODO 11.562)
 
 New **ChartLineErrorBars** UI primitive in
