@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.612] - 2026-05-20 -- UI: chart-line-fisher primitive (TODO 11.594)
+
+New **ChartLineFisher** UI primitive in
+`web/src/components/ui/chart-line-fisher.tsx`: pure-SVG line
+chart with a Fisher Transform panel sharpening turning
+points alongside its trigger line. The value line sits in
+the top panel; the bottom panel renders the Fisher line and
+its one-bar-lagged trigger line on a symmetric y-axis with a
+dashed zero centerline.
+
+computeLineFisher is John Ehlers' Fisher Transform. For each
+index from period - 1 onward the value is normalized to a
+-1..+1 position within the window's high-low range,
+recursively smoothed (weight 0.33), and clamped just inside
++/-1. The Fisher line applies the inverse-hyperbolic-tangent
+transform 0.5 * ln((1 + v) / (1 - v)) plus half the previous
+Fisher; that transform steepens sharply near the +/-1
+extremes, so price turning points become pronounced peaks
+rather than gentle curves. The trigger line is the Fisher
+lagged by one bar, and its crossings flag the turns.
+
+runLineFisher sorts the finite points by x, computes the
+Fisher and trigger series, and returns per-period samples
+plus the final Fisher and trigger and the value range.
+computeLineFisherLayout stacks a value panel above a Fisher
+panel with a symmetric y-bound so the zero centerline sits
+in the middle.
+
+This is distinct from chart-line-stochastic and
+chart-line-williams-r, which report the raw position of the
+value within its high-low range. The Fisher Transform begins
+with that same range normalization but then applies the
+arctanh transform: that non-linear step, absent from the
+plain range oscillators, is what sharpens the extremes and
+makes the turning points stand out.
+
+Helpers exported: getLineFisherFinitePoints,
+normalizeLineFisherPeriod, computeLineFisher, runLineFisher,
+computeLineFisherLayout, describeLineFisherChart. The
+component is a forwardRef region with an ARIA description,
+config badge, three-series legend (Value / Fisher / Trigger)
+with toggle, hover tooltip exposing value / Fisher /
+trigger, and motion-safe fade-in. 84 vitest cases cover the
+math, layout, description, and rendering.
+
 ## [1.11.611] - 2026-05-20 -- UI: chart-line-cmo primitive (TODO 11.593)
 
 New **ChartLineCmo** UI primitive in
