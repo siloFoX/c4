@@ -322,3 +322,4 @@ export * from './chart-line-chaikin-osc';
 export * from './chart-line-klinger';
 export * from './chart-line-pvt';
 export * from './chart-line-cmf';
+export * from './chart-line-kama';
