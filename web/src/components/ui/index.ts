@@ -294,3 +294,4 @@ export * from './chart-line-adx';
 export * from './chart-line-supertrend';
 export * from './chart-line-aroon';
 export * from './chart-line-cci';
+export * from './chart-line-williams-r';
