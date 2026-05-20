@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.689] - 2026-05-20 -- UI: chart-line-pfe primitive (TODO 11.671)
+
+New **ChartLinePfe** UI primitive in
+`web/src/components/ui/chart-line-pfe.tsx`: pure-SVG two-panel
+chart with a Polarized Fractal Efficiency panel scoring how
+directly the price travels its path.
+
+computeLinePfeRaw measures the straight-line distance from the
+start of the trailing window to its end and divides it by the
+total length of the zig-zag path the price actually took. The
+ratio is polarised by the window's trend direction and scaled to
+-100..+100: near +100 is an efficient up-trend, near -100 an
+efficient down-trend, near zero a choppy, inefficient market. A
+flat price is the only exact anchor -- the straight line is the
+path, so the efficiency is exactly 1 and the reading +100.
+computeLinePfe exponentially smooths the raw efficiency over the
+smoothing period (a smooth of 1 leaves it untouched).
+
+runLinePfe sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified up / down /
+choppy against the threshold, the zone counts and the final
+reading. computeLinePfeLayout stacks the price panel above a PFE
+panel on a fixed -100..+100 scale, with the indicator line, one
+marker per defined bar coloured by zone, and dashed upper / zero
+/ lower reference lines.
+
+ChartLinePfe renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / PFE /
+Levels) and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 76 vitest cases cover the
+exact flat anchor, the constant-ramp efficiency, the EMA
+recurrence, zone classification and the rendered structure.
+
 ## [1.11.688] - 2026-05-20 -- UI: chart-line-ulcer primitive (TODO 11.670)
 
 New **ChartLineUlcer** UI primitive in
