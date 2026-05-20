@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.630] - 2026-05-20 -- UI: chart-line-cmf primitive (TODO 11.612)
+
+New **ChartLineCmf** UI primitive in
+`web/src/components/ui/chart-line-cmf.tsx`: pure-SVG line
+chart with a Chaikin Money Flow panel. The top panel renders
+the close price line; the bottom panel renders the CMF line on
+a fixed -1 to +1 y-axis with a dashed zero centerline and
+markers coloured by money-flow pressure.
+
+computeLineCmf is Marc Chaikin's Money Flow. Each bar's money
+flow multiplier -- where the close sits within the high-low
+range, `(2*close - high - low) / (high - low)` clamped by
+construction to [-1, +1] -- scales its volume into money flow
+volume. The CMF is the sum of money flow volume over a trailing
+window of `period` bars divided by the sum of volume over the
+same window: a volume-weighted average of the multiplier,
+itself bounded -1 to +1. CMF is defined from index `period - 1`
+onward (a `period - 1` bar warm-up); a zero-range bar reads a
+zero multiplier and a window with no volume reads 0 rather than
+dividing by zero.
+
+runLineCmf sorts the finite points by x, computes the
+multiplier, money flow volume and CMF series, and returns
+per-period samples (each tagged with buying / selling / flat
+pressure from the CMF sign), the final CMF reading, and counts
+of buying and selling periods. computeLineCmfLayout stacks a
+price panel above a CMF panel sharing one x-axis, gives the CMF
+panel a fixed -1 to +1 y-domain with a centred zero line, and
+projects the price path, the CMF path, and pressure-coloured
+markers drawn only where the CMF is defined.
+
+ChartLineCmf renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked panels
+with axis ticks and grid, a config badge, a two-series legend
+(Price / CMF) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes
+`{ x, high, low, close, volume }` points. Distinct from
+chart-line-adl: the ADL is the *unbounded running cumulative
+total* of money flow volume, while the CMF *normalizes a
+windowed sum* of money flow volume by the windowed volume into
+a bounded -1 to +1 oscillator. 63 vitest cases cover the
+multiplier and CMF helpers, the pipeline against a
+hand-verified fixture, the warm-up and -1..+1 bound, layout
+geometry, the description text, and component rendering.
+
 ## [1.11.629] - 2026-05-20 -- UI: chart-line-pvt primitive (TODO 11.611)
 
 New **ChartLinePvt** UI primitive in
