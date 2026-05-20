@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.655] - 2026-05-20 -- UI: chart-line-supersmoother primitive (TODO 11.637)
+
+New **ChartLineSuperSmoother** UI primitive in
+`web/src/components/ui/chart-line-supersmoother.tsx`: pure-SVG
+line chart with an Ehlers Super Smoother two-pole filter
+overlay.
+
+computeLineSuperSmootherCoefficients derives the two-pole filter
+coefficients from `arg = 1.414 * PI / period`: `a1 = exp(-arg)`,
+`b1 = 2 * a1 * cos(arg)`, `c2 = b1`, `c3 = -(a1 * a1)`,
+`c1 = 1 - c2 - c3`. The coefficients sum to one, so the filter
+has unit gain at zero frequency. computeLineSuperSmoother runs
+the filter: it seeds the first two bars straight from the price
+and from the third bar applies the recursion
+`SS = c1*(price + price_prev)/2 + c2*SS_prev + c3*SS_prev2`. The
+two-pole feedback rejects noise sharply while adding very little
+lag; the line is defined from index 0 with no warm-up.
+
+runLineSuperSmoother sorts the finite price points by x,
+computes the filter, and returns per-bar samples classified
+above / below / on the smoother, plus the final / min / max
+readings and the above / below counts.
+computeLineSuperSmootherLayout projects the price path and the
+smoother path on one shared panel with a marker per bar.
+
+ChartLineSuperSmoother renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / Super
+Smoother) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points.
+Distinct from the single-pole and cascade smoothers: the Super
+Smoother is a true two-pole low-pass filter, so its frequency
+roll-off is steeper for the same lag.
+
+54 vitest cases in `chart-line-supersmoother.test.tsx`, all
+passing; typecheck clean for the new files. Version bumped to
+1.11.655.
+
 ## [1.11.654] - 2026-05-20 -- UI: chart-line-laguerre primitive (TODO 11.636)
 
 New **ChartLineLaguerre** UI primitive in
