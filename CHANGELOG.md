@@ -4,6 +4,185 @@
 
 (no entries -- next release window)
 
+## [1.11.567] - 2026-05-20 -- UI: chart-line-loess primitive (TODO 11.549)
+
+New **ChartLineLoess** UI
+primitive in
+`web/src/components/ui/chart-line-loess.tsx`:
+pure-SVG line chart with a
+**LOESS** (locally weighted
+scatterplot smoothing)
+overlay. For each query
+point x_i, the smoother
+finds k = ceil(bandwidth *
+N) nearest neighbours by
+absolute distance (with k
+>= degree+1), determines
+max neighbour distance
+d_max, computes tricube
+weights `w_j = (1 -
+(d_j/d_max)^3)^3`, fits a
+weighted polynomial of
+degree p (0/1/2) via WLS,
+and evaluates at x_i.
+Distinct from
+`<ChartLineSavgol>`
+(11.547; polynomial fit on
+FIXED window with EQUAL
+weights -- LOESS uses
+VARIABLE k-NN neighbourhood
++ TRICUBE WEIGHTS that
+favour closer points),
+`<ChartLineMovingAvg>`
+(11.513; SMA == uniform-
+weight degree-0 fit on
+fixed window -- LOESS
+handles non-uniform
+spacing), `<ChartLineEwma>`
+(11.539; exponential decay
+recursive smoother),
+`<ChartLineKalman>`
+(11.538; Bayesian filter
+with Q/R noise model),
+`<ChartLineHampel>`
+(11.548; robust outlier
+filter that REPLACES
+flagged points -- LOESS
+smooths through all
+points), `<ChartLineBollinger>`
+(11.537; rolling SMA +
+envelope -- no envelope
+here), and
+`<ChartLineDecompose>`
+(11.543; seasonal split --
+different goal). The
+canonical R `loess` /
+scipy LOESS reference
+smoother used in
+exploratory data analysis
+("let the data speak").
+Pure helpers
+`computeLineLoessTricubeWeight`
+(canonical tricube
+`(1 - (d/dMax)^3)^3`;
+returns 0 at boundary; **
+verified canonical value
+(7/8)^3 = 0.6699...
+at d/dMax = 0.5**),
+`fitLineLoessWeightedPolynomialAtCenter`
+(Gauss-Jordan on the
+normal equations of the
+weighted-LS system in
+centred coordinates;
+returns null for empty or
+zero total weight),
+`runLineLoess` (canonical
+pipeline; sorts ascending;
+drops non-finite; neighbour
+count clamped to >=
+degree+1),
+`normaliseLineLoessBandwidth`
+(clamps to (0, 1]),
+`normaliseLineLoessDegree`
+(clamps to {0, 1, 2}),
+`classifyLineLoessResidualSign`,
+`computeLineLoessLayout`,
+and `describeLineLoessChart`.
+Per-series bandwidth +
+degree overrides always
+beat chart-level. Tooltip
+on dots shows label, x,
+raw, bold smoothed (or n/a
+at edges), residual (with
++/- prefix), and config
+`α=<bandwidth>, d=<degree>,
+k=<neighbour count>`.
+Config badge in top-left
+calls out `LO α=<bw>
+d=<degree> k=<neighbours>`.
+ARIA: root role=region +
+aria-describedby; SVG
+role=img; raw path +
+smoothed path + dots
+role=graphics-symbol +
+tabIndex=0. Data-attrs:
+root `data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-bandwidth`,
+`data-degree`,
+`data-dominant-neighborhood-count`,
+`data-animate`; raw path
+`data-kind="raw"`;
+smoothed path
+`data-kind="smoothed"`;
+dots `data-raw` +
+`data-smoothed` +
+`data-residual` +
+`data-residual-sign` +
+`data-neighborhood-width`;
+residual sticks
+`data-sign`; series groups
+expose bandwidth + degree
++ neighbour count + RMSE
++ counts. 76 vitest cases
+pass (defaults + helpers,
+computeLineLoessTricubeWeight
+incl. d=0 -> 1, d>=dMax ->
+0, **canonical (7/8)^3
+verified at d/dMax = 0.5**,
+dMax <= 0 -> 0, monotonic
+decreasing,
+fitLineLoessWeightedPolynomialAtCenter
+incl. empty -> null +
+zero weights -> null +
+**degree-1 linear
+verified exact (y=2x+1
+fit at x=3 -> 7)** +
+**degree-2 quadratic
+verified exact** + degree-0
+weighted-mean verified (
+weighted([1,0,1]) of
+[1,5,10] = 5.5) +
+weight influence, runLineLoess
+incl. **linear input
+reproduced exactly with
+degree >= 1** + **
+quadratic input reproduced
+exactly with degree 2** +
+**constant input passes
+through at all degrees**
++ **non-uniformly spaced
+data handled via k-NN** +
+smoothing reduces noise +
+sort ascending + drops
+non-finite + neighbour
+count clamped to >=
+degree+1,
+computeLineLoessLayout
+incl. paths + bandwidth +
+degree + neighbour count
++ RMSE + hidden + bounds
++ overrides + totalPoints,
+describeLineLoessChart No
+data + bandwidth + degree
++ neighbours, component
+render incl. empty / raw
+kind=raw / smoothed
+kind=smoothed / hide raw /
+residual sticks + omit /
+dots + hide / config
+badge + omit / ARIA /
+root data-* / group data-*
+/ tooltip rows + hide on
+leave + omit / onPointClick
+/ legend α + d + rmse +
+toggle + omit / animate
+flag + class / ref /
+displayName).
+Implementation patch:
+`docs/patches/11.549-ui-chart-line-loess.md`.
+
 ## [1.11.566] - 2026-05-20 -- UI: chart-line-hampel primitive (TODO 11.548)
 
 New **ChartLineHampel** UI
