@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.679] - 2026-05-20 -- UI: chart-line-pzo primitive (TODO 11.661)
+
+New **ChartLinePzo** UI primitive in
+`web/src/components/ui/chart-line-pzo.tsx`: pure-SVG two-panel
+chart with a Price Zone Oscillator panel from the ratio of
+signed price change to total price change.
+
+computeLinePzoSignedChange sums the signed bar-to-bar changes
+over the lookback -- the net move, which telescopes to
+`close[i] - close[i-period]`. computeLinePzoTotalChange sums the
+absolute bar-to-bar changes -- the total movement. computeLinePzo
+is their ratio scaled to -100..+100: a clean up-trend reads +100,
+a clean down-trend -100, a choppy range near zero.
+
+runLinePzo sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified bullish /
+bearish / neutral against the threshold, the zone counts and the
+final reading. computeLinePzoLayout stacks the price panel above
+a PZO panel on a fixed -100 to +100 scale, the PZO line, one
+marker per defined bar coloured by zone, and dashed zero and
+trigger reference lines.
+
+ChartLinePzo renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config badge
+showing the period, a three-series legend (Price / PZO / Levels)
+with toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. Distinct from the directional-strength indicators: the
+PZO keeps the sign of the move, so it reads trend direction and
+strength on one bounded scale.
+
+70 vitest cases in `chart-line-pzo.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.679.
+
 ## [1.11.678] - 2026-05-20 -- UI: chart-line-ift primitive (TODO 11.660)
 
 New **ChartLineIft** UI primitive in
