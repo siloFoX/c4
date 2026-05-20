@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.624] - 2026-05-20 -- UI: chart-line-zlema primitive (TODO 11.606)
+
+New **ChartLineZlema** UI primitive in
+`web/src/components/ui/chart-line-zlema.tsx`: pure-SVG line
+chart with a Zero-Lag Exponential Moving Average overlay. Like
+chart-line-hma it is a single-panel chart -- the ZLEMA line is
+drawn directly over the price line on shared axes.
+
+computeLineZlema is John Ehlers and Ric Way's Zero-Lag
+Exponential Moving Average. The lag is `floor((period - 1) / 2)`;
+the de-lagged series adds each bar's own momentum over that lag
+back into the value (`2 * value[i] - value[i - lag]`), shifting
+the price forward to anticipate the trend.
+computeLineZlemaEma then runs a standard EMA over that de-lagged
+series -- the EMA's own lag cancels the forward shift, so the
+average keeps pace with the price instead of trailing it. On a
+linear trend the ZLEMA tracks the price with zero lag.
+
+runLineZlema sorts the finite points by x, computes the ZLEMA,
+and returns per-period samples (each tagged with whether the
+price sits above, below, or on the ZLEMA), the derived lag, the
+final / min / max ZLEMA readings, and counts of bars where the
+price runs above and below the ZLEMA.
+computeLineZlemaLayout fits one panel whose y-domain spans both
+the price and the ZLEMA so the overlay never clips, and
+projects the price path, the ZLEMA path, the price dots, and
+the ZLEMA markers.
+
+ChartLineZlema renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a single panel
+with axis ticks and grid, a config badge showing the period
+and derived lag, a two-series legend (Price / ZLEMA) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. Distinct from chart-line-hma: where the HMA nests
+three weighted moving averages, the ZLEMA cancels lag by
+EMA-smoothing a momentum-shifted price -- a lag-shift plus one
+EMA rather than nested WMAs. 53 vitest cases cover the EMA and
+ZLEMA primitives, the pipeline against a hand-verified fixture,
+the zero-lag property on a linear trend, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.623] - 2026-05-20 -- UI: chart-line-hma primitive (TODO 11.605)
 
 New **ChartLineHma** UI primitive in
