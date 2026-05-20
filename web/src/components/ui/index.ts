@@ -348,3 +348,4 @@ export * from './chart-line-mcginley';
 export * from './chart-line-laguerre';
 export * from './chart-line-supersmoother';
 export * from './chart-line-roofing';
+export * from './chart-line-hilbert';
