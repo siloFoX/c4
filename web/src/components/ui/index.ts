@@ -338,3 +338,4 @@ export * from './chart-line-jma';
 export * from './chart-line-smma';
 export * from './chart-line-lsma';
 export * from './chart-line-fractal';
+export * from './chart-line-pivot-points';
