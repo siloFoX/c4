@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.618] - 2026-05-20 -- UI: chart-line-kst primitive (TODO 11.600)
+
+New **ChartLineKst** UI primitive in
+`web/src/components/ui/chart-line-kst.tsx`: pure-SVG line
+chart with a Know Sure Thing summed rate-of-change momentum
+oscillator panel and signal line. The top panel renders the
+price line; the bottom panel renders the KST line and a
+dashed signal line on a symmetric y-axis with a dashed zero
+centerline and sign-coloured markers.
+
+computeLineKst is Martin Pring's Know Sure Thing. Four
+percentage rate-of-change series of increasing lookback
+(default 10/15/20/30) are each smoothed by a simple moving
+average (default 10/10/10/15) to give the four RCMA legs,
+then summed at the fixed ascending weights 1/2/3/4 -- the
+slower, more reliable legs carry the most weight.
+computeLineKstRoc is the percentage ROC (leading nulls before
+the lookback, zero on a zero base); computeLineKstSma is a
+null-tolerant simple moving average. The signal line is a
+simple moving average of the KST (default 9-period); a cross
+of the KST and its signal marks a momentum shift.
+
+runLineKst sorts the finite points by x, computes the four
+RCMA legs, the KST, and the signal, and returns per-period
+samples (each carrying a positive/negative/zero sign from the
+KST), the final KST and signal readings, the KST range, and
+counts of readings above and below the zero line.
+computeLineKstLayout stacks a price panel above a KST panel
+sharing one x-axis, derives a symmetric y-bound covering both
+the KST and the signal, and projects the price path, the KST
+path, the signal path, sign-coloured markers, and a zero
+centerline.
+
+ChartLineKst renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+four ROC periods and the signal period, a three-series legend
+(Price / KST / Signal) with toggle buttons, hover/focus
+tooltips, and a `motion-safe` fade-in. Distinct from
+chart-line-coppock (which sums two ROC legs and WMA-smooths
+the total) and chart-line-trix (a triple-EMA oscillator): the
+KST smooths each of four ROC legs separately, weights them
+1/2/3/4, and carries a signal line. 58 vitest cases cover the
+ROC and SMA primitives, the four-leg weighted sum against a
+hand-verified fixture, layout geometry, the description text,
+and component rendering.
+
 ## [1.11.617] - 2026-05-20 -- UI: chart-line-emv primitive (TODO 11.599)
 
 New **ChartLineEmv** UI primitive in
