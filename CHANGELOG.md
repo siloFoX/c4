@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.616] - 2026-05-20 -- UI: chart-line-force-index primitive (TODO 11.598)
+
+New **ChartLineForceIndex** UI primitive in
+`web/src/components/ui/chart-line-force-index.tsx`: pure-SVG
+line chart with an Elder Force Index panel combining price
+change and volume. The top panel renders the price line; the
+bottom panel renders the smoothed Force Index line and a
+faint raw Force Index line on a symmetric y-axis with a dashed
+zero centerline and sign-coloured markers.
+
+computeLineForceIndexRaw is the raw Force Index: each bar's
+price change multiplied by its volume,
+`(price[i] - price[i-1]) * volume[i]`. Index 0 has no prior
+price so it reads null. computeLineForceIndex smooths the raw
+series with computeLineForceIndexEma -- an exponential moving
+average (default 13-period) that tolerates the leading null,
+seeding with the simple mean of the first `period` defined
+values and folding each later value in at weight
+`2 / (period + 1)`. The smoothed Force Index measures the
+power behind a move: it swings around zero, positive when
+buyers dominate and negative when sellers do.
+
+runLineForceIndex sorts the finite points by x, computes the
+raw and smoothed series, and returns per-period samples (each
+carrying a positive/negative/zero sign from the smoothed
+Force Index), the final raw and smoothed readings, the Force
+Index range, and counts of readings above and below the zero
+line. computeLineForceIndexLayout stacks a price panel above
+a Force Index panel sharing one x-axis, derives a symmetric
+y-bound covering both the raw and the smoothed readings, and
+projects the price path, the raw path, the smoothed path,
+sign-coloured markers, and a zero centerline.
+
+ChartLineForceIndex renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+EMA period, a three-series legend (Price / Force Index / Raw
+Force) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. Like chart-line-mass-index it consumes
+a multi-field point -- here `{ x, price, volume }`. Distinct
+from chart-line-obv (a cumulative volume running total,
+direction-only) and chart-line-mfi (a bounded 0-100
+volume-weighted oscillator): the Force Index weights by the
+*size* of the price change and is an unbounded oscillator
+centred on zero. 55 vitest cases cover the EMA, raw and full
+Force Index primitives, the pipeline against a hand-verified
+fixture, layout geometry, the description text, and component
+rendering.
+
 ## [1.11.615] - 2026-05-20 -- UI: chart-line-mass-index primitive (TODO 11.597)
 
 New **ChartLineMassIndex** UI primitive in

@@ -307,3 +307,4 @@ export * from './chart-line-fisher';
 export * from './chart-line-coppock';
 export * from './chart-line-ppo';
 export * from './chart-line-mass-index';
+export * from './chart-line-force-index';
