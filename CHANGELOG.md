@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.642] - 2026-05-20 -- UI: chart-line-frama primitive (TODO 11.624)
+
+New **ChartLineFrama** UI primitive in
+`web/src/components/ui/chart-line-frama.tsx`: pure-SVG line
+chart with a Fractal Adaptive Moving Average overlay whose
+smoothing tracks the fractal dimension of price.
+
+computeLineFrama is John Ehlers' Fractal Adaptive Moving
+Average. For each window the fractal dimension `D` is read from
+how the price range over the window compares to the ranges of
+its two halves -- `D = (log(N1 + N2) - log(N3)) / log(2)`,
+clamped to [1, 2], where N1, N2 and N3 are the per-bar
+normalized ranges of the first half, the second half and the
+whole window. The dimension drives an adaptive smoothing
+constant `alpha = exp(-4.6 * (D - 1))` clamped to [0.01, 1]: a
+smooth trend (`D` near 1) pushes alpha toward 1 so the average
+tracks the price closely, while a jagged choppy market (`D`
+near 2) pushes alpha toward 0.01 so the average barely moves.
+The FRAMA folds each bar in at its own alpha. Its period must
+be even so the window splits cleanly into two halves; the
+average is seeded at index `period - 1` with that bar's price
+and is recursive from index `period` onward.
+
+runLineFrama sorts the finite points by x, computes the
+dimension, alpha and FRAMA series, and returns per-period
+samples (each tagged with the price's above / below / on
+position versus the FRAMA), the final / min / max readings, and
+counts of bars above and below. computeLineFramaLayout projects
+the price path and the FRAMA path onto one shared panel with a
+y-domain spanning both, plus markers wherever the FRAMA is
+defined.
+
+ChartLineFrama renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a two-series legend (Price / FRAMA) with
+toggle buttons, hover/focus tooltips exposing the fractal
+dimension, and a `motion-safe` fade-in. It consumes
+`{ x, value }` points. Distinct from chart-line-kama and
+chart-line-vidya: all three are adaptive recursive averages,
+but the KAMA scales its smoothing by an efficiency ratio and
+the VIDYA by the absolute Chande Momentum Oscillator, while the
+FRAMA scales by the fractal dimension -- a roughness measure
+read from comparing the range of two half-windows to the whole.
+58 vitest cases cover the fractal-dimension and FRAMA helpers,
+the pipeline against a hand-verified bit-exact ramp fixture
+(dimension 1, alpha 1, FRAMA tracking the price exactly), the
+square-wave dimension-2 case, the warm-up, layout geometry, the
+description text, and component rendering.
+
 ## [1.11.641] - 2026-05-20 -- UI: chart-line-disparity primitive (TODO 11.623)
 
 New **ChartLineDisparity** UI primitive in
