@@ -366,3 +366,4 @@ export * from './chart-line-vhf';
 export * from './chart-line-ravi';
 export * from './chart-line-gator';
 export * from './chart-line-tdi';
+export * from './chart-line-squeeze';
