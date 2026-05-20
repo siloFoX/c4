@@ -4,6 +4,122 @@
 
 (no entries -- next release window)
 
+## [1.11.569] - 2026-05-20 -- UI: chart-line-autocorrelation primitive (TODO 11.551)
+
+New **ChartLineAutocorrelation** UI primitive in
+`web/src/components/ui/chart-line-autocorrelation.tsx`:
+pure-SVG line chart with an **autocorrelation function side
+panel**. The main panel renders the input time series; the
+side panel shows the biased autocorrelation function (ACF)
+at each lag from `0` to `maxLag`, with a 95% confidence
+band under the white-noise null hypothesis, and the lag
+with the highest `|ACF|` highlighted as the *dominant* lag.
+
+Canonical biased ACF (R / numpy / statsmodels convention):
+`ACF(k) = sum_{i=0}^{N-1-k} (y_i - ybar)(y_{i+k} - ybar) /
+sum_{i=0}^{N-1} (y_i - ybar)^2`. Properties: ACF(0) = 1
+always, values in [-1, 1], a positive ACF at lag k means
+the series tends to look similar to itself shifted by k. For
+a sine wave with period P, ACF approximates
+`cos(2*pi*k/P) * (N - k) / N`, with alternating-sign peaks
+at multiples of P/2. Confidence bound under the white-noise
+null hypothesis: `bound = z / sqrt(N)` (z = 1.96 for 95%
+CI). Lags exceeding `|ACF(k)| > bound` are statistically
+significant.
+
+Distinct from `<ChartLineCorrelation>` (Pearson r between
+two series at a single point -- autocorrelation correlates
+a series with ITSELF at many lags), `<ChartLineFft>` (11.540)
+and `<ChartLineFftWindow>` (11.544) (frequency-domain
+spectrum -- ACF is the inverse Fourier transform of the
+power spectrum via the Wiener-Khinchin theorem, but
+presented in LAG DOMAIN which is more interpretable),
+`<ChartLineSpectrogram>` (11.545; STFT heatmap of frequency
+over time -- ACF collapses across time), `<ChartLineDecompose>`
+(11.543; seasonal split -- ACF is the diagnostic used to
+FIND the seasonal period that decompose then uses),
+`<ChartLineChangepoint>` (11.546; regime shift detector --
+different question), and the smoothing/filter primitives
+`<ChartLineLoess>` (11.549), `<ChartLineSavgol>` (11.547),
+`<ChartLineEwma>` (11.539), `<ChartLineKalman>` (11.538),
+`<ChartLineHampel>` (11.548) (ACF is a DIAGNOSTIC for
+whether smoothing is warranted -- high ACF at lag 1 means
+autocorrelated noise to filter).
+
+The canonical Box-Jenkins ACF plot used to identify AR
+order, MA order, seasonal periods, and to test model
+residuals.
+
+Pure helpers exported:
+`computeLineAutocorrelationMean`,
+`computeLineAutocorrelationFunction` (canonical biased ACF;
+verified ACF(0) = 1 always, constant series gives ACF(k>0)
+= 0, sine wave with period 10 gives high positive ACF at
+lag 10 and negative ACF at lag 5),
+`computeLineAutocorrelationConfidenceBound(N, z?)` (verified
+canonical 1.96/sqrt(50) = 0.2771...),
+`classifyLineAutocorrelationSignificance` (positive-significant
+/ negative-significant / insignificant),
+`findLineAutocorrelationDominantLag` (picks largest |ACF|
+for lag >= 1), `runLineAutocorrelation` (canonical pipeline;
+sorts ascending; drops non-finite; reports samples + acf +
+lags + confidence bound + dominant + significance counts +
+mean), `computeLineAutocorrelationLayout` (side-by-side
+time + ACF panels), `describeLineAutocorrelationChart`.
+
+API: `series: ChartLineAutocorrelationSeries[]` (per-series
+`maxLag` override always beats chart-level); `maxLag`
+(default 20; floored; clamped to [0, N-1]); `confidenceZ`
+(default 1.96; clamped >= 0); `timePanelRatio` (default
+0.55; clamped to (0, 1)); `positiveColor` / `negativeColor`
+/ `insignificantColor` / `dominantColor` / `confidenceColor`;
+toggle flags `showAxis` / `showGrid` / `showDots` /
+`showLegend` / `showTooltip` / `showConfigBadge` /
+`showConfidenceBand` / `showDominantMarker` / `animate`;
+controlled + uncontrolled visibility; standard sizing +
+format + a11y props; `formatValue` / `formatX` / `formatAcf`;
+`onPointClick({series, point})` (time panel) +
+`onLagClick({series, lag})` (ACF panel).
+
+Tooltip on lag dots: label, lag, bold ACF, significance
+(coloured), CI=<bound>. Tooltip on time dots: label, x, y.
+Config badge: `ACF max=<maxLag> dom k=<dominantLag>
+CI=<bound> sig=<count>`. Legend: per-series dominant lag
++ ACF + significant count.
+
+Colour rules: positive-significant green (#16a34a),
+negative-significant red (#dc2626), insignificant slate
+(#94a3b8), dominant violet (#7c3aed) overrides
+significance.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, time path + every dot (time + lag)
+role=graphics-symbol + tabIndex=0. data-section on every
+node. data-attrs: root data-series-count +
+data-visible-series-count + data-total-points + data-max-lag
++ data-confidence-z + data-confidence-bound +
+data-dominant-lag + data-dominant-value +
+data-significant-count + data-animate. Time path
+data-kind=time. Lag dots expose data-lag + data-acf +
+data-significance + data-is-dominant. Series groups expose
+maxLag + effective + bound + dominant + significance counts
++ sample counts + mean.
+
+90 vitest cases pass (defaults + helpers, ACF math incl.
+ACF(0) = 1 + constant series + sine periodic detection +
+linear input + range [-1, 1], confidenceBound canonical
+1.96/sqrt(50), classifySignificance, findDominantLag,
+runLineAutocorrelation, computeLayout incl. panels + per-series
+overrides + bounds + dominant marker + tick values,
+describeChart, render incl. empty + time path + lag sticks
++ lag 0 ACF ~ 1 + dominant marked + confidence band +
+config badge + dominant marker + time dots + ARIA + root
+data-* + group data-* + lag tooltip with ACF + significance
++ time tooltip with x + y + omit tooltip + onPointClick +
+onLagClick + legend stats + animate + ref + displayName +
+xLabel + yLabel + lagLabel + acfLabel). TypeScript clean.
+Exported via barrel.
+
 ## [1.11.568] - 2026-05-20 -- UI: chart-line-spline-bspline primitive (TODO 11.550)
 
 New **ChartLineSplineBspline** UI primitive in
