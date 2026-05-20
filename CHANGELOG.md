@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.678] - 2026-05-20 -- UI: chart-line-ift primitive (TODO 11.660)
+
+New **ChartLineIft** UI primitive in
+`web/src/components/ui/chart-line-ift.tsx`: pure-SVG two-panel
+chart with an Inverse Fisher Transform panel compressing an
+oscillator into a sharp bounded signal.
+
+computeLineIftTransform is the Inverse Fisher Transform of a
+scalar -- `(exp(2x) - 1) / (exp(2x) + 1)` -- which squashes any
+real input into the open interval (-1, 1); it is computed in the
+overflow-safe form so a large input saturates cleanly rather than
+producing a NaN. computeLineIftOscillator builds the input
+oscillator -- the scaled deviation of the close from its moving
+average -- and computeLineIft compresses it through the
+transform.
+
+runLineIft sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified bullish /
+bearish / neutral against the trigger threshold, the zone counts
+and the final reading. computeLineIftLayout stacks the price
+panel above an IFT panel on a fixed -1 to +1 scale, the IFT line,
+one marker per defined bar coloured by zone, and dashed zero and
+trigger reference lines.
+
+ChartLineIft renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config badge
+showing the period and the scale, a three-series legend (Price /
+IFT / Levels) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. Distinct from the oscillator panels: the
+IFT is a non-linear compressor -- it sharpens an existing signal
+toward the bounds rather than deriving a new one.
+
+74 vitest cases in `chart-line-ift.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.678.
+
 ## [1.11.677] - 2026-05-20 -- UI: chart-line-decycler primitive (TODO 11.659)
 
 New **ChartLineDecycler** UI primitive in

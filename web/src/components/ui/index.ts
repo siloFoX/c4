@@ -369,3 +369,4 @@ export * from './chart-line-tdi';
 export * from './chart-line-squeeze';
 export * from './chart-line-rmi';
 export * from './chart-line-decycler';
+export * from './chart-line-ift';
