@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.676] - 2026-05-20 -- UI: chart-line-rmi primitive (TODO 11.658)
+
+New **ChartLineRmi** UI primitive in
+`web/src/components/ui/chart-line-rmi.tsx`: pure-SVG two-panel
+chart with a Relative Momentum Index panel applying the RSI
+formula across a momentum lookback.
+
+computeLineRmiChange is the momentum change of the close -- each
+bar measured against the close `momentumPeriod` bars earlier
+rather than the prior close. computeLineRmi applies the RSI
+formula to that change: the gains and losses are taken over the
+momentum lookback, and the RMI is the share
+`100 * avgGain / (avgGain + avgLoss)` over a `period`-bar moving
+average of those gains and losses. A window with no movement
+reads 50; with `momentumPeriod` 1 the RMI is the ordinary RSI.
+
+runLineRmi sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified overbought /
+oversold / neutral against the two levels, the zone counts and
+the final reading. computeLineRmiLayout stacks the price panel
+above an RMI panel with a fixed 0-100 scale, the RMI line, one
+marker per defined bar coloured by zone, and dashed overbought
+and oversold reference lines.
+
+ChartLineRmi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the period and the momentum lookback, a
+three-series legend (Price / RMI / Levels) with toggle buttons,
+hover/focus tooltips, and a `motion-safe` fade-in. Distinct from
+chart-line-rsi: the RMI generalises the RSI by measuring momentum
+over a multi-bar lookback rather than a single bar.
+
+66 vitest cases in `chart-line-rmi.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.676.
+
 ## [1.11.675] - 2026-05-20 -- UI: chart-line-squeeze primitive (TODO 11.657)
 
 New **ChartLineSqueeze** UI primitive in
