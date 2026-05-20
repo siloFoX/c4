@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.648] - 2026-05-20 -- UI: chart-line-gann primitive (TODO 11.630)
+
+New **ChartLineGann** UI primitive in
+`web/src/components/ui/chart-line-gann.tsx`: pure-SVG line chart
+with a Gann fan of angled rays projected from a chosen pivot.
+
+computeLineGannRays builds the nine W.D. Gann fan rays for a
+given price-per-time scale and fan direction. The classic
+price-time ratios are 1x8, 1x4, 1x3, 1x2, the central 1x1
+(the 45-degree reference line), 2x1, 3x1, 4x1 and 8x1. Each
+ray's slope is `ratio * pricePerUnit` price per one x-unit,
+signed positive for an up fan and negative for a down fan; the
+1x1 ray is flagged as the primary. The exported `GANN_RATIOS`
+constant lists the nine ratios in fan order.
+
+runLineGann sorts the finite price points by x, resolves the
+pivot from a clamped pivot index, builds the rays, and returns
+per-bar samples classified above / below / on the 1x1 ray, plus
+the above and below counts. computeLineGannLayout projects the
+price path plus one line per ray from the pivot to the chart's
+right edge; the y-domain covers the price range and the rays are
+clipped to the panel with an SVG clipPath, so a steep ray that
+leaves the panel does not stretch the price axis.
+
+ChartLineGann renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a three-series legend (Price / Gann fan /
+Pivot) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points plus a
+`pivotIndex`, `pricePerUnit` and `direction`. The 1x1 ray is
+drawn solid and emphasized; the other eight rays are dashed; the
+pivot is a diamond marker. Distinct from the pivot-points
+primitive, whose levels are horizontal: the Gann fan is a set of
+sloped rays radiating from one anchor point at fixed angular
+ratios.
+
+57 vitest cases in `chart-line-gann.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.648.
+
 ## [1.11.647] - 2026-05-20 -- UI: chart-line-pivot-points primitive (TODO 11.629)
 
 New **ChartLinePivotPoints** UI primitive in
