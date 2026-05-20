@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.673] - 2026-05-20 -- UI: chart-line-gator primitive (TODO 11.655)
+
+New **ChartLineGator** UI primitive in
+`web/src/components/ui/chart-line-gator.tsx`: pure-SVG two-panel
+chart with a Gator Oscillator panel of two histograms from the
+Alligator moving average jaws.
+
+computeLineGatorSma is the simple moving average. computeLineGator
+builds Bill Williams' Alligator -- three moving averages, a slow
+jaw, a medium teeth and a fast lips -- and turns them into two
+histograms: the upper histogram is `abs(jaw - teeth)`, the lower
+histogram is `-abs(teeth - lips)`. Both share the jaw warm-up.
+
+runLineGator sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified feeding /
+sleeping / steady by the change in the total gator spread, plus
+the final readings and the feeding / sleeping counts.
+computeLineGatorLayout stacks the price panel above a Gator
+panel rendering the two histograms as bars straddling a zero
+line.
+
+ChartLineGator renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge showing the three periods, a three-series legend
+(Price / Upper / Lower) with toggle buttons, hover/focus
+tooltips, and a `motion-safe` fade-in. Distinct from the line
+oscillators: the Gator panel is two histograms of bars, not a
+single line, and it measures the convergence of three averages
+rather than one signal.
+
+65 vitest cases in `chart-line-gator.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.673.
+
 ## [1.11.672] - 2026-05-20 -- UI: chart-line-ravi primitive (TODO 11.654)
 
 New **ChartLineRavi** UI primitive in

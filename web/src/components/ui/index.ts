@@ -364,3 +364,4 @@ export * from './chart-line-pgo';
 export * from './chart-line-tii';
 export * from './chart-line-vhf';
 export * from './chart-line-ravi';
+export * from './chart-line-gator';
