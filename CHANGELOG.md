@@ -4,6 +4,136 @@
 
 (no entries -- next release window)
 
+## [1.11.571] - 2026-05-20 -- UI: chart-line-holtwinters primitive (TODO 11.553)
+
+New **ChartLineHoltWinters** UI primitive in
+`web/src/components/ui/chart-line-holtwinters.tsx`: pure-SVG
+line chart with an additive **Holt-Winters triple-exponential
+smoothing overlay**. Raw observations render as a dimmed
+reference line; the Holt-Winters one-step in-sample fitted
+value renders as a solid coloured overlay; an optional
+dashed multi-step forecast extends a full season beyond the
+data.
+
+Holt-Winters extends simple exponential smoothing with three
+coupled recursions -- one each for level, trend, and
+seasonality. For a season length m the additive variant
+updates: `level_t = alpha * (y_t - season_{t-m}) +
+(1-alpha) * (level_{t-1} + trend_{t-1})`, `trend_t = beta *
+(level_t - level_{t-1}) + (1-beta) * trend_{t-1}`,
+`season_t = gamma * (y_t - level_t) + (1-gamma) *
+season_{t-m}`. In-sample one-step fitted value:
+`yhat_t = level_{t-1} + trend_{t-1} + season_{t-m}`.
+Multi-step forecast: `yhat_{N-1+h} = level + h * trend +
+season_{(N-1+h) mod m}`. Three smoothing factors alpha
+(level, default 0.5), beta (trend, default 0.3), gamma
+(seasonal, default 0.3), all clamped to [0, 1].
+Initialisation: initialLevel = mean of the first season;
+initialTrend = mean per-step slope between the first two
+seasons (0 with fewer than two full seasons);
+initialSeasonals[i] = y_i - initialLevel (which sum to 0).
+The recursion runs for t = m..N-1 so the first m fitted
+values are null; the fit reports ok=false when there are
+fewer than m+1 finite values.
+
+Verified properties: a purely seasonal series with no trend
+([10,20,30,40] repeated) is fitted EXACTLY (every fitted
+value equals the raw value, residuals 0, RMSE 0) for any
+valid alpha/beta/gamma, and the forecast reproduces the
+continuing pattern; a constant series is fitted exactly;
+initialSeasonals sum to 0; initialTrend is 0 with one season
+and recovers the per-step slope exactly with two seasons.
+
+Distinct from `<ChartLineEwma>` (11.539; SINGLE exponential
+smoothing -- one recursion, level only -- Holt-Winters is
+TRIPLE exponential smoothing that additionally models trend
+and seasonality), `<ChartLineArima>` (11.552; an AR(1)
+autoregressive model fitted by least squares -- Holt-Winters
+is an exponential smoothing method, recursively weighted
+averages, not a regression, and explicitly decomposes
+seasonality), `<ChartLineDecompose>` (11.543; splits a
+series into trend + seasonal + residual COMPONENTS for
+inspection -- Holt-Winters uses the same three concepts as a
+FORECASTING model producing fitted values and a forward
+forecast), `<ChartLineKalman>` (11.538; Bayesian
+state-space filter with explicit noise -- Holt-Winters is
+deterministic exponential smoothing with no noise model),
+`<ChartLineForecast>` (renders pre-computed forecast data --
+Holt-Winters fits the model itself), and the smoothers
+`<ChartLineMovingAvg>` (11.513), `<ChartLineLoess>`
+(11.549), `<ChartLineSavgol>` (11.547) (no trend or seasonal
+model and no forecast).
+
+The canonical seasonal forecasting method taught alongside
+ARIMA -- the natural choice when a series has a clear
+repeating cycle plus drift.
+
+Pure helpers exported: `fitLineHoltWinters` (the additive
+Holt-Winters fit; returns {ok, fitted, initialLevel,
+initialTrend, initialSeasonals, level, trend, seasonals,
+alpha, beta, gamma, seasonLength}), `forecastLineHoltWinters`
+(multi-step forecast values; [] when the fit failed or
+horizon <= 0), `runLineHoltWinters` (canonical pipeline;
+sorts ascending; drops non-finite; fits the model; computes
+residuals + RMSE + a forecast array),
+`normaliseLineHoltWintersSmoothingFactor` (clamps to [0, 1]),
+`normaliseLineHoltWintersSeasonLength` (integer >= 2),
+`normaliseLineHoltWintersForecastHorizon` (integer 0..366),
+`classifyLineHoltWintersResidualSign`,
+`getLineHoltWintersDefaultColor`,
+`getLineHoltWintersFinitePoints`,
+`computeLineHoltWintersLayout` (projects raw + fitted paths
++ residual segments + the forecast path),
+`describeLineHoltWintersChart`.
+
+API: `series: ChartLineHoltWintersSeries[]` (per-series
+alpha / beta / gamma / seasonLength overrides always beat
+chart-level); `alpha` / `beta` / `gamma` (clamped to
+[0, 1]); `seasonLength` (default 4; integer >= 2);
+`forecastHorizon` (default 4; integer 0..366);
+`forecastColor` / `rawColor` / `residualPosColor` /
+`residualNegColor`; toggle flags `showAxis` / `showGrid` /
+`showDots` / `showLegend` / `showTooltip` /
+`showConfigBadge` / `showRaw` / `showForecast` /
+`showResidualSticks` / `animate`; controlled + uncontrolled
+visibility; standard sizing + format + a11y props;
+`formatValue` / `formatX` / `formatCoefficient`;
+`onPointClick({series, point})`.
+
+Tooltip on dots shows label, x, raw, bold fitted (or n/a for
+the first season), residual (+/- prefix), config a=<alpha>,
+b=<beta>, g=<gamma>, m=<season>. Config badge: `HW a=<alpha>
+b=<beta> g=<gamma> m=<season> rmse=<rmse>`. Legend stats:
+per-series season + rmse.
+
+ARIA: root role=region + aria-describedby + sr-only desc,
+SVG role=img, raw path + fitted path + forecast dots + dots
+role=graphics-symbol + tabIndex=0. data-section on every
+node. Root mirrors data-alpha + data-beta + data-gamma +
+data-season-length + data-rmse + data-fit-ok + data-animate.
+Raw path data-kind=raw; fitted path data-kind=fitted.
+Forecast dots expose data-horizon. Series groups expose all
+three factors + season + fit-ok + level + trend + rmse +
+residual counts + forecast count.
+
+86 vitest cases pass (defaults + helpers, fitLineHoltWinters
+incl. N<m+1 -> ok=false + initial level = first-season mean
++ initial seasonals sum to 0 + initial trend 0/per-step
+slope + first m fitted null + periodic-no-trend fitted
+exactly + constant fitted exactly + factor clamping,
+forecastLineHoltWinters incl. periodic forecasts continuing
+pattern + constant forecast + horizon length,
+runLineHoltWinters incl. periodic -> fitted = raw + RMSE ~ 0
++ multi-step forecast + fitted valid count,
+computeLineHoltWintersLayout incl. paths + forecast points +
+per-series overrides + short series fit not ok + bounds +
+totalPoints, describeLineHoltWintersChart, render incl.
+empty + raw path + fitted path + forecast path + dots +
+residual sticks + dots + config badge + ARIA + root data-* +
+group data-* + tooltip + onPointClick + legend + animate +
+ref + displayName + xLabel + yLabel + zero-RMSE badge for
+periodic input). TypeScript clean. Exported via barrel.
+
 ## [1.11.570] - 2026-05-20 -- UI: chart-line-arima primitive (TODO 11.552)
 
 New **ChartLineArima** UI primitive in
