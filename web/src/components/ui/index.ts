@@ -311,3 +311,4 @@ export * from './chart-line-force-index';
 export * from './chart-line-emv';
 export * from './chart-line-kst';
 export * from './chart-line-rvi';
+export * from './chart-line-stc';

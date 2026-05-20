@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.620] - 2026-05-20 -- UI: chart-line-stc primitive (TODO 11.602)
+
+New **ChartLineStc** UI primitive in
+`web/src/components/ui/chart-line-stc.tsx`: pure-SVG line
+chart with a Schaff Trend Cycle oscillator panel on a 0 to
+100 scale. The top panel renders the price line; the bottom
+panel renders the STC line on a fixed 0-100 axis with shaded
+overbought and oversold zones, dashed threshold lines, and
+markers coloured by zone.
+
+computeLineStc is Doug Schaff's Trend Cycle. The MACD line
+(computeLineStcMacd -- a fast EMA minus a slow EMA, defaults
+23/50) is run through two cycles of stochastic normalisation
+and modified-EMA smoothing: computeLineStcStochK scales each
+value to its position within a cycle-length high-low window
+(default cycle 10, a flat window reads the neutral 50), and
+computeLineStcSmooth applies the Schaff modified-EMA
+`out[i] = out[i-1] + factor*(src[i] - out[i-1])` (default
+factor 0.5). Applying the stochastic-then-smooth pair twice to
+the MACD yields a fast oscillator bounded to 0-100.
+
+runLineStc sorts the finite points by x, computes the MACD
+and the STC, and returns per-period samples (each carrying an
+overbought/oversold/neutral zone), the final STC reading, the
+STC range, and counts of overbought and oversold readings.
+computeLineStcLayout stacks a price panel above an STC panel
+whose y-axis is fixed 0-100, and projects the price path, the
+STC path, zone-coloured markers, the overbought and oversold
+zone rects, and the threshold lines.
+
+ChartLineStc renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+MACD and cycle periods, a two-series legend (Price / STC)
+with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. Distinct from chart-line-macd (the raw
+unbounded EMA difference) and chart-line-stochastic (a single
+stochastic of price): the STC is a *double* stochastic of the
+*MACD line*, bounded 0-100. 69 vitest cases cover the EMA,
+MACD, stochastic and smoother primitives, the full STC
+pipeline against a hand-verified fixture, the 0-100 bound,
+layout geometry, the description text, and component
+rendering.
+
 ## [1.11.619] - 2026-05-20 -- UI: chart-line-rvi primitive (TODO 11.601)
 
 New **ChartLineRvi** UI primitive in
