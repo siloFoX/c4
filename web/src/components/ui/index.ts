@@ -318,3 +318,4 @@ export * from './chart-line-hma';
 export * from './chart-line-zlema';
 export * from './chart-line-alma';
 export * from './chart-line-adl';
+export * from './chart-line-chaikin-osc';
