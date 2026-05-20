@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.649] - 2026-05-20 -- UI: chart-line-andrews primitive (TODO 11.631)
+
+New **ChartLineAndrews** UI primitive in
+`web/src/components/ui/chart-line-andrews.tsx`: pure-SVG line
+chart with an Andrews Pitchfork drawn from three pivot points.
+
+computeLineAndrewsFork builds the pitchfork from three pivots.
+The median line runs from the first pivot through the midpoint
+of the second and third pivots; two parallel tines pass through
+the remaining two pivots, all three lines sharing the median's
+slope. The tine with the larger intercept is the upper line, the
+other the lower; the median's intercept is exactly their
+average. It returns null when a pivot coordinate is not finite,
+or when the midpoint sits directly above the first pivot (a
+vertical, slope-less median).
+
+runLineAndrews sorts the finite price points by x, builds the
+fork from the supplied pivots, and returns per-bar samples
+classified above / below / on the median line, plus the above
+and below counts. computeLineAndrewsLayout projects the price
+path, the three fork lines across the full x range, and a marker
+for each pivot; the fork lines are clipped to the panel with an
+SVG clipPath so a tine that leaves the panel does not stretch
+the price axis.
+
+ChartLineAndrews renders as an accessible region with an
+`role="img"` SVG, an off-screen description, axis ticks and
+grid, a config badge, a three-series legend (Price / Pitchfork /
+Pivots) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. It consumes `{ x, value }` points plus a
+`{ p1, p2, p3 }` pivots object. The median line is drawn solid
+and emphasized; the two tines are dashed; each pivot is a
+labelled diamond marker. Distinct from the Gann fan, whose rays
+share one anchor at fixed ratios: the pitchfork's three lines
+are parallel and their slope and offsets are derived entirely
+from the geometry of the three chosen pivots.
+
+55 vitest cases in `chart-line-andrews.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.649.
+
 ## [1.11.648] - 2026-05-20 -- UI: chart-line-gann primitive (TODO 11.630)
 
 New **ChartLineGann** UI primitive in
