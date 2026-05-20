@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.593] - 2026-05-20 -- UI: chart-line-vwap primitive (TODO 11.575)
+
+New **ChartLineVwap** UI primitive in
+`web/src/components/ui/chart-line-vwap.tsx`: pure-SVG line
+chart with a volume-weighted average price (VWAP) overlay.
+Unlike every other line primitive, the data carries two
+paired fields per period -- price and volume -- and the
+chart plots the cumulative VWAP line on top of the price
+line, with the volume drawn as faint bars along the bottom.
+
+runLineVwap walks the series sorted by x and at each period
+computes the cumulative VWAP = sum(price*volume) /
+sum(volume) over every period up to and including the
+current one -- the running average price weighted by traded
+volume, so a high-volume period pulls the line harder than a
+low-volume one. A negative volume is clamped to 0 (a trade
+cannot have negative size); a period whose cumulative volume
+is still 0 has a null VWAP, so the line begins only once
+volume has accumulated. Each sample also carries
+deviation = price - vwap. The component fixture makes the
+math exact: prices [10,20,30,20] with volumes
+[100,100,200,100] give a cumulative VWAP of [10,15,22.5,22],
+deviations of [0,5,7.5,-2], a total volume of 500 and a
+final VWAP of 22.
+
+Distinct from neighbouring primitives: VWAP is the only line
+primitive that consumes a paired {price, volume} series --
+the volume weighting cannot be reproduced from a plain
+{x, value} series; chart-line-moving-avg averages by COUNT
+(an unweighted SMA), chart-line-ewma weights by RECENCY,
+chart-line-cumulative sums values, and none weight by a
+second quantity. The volume bars at the bottom surface the
+weights that drive the line. All exported helpers carry a
+LineVwap infix so the barrel export * cannot collide.
+
+Exported helpers: `getLineVwapFinitePoints`, `runLineVwap`,
+`computeLineVwapLayout`, `describeLineVwapChart`. Tooltip on
+a price dot shows x, price, volume, the VWAP and the
+deviation from it; config badge `VWAP final=.. vol=..`; the
+legend has three toggle items (Price / VWAP / Volume). 46
+vitest cases in `chart-line-vwap.test.tsx`, all passing.
+Exported from the `ui` barrel.
+
 ## [1.11.592] - 2026-05-20 -- UI: chart-line-parabolic-sar primitive (TODO 11.574)
 
 New **ChartLineParabolicSar** UI primitive in
