@@ -304,3 +304,4 @@ export * from './chart-line-cdf';
 export * from './chart-line-tsi';
 export * from './chart-line-cmo';
 export * from './chart-line-fisher';
+export * from './chart-line-coppock';
