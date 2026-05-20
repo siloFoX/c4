@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.619] - 2026-05-20 -- UI: chart-line-rvi primitive (TODO 11.601)
+
+New **ChartLineRvi** UI primitive in
+`web/src/components/ui/chart-line-rvi.tsx`: pure-SVG line
+chart with a Relative Vigor Index oscillator panel and its
+signal line. The top panel renders the close line with a
+shaded high-low band behind it; the bottom panel renders the
+RVI line and a dashed signal line on a symmetric y-axis with a
+dashed zero centerline and sign-coloured markers.
+
+computeLineRvi is John Ehlers' Relative Vigor Index. Each
+bar's close-open move and its high-low range are run through
+computeLineRviSwma -- a fixed 4-bar symmetric weighted average
+with weights 1/2/2/1 over 6 -- giving the numerator and
+denominator. Both are smoothed by an SMA (default 10-period)
+and divided: conviction is high when price closes far from
+where it opened relative to the bar's range. The signal line
+is the symmetric weighted average of the RVI; a cross of the
+two marks a vigor shift.
+
+runLineRvi sorts the finite points by x, computes the
+close-open and high-low spans, the numerator and denominator,
+the RVI, and the signal, and returns per-period samples (each
+carrying a positive/negative/zero sign from the RVI), the
+final RVI and signal readings, the RVI range, and counts of
+readings above and below the zero line. computeLineRviLayout
+stacks a price panel above an RVI panel sharing one x-axis,
+derives a symmetric y-bound around zero, and projects the
+close path, the high-low band path, the RVI path, the signal
+path, sign-coloured markers, and a zero centerline.
+
+ChartLineRvi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, two stacked
+panels with axis ticks and grid, a config badge showing the
+SMA period, a three-series legend (Close / RVI / Signal) with
+toggle buttons, hover/focus tooltips, and a `motion-safe`
+fade-in. It consumes full OHLC points -- `{ x, open, high,
+low, close }` -- since the RVI relates the close-open move to
+the high-low range. Distinct from chart-line-stochastic and
+chart-line-williams-r (which measure where the close sits in
+the range): the RVI compares the close-open *move* to the
+range, not the close *position*. 60 vitest cases cover the
+SWMA and SMA primitives, the full RVI pipeline against a
+hand-verified fixture, layout geometry, the description text,
+and component rendering.
+
 ## [1.11.618] - 2026-05-20 -- UI: chart-line-kst primitive (TODO 11.600)
 
 New **ChartLineKst** UI primitive in
