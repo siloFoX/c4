@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.681] - 2026-05-20 -- UI: chart-line-cfo primitive (TODO 11.663)
+
+New **ChartLineCfo** UI primitive in
+`web/src/components/ui/chart-line-cfo.tsx`: pure-SVG two-panel
+chart with a Chande Forecast Oscillator panel of the percent gap
+between price and its linear regression forecast.
+
+computeLineCfoForecast fits a least-squares line through the
+trailing `period` closes and returns its endpoint value -- the
+forecast. computeLineCfo is the percent gap between the close and
+that forecast: `100 * (close - forecast) / close`. A positive CFO
+means the price is running above the forecast, a negative CFO
+below it.
+
+runLineCfo sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified above-trend /
+below-trend / neutral against the threshold, the zone counts and
+the final reading. computeLineCfoLayout stacks the price panel --
+with the regression forecast overlaid as a dashed line -- above a
+CFO panel with the oscillator, one marker per defined bar
+coloured by zone, and dashed zero and trigger reference lines.
+
+ChartLineCfo renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config badge
+showing the period, a four-series legend (Price / Forecast / CFO
+/ Levels) with toggle buttons, hover/focus tooltips, and a
+`motion-safe` fade-in. Distinct from the deviation oscillators:
+the CFO measures the gap against a forward-fitted regression
+line, not a trailing moving average.
+
+67 vitest cases in `chart-line-cfo.test.tsx`, all passing;
+typecheck clean for the new files. Version bumped to 1.11.681.
+
 ## [1.11.680] - 2026-05-20 -- UI: chart-line-vzo primitive (TODO 11.662)
 
 New **ChartLineVzo** UI primitive in
