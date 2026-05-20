@@ -271,3 +271,4 @@ export * from './chart-line-spearman';
 export * from './chart-line-tsne';
 export * from './chart-line-kalman-smoother';
 export * from './chart-line-theilsen';
+export * from './chart-line-error-bars';

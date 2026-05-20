@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.580] - 2026-05-20 -- UI: chart-line-error-bars primitive (TODO 11.562)
+
+New **ChartLineErrorBars** UI primitive in
+`web/src/components/ui/chart-line-error-bars.tsx`: pure-SVG
+multi-series line chart with **discrete per-point error
+bars**. A connecting line joins the observations; every
+point that carries error data also draws an I-beam error bar
+-- a vertical stem with an upper and a lower horizontal cap.
+
+Each point may carry up to three error fields, collapsed to
+a {errorLow, errorHigh} pair by `resolveLineErrorBarsBounds`:
+an explicit `errorLow` / `errorHigh` always wins for its own
+side; a side with no explicit value falls back to the
+symmetric `error` field, then to 0; negative magnitudes are
+clamped to 0. So `{error: 2}` -> low 2 / high 2;
+`{errorLow: 1, errorHigh: 3}` -> low 1 / high 3;
+`{error: 2, errorHigh: 5}` -> low 2 / high 5.
+`runLineErrorBars` sorts the finite points ascending by x and
+reports, per sample, `upper = y + errorHigh`,
+`lower = y - errorLow`, a `hasError` flag and a `symmetric`
+flag, plus `errorPointCount`, `meanError` (mean half-extent)
+and `maxError` (largest single-side magnitude).
+
+Distinct from the continuous band charts: `chart-line-band`
+and `chart-line-confidence` fill a continuous shaded region
+swept across the whole x range, whereas ChartLineErrorBars
+draws a self-contained discrete I-beam at each point and no
+bar at all where a point lacks error data. The y-axis range
+still expands to cover the error-bar extents so no cap is
+clipped. Also distinct from the existing `chart-error-bars`
+(a standalone categorical error-bar chart with no connecting
+line). All exported helpers carry a `LineErrorBars` infix so
+the barrel `export *` cannot collide.
+
+Exported helpers: `getLineErrorBarsDefaultColor`,
+`getLineErrorBarsFinitePoints`, `resolveLineErrorBarsBounds`,
+`runLineErrorBars`, `computeLineErrorBarsLayout`,
+`describeLineErrorBarsChart`. Tooltip shows x, y, the error
+(`+/- e` symmetric or `+high / -low` asymmetric) and the
+`[lower, upper]` range; config badge `ERR mean=.. max=..
+bars=..`; legend shows the bar count + mean error per series.
+57 vitest cases in `chart-line-error-bars.test.tsx`, all
+passing. Exported from the `ui` barrel.
+
 ## [1.11.579] - 2026-05-20 -- UI: chart-line-theilsen primitive (TODO 11.561)
 
 New **ChartLineTheilSen** UI primitive in
