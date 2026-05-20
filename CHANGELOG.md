@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.607] - 2026-05-20 -- UI: chart-line-dpo primitive (TODO 11.589)
+
+New **ChartLineDpo** UI primitive in
+`web/src/components/ui/chart-line-dpo.tsx`: pure-SVG line
+chart with a Detrended Price Oscillator panel removing the
+long-term trend to expose cycles. The value line sits in the
+top panel; the bottom panel renders the DPO on a symmetric
+y-axis with a dashed zero centerline and sign-coloured
+markers.
+
+computeLineDpoShift is the DPO displacement, floor(period/2)
++ 1. computeLineDpo is the Detrended Price Oscillator: for
+each index the simple moving average over `period` values is
+subtracted from the price `shift` bars earlier, DPO[i] =
+value[i - shift] - SMA(period)[i]. The displaced subtraction
+removes the longer trend and leaves the shorter cycle
+oscillating around zero. Indices before both windows are
+available read null; a flat series reads 0 throughout.
+
+runLineDpo sorts the finite points by x, computes the DPO
+series, classifies each reading's sign, and returns
+per-period samples plus the final DPO, the value range, and
+the above/below-zero counts. computeLineDpoLayout stacks a
+value panel above a DPO panel with a symmetric y-bound so
+the zero centerline sits in the middle.
+
+This is distinct from chart-line-trix and chart-line-macd,
+which build their oscillators from exponential moving
+averages: DPO subtracts a single simple moving average and,
+critically, displaces it backward by half the period. That
+displacement is the defining trait -- it aligns the average
+with the cycle's natural lag so the trend cancels cleanly,
+which a non-displaced residual or moving-average difference
+does not do.
+
+Helpers exported: getLineDpoFinitePoints,
+normalizeLineDpoPeriod, computeLineDpoShift, computeLineDpo,
+runLineDpo, computeLineDpoLayout, describeLineDpoChart. The
+component is a forwardRef region with an ARIA description,
+config badge, two-series legend (Value / DPO) with toggle,
+sign-coloured markers, hover tooltip exposing value / DPO /
+sign, and motion-safe fade-in. 89 vitest cases cover the
+math, layout, description, and rendering.
+
 ## [1.11.606] - 2026-05-20 -- UI: chart-line-vortex primitive (TODO 11.588)
 
 New **ChartLineVortex** UI primitive in

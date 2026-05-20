@@ -298,3 +298,4 @@ export * from './chart-line-williams-r';
 export * from './chart-line-trix';
 export * from './chart-line-mfi';
 export * from './chart-line-vortex';
+export * from './chart-line-dpo';
