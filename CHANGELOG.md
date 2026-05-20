@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.597] - 2026-05-20 -- UI: chart-line-atr primitive (TODO 11.579)
+
+New **ChartLineAtr** UI primitive in
+`web/src/components/ui/chart-line-atr.tsx`: pure-SVG line
+chart with an Average True Range volatility sub-panel. The
+price line sits in the top panel; the bottom panel plots the
+ATR line as a standalone volatility study, with the raw
+per-period true range drawn behind it as faint bottom-
+anchored bars.
+
+computeLineAtrTrueRanges is the per-period true range: for a
+single-value series the true range is the absolute period-
+over-period change |v[i] - v[i-1]|; index 0 has no prior
+value and reads null.
+
+computeLineAtr is Welles Wilder's Average True Range. The
+first ATR, at index period, seeds with the simple mean of
+the first period true ranges; every later value uses Wilder
+smoothing (prev*(period-1) + tr)/period. Indices before the
+window fills read null. The ATR is non-negative throughout.
+
+runLineAtr sorts the finite points by x, computes the true
+range and ATR series, and returns per-period samples plus
+atrFinal (last defined ATR) and atrMax (peak ATR).
+computeLineAtrLayout stacks a price panel above an ATR panel
+sharing one x-axis; the ATR panel y-range floors at 0 and
+spans the larger of the peak ATR and peak true range so the
+faint true-range bars and the ATR line share one scale.
+
+This is distinct from chart-line-keltner, which uses the ATR
+only to scale a band envelope around an EMA centre overlaid
+on the price; chart-line-atr displays the ATR itself as a
+volatility line in a dedicated sub-panel. It is also distinct
+from the standard-deviation bands of chart-line-bollinger.
+
+Helpers exported: getLineAtrFinitePoints,
+normalizeLineAtrPeriod, computeLineAtrTrueRanges,
+computeLineAtr, runLineAtr, computeLineAtrLayout,
+describeLineAtrChart. The component is a forwardRef region
+with an ARIA description, config badge, three-series legend
+(Price / ATR / True Range) with toggle, hover tooltip, and
+motion-safe fade-in. 81 vitest cases cover the math, layout,
+description, and rendering.
+
 ## [1.11.596] - 2026-05-20 -- UI: chart-line-stochastic primitive (TODO 11.578)
 
 New **ChartLineStochastic** UI primitive in
