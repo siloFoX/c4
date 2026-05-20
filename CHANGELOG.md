@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.611] - 2026-05-20 -- UI: chart-line-cmo primitive (TODO 11.593)
+
+New **ChartLineCmo** UI primitive in
+`web/src/components/ui/chart-line-cmo.tsx`: pure-SVG line
+chart with a Chande Momentum Oscillator panel on a +/-100
+scale. The value line sits in the top panel; the bottom
+panel renders the CMO on a fixed -100 to +100 scale with a
+dashed zero centerline, +50/-50 level lines, and shaded
+overbought/oversold zones.
+
+computeLineCmoChanges splits each period's change into a
+gain (the positive part) and a loss (the magnitude of the
+negative part). computeLineCmo is Tushar Chande's Momentum
+Oscillator: over a trailing window of `period` changes the
+gains and losses are summed with a plain sum -- no Wilder
+smoothing -- and CMO = 100 * (sumUp - sumDown) / (sumUp +
+sumDown). The result runs -100 (all losses) to +100 (all
+gains), centred on zero; a window with no movement reads 0.
+
+runLineCmo sorts the finite points by x, computes the CMO
+series, classifies each reading as overbought (above +50),
+oversold (below -50), or neutral, and returns per-period
+samples plus the final CMO and the extreme counts.
+computeLineCmoLayout stacks a value panel above a fixed -100
+to +100 CMO panel and places the zero centerline, the level
+lines, and the shaded zones.
+
+This is distinct from chart-line-rsi: RSI uses Wilder-
+smoothed average gains and losses on a 0 to 100 scale
+centred on 50. CMO sums the raw gains and losses over the
+window with no smoothing and reports their net on a -100 to
++100 scale centred on zero. It is also distinct from
+chart-line-tsi, which double-smooths the momentum: CMO is
+the un-smoothed, single-window-sum momentum ratio.
+
+Helpers exported: getLineCmoFinitePoints,
+normalizeLineCmoPeriod, computeLineCmoChanges, computeLineCmo,
+runLineCmo, computeLineCmoLayout, describeLineCmoChart. The
+component is a forwardRef region with an ARIA description,
+config badge, two-series legend (Value / CMO) with toggle,
+zone-coloured markers, hover tooltip exposing value / CMO /
+zone, and motion-safe fade-in. 94 vitest cases cover the
+math, layout, description, and rendering.
+
 ## [1.11.610] - 2026-05-20 -- UI: chart-line-tsi primitive (TODO 11.592)
 
 New **ChartLineTsi** UI primitive in
