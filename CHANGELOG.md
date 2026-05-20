@@ -4,6 +4,228 @@
 
 (no entries -- next release window)
 
+## [1.11.566] - 2026-05-20 -- UI: chart-line-hampel primitive (TODO 11.548)
+
+New **ChartLineHampel** UI
+primitive in
+`web/src/components/ui/chart-line-hampel.tsx`:
+pure-SVG line chart with a
+**Hampel** robust outlier
+filter (median + MAD) and an
+**original-vs-filtered**
+overlay. For each index, the
+filter builds a centered
+window of length W (default
+7, odd), computes the window
+median m and MAD = median(|y
+- m|), scales MAD by c
+(default 1.4826 -- canonical
+normality factor making
+c*MAD an unbiased sigma
+estimator under Gaussian
+noise), and flags index i as
+an outlier when `|y[i] - m|
+> n * c * MAD` (default
+n=3); outliers are replaced
+with the window median.
+Edge windows are clamped to
+in-bounds samples (no
+leading/trailing nulls; the
+filter operates on shorter
+windows at the edges). The
+key property: median + MAD
+are **robust statistics**
+with a 50% breakdown point,
+so the Hampel filter
+detects outliers EVEN WHEN
+OTHER OUTLIERS ARE PRESENT
+in the same window -- unlike
+methods using mean + stddev
+where outliers inflate
+stddev and hide each other.
+The canonical robust outlier
+rejector used in sensor
+signal processing, financial
+cleanup, and any context
+where the question is "drop
+the spikes". Pure helpers
+`computeHampelMedian`
+(canonical median; drops
+non-finite; 50% breakdown
+verified), `computeHampelMad`
+(canonical MAD; verified at
+MAD([1..5]) = 1; accepts
+pre-computed center;
+robust to outliers verified
+at MAD([1,2,3,4,1e9]) = 1),
+`applyLineHampel` (canonical
+filter pipeline; returns
+`{filtered, outlierIndices,
+medians, mads, deviations,
+scores, windowLength,
+nSigmas, madScale}`; edge
+windows clamped; non-finite
+slots -> NaN in filtered
+output), `runLineHampel`
+(sorts ascending; drops
+non-finite; per-sample
+metadata),
+`normaliseLineHampelWindow`
+(odd >= 3; even rounded
+up), `normaliseLineHampelNSigmas`
+(zero allowed),
+`normaliseLineHampelMadScale`
+(positive only),
+`computeLineHampelLayout`,
+and `describeLineHampelChart`.
+Distinct from
+`<ChartLineAnomaly>`
+(11.524; z-score from
+rolling mean+stddev --
+non-robust, outliers
+inflate stddev and hide),
+`<ChartLineControl>`
+(11.534; global SPC
+mean+/-k*sigma -- non-
+robust + non-local),
+`<ChartLineChangepoint>`
+(11.546; regime shift
+detector -- Hampel finds
+isolated outliers),
+`<ChartLineSavgol>` (11.547;
+polynomial smoothing,
+no outlier flag --
+Hampel replaces flagged
+points with median; SG
+smooths through
+everything),
+`<ChartLineMovingAvg>`
+(11.513; SMA -- non-robust),
+`<ChartLineKalman>`
+(11.538; Bayesian filter
+-- statistical not
+robust), and
+`<ChartLineBollinger>`
+(11.537; rolling SMA +
+envelope -- non-robust).
+Per-series windowLength /
+nSigmas / madScale always
+beats chart-level. Tooltip
+on dots shows label
+(with `OUTLIER` suffix
+when flagged), x, raw,
+bold filtered, window
+median, window MAD, score
+in sigma units, and the
+config row `W=<w>, n=<n>,
+c=<c>`. Outlier markers
+are X-shaped (circle +
+two diagonal cross
+lines) at flagged points
+on the RAW position
+(not filtered). Outlier
+badge in top-left calls
+out `X <count> outliers
+(W=<w>; <n> sigma)`. ARIA:
+root `role="region"` +
+`aria-describedby`; SVG
+`role="img"`; raw path +
+filtered path + dots +
+outlier markers all
+`role="graphics-symbol"
+tabIndex={0}`; outlier
+aria-label includes
+index + raw + median +
+score. Data-attrs: root
+`data-series-count`,
+`data-visible-series-count`,
+`data-total-points`,
+`data-total-outliers`,
+`data-window-length`,
+`data-n-sigmas`,
+`data-mad-scale`,
+`data-animate`; raw path
+`data-kind="raw"`;
+filtered path
+`data-kind="filtered"`;
+dots `data-raw`,
+`data-filtered`,
+`data-window-median`,
+`data-window-mad`,
+`data-deviation`,
+`data-score`,
+`data-outlier`; series
+groups expose window +
+nSigmas + madScale + RMSE
++ counts + maxScore. 84
+vitest cases pass
+(defaults + helpers,
+computeHampelMedian incl.
+odd-length middle +
+even-length average +
+**robust to outliers
+verified
+median([1,2,3,4,1e9]) =
+3** + drops non-finite,
+computeHampelMad incl.
+zero MAD for constant +
+**canonical MAD([1..5]) =
+1 verified** + accepts
+center + **robust to
+outliers verified MAD
+([1,2,3,4,1e9]) = 1**,
+applyLineHampel incl. **
+flags both spikes in
+fixture and replaces
+with median** + flat
+input no outliers + **
+robust to adjacent
+outliers in same window
+(50% breakdown verified)**
++ higher nSigmas
+suppresses subtle + edge
+windows clamped,
+runLineHampel incl. per-
+sample metadata + sort
+ascending + drops non-
+finite + counts,
+computeLineHampelLayout
+incl. paths + outlier
+count + max score +
+outliers array + hidden
++ bounds + overrides +
+totalOutliers + **
+per-point rawPy/filteredPy
+diverge at outliers
+verified**,
+describeLineHampelChart
+No data + summary,
+component render incl.
+empty / raw kind=raw /
+filtered kind=filtered /
+hide raw / **outlier X
+markers at 2 fixture
+spikes verified** / hide
+markers / replacement
+sticks + omit / dots
+with data-outlier
+true/false / hide dots /
+outlier badge + omit /
+ARIA / root data-* / group
+data-* / tooltip raw +
+filtered + median + MAD
++ score + config rows +
+**OUTLIER suffix in label
+for flagged** + hide on
+leave + omit / onPointClick
++ onOutlierClick payloads
+/ legend outlier count +
+max score sigma + toggle
++ omit / animate flag +
+class / ref / displayName).
+Implementation patch:
+`docs/patches/11.548-ui-chart-line-hampel.md`.
+
 ## [1.11.565] - 2026-05-20 -- UI: chart-line-savgol primitive (TODO 11.547)
 
 New **ChartLineSavgol** UI
