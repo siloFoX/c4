@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.707] - 2026-05-21 -- UI: chart-line-weighted-close primitive (TODO 11.689)
+
+New **ChartLineWeightedClose** UI primitive in
+`web/src/components/ui/chart-line-weighted-close.tsx`: pure-SVG
+single-panel line chart with a Weighted Close overlay averaging
+the bar with a double-weighted close.
+
+computeLineWeightedClose is the Weighted Close per bar --
+`(high + low + 2 * close) / 4`. Giving the close half the total
+weight pulls the result toward the close, so the Weighted Close
+hugs the close more tightly than the equal-thirds Typical Price.
+A bar with a non-finite high, low or close yields null.
+
+runLineWeightedClose sorts the finite bars by x, runs the
+pipeline, and returns per-bar samples classified above / below /
+equal by where the Weighted Close sits relative to the close, the
+zone counts and the final readings. computeLineWeightedCloseLayout
+projects a single panel with the close line, the Weighted Close
+line overlaid and one marker per bar coloured by zone.
+
+ChartLineWeightedClose renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+(HLCC/4), a two-item toggleable legend (Close / Weighted Close)
+and a hover/focus tooltip showing the bar high, low, close and
+Weighted Close. Controlled and uncontrolled `hiddenSeries` are
+both supported. 51 vitest cases cover the exact Weighted Close
+series and zone classification.
+
 ## [1.11.706] - 2026-05-21 -- UI: chart-line-typical primitive (TODO 11.688)
 
 New **ChartLineTypical** UI primitive in
