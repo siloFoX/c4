@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.703] - 2026-05-21 -- UI: chart-line-hilo primitive (TODO 11.685)
+
+New **ChartLineHilo** UI primitive in
+`web/src/components/ui/chart-line-hilo.tsx`: pure-SVG
+single-panel line chart with a Gann HiLo Activator overlay
+flipping a trailing stop on a moving average cross.
+
+computeLineHiloSma is the simple moving average over a window.
+computeLineHilo is the Gann HiLo Activator: the trailing stop
+follows the moving average of the lows while the trend is up and
+the moving average of the highs while it is down. The trend
+flips when the close crosses the stop -- a close above the high
+average turns it up, a close below the low average turns it down.
+
+runLineHilo sorts the finite OHLC bars by x, runs the pipeline,
+and returns per-bar samples carrying the trend and a flip flag,
+the up / down / flip counts and the final stop and trend.
+computeLineHiloLayout overlays the price line and the HiLo
+Activator line on a single panel, with a marker on each flip bar
+coloured by the new trend.
+
+ChartLineHilo renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+two-item toggleable legend (Price / HiLo Activator) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 56 vitest cases cover the exact moving
+averages, the trend flip logic and the flip detection.
+
 ## [1.11.702] - 2026-05-21 -- UI: chart-line-mcclellan primitive (TODO 11.684)
 
 New **ChartLineMcclellan** UI primitive in
