@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.692] - 2026-05-21 -- UI: chart-line-wad primitive (TODO 11.674)
+
+New **ChartLineWad** UI primitive in
+`web/src/components/ui/chart-line-wad.tsx`: pure-SVG two-panel
+chart with a Williams Accumulation/Distribution panel from the
+cumulative true range gain or loss.
+
+Unlike the close-only indicator primitives, the Williams AD needs
+the intrabar range, so `ChartLineWadPoint` carries `{x, high,
+low, close}` OHLC bars. computeLineWadTrueRangeHigh and
+computeLineWadTrueRangeLow are the higher of the bar high and the
+prior close, and the lower of the bar low and the prior close.
+computeLineWadDelta is the per-bar accumulation/distribution
+amount: an up-close measures its gain from the true range low, a
+down-close measures its loss from the true range high, an
+unchanged close adds nothing. computeLineWad is the running
+cumulative sum, starting at zero on the opening bar.
+
+runLineWad sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples classified accumulation / distribution /
+flat, the zone counts and the final reading.
+computeLineWadLayout stacks the price panel above a Williams AD
+panel with a dynamic, zero-centred scale, the cumulative line and
+one marker per classified bar.
+
+ChartLineWad renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a two-item toggleable legend (Price / Williams AD) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 63 vitest cases cover the exact integer OHLC
+fixture, every true-range branch and zone classification.
+
 ## [1.11.691] - 2026-05-21 -- UI: chart-line-special-k primitive (TODO 11.673)
 
 New **ChartLineSpecialK** UI primitive in
