@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.714] - 2026-05-21 -- UI: chart-line-stoch-rsi primitive (TODO 11.696)
+
+New **ChartLineStochRsi** UI primitive in
+`web/src/components/ui/chart-line-stoch-rsi.tsx`: pure-SVG
+two-panel line chart with a Stochastic RSI panel applying the
+stochastic formula to the RSI series.
+
+computeLineStochRsiRsi is Wilder's RSI of the close series;
+computeLineStochRsiStoch applies the stochastic oscillator
+formula to an array -- `100 * (value - lowest) / (highest -
+lowest)` over the trailing window, null for a flat window;
+computeLineStochRsi composes them, running the stochastic over
+the RSI. A trending market pins the RSI, so the Stochastic RSI is
+undefined there.
+
+runLineStochRsi sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with the RSI and the Stochastic RSI
+classified overbought / oversold / neutral against the
+thresholds, with the zone counts. computeLineStochRsiLayout
+stacks a price panel above a Stochastic RSI panel on a fixed
+0..100 scale with dashed threshold lines and zone markers.
+
+ChartLineStochRsi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Price / StochRSI) and
+a hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 76 vitest cases cover the exact stochastic
+formula, the RSI monotone anchors and zone classification.
+
 ## [1.11.713] - 2026-05-21 -- UI: chart-line-pascal primitive (TODO 11.695)
 
 New **ChartLinePascal** UI primitive in
