@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.718] - 2026-05-21 -- UI: chart-line-ssl primitive (TODO 11.700)
+
+New **ChartLineSsl** UI primitive in
+`web/src/components/ui/chart-line-ssl.tsx`: pure-SVG single-panel
+line chart with an SSL Channel overlay flipping between the high
+and low moving averages on a close cross.
+
+computeLineSslSma is the moving average run over the bar highs
+and lows. computeLineSslHlv is the direction state machine: +1
+once the close crosses above the high moving average, -1 once it
+crosses below the low moving average, carried between crosses.
+computeLineSsl composes the pipeline: the SSL Up and SSL Down
+lines ride the high and low averages, swapping roles on each
+direction flip.
+
+runLineSsl sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples with the two SSL lines and the direction
+classified up / down, with the direction counts.
+computeLineSslLayout projects a single panel with the close line,
+the two SSL lines and one marker per bar coloured by direction.
+
+ChartLineSsl renders as an accessible region with an `role="img"`
+SVG, an off-screen description, a config badge, a three-item
+toggleable legend (Price / SSL Up / SSL Down) and a hover/focus
+tooltip. Controlled and uncontrolled `hiddenSeries` are both
+supported. 77 vitest cases cover the exact moving averages, the
+hand-traced direction state machine and the SSL line swap.
+
 ## [1.11.717] - 2026-05-21 -- UI: chart-line-wae primitive (TODO 11.699)
 
 New **ChartLineWae** UI primitive in
