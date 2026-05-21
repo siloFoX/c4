@@ -386,3 +386,4 @@ export * from './chart-line-special-k';
 export * from './chart-line-wad';
 export * from './chart-line-derivative-osc';
 export * from './chart-line-bop';
+export * from './chart-line-asi';
