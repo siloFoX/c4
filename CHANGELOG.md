@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.709] - 2026-05-21 -- UI: chart-line-elder-impulse primitive (TODO 11.691)
+
+New **ChartLineElderImpulse** UI primitive in
+`web/src/components/ui/chart-line-elder-impulse.tsx`: pure-SVG
+single-panel line chart with an Elder Impulse overlay colouring
+each bar from the EMA slope and the MACD histogram.
+
+classifyLineElderImpulse is the colouring rule -- a bar is green
+when both the EMA slope and the MACD histogram slope rise, red
+when both fall, blue when they disagree (or either is flat).
+computeLineElderImpulse builds the impulse EMA, the MACD line /
+signal / histogram and the per-bar impulse class; the EMA is
+seeded from the first value so the pipeline is defined from the
+first bar and the impulse from the second.
+
+runLineElderImpulse sorts the finite points by x, runs the
+pipeline, and returns per-bar samples with the EMA, the
+histogram, both slopes and the impulse class, the green / red /
+blue counts and the final class. computeLineElderImpulseLayout
+projects a single panel with the price line drawn as
+impulse-coloured segments, one coloured marker per bar and the
+impulse EMA overlaid.
+
+ChartLineElderImpulse renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+(EI 13), a toggleable legend (Price / EMA), an impulse colour key
+and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 69 vitest cases cover the
+exhaustively-tested classification, the exact flat-series
+pipeline and the rising / falling structural checks.
+
 ## [1.11.708] - 2026-05-21 -- UI: chart-line-median primitive (TODO 11.690)
 
 New **ChartLineMedian** UI primitive in
