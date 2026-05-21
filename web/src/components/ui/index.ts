@@ -401,3 +401,4 @@ export * from './chart-line-typical';
 export * from './chart-line-weighted-close';
 export * from './chart-line-median';
 export * from './chart-line-elder-impulse';
+export * from './chart-line-sine-weighted';
