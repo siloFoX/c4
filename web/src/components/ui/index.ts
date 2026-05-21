@@ -381,3 +381,4 @@ export * from './chart-line-mama';
 export * from './chart-line-vix-fix';
 export * from './chart-line-ulcer';
 export * from './chart-line-pfe';
+export * from './chart-line-chandelier';
