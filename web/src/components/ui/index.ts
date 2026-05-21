@@ -399,3 +399,4 @@ export * from './chart-line-psy';
 export * from './chart-line-volume-osc';
 export * from './chart-line-typical';
 export * from './chart-line-weighted-close';
+export * from './chart-line-median';
