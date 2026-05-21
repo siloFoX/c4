@@ -412,3 +412,4 @@ export * from './chart-line-wae';
 export * from './chart-line-ssl';
 export * from './chart-line-coral';
 export * from './chart-line-fdi';
+export * from './chart-line-wavetrend';
