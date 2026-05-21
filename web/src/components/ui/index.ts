@@ -410,3 +410,4 @@ export * from './chart-line-smi';
 export * from './chart-line-qqe';
 export * from './chart-line-wae';
 export * from './chart-line-ssl';
+export * from './chart-line-coral';
