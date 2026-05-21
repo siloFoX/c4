@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.717] - 2026-05-21 -- UI: chart-line-wae primitive (TODO 11.699)
+
+New **ChartLineWae** UI primitive in
+`web/src/components/ui/chart-line-wae.tsx`: pure-SVG two-panel
+line chart with a Waddah Attar Explosion panel from the MACD
+delta against a Bollinger band width.
+
+computeLineWaeMacd is the MACD line (fast EMA minus slow EMA);
+computeLineWaeStdev is the rolling population standard deviation
+and computeLineWaeBollWidth scales it into the Bollinger Band
+width. computeLineWae composes the pipeline: the WAE momentum is
+the change in the MACD scaled by a sensitivity factor, the
+explosion line is the Bollinger Band width.
+classifyLineWaeZone marks a bar explosive-up / explosive-down
+when the momentum magnitude tops the explosion line, else quiet.
+
+runLineWae sorts the finite points by x, runs the pipeline, and
+returns per-bar samples with the momentum, the explosion line and
+the zone, with the zone counts. computeLineWaeLayout stacks a
+price panel above a WAE panel with the signed momentum line
+bracketed by the explosion band and a zero line.
+
+ChartLineWae renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a three-item toggleable legend (Price / Momentum /
+Explosion) and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 84 vitest cases cover the
+exact dyadic MACD, the exact period-2 Bollinger width and zone
+classification.
+
 ## [1.11.716] - 2026-05-21 -- UI: chart-line-qqe primitive (TODO 11.698)
 
 New **ChartLineQqe** UI primitive in
