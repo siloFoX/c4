@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.696] - 2026-05-21 -- UI: chart-line-gapo primitive (TODO 11.678)
+
+New **ChartLineGapo** UI primitive in
+`web/src/components/ui/chart-line-gapo.tsx`: pure-SVG two-panel
+chart with a Gopalakrishnan Range Index panel from the log of
+range over the lookback span.
+
+computeLineGapoRange is the high-to-low range over each trailing
+window -- the highest high minus the lowest low.
+computeLineGapo is the Gopalakrishnan Range Index: the natural
+log of that range divided by the natural log of the lookback
+span. It climbs as the trading range widens and falls as it
+narrows; a bar with no range is null.
+
+runLineGapo sorts the finite OHLC bars by x, runs the pipeline,
+and returns per-bar samples classified expanding / contracting /
+steady by the change in the index, the zone counts, the mean
+reading and the final reading. computeLineGapoLayout stacks the
+price panel above a Gopalakrishnan Range Index panel with a
+dynamic scale, the index line, a dashed mean reference line and
+one marker per classified bar.
+
+ChartLineGapo renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Price / GAPO) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 61 vitest cases cover the exact range series,
+the log anchors (log of 1 is exactly 0, range equal to the period
+is exactly 1) and zone classification.
+
 ## [1.11.695] - 2026-05-21 -- UI: chart-line-asi primitive (TODO 11.677)
 
 New **ChartLineAsi** UI primitive in
