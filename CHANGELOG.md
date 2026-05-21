@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.715] - 2026-05-21 -- UI: chart-line-smi primitive (TODO 11.697)
+
+New **ChartLineSmi** UI primitive in
+`web/src/components/ui/chart-line-smi.tsx`: pure-SVG two-panel
+line chart with a Stochastic Momentum Index panel from the
+double-smoothed distance to the range midpoint.
+
+computeLineSmiRaw is the raw SMI parts -- per bar, the distance D
+from the close to the midpoint of the trailing high-low range and
+the range itself. computeLineSmiEma is the seeded-from-first EMA.
+computeLineSmi double-smooths D and the range with two EMAs each,
+then SMI = 100 * emaD2 / (emaR2 / 2); a zero range yields null.
+
+runLineSmi sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples with the SMI classified overbought /
+oversold / neutral against the thresholds, and the zone counts.
+computeLineSmiLayout stacks a price panel above an SMI panel with
+a zero line and dashed threshold lines.
+
+ChartLineSmi renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a two-item toggleable legend (Price / SMI) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 78 vitest cases cover the exact SMI series on
+a constant-range fixture, the EMA dyadic anchor and zone
+classification.
+
 ## [1.11.714] - 2026-05-21 -- UI: chart-line-stoch-rsi primitive (TODO 11.696)
 
 New **ChartLineStochRsi** UI primitive in
