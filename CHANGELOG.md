@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.694] - 2026-05-21 -- UI: chart-line-bop primitive (TODO 11.676)
+
+New **ChartLineBop** UI primitive in
+`web/src/components/ui/chart-line-bop.tsx`: pure-SVG two-panel
+chart with a Balance of Power panel from the close minus open
+spread over the bar range.
+
+computeLineBopRaw is each bar's Balance of Power -- the
+close-minus-open spread divided by the high-to-low range, clamped
+to -1..+1; a zero-range bar reads zero. computeLineBop is the
+signal line, the simple moving average of the raw Balance of
+Power. A reading of +1 means the bar closed at its high after
+opening at its low (buyers in full control), -1 the mirror case,
+zero a doji.
+
+runLineBop sorts the finite OHLC bars by x, runs the pipeline,
+and returns per-bar samples classified buy / sell / balanced, the
+zone counts and the final readings. computeLineBopLayout stacks
+the price panel above a Balance of Power panel on a fixed -1..+1
+scale, with the raw line, the signal line and one marker per bar.
+
+ChartLineBop renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a three-item toggleable legend (Price / BOP / Signal) and
+a hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 60 vitest cases cover the exact dyadic
+fixture (every bar range is a power of two), the bounds and zone
+classification.
+
 ## [1.11.693] - 2026-05-21 -- UI: chart-line-derivative-osc primitive (TODO 11.675)
 
 New **ChartLineDerivativeOsc** UI primitive in
