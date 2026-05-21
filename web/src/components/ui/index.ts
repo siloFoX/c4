@@ -384,3 +384,4 @@ export * from './chart-line-pfe';
 export * from './chart-line-chandelier';
 export * from './chart-line-special-k';
 export * from './chart-line-wad';
+export * from './chart-line-derivative-osc';
