@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.705] - 2026-05-21 -- UI: chart-line-volume-osc primitive (TODO 11.687)
+
+New **ChartLineVolumeOsc** UI primitive in
+`web/src/components/ui/chart-line-volume-osc.tsx`: pure-SVG
+two-panel chart with a Volume Oscillator panel from the percent
+spread of a fast and a slow volume moving average.
+
+computeLineVolumeOscSma is the simple moving average of the
+volume series; computeLineVolumeOsc is the Volume Oscillator
+itself -- `100 * (fastMA - slowMA) / slowMA`, the percent spread
+between a fast and a slow volume average. A positive reading
+marks expanding volume (the fast average leads); a negative one
+marks contracting volume. The slow warm-up window and a
+zero-valued slow average both yield null.
+
+runLineVolumeOsc sorts the finite points by x, runs the pipeline,
+and returns per-bar samples classified expanding / contracting /
+flat by the oscillator sign, the zone counts and the final
+reading. computeLineVolumeOscLayout stacks the volume panel above
+an oscillator panel around a dashed zero baseline, with the two
+lines and one marker per defined bar.
+
+ChartLineVolumeOsc renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Volume / Oscillator)
+and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 60 vitest cases cover the
+exact moving averages, the integer oscillator series and zone
+classification.
+
 ## [1.11.704] - 2026-05-21 -- UI: chart-line-psy primitive (TODO 11.686)
 
 New **ChartLinePsy** UI primitive in
