@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.698] - 2026-05-21 -- UI: chart-line-donchian primitive (TODO 11.680)
+
+New **ChartLineDonchian** UI primitive in
+`web/src/components/ui/chart-line-donchian.tsx`: pure-SVG
+single-panel line chart with a Donchian Channel overlay from the
+rolling highest high and lowest low.
+
+computeLineDonchianUpper is the highest high over each trailing
+window; computeLineDonchianLower is the lowest low.
+computeLineDonchianMiddle is their midpoint. Together the three
+bands frame the price's recent range -- they widen as the range
+expands and flatten in a quiet market.
+
+runLineDonchian sorts the finite OHLC bars by x, runs the
+pipeline, and returns per-bar samples classified upper / lower /
+mid by the close against the midline, the zone counts and the
+final band readings. computeLineDonchianLayout overlays the
+price line, the three band lines and a filled channel area on a
+single panel, with one marker per classified bar.
+
+ChartLineDonchian renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+three-item toggleable legend (Price / Channel / Middle) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 61 vitest cases cover the exact band series
+(rolling integer max/min), the midpoint and zone classification.
+
 ## [1.11.697] - 2026-05-21 -- UI: chart-line-inertia primitive (TODO 11.679)
 
 New **ChartLineInertia** UI primitive in
