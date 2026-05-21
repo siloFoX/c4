@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.695] - 2026-05-21 -- UI: chart-line-asi primitive (TODO 11.677)
+
+New **ChartLineAsi** UI primitive in
+`web/src/components/ui/chart-line-asi.tsx`: pure-SVG two-panel
+chart with an Accumulative Swing Index panel summing the Wilder
+swing index across bars.
+
+computeLineAsiSwingIndex is Welles Wilder's Swing Index -- a
+score of each bar-to-bar price swing that weighs the close
+change against the bar's open, the prior close and a special
+true-range term picked from three candidates, scaled by the
+limit move. computeLineAsi is the Accumulative Swing Index, the
+running cumulative sum of the swing index, starting at zero on
+the opening bar.
+
+runLineAsi sorts the finite OHLC bars by x, runs the pipeline,
+and returns per-bar samples classified up / down / flat by the
+swing direction, the zone counts and the final reading.
+computeLineAsiLayout stacks the price panel above an
+Accumulative Swing Index panel with a dynamic, zero-centred
+scale, the cumulative line and one marker per scored bar.
+
+ChartLineAsi renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a two-item toggleable legend (Price / ASI) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 61 vitest cases cover the exact dyadic OHLC
+fixture (every range and the limit move are powers of two), all
+three R branches and the zero-range guard.
+
 ## [1.11.694] - 2026-05-21 -- UI: chart-line-bop primitive (TODO 11.676)
 
 New **ChartLineBop** UI primitive in
