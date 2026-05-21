@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.711] - 2026-05-21 -- UI: chart-line-geometric-ma primitive (TODO 11.693)
+
+New **ChartLineGeometricMa** UI primitive in
+`web/src/components/ui/chart-line-geometric-ma.tsx`: pure-SVG
+single-panel line chart with a Geometric Moving Average overlay
+from the rolling geometric mean of prices.
+
+computeLineGeometricMa is the GMA: for each full window the
+period-th root of the product of its values, computed in log
+space as `exp(mean(ln(window)))` to avoid overflow. The geometric
+mean needs strictly positive prices, so a window with a
+non-finite or non-positive value yields null; a period of 1 is
+the identity.
+
+runLineGeometricMa sorts the finite points by x, runs the
+pipeline, and returns per-bar samples classified above / below /
+equal by where the GMA sits relative to the price, the zone
+counts and the final reading. computeLineGeometricMaLayout
+projects a single panel with the price line, the GMA line
+overlaid and one marker per defined bar coloured by zone.
+
+ChartLineGeometricMa renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+(GMA period), a two-item toggleable legend (Price / GMA) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 63 vitest cases cover the exact period-1
+identity, the period-2 product-root collapse, the AM-GM bound
+and zone classification.
+
 ## [1.11.710] - 2026-05-21 -- UI: chart-line-sine-weighted primitive (TODO 11.692)
 
 New **ChartLineSineWeighted** UI primitive in
