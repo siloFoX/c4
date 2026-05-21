@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.691] - 2026-05-21 -- UI: chart-line-special-k primitive (TODO 11.673)
+
+New **ChartLineSpecialK** UI primitive in
+`web/src/components/ui/chart-line-special-k.tsx`: pure-SVG
+two-panel chart with a Pring Special K panel summing weighted
+smoothed rate of change across many lookbacks.
+
+computeLineSpecialKRoc is the percentage rate of change over a
+lookback; computeLineSpecialKComponent smooths one rate-of-change
+term with a simple moving average. computeLineSpecialK is Martin
+Pring's Special K -- the weighted sum of every smoothed
+rate-of-change component, twelve of them by default, spanning
+lookbacks from 10 to 530 bars to roll short, intermediate and
+long-term momentum into one line. computeLineSpecialKSignal is the
+moving average of the Special K used as a signal line.
+
+runLineSpecialK sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified bull / bear /
+flat against the signal, the zone counts and the final readings.
+computeLineSpecialKLayout stacks the price panel above a Special K
+panel with a dynamic, zero-centred scale, the Special K line, the
+signal line and one marker per classified bar.
+
+ChartLineSpecialK renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / Special K /
+Signal) and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 70 vitest cases cover the exact
+integer fixture (leading 100s give every rate of change a base of
+exactly 100), the component table validation and zone
+classification.
+
 ## [1.11.690] - 2026-05-21 -- UI: chart-line-chandelier primitive (TODO 11.672)
 
 New **ChartLineChandelier** UI primitive in
