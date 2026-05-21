@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.693] - 2026-05-21 -- UI: chart-line-derivative-osc primitive (TODO 11.675)
+
+New **ChartLineDerivativeOsc** UI primitive in
+`web/src/components/ui/chart-line-derivative-osc.tsx`: pure-SVG
+two-panel chart with a Derivative Oscillator panel from a
+double-smoothed RSI minus its signal average.
+
+computeLineDerivativeOscRsi is Wilder's RSI; computeLineDerivativeOscEma
+is an exponential moving average that holds a constant input
+bit-exactly constant. computeLineDerivativeOscSmoothed double-smooths
+the RSI with two successive EMAs; computeLineDerivativeOscSignal is
+the simple moving average of that double-smoothed RSI.
+computeLineDerivativeOsc is Constance Brown's Derivative Oscillator
+-- the double-smoothed RSI minus its signal -- a histogram-style
+momentum reading that swings around zero.
+
+runLineDerivativeOsc sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified positive /
+negative / zero, the zone counts and the final reading.
+computeLineDerivativeOscLayout stacks the price panel above a
+Derivative Oscillator panel with a dynamic, zero-centred scale,
+the oscillator line and one marker per defined bar.
+
+ChartLineDerivativeOsc renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Price / Derivative
+Osc) and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 74 vitest cases cover the
+exact RSI anchors, the bit-exact zero oscillator under a
+monotonic price, and the smoothed-minus-signal identity.
+
 ## [1.11.692] - 2026-05-21 -- UI: chart-line-wad primitive (TODO 11.674)
 
 New **ChartLineWad** UI primitive in
