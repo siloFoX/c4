@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.700] - 2026-05-21 -- UI: chart-line-camarilla primitive (TODO 11.682)
+
+New **ChartLineCamarilla** UI primitive in
+`web/src/components/ui/chart-line-camarilla.tsx`: pure-SVG
+single-panel line chart with Camarilla pivot levels derived from
+the prior bar high low and close.
+
+computeLineCamarillaPivots is the Camarilla equation for one
+bar's high, low and close -- the four resistance levels R1 to R4
+and four support levels S1 to S4, each offset from the close by a
+Camarilla fraction of the range. computeLineCamarilla derives the
+per-bar level set, each bar's eight levels coming from the prior
+bar.
+
+runLineCamarilla sorts the finite OHLC bars by x, runs the
+pipeline, and returns per-bar samples classified bull / bear /
+neutral against the R3 and S3 reversal levels, the zone counts
+and the final readings. computeLineCamarillaLayout overlays the
+price line and the eight pivot level lines on a single panel,
+with one marker per classified bar.
+
+ChartLineCamarilla renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+three-item toggleable legend (Price / Resistance / Support) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 49 vitest cases cover the exact pivot levels
+(a range divisible by 120 keeps the Camarilla fractions on
+integers) and zone classification.
+
 ## [1.11.699] - 2026-05-21 -- UI: chart-line-starc primitive (TODO 11.681)
 
 New **ChartLineStarc** UI primitive in
