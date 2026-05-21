@@ -395,3 +395,4 @@ export * from './chart-line-camarilla';
 export * from './chart-line-darvas';
 export * from './chart-line-mcclellan';
 export * from './chart-line-hilo';
+export * from './chart-line-psy';
