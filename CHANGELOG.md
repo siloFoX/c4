@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.697] - 2026-05-21 -- UI: chart-line-inertia primitive (TODO 11.679)
+
+New **ChartLineInertia** UI primitive in
+`web/src/components/ui/chart-line-inertia.tsx`: pure-SVG
+two-panel chart with an Inertia panel from a linear regression
+smoothing of the relative vigor index.
+
+computeLineInertiaRvgi is the Relative Vigor Index -- the summed
+close-minus-open spread over the summed high-to-low range across
+the vigor window. computeLineInertiaLinReg is a rolling linear
+regression smoothing: the least-squares trend line fit to each
+trailing window and evaluated at the endpoint. computeLineInertia
+is Donald Dorsey's Inertia, the Relative Vigor Index run through
+that regression smoothing.
+
+runLineInertia sorts the finite OHLC bars by x, runs the
+pipeline, and returns per-bar samples classified bull / bear /
+neutral by the sign of the Inertia, the zone counts and the final
+reading. computeLineInertiaLayout stacks the price panel above an
+Inertia panel with a dynamic, zero-centred scale, the Inertia
+line, the dashed Relative Vigor Index line and one marker per
+defined bar.
+
+ChartLineInertia renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / Inertia /
+RVGI) and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 60 vitest cases cover the
+exact relative vigor index series, the linear regression anchors
+(constant, linear, a hand-fit window) and the end-to-end constant
+fixture.
+
 ## [1.11.696] - 2026-05-21 -- UI: chart-line-gapo primitive (TODO 11.678)
 
 New **ChartLineGapo** UI primitive in
