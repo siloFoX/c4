@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.702] - 2026-05-21 -- UI: chart-line-mcclellan primitive (TODO 11.684)
+
+New **ChartLineMcclellan** UI primitive in
+`web/src/components/ui/chart-line-mcclellan.tsx`: pure-SVG
+two-panel chart with a McClellan Oscillator panel from the spread
+of two advance-decline moving averages.
+
+computeLineMcclellanEma is an exponential moving average of the
+advance-decline breadth series that holds a constant input
+bit-exactly constant. computeLineMcclellan is the McClellan
+Oscillator -- the spread between a fast and a slow EMA of the
+breadth; it is positive when the fast average leads the slow
+(improving breadth) and negative when it lags.
+
+runLineMcclellan sorts the finite breadth points by x, runs the
+pipeline, and returns per-bar samples classified positive /
+negative / zero, the zone counts and the final reading.
+computeLineMcclellanLayout stacks the breadth panel above a
+McClellan Oscillator panel with a dynamic, zero-centred scale,
+the oscillator line and one marker per bar.
+
+ChartLineMcclellan renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Breadth / McClellan)
+and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 56 vitest cases cover the
+exact dyadic-alpha EMAs, the spread identity and zone
+classification.
+
 ## [1.11.701] - 2026-05-21 -- UI: chart-line-darvas primitive (TODO 11.683)
 
 New **ChartLineDarvas** UI primitive in
