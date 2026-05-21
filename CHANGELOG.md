@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.720] - 2026-05-21 -- UI: chart-line-fdi primitive (TODO 11.702)
+
+New **ChartLineFdi** UI primitive in
+`web/src/components/ui/chart-line-fdi.tsx`: pure-SVG two-panel
+line chart with a Fractal Dimension Index panel scoring path
+roughness over the lookback window.
+
+computeLineFdiValue scores one window: it normalizes the window
+into a unit square, measures the length L of the price curve and
+returns `1 + ln(L) / ln(N - 1)`, clamped to [1, 2]; a flat window
+is exactly 1. computeLineFdi rolls it over the close series.
+classifyLineFdiZone marks each bar trending / choppy / neutral
+against the thresholds.
+
+runLineFdi sorts the finite points by x, runs the pipeline, and
+returns per-bar samples with the FDI and the zone, with the zone
+counts. computeLineFdiLayout stacks a price panel above an FDI
+panel on a fixed 1..2 scale with dashed threshold lines and zone
+markers.
+
+ChartLineFdi renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a two-item toggleable legend (Price / FDI) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 71 vitest cases cover the exact flat-window
+FDI, the straight-ramp 1.25 anchor and zone classification.
+
 ## [1.11.719] - 2026-05-21 -- UI: chart-line-coral primitive (TODO 11.701)
 
 New **ChartLineCoral** UI primitive in
