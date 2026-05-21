@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.690] - 2026-05-21 -- UI: chart-line-chandelier primitive (TODO 11.672)
+
+New **ChartLineChandelier** UI primitive in
+`web/src/components/ui/chart-line-chandelier.tsx`: pure-SVG
+single-panel line chart with a Chandelier Exit overlay trailing a
+stop a multiple of the average true range below the highest high.
+
+computeLineChandelierAtr is Welles Wilder's Average True Range
+over the close-to-close true range; computeLineChandelierRollingMax
+and computeLineChandelierRollingMin track the highest and lowest
+close of the lookback. computeLineChandelierExit assembles the
+Chandelier Exit pair: the long exit hangs a trailing stop one
+ATR-multiple below the highest close, the short exit places the
+mirror stop the same multiple above the lowest close. The long
+stop rises under an advancing market; a long trade is stopped
+when the price closes beneath it.
+
+runLineChandelier sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified above / below /
+inside the exit channel, the zone counts and the final readings.
+computeLineChandelierLayout overlays the price line and the two
+dashed exit lines on a single panel, with one marker per
+classified bar coloured by zone.
+
+ChartLineChandelier renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+three-item toggleable legend (Price / Long Exit / Short Exit) and
+a hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 77 vitest cases cover the constant-step exact
+fixture (the equal-step price keeps the ATR at an exact integer,
+so the whole pipeline lands on integers), Wilder smoothing, the
+rolling extremes and zone classification.
+
 ## [1.11.689] - 2026-05-20 -- UI: chart-line-pfe primitive (TODO 11.671)
 
 New **ChartLinePfe** UI primitive in
