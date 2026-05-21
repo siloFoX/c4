@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.713] - 2026-05-21 -- UI: chart-line-pascal primitive (TODO 11.695)
+
+New **ChartLinePascal** UI primitive in
+`web/src/components/ui/chart-line-pascal.tsx`: pure-SVG
+single-panel line chart with a Pascal Triangle Moving Average
+overlay weighting the window by binomial coefficients.
+
+computeLinePascalWeights builds the binomial weights -- row
+`period - 1` of Pascal's triangle, `C(period - 1, k)` -- by the
+additive Pascal recurrence, so every weight is an exact integer.
+computeLinePascal is the PMA: the binomial-weighted average of
+each full window, `sum(weight[k] * value[k]) / 2^(period-1)`.
+Because the normalizer is a power of two, the division is exact;
+a period of 1 is the identity.
+
+runLinePascal sorts the finite points by x, runs the pipeline,
+and returns per-bar samples classified above / below / equal by
+where the PMA sits relative to the price, the zone counts and the
+final reading. computeLinePascalLayout projects a single panel
+with the price line, the PMA line overlaid and one marker per
+defined bar coloured by zone.
+
+ChartLinePascal renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+(PMA period), a two-item toggleable legend (Price / PMA) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 71 vitest cases cover the exact Pascal-row
+weights, the exact binomial weighted average and zone
+classification.
+
 ## [1.11.712] - 2026-05-21 -- UI: chart-line-rainbow primitive (TODO 11.694)
 
 New **ChartLineRainbow** UI primitive in
