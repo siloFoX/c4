@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.704] - 2026-05-21 -- UI: chart-line-psy primitive (TODO 11.686)
+
+New **ChartLinePsy** UI primitive in
+`web/src/components/ui/chart-line-psy.tsx`: pure-SVG two-panel
+chart with a Psychological Line panel from the share of up bars
+over the lookback window.
+
+computeLinePsyUpBars flags each bar that closed above the prior
+close; computeLinePsy is the Psychological Line -- the share of
+those up bars over the trailing window, scaled to 0..100. A high
+reading marks an over-optimistic, overbought market; a low one
+an over-pessimistic, oversold one.
+
+runLinePsy sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified overbought /
+oversold / neutral against the thresholds, the zone counts and
+the final reading. computeLinePsyLayout stacks the price panel
+above a Psychological Line panel on a fixed 0..100 scale, with
+dashed upper and lower threshold lines, the line and one marker
+per defined bar.
+
+ChartLinePsy renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a two-item toggleable legend (Price / PSY) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 55 vitest cases cover the exact up-bar flags,
+the integer Psychological Line and zone classification.
+
 ## [1.11.703] - 2026-05-21 -- UI: chart-line-hilo primitive (TODO 11.685)
 
 New **ChartLineHilo** UI primitive in
