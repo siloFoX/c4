@@ -393,3 +393,4 @@ export * from './chart-line-donchian';
 export * from './chart-line-starc';
 export * from './chart-line-camarilla';
 export * from './chart-line-darvas';
+export * from './chart-line-mcclellan';
