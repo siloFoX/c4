@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.699] - 2026-05-21 -- UI: chart-line-starc primitive (TODO 11.681)
+
+New **ChartLineStarc** UI primitive in
+`web/src/components/ui/chart-line-starc.tsx`: pure-SVG
+single-panel line chart with STARC Bands overlay placing average
+true range bands around a short moving average.
+
+computeLineStarcSma is the short simple moving average of the
+close -- the middle band. computeLineStarcAtr is Welles Wilder's
+Average True Range over the close-to-close true range.
+computeLineStarc assembles the STARC Bands: the upper and lower
+bands sit a multiple of the ATR above and below the moving
+average, so they widen with volatility and narrow as it falls.
+
+runLineStarc sorts the finite price points by x, runs the
+pipeline, and returns per-bar samples classified above / below /
+inside the channel, the zone counts and the final band readings.
+computeLineStarcLayout overlays the price line, the three band
+lines and a filled channel area on a single panel, with one
+marker per classified bar.
+
+ChartLineStarc renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+three-item toggleable legend (Price / Bands / Middle) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 65 vitest cases cover the exact moving
+average and ATR series, Wilder smoothing and zone classification.
+
 ## [1.11.698] - 2026-05-21 -- UI: chart-line-donchian primitive (TODO 11.680)
 
 New **ChartLineDonchian** UI primitive in
