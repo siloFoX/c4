@@ -404,3 +404,4 @@ export * from './chart-line-elder-impulse';
 export * from './chart-line-sine-weighted';
 export * from './chart-line-geometric-ma';
 export * from './chart-line-rainbow';
+export * from './chart-line-pascal';
