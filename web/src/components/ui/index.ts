@@ -383,3 +383,4 @@ export * from './chart-line-ulcer';
 export * from './chart-line-pfe';
 export * from './chart-line-chandelier';
 export * from './chart-line-special-k';
+export * from './chart-line-wad';
