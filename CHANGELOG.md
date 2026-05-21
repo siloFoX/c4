@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.712] - 2026-05-21 -- UI: chart-line-rainbow primitive (TODO 11.694)
+
+New **ChartLineRainbow** UI primitive in
+`web/src/components/ui/chart-line-rainbow.tsx`: pure-SVG
+single-panel line chart with a Rainbow Moving Average overlay of
+recursively smoothed average bands.
+
+computeLineRainbowBands builds the rainbow fan -- band 0 is the
+SMA of the prices, and each next band is the SMA of the band
+before it, so every successive band is smoother and lags more.
+computeLineRainbowSma is the windowed mean that drives the
+recursion; getLineRainbowBandColor walks a red-to-violet hue ramp
+so the bands plot as a rainbow.
+
+runLineRainbow sorts the finite points by x, runs the pipeline,
+and returns the band arrays plus per-bar samples classified above
+/ below / inside by where the price sits relative to the full
+rainbow envelope, with the zone counts.
+computeLineRainbowLayout projects a single panel with the price
+line, one coloured path per band and one marker per classified
+bar.
+
+ChartLineRainbow renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+two-item toggleable legend (Price / Rainbow) and a hover/focus
+tooltip. Controlled and uncontrolled `hiddenSeries` are both
+supported. 74 vitest cases cover the exact recursive band values
+on a linear ramp, the recursion identity and zone classification.
+
 ## [1.11.711] - 2026-05-21 -- UI: chart-line-geometric-ma primitive (TODO 11.693)
 
 New **ChartLineGeometricMa** UI primitive in
