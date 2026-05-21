@@ -407,3 +407,4 @@ export * from './chart-line-rainbow';
 export * from './chart-line-pascal';
 export * from './chart-line-stoch-rsi';
 export * from './chart-line-smi';
+export * from './chart-line-qqe';
