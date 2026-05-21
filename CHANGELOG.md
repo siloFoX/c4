@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.706] - 2026-05-21 -- UI: chart-line-typical primitive (TODO 11.688)
+
+New **ChartLineTypical** UI primitive in
+`web/src/components/ui/chart-line-typical.tsx`: pure-SVG
+single-panel line chart with a Typical Price overlay averaging
+the bar high, low and close.
+
+computeLineTypical is the Typical Price per bar --
+`(high + low + close) / 3`, a smoothed proxy for the bar's "fair"
+level. A bar with a non-finite high, low or close yields null.
+
+runLineTypical sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples classified above / below / equal by where
+the Typical Price sits relative to the close, the zone counts and
+the final readings. computeLineTypicalLayout projects a single
+panel with the close line, the Typical Price line overlaid and
+one marker per bar coloured by zone.
+
+ChartLineTypical renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+(HLC/3), a two-item toggleable legend (Close / Typical Price) and
+a hover/focus tooltip showing the bar high, low, close and
+Typical Price. Controlled and uncontrolled `hiddenSeries` are
+both supported. 50 vitest cases cover the exact Typical Price
+series and zone classification.
+
 ## [1.11.705] - 2026-05-21 -- UI: chart-line-volume-osc primitive (TODO 11.687)
 
 New **ChartLineVolumeOsc** UI primitive in
