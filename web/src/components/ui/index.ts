@@ -392,3 +392,4 @@ export * from './chart-line-inertia';
 export * from './chart-line-donchian';
 export * from './chart-line-starc';
 export * from './chart-line-camarilla';
+export * from './chart-line-darvas';

@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.701] - 2026-05-21 -- UI: chart-line-darvas primitive (TODO 11.683)
+
+New **ChartLineDarvas** UI primitive in
+`web/src/components/ui/chart-line-darvas.tsx`: pure-SVG
+single-panel line chart with a Darvas Box overlay bounding
+consolidation ranges from new highs.
+
+computeLineDarvasBoxes walks the bars as a state machine: a box
+top is the highest high of a formation, locked once it holds for
+the confirmation count without a higher high; the box bottom is
+the lowest low recorded while the top forms. Each box then runs
+as a fixed rectangle until a bar closes above the top (an upward
+breakout) or below the bottom (a downward breakout), at which
+point the next formation begins.
+
+runLineDarvas sorts the finite OHLC bars by x, runs the detector,
+and returns per-bar samples assigned to their box and classified
+inside / breakout-up / breakout-down, the box count and the
+breakout counts. computeLineDarvasLayout overlays the price line
+and one rectangle per box on a single panel, with a marker on
+each breakout bar.
+
+ChartLineDarvas renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+two-item toggleable legend (Price / Boxes) and a hover/focus
+tooltip. Controlled and uncontrolled `hiddenSeries` are both
+supported. 54 vitest cases cover the hand-traced box detection,
+the active and never-confirmed cases and zone classification.
+
 ## [1.11.700] - 2026-05-21 -- UI: chart-line-camarilla primitive (TODO 11.682)
 
 New **ChartLineCamarilla** UI primitive in
