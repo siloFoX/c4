@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.719] - 2026-05-21 -- UI: chart-line-coral primitive (TODO 11.701)
+
+New **ChartLineCoral** UI primitive in
+`web/src/components/ui/chart-line-coral.tsx`: pure-SVG
+single-panel line chart with a Coral Trend overlay from a
+six-pole Tillson smoothing of price.
+
+computeLineCoralCoefficients builds the four Tillson coefficients
+for the constant cd; they recombine the third through sixth
+smoothing poles and sum to exactly one. computeLineCoral runs the
+price through six cascaded exponential filters and recombines
+poles three to six with those coefficients, seeded from the first
+value. classifyLineCoralTrend marks each bar rising / falling /
+flat by the slope of the Coral line.
+
+runLineCoral sorts the finite points by x, runs the pipeline, and
+returns per-bar samples with the Coral value and the trend, with
+the trend counts. computeLineCoralLayout projects a single panel
+with the price line and the Coral drawn as slope-coloured
+segments with one marker per bar.
+
+ChartLineCoral renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+two-item toggleable legend (Price / Coral Trend) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 69 vitest cases cover the exact Tillson
+coefficients, the constant-series Coral and the trend
+classification.
+
 ## [1.11.718] - 2026-05-21 -- UI: chart-line-ssl primitive (TODO 11.700)
 
 New **ChartLineSsl** UI primitive in
