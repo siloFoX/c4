@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.721] - 2026-05-21 -- UI: chart-line-wavetrend primitive (TODO 11.703)
+
+New **ChartLineWavetrend** UI primitive in
+`web/src/components/ui/chart-line-wavetrend.tsx`: pure-SVG
+two-panel line chart with a WaveTrend Oscillator panel from the
+smoothed deviation of price off its average.
+
+computeLineWavetrend builds the pipeline: an EMA baseline (esa),
+the EMA of the absolute deviation from it (d), the channel index
+ci = (price - esa) / (0.015 * d), the EMA of ci into WT1 and a
+four-period SMA of WT1 into the signal line WT2.
+computeLineWavetrendEma and computeLineWavetrendSma are the
+smoothing helpers; classifyLineWavetrendZone marks each bar
+overbought / oversold / neutral against the thresholds.
+
+runLineWavetrend sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with WT1, WT2 and the zone, with the
+zone counts. computeLineWavetrendLayout stacks a price panel
+above a WaveTrend panel with a zero line and dashed threshold
+lines.
+
+ChartLineWavetrend renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / WT1 / WT2)
+and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 74 vitest cases cover the
+exact flat-series WT1/WT2, the EMA dyadic anchor and zone
+classification.
+
 ## [1.11.720] - 2026-05-21 -- UI: chart-line-fdi primitive (TODO 11.702)
 
 New **ChartLineFdi** UI primitive in
