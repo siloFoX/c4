@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.708] - 2026-05-21 -- UI: chart-line-median primitive (TODO 11.690)
+
+New **ChartLineMedian** UI primitive in
+`web/src/components/ui/chart-line-median.tsx`: pure-SVG
+single-panel line chart with a Median Price overlay from the
+midpoint of the bar high and low.
+
+computeLineMedian is the Median Price per bar --
+`(high + low) / 2`, the midpoint of the bar's range. Unlike the
+Typical Price or the Weighted Close it ignores the close
+entirely; it is the pure geometric center of the range. A bar
+with a non-finite high or low yields null.
+
+runLineMedian sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples classified above / below / equal by where
+the Median Price sits relative to the close, the zone counts and
+the final readings. computeLineMedianLayout projects a single
+panel with the close line, the Median Price line overlaid and one
+marker per bar coloured by zone.
+
+ChartLineMedian renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+(HL/2), a two-item toggleable legend (Close / Median Price) and a
+hover/focus tooltip showing the bar high, low, close and Median
+Price. Controlled and uncontrolled `hiddenSeries` are both
+supported. 51 vitest cases cover the exact Median Price series,
+its independence from the close and zone classification.
+
 ## [1.11.707] - 2026-05-21 -- UI: chart-line-weighted-close primitive (TODO 11.689)
 
 New **ChartLineWeightedClose** UI primitive in
