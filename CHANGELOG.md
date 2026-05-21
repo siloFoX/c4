@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.710] - 2026-05-21 -- UI: chart-line-sine-weighted primitive (TODO 11.692)
+
+New **ChartLineSineWeighted** UI primitive in
+`web/src/components/ui/chart-line-sine-weighted.tsx`: pure-SVG
+single-panel line chart with a Sine Weighted Moving Average
+overlay weighting the window by a half sine cycle.
+
+computeLineSineWeightedWeights is the raw half-sine weight set --
+`weight[k] = sin((k + 1) * pi / (period + 1))`, positive and
+symmetric, peaking at the middle of the window.
+computeLineSineWeighted is the SWMA itself: the half-sine
+weighted average of each full window, emphasizing the center and
+tapering the oldest and newest values. A window with a
+non-finite value yields null.
+
+runLineSineWeighted sorts the finite points by x, runs the
+pipeline, and returns per-bar samples classified above / below /
+equal by where the SWMA sits relative to the price, the zone
+counts and the final reading. computeLineSineWeightedLayout
+projects a single panel with the price line, the SWMA line
+overlaid and one marker per defined bar coloured by zone.
+
+ChartLineSineWeighted renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge
+(SWMA period), a two-item toggleable legend (Price / SWMA) and a
+hover/focus tooltip. Controlled and uncontrolled `hiddenSeries`
+are both supported. 69 vitest cases cover the exact period-1
+identity, the period-2 two-bar-average collapse, the symmetric
+weight shape and zone classification.
+
 ## [1.11.709] - 2026-05-21 -- UI: chart-line-elder-impulse primitive (TODO 11.691)
 
 New **ChartLineElderImpulse** UI primitive in
