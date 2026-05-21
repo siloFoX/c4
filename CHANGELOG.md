@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.716] - 2026-05-21 -- UI: chart-line-qqe primitive (TODO 11.698)
+
+New **ChartLineQqe** UI primitive in
+`web/src/components/ui/chart-line-qqe.tsx`: pure-SVG two-panel
+line chart with a Quantitative Qualitative Estimation panel from
+a smoothed RSI and an adaptive trailing band.
+
+computeLineQqeRsi is Wilder's RSI; computeLineQqeEma and
+computeLineQqeWilder are the standard and Wilder exponential
+smoothings. computeLineQqeTrail is the adaptive trailing-band
+state machine -- given the smoothed RSI and the band half-width
+it ratchets a long band up and a short band down like a trailing
+stop, flips the trend when the smoothed RSI crosses the active
+band, and emits the QQE line. computeLineQqe composes the
+pipeline: RSI, EMA smoothing, the ATR of the RSI for the band
+width, then the trailing band.
+
+runLineQqe sorts the finite points by x, runs the pipeline, and
+returns per-bar samples with the smoothed RSI, the QQE line and
+the trend classified up / down, with the trend counts.
+computeLineQqeLayout stacks a price panel above a QQE panel with
+the smoothed RSI line, the QQE trailing line and a 50 midline.
+
+ChartLineQqe renders as an accessible region with an `role="img"`
+SVG, an off-screen description, both panel labels, a config
+badge, a three-item toggleable legend (Price / RSI MA / QQE Line)
+and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 80 vitest cases cover the
+hand-traced trailing-band state machine, the smoothing dyadic
+anchors and the flat-series QQE line.
+
 ## [1.11.715] - 2026-05-21 -- UI: chart-line-smi primitive (TODO 11.697)
 
 New **ChartLineSmi** UI primitive in
