@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.726] - 2026-05-22 -- UI: chart-line-mesa-sine primitive (TODO 11.708)
+
+New **ChartLineMesaSine** UI primitive in
+`web/src/components/ui/chart-line-mesa-sine.tsx`: pure-SVG
+two-panel line chart with an Ehlers MESA Sine Wave panel
+plotting the cycle phase sine and the lead sine.
+
+computeLineMesaSineSma detrends the price against its moving
+average to leave the cyclic swing; computeLineMesaSine pairs that
+cycle with a quarter-period-delayed quadrature, takes the phase
+as `atan2(quadrature, in-phase)`, and plots `sine = sin(phase)`
+and `leadSine = sin(phase + 45 degrees)` via
+computeLineMesaSinePair. A bar with no measurable cycle amplitude
+leaves the phase, sine and lead sine null.
+classifyLineMesaSineZone marks each bar by the lead sine relative
+to the sine -- the crossover that names the indicator's signal.
+
+runLineMesaSine sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with the phase, sine, lead sine and
+zone, with the zone counts. computeLineMesaSineLayout stacks a
+price panel above a sine panel fixed to a [-1, 1] band with a
+zero line.
+
+ChartLineMesaSine renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / Sine /
+Lead Sine) and a hover/focus tooltip. Controlled and uncontrolled
+series visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 79 vitest cases: an integer fixture whose period-4
+moving average is exact detrends to an exact cycle and lands the
+phase on pi/4, pi/2 and pi; a constant series drops the sine wave
+entirely.
+
 ## [1.11.725] - 2026-05-22 -- UI: chart-line-instantaneous-trend primitive (TODO 11.707)
 
 New **ChartLineInstantaneousTrend** UI primitive in
