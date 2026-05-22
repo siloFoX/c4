@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.723] - 2026-05-22 -- UI: chart-line-band-pass primitive (TODO 11.705)
+
+New **ChartLineBandPass** UI primitive in
+`web/src/components/ui/chart-line-band-pass.tsx`: pure-SVG
+two-panel line chart with an Ehlers Bandpass Filter panel
+isolating the dominant cycle band of the price.
+
+computeLineBandPassCoefficients turns a centre `period` and a
+fractional `bandwidth` into the three filter constants
+`beta = cos(2*pi / period)`,
+`gamma = 1 / cos(2*pi*bandwidth / period)` and
+`alpha = gamma - sqrt(gamma^2 - 1)`. computeLineBandPass drives
+the two-bar price difference through that tuned two-pole
+resonance --
+`bp = 0.5*(1-alpha)*(price - price[-2]) + beta*(1+alpha)*bp[-1] - alpha*bp[-2]`
+-- seeding the first two bars at zero, so the output rings as a
+clean oscillation around zero at the chosen cycle. A trigger line
+(the bandpass delayed one bar) accompanies it.
+classifyLineBandPassZone marks each bar up / down / flat by the
+sign of the bandpass.
+
+runLineBandPass sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with the bandpass, the trigger and
+the zone, with the zone counts and the filter coefficients.
+computeLineBandPassLayout stacks a price panel above a bandpass
+panel with a zero line.
+
+ChartLineBandPass renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / Bandpass /
+Trigger) and a hover/focus tooltip. Controlled and uncontrolled
+series visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 78 vitest cases: a constant series leaves every
+two-bar difference at zero so the bandpass stays exactly at rest;
+the cos / sqrt coefficients are checked structurally and against
+their defining identities.
+
 ## [1.11.722] - 2026-05-22 -- UI: chart-line-cyber-cycle primitive (TODO 11.704)
 
 New **ChartLineCyberCycle** UI primitive in
