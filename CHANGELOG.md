@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.728] - 2026-05-22 -- UI: chart-line-ergodic primitive (TODO 11.710)
+
+New **ChartLineErgodic** UI primitive in
+`web/src/components/ui/chart-line-ergodic.tsx`: pure-SVG
+two-panel line chart with an Ergodic Oscillator panel from a
+triple-smoothed momentum ratio with a signal line.
+
+computeLineErgodicMomentum takes the one-bar price change;
+computeLineErgodicEma is an exponential average that passes
+leading nulls through and seeds from the first finite value.
+computeLineErgodic triple-smooths the momentum and the absolute
+momentum through three cascaded exponential averages and takes
+their ratio scaled to 100 -- a bounded oscillator that reads +100
+in a pure uptrend, -100 in a pure downtrend and 0 in a flat
+market -- then smooths that into the signal line.
+classifyLineErgodicZone marks each bar up / down / flat by the
+oscillator relative to its signal.
+
+runLineErgodic sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with the oscillator, the signal and
+the zone, with the zone counts. computeLineErgodicLayout stacks a
+price panel above an oscillator panel fixed to a [-100, 100] band
+with a zero line.
+
+ChartLineErgodic renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / Ergodic /
+Signal) and a hover/focus tooltip. Controlled and uncontrolled
+series visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 77 vitest cases: a constant series has zero momentum
+so the oscillator reads zero; a linear ramp has constant
+momentum that every exponential average preserves, so the
+oscillator pins exactly to plus or minus 100.
+
 ## [1.11.727] - 2026-05-22 -- UI: chart-line-corrected-ma primitive (TODO 11.709)
 
 New **ChartLineCorrectedMa** UI primitive in
