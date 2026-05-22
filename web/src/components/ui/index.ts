@@ -416,3 +416,4 @@ export * from './chart-line-wavetrend';
 export * from './chart-line-cyber-cycle';
 export * from './chart-line-band-pass';
 export * from './chart-line-highpass';
+export * from './chart-line-instantaneous-trend';
