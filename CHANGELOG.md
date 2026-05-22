@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.724] - 2026-05-22 -- UI: chart-line-highpass primitive (TODO 11.706)
+
+New **ChartLineHighpass** UI primitive in
+`web/src/components/ui/chart-line-highpass.tsx`: pure-SVG
+two-panel line chart with an Ehlers Highpass Filter panel
+removing the low-frequency trend component of the price.
+
+computeLineHighpassCoefficients turns a single cutoff `period`
+into the two-pole filter constants `a1 = exp(-1.414*pi / period)`,
+`b1 = 2*a1*cos(1.414*pi / period)`, `c2 = b1`, `c3 = -a1*a1` and
+`c1 = (1 + c2 - c3) / 4`. computeLineHighpass drives the price's
+SECOND DIFFERENCE through that filter --
+`hp = c1*(price - 2*price[-1] + price[-2]) + c2*hp[-1] + c3*hp[-2]`
+-- seeding the first two bars at zero. Because the second
+difference of any straight line is identically zero, a constant
+level and a linear trend are both driven to exactly zero: the
+trend is removed and only the curvature, the cyclic content,
+survives. A trigger line (the highpass delayed one bar)
+accompanies it. classifyLineHighpassZone marks each bar up / down
+/ flat by the sign of the highpass.
+
+runLineHighpass sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with the highpass, the trigger and
+the zone, with the zone counts and the filter coefficients.
+computeLineHighpassLayout stacks a price panel above a highpass
+panel with a zero line.
+
+ChartLineHighpass renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / Highpass /
+Trigger) and a hover/focus tooltip. Controlled and uncontrolled
+series visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 76 vitest cases: a constant series and -- the
+defining highpass property -- an ascending or descending linear
+ramp are all driven to exactly zero; the exp / cos coefficients
+are checked structurally and against their defining identities.
+
 ## [1.11.723] - 2026-05-22 -- UI: chart-line-band-pass primitive (TODO 11.705)
 
 New **ChartLineBandPass** UI primitive in
