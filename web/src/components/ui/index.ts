@@ -415,3 +415,4 @@ export * from './chart-line-fdi';
 export * from './chart-line-wavetrend';
 export * from './chart-line-cyber-cycle';
 export * from './chart-line-band-pass';
+export * from './chart-line-highpass';
