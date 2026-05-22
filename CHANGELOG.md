@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.729] - 2026-05-22 -- UI: chart-line-elder-thermo primitive (TODO 11.711)
+
+New **ChartLineElderThermo** UI primitive in
+`web/src/components/ui/chart-line-elder-thermo.tsx`: pure-SVG
+two-panel line chart with an Elder Market Thermometer panel from
+the larger of the high and low excursions per bar.
+
+computeLineElderThermometer takes, for each bar past the first,
+the larger of the absolute change in the high and the absolute
+change in the low from the prior bar. computeLineElderThermoEma
+is an exponential average that passes leading nulls through.
+computeLineElderThermo pairs the thermometer with its moving
+average; classifyLineElderThermoZone marks each bar calm (below
+the average or at rest), warm (above the average) or hot (past a
+multiple of the average).
+
+runLineElderThermo sorts the finite bars by x, runs the pipeline,
+and returns per-bar samples with the bar midpoint, the
+thermometer, its moving average and the temperature zone, with
+the zone counts. computeLineElderThermoLayout stacks a midpoint
+panel above a thermometer panel anchored at a zero floor.
+
+ChartLineElderThermo renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Midpoint /
+Thermometer / Thermo MA) and a hover/focus tooltip. Controlled
+and uncontrolled series visibility, `motion-safe` fade-in,
+`data-section` hooks throughout. 80 vitest cases: the thermometer
+is exact integer arithmetic, so a flat market reads zero, a
+steady ramp holds a constant thermometer, and a varying fixture
+computes to an exact integer series.
+
 ## [1.11.728] - 2026-05-22 -- UI: chart-line-ergodic primitive (TODO 11.710)
 
 New **ChartLineErgodic** UI primitive in
