@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.727] - 2026-05-22 -- UI: chart-line-corrected-ma primitive (TODO 11.709)
+
+New **ChartLineCorrectedMa** UI primitive in
+`web/src/components/ui/chart-line-corrected-ma.tsx`: pure-SVG
+single-panel line chart with a Corrected Moving Average overlay
+iterating until the average sits inside its variance band.
+
+computeLineCorrectedMaSma takes the moving average;
+computeLineCorrectedMaVariance takes the population variance over
+the same window. correctLineCorrectedMa corrects one bar: it
+starts from the prior corrected value and halves the distance to
+the moving average each iteration until the value lands inside
+the variance band -- one standard deviation around the average --
+returning both the corrected value and the iteration count.
+computeLineCorrectedMa runs the pipeline bar by bar, seeding the
+line from the average on its first defined bar and carrying it
+forward. classifyLineCorrectedMaTrend marks each bar up / down /
+flat by the slope of the corrected line.
+
+runLineCorrectedMa sorts the finite points by x, runs the
+pipeline, and returns per-bar samples with the average, variance,
+corrected value, iteration count, the band edges and the trend.
+computeLineCorrectedMaLayout overlays the corrected line on the
+price with the variance band drawn as a shaded region.
+
+ChartLineCorrectedMa renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+three-item toggleable legend (Price / Corrected MA / Variance
+Band) and a hover/focus tooltip. Controlled and uncontrolled
+series visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 81 vitest cases: a series periodic with the window
+length holds the average and variance constant, so the corrected
+line pins to the centre with zero iterations; a far value is
+proven to iterate back inside the band.
+
 ## [1.11.726] - 2026-05-22 -- UI: chart-line-mesa-sine primitive (TODO 11.708)
 
 New **ChartLineMesaSine** UI primitive in
