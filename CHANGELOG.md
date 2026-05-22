@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.722] - 2026-05-22 -- UI: chart-line-cyber-cycle primitive (TODO 11.704)
+
+New **ChartLineCyberCycle** UI primitive in
+`web/src/components/ui/chart-line-cyber-cycle.tsx`: pure-SVG
+two-panel line chart with an Ehlers Cyber Cycle oscillator panel
+from a smoothed second difference of price.
+
+computeLineCyberCycleSmooth is the four-tap Ehlers smoother;
+computeLineCyberCycle feeds the second difference of that
+smoothed price into a two-pole resonant filter, producing the
+cycle line and the trigger (the cycle delayed one bar). While the
+smoother warms up the cycle uses the raw price second difference,
+quartered. classifyLineCyberCycleZone marks each bar up / down /
+flat by the sign of the cycle.
+
+runLineCyberCycle sorts the finite points by x, runs the
+pipeline, and returns per-bar samples with the cycle, the trigger
+and the zone, with the zone counts. computeLineCyberCycleLayout
+stacks a price panel above a cycle panel with a zero line.
+
+ChartLineCyberCycle renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a three-item toggleable legend (Price / Cyber Cycle
+/ Trigger) and a hover/focus tooltip. Controlled and uncontrolled
+`hiddenSeries` are both supported. 70 vitest cases cover the
+exact warm-up cycle seed, the zero-cycle constant series and zone
+classification.
+
 ## [1.11.721] - 2026-05-21 -- UI: chart-line-wavetrend primitive (TODO 11.703)
 
 New **ChartLineWavetrend** UI primitive in

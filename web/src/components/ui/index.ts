@@ -413,3 +413,4 @@ export * from './chart-line-ssl';
 export * from './chart-line-coral';
 export * from './chart-line-fdi';
 export * from './chart-line-wavetrend';
+export * from './chart-line-cyber-cycle';
