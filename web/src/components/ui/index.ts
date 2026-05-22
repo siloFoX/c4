@@ -419,3 +419,4 @@ export * from './chart-line-highpass';
 export * from './chart-line-instantaneous-trend';
 export * from './chart-line-mesa-sine';
 export * from './chart-line-corrected-ma';
+export * from './chart-line-ergodic';
