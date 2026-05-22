@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.725] - 2026-05-22 -- UI: chart-line-instantaneous-trend primitive (TODO 11.707)
+
+New **ChartLineInstantaneousTrend** UI primitive in
+`web/src/components/ui/chart-line-instantaneous-trend.tsx`:
+pure-SVG single-panel line chart with an Ehlers Instantaneous
+Trendline overlay from a low-lag recursive smoother.
+
+computeLineInstantaneousTrendCoefficients turns a single
+smoothing constant `alpha` into the five filter weights
+`c1 = alpha - alpha^2/4`, `c2 = alpha^2/2`,
+`c3 = alpha - 0.75*alpha^2`, `c4 = 2*(1 - alpha)` and
+`c5 = (1 - alpha)^2`, arranged so the price-side weights collapse
+to `alpha^2` and the feedback weights to `1 - alpha^2`, summing
+to one. computeLineInstantaneousTrend runs the recursive low-lag
+formula
+`ITrend = c1*price + c2*price[-1] - c3*price[-2] + c4*ITrend[-1] - c5*ITrend[-2]`;
+the first two bars seed with the price and the midpoint, bars two
+through six use the short averaging seed
+`(price + 2*price[-1] + price[-2]) / 4`, and from the seventh bar
+the recursion takes over. A trigger line, `2*ITrend - ITrend[-2]`,
+extrapolates the trendline's slope. classifyLineInstantaneousTrendZone
+marks each bar rising / falling / flat by the trigger relative to
+the trendline.
+
+runLineInstantaneousTrend sorts the finite points by x, runs the
+pipeline, and returns per-bar samples with the trendline, the
+trigger and the zone, with the zone counts and the coefficients.
+computeLineInstantaneousTrendLayout overlays the trendline and
+trigger on the price in a single panel.
+
+ChartLineInstantaneousTrend renders as an accessible region with
+an `role="img"` SVG, an off-screen description, a config badge, a
+three-item toggleable legend (Price / Instantaneous Trendline /
+Trigger) and a hover/focus tooltip. Controlled and uncontrolled
+series visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 75 vitest cases: the alpha-independent warm-up seed
+computes a six-bar integer fixture to exact integers exercising
+every zone; the recursive region reproduces a constant series and
+the coefficients are checked against their defining identities.
+
 ## [1.11.724] - 2026-05-22 -- UI: chart-line-highpass primitive (TODO 11.706)
 
 New **ChartLineHighpass** UI primitive in
