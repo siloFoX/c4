@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.780] - 2026-05-26 -- UI: chart-line-laguerre-poly primitive (TODO 11.762)
+
+### Added
+- `<ChartLineLaguerrePoly>` -- pure-SVG single-panel chart with
+  an Ehlers Laguerre polynomial smoother overlay applying the
+  four-stage cascaded gamma filter to the close:
+  `L0[i] = (1-g)*close[i] + g*L0[i-1]`,
+  `Lk[i] = -g*L_{k-1}[i] + L_{k-1}[i-1] + g*Lk[i-1]` for k=1,2,3,
+  `Laguerre = (L0 + 2L1 + 2L2 + L3) / 6`. At `gamma = 0` the
+  recurrence collapses to a (1, 2, 2, 1) / 6 polynomial weighted
+  average over four bars (worked anchors
+  `[10,20,30,40,50] -> Laguerre[3]=25, Laguerre[4]=35` bit-exact).
+  K=0 with any gamma yields 0 at every bar. `gamma = 1` freezes
+  the cascade at the seed. 97 vitest cases (helpers, layout,
+  ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineLaguerrePolyFinitePoints`,
+  `normalizeLineLaguerrePolyGamma`,
+  `computeLineLaguerrePoly`,
+  `classifyLineLaguerrePolyZone`,
+  `runLineLaguerrePoly`,
+  `computeLineLaguerrePolyLayout`,
+  `describeLineLaguerrePolyChart`.
+
 ## [1.11.779] - 2026-05-26 -- UI: chart-line-center-of-gravity primitive (TODO 11.761)
 
 ### Added
