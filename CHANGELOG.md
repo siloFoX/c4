@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.753] - 2026-05-26 -- UI: chart-line-aroon-down primitive (TODO 11.735)
+
+### Added
+- `<ChartLineAroonDown>` -- pure-SVG two-panel chart with an
+  **Aroon Down** panel from the distance to the most recent low
+  scaled to the lookback window. Mirror of Aroon Up but for the
+  lowest low: `aroonDown = 100 * (period - barsSinceLow) / period`.
+  Most-recent bar wins on a tie (strict `<`). Bounded `[0, 100]`
+  with reference lines at 70 (strong downtrend) and 30 (weak).
+- Pure helpers: `computeLineAroonDown`, `classifyLineAroonDownZone`,
+  `runLineAroonDown`, `computeLineAroonDownLayout`,
+  `describeLineAroonDownChart`, `getLineAroonDownFinitePoints`,
+  `normalizeLineAroonDownPeriod`, `normalizeLineAroonDownThreshold`,
+  plus the `CHART_LINE_AROON_DOWN_MIN/MAX` constants.
+- 67 vitest cases covering the bit-exact anchors mirroring Aroon
+  Up but for the low: **rising series -> Aroon Down = 0** (lowest
+  is the oldest); **falling -> 100** (every bar is a new low);
+  **constant -> 100** (most-recent tie). The **worked valley
+  fixture** lows `[6, 5, 4, 3, 2, 1, 2, 3, 4, 5]` at period 4
+  hits exact `[null x4, 100, 100, 75, 50, 25, 0]`; the `[0, 100]`
+  bound on a wave; the threshold classifier; the standard
+  component contract (ARIA region, config badge
+  `AROON DOWN 4`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.752 -> 1.11.753.
+
 ## [1.11.752] - 2026-05-26 -- UI: chart-line-aroon-up primitive (TODO 11.734)
 
 ### Added

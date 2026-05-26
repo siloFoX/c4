@@ -444,3 +444,4 @@ export * from './chart-line-pivot-demark';
 export * from './chart-line-pivot-woodie';
 export * from './chart-line-pivot-classic';
 export * from './chart-line-aroon-up';
+export * from './chart-line-aroon-down';
