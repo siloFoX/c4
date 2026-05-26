@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.737] - 2026-05-26 -- UI: chart-line-aroon-osc primitive (TODO 11.719)
+
+### Added
+- `<ChartLineAroonOsc>` -- pure-SVG two-panel chart with the **Aroon
+  Oscillator** computed from the spread between Aroon Up and Aroon
+  Down. For each bar the recent `period + 1` bars are scanned: Aroon
+  Up scales the bars-since the highest high to a 0..100 percent and
+  Aroon Down does the same for the lowest low; the oscillator is
+  their difference, bounded to [-100, 100]. The top panel plots the
+  bar midpoint, the bottom panel plots the oscillator inside a fixed
+  [-100, 100] band with a zero line and one marker per bar coloured
+  by the sign of the reading.
+- Pure helpers: `computeLineAroonOscAroonUp`, `computeLineAroonOscAroonDown`,
+  `computeLineAroonOsc`, `classifyLineAroonOscZone`, `runLineAroonOsc`,
+  `computeLineAroonOscLayout`, `describeLineAroonOscChart`,
+  `getLineAroonOscFinitePoints`, `normalizeLineAroonOscPeriod`, plus
+  the `CHART_LINE_AROON_OSC_BOUND = 100` constant.
+- 74 vitest cases covering the warm-up window, the worked anchors
+  (UP_RAMP -> osc = 100, DOWN_RAMP -> osc = -100, CONST -> osc = 0,
+  MIXED_PEAK `[1..6,5..2]` at period 4 -> osc
+  `[null x4, 100, 100, 75, -50, -75, -100]`), the most-recent-tie
+  convention, the [-100, 100] bound, the two-panel layout (price
+  panel above oscillator panel, zero line inside the oscillator
+  panel), the screen-reader summary, the controlled and uncontrolled
+  legend toggle, and the standard component contract (ARIA region,
+  config badge `AROON 4`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.736 -> 1.11.737.
+
 ## [1.11.736] - 2026-05-26 -- UI: chart-line-ud-ratio primitive (TODO 11.718)
 
 New **ChartLineUdRatio** UI primitive in

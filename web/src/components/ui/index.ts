@@ -428,3 +428,4 @@ export * from './chart-line-snr';
 export * from './chart-line-rmta';
 export * from './chart-line-trend-trigger';
 export * from './chart-line-ud-ratio';
+export * from './chart-line-aroon-osc';
