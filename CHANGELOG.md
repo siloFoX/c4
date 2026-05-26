@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.839] - 2026-05-26 -- UI: chart-line-absolute-momentum primitive (TODO 11.821)
+
+Added `<ChartLineAbsoluteMomentum />` -- pure-SVG dual-panel React/TS
+primitive plotting `absMom = |close[i] - close[i - length]|` beneath
+the close. Reports the magnitude of price travel over the lookback
+without direction; both `raw` (signed) and `absMom` (magnitude) are
+exposed per sample. Defaults: `length = 14`, `strongThreshold = 5`.
+Zones: strong / weak / flat / none. Markers fire on threshold
+crossings.
+
+Bit-exact anchors: CONST close (K) -> `raw = 0`, `absMom = 0`
+everywhere across `K in {0, 1, 5, 100, -3}` and `length in {3, 4, 7,
+10}`; LINEAR UP `close = k + 1` -> `raw = length`, `absMom = length`
+(integer-exact); LINEAR DOWN `close = N - k` -> `raw = -length`,
+`absMom = length` (integer-exact); ALTERNATING `close = i % 2` with
+`length = 2` -> same-parity bars give `absMom = 0`, with `length =
+1` -> `absMom = 1` every bar. 70 vitest cases (`vitest run`). Barrel
+export wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.821-ui-chart-line-absolute-momentum.md`.
+
 ## [1.11.838] - 2026-05-26 -- UI: chart-line-stoch-fast primitive (TODO 11.820)
 
 Added `<ChartLineStochFast />` -- pure-SVG dual-panel React/TS
