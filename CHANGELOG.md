@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.755] - 2026-05-26 -- UI: chart-line-acceleration-bands primitive (TODO 11.737)
+
+### Added
+- `<ChartLineAccelerationBands>` -- pure-SVG single-panel chart
+  with Price Headley **Acceleration Bands** envelope overlays. Per
+  bar: `ratio = (H - L) / (H + L)`, `upperFactor = H * (1 + 2 *
+  ratio)`, `lowerFactor = L * (1 - 2 * ratio)`. Three SMAs over
+  `period`: upper = SMA(upperFactor), middle = SMA(close),
+  lower = SMA(lowerFactor). The first `period - 1` bars are null
+  on every band.
+- Pure helpers: `computeLineAccelerationBandsFactors`,
+  `computeLineAccelerationBandsSma`,
+  `computeLineAccelerationBands`,
+  `classifyLineAccelerationBandsZone`,
+  `runLineAccelerationBands`,
+  `computeLineAccelerationBandsLayout`,
+  `describeLineAccelerationBandsChart`,
+  `getLineAccelerationBandsFinitePoints`,
+  `normalizeLineAccelerationBandsPeriod`.
+- 74 vitest cases covering: **constant-series anchor** (every
+  band reads K bit-exact); **worked anchor A** `(H=10, L=6, C=8)
+  -> upper=15, middle=8, lower=3` bit-exact (`ratio = 4/16 = 0.25`
+  dyadic); **worked anchor B** `(H=12, L=4, C=8) -> upper=24,
+  middle=8, lower=0` bit-exact (`ratio = 0.5` dyadic); the
+  `upper >= middle >= lower` order on a varied wave; the
+  factor helper (null prev / non-finite OHLC / `H + L <= 0` /
+  zero range -> factor = H = L bit-exact); the SMA helper
+  (constant -> constant bit-exact, `[1..5]` window 3 ->
+  `[null, null, 2, 3, 4]` bit-exact, null-propagation); the
+  zone classifier (close at middle -> middle-to-upper via the
+  `>=` rule, close at lower -> lower-to-middle); the standard
+  component contract (ARIA region, config badge `ACCEL 5`,
+  onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.754 -> 1.11.755.
+
 ## [1.11.754] - 2026-05-26 -- UI: chart-line-stoch-momentum-index primitive (TODO 11.736)
 
 ### Added
