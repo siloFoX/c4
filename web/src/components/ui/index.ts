@@ -497,3 +497,4 @@ export * from './chart-line-donchian-mid';
 export * from './chart-line-donchian-width';
 export * from './chart-line-bb-width';
 export * from './chart-line-kc-width';
+export * from './chart-line-atr-band';
