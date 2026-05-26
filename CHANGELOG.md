@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.882] - 2026-05-26 -- UI: chart-line-fisher-cross primitive (TODO 11.864)
+
+Added `<ChartLineFisherCross />` -- pure-SVG dual-panel React/TS
+primitive plotting Ehlers' Fisher Transform and its signal (the
+one-bar-lagged Fisher) beneath a price line. Fisher Transform
+gaussian-normalises price action so extremes are emphasised.
+Markers fire at every Fisher-vs-signal cross (up ->
+accelerating-up, down -> accelerating-down). Defaults `length =
+10`. Normalized value clamped to +/-0.999 to avoid the inverse
+hyperbolic tangent singularity. Bit-exact anchor: CONST
+h=l=close (hi === lo on every bar -> normalized update collapses
+to 0.67 * prev; starting at 0 it stays 0 forever -> fisher = 0,
+signal = 0, relation `equal` forever, zero crosses) verified
+across multiple K and length tuples. Oscillator axis always
+includes zero with a dashed reference line. ARIA region +
+img-role SVG + sr-only desc; markers carry `role="graphics-
+symbol"` + `tabIndex={0}` and `data-kind`; motion-safe fade-in.
+58 vitest cases.
+
 ## [1.11.881] - 2026-05-26 -- UI: chart-line-ppo-cross primitive (TODO 11.863)
 
 Added `<ChartLinePpoCross />` -- pure-SVG dual-panel React/TS
