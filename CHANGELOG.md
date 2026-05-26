@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.815] - 2026-05-26 -- UI: chart-line-trend-strength primitive (TODO 11.797)
+
+### Added
+- `<ChartLineTrendStrength>` -- pure-SVG dual-panel React
+  primitive plotting the close on the top panel and a Trend
+  Strength oscillator on the bottom panel. Measures how dominant
+  the linear trend is relative to residual noise across the
+  lookback: linear regression slope and standard error of
+  residuals over a window of `length` bars, then
+  `trendStrength = |slope| / (|slope| + standardError)` bounded
+  in [0, 1].
+  Defaults: `length = 14`. Bars before `i = length - 1` are
+  warmup nulls. When `|slope| + stdErr == 0` (flat constant
+  series) the strength is null (singular).
+- Bit-exact algebraic anchor: PERFECT LINE (close = a*i for
+  integer a != 0) -> least squares fits exactly: slope = a,
+  every residual = 0, stdErr = 0 -> trendStrength = |a|/|a| = 1
+  bit-exact past warmup. Integer slope plus dyadic-friendly
+  half-integer means keep the arithmetic exact through the
+  computation. Integration sweep verifies this across many a
+  and length combinations. CONST close is the singular case
+  (all-null strength).
+- Zone classifier (strong >= 0.75 / firm 0.5..0.75 / soft
+  0.25..0.5 / choppy < 0.25 / none). ARIA region + img-role SVG
+  with screen-reader description spelling out the formula.
+  Legend supports controlled + uncontrolled + defaultHidden
+  hidden state; markers / dots respond to click + Enter +
+  Space; tooltip surfaces close + slope + stdErr + Trend
+  Strength + zone on hover and focus. Mid baseline at 0.5.
+- 88 vitest cases covering finite coercion, length
+  normalization, regression helper, computeLineTrendStrength
+  (warmup + PERFECT LINE bit-exact + CONST all-null + non-
+  mutation + NaN length + noise-on-line in (0, 1)), zone
+  classifier, run, layout (fixed [0, 1] axis + mid baseline +
+  marker count + single-point graceful), description, the React
+  surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.815.
+
 ## [1.11.814] - 2026-05-26 -- UI: chart-line-cycle-strength primitive (TODO 11.796)
 
 ### Added
