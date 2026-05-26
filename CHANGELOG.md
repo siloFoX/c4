@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.886] - 2026-05-26 -- UI: chart-line-vsa-cross primitive (TODO 11.868)
+
+Added `<ChartLineVsaCross />` -- pure-SVG dual-panel React/TS
+primitive plotting a Volume Spread Analysis effort-vs-result
+oscillator beneath a price line. Surfaces the divergence between
+relative volume (effort = volume / SMA(volume)) and relative bar
+spread (result = (h-l) / SMA(h-l)). Markers fire at every
+effortResult vs signal cross (up -> absorption regime: heavy
+volume but little movement; down -> ease regime: light volume
+moves price easily). Defaults `length = 20`, `signalLength = 9`.
+Bit-exact anchor: CONST high-low=D (D > 0), close=K, volume=V
+(V > 0) -> both SMAs collapse to constants -> normVolume=1,
+normSpread=1 -> effortResult=0, signal=0, relation `equal`
+forever, zero crosses (verified across multiple D, V, length
+tuples). CONST D=0 or V=0 triggers the divide-by-zero guard ->
+effortResult=null. ARIA region + img-role SVG + sr-only desc;
+markers carry `role="graphics-symbol"` + `tabIndex={0}` and
+`data-kind`; motion-safe fade-in. 62 vitest cases.
+
 ## [1.11.885] - 2026-05-26 -- UI: chart-line-vroc-cross primitive (TODO 11.867)
 
 Added `<ChartLineVrocCross />` -- pure-SVG dual-panel React/TS
