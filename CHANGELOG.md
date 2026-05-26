@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.799] - 2026-05-26 -- UI: chart-line-kc-percent-k primitive (TODO 11.781)
+
+### Added
+- `<ChartLineKcPercentK>` -- pure-SVG dual-panel chart with the close
+  on the top panel and a Keltner Channel %K oscillator on the bottom
+  panel. %K locates the close within the Keltner channel:
+  `middle = EMA(close, length)`, `ATR = SMA(TR, length)`,
+  `upper = middle + multiplier * ATR`,
+  `lower = middle - multiplier * ATR`,
+  `%K = (close - lower) / (upper - lower)`.
+  Defaults: `length = 20`, `multiplier = 2`. The first bar's TR is
+  `high - low`; when ATR collapses to zero (`high = low = close` at
+  every bar) the component emits `null` rather than dividing by zero.
+- Bit-exact algebraic anchors guarantee testability: CONST_MID
+  (`close` at the midpoint of constant `H/L` range) yields exactly
+  `%K = 0.5` past warmup across `(r, length, multiplier)`, because
+  `EMA(K) = K`, `ATR = 2r`, `upper = K + 4r`, `lower = K - 4r`, and
+  `4r / 8r` simplifies to `0.5` bit-exact.
+- ARIA region root + img-role SVG with screen-reader description that
+  spells out the formula, the channel-position interpretation, and the
+  warmup window. Legend supports controlled + uncontrolled `hidden`
+  state, markers / dots respond to click + Enter + Space, tooltip
+  reveals on hover and focus with close + H/L + %K + zone.
+- 92 vitest cases covering finite-point coercion, length /
+  multiplier normalization, EMA + SMA helpers, computeLineKcPercentK
+  (warmup nulls, CONST_MID bit-exact, CONST_FLAT all-null,
+  translation invariance, non-mutation), classifier, runLineKcPercentK
+  (sort, ok flag, final reading, histogram), layout (panel order, gap,
+  band line containment), description, and the React surface.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.799.
+
 ## [1.11.798] - 2026-05-26 -- UI: chart-line-bb-percent-b primitive (TODO 11.780)
 
 ### Added
