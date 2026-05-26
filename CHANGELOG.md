@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.739] - 2026-05-26 -- UI: chart-line-butterworth primitive (TODO 11.721)
+
+### Added
+- `<ChartLineButterworth>` -- pure-SVG single-panel chart with the
+  **Ehlers Butterworth Filter** overlay. The filter is a maximally-
+  flat low-pass IIR written as a second- or third-order difference
+  equation. Coefficients on the input window plus the feedback
+  coefficients sum to one, so a constant input passes through
+  unchanged (the DC-invariance anchor). 2-pole form:
+  `c1 * (P[i] + 2*P[i-1] + P[i-2]) + c2 * Filt[i-1] + c3 * Filt[i-2]`
+  with `a = exp(-sqrt(2)*pi/period)`, `b = 2*a*cos(sqrt(2)*pi/period)`,
+  `c2 = b`, `c3 = -a^2`, `c1 = (1 - b + a^2) / 4`. 3-pole form
+  similar with a 1-3-3-1 input window and an `a = exp(-pi/period)`
+  pole.
+- Pure helpers: `computeLineButterworthCoefficients`,
+  `computeLineButterworth`, `classifyLineButterworthSlope`,
+  `runLineButterworth`, `computeLineButterworthLayout`,
+  `describeLineButterworthChart`, `getLineButterworthFinitePoints`,
+  `normalizeLineButterworthPeriod`, `normalizeLineButterworthPoles`.
+- 82 vitest cases covering: the DC-invariance anchor (zero series ->
+  zero filter, bit-exact `toEqual` across `period in {3, 4, 10, 20}`
+  and `poles in {2, 3}` -- 8 combinations; non-zero constant within
+  ULP for the same 8 combinations); the analytic coefficient sum
+  (`4*c1 + c2 + c3 ~= 1` for 2-pole and `8*c1 + c2 + c3 + c4 ~= 1`
+  for 3-pole); seeding (the first `poles` outputs equal the first
+  `poles` inputs); monotonicity (strictly rising after warm-up on a
+  rising series for 2-pole; weak end-to-end trend match for both
+  pole orders); slope classification; the standard component
+  contract (ARIA region, config badge `BWORTH 4/2P`, onPointClick,
+  ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.738 -> 1.11.739.
+
 ## [1.11.738] - 2026-05-26 -- UI: chart-line-gauss primitive (TODO 11.720)
 
 ### Added
