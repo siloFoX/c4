@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.879] - 2026-05-26 -- UI: chart-line-kama-pct primitive (TODO 11.861)
+
+Added `<ChartLineKamaPct />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with the Kaufman Adaptive Moving
+Average (top panel) and the KAMA percent deviation `(close -
+KAMA) / KAMA * 100` (bottom panel). Regime classifier: `above`,
+`below`, `at`, `none`. Defaults: `erLength = 10`, `fastLength =
+2`, `slowLength = 30`. Bit-exact anchor: CONST close = K (K > 0)
+yields ER = 0 -> SC = slowSC^2 -> KAMA stays K -> kamaPct = 0
+(verified across multiple K and erLength). CONST K = 0 triggers
+the divide-by-zero guard -> kamaPct = null (regime `none`).
+Soft anchors: LINEAR UP yields kamaPct > 0 (KAMA increment is
+less than the close increment so close gets ahead), LINEAR DOWN
+yields kamaPct < 0. Bottom panel has a dashed zero reference.
+ARIA region + img-role SVG + sr-only desc; motion-safe fade-in.
+59 vitest cases.
+
 ## [1.11.878] - 2026-05-26 -- UI: chart-line-hma-pct primitive (TODO 11.860)
 
 Added `<ChartLineHmaPct />` -- pure-SVG dual-panel React/TS

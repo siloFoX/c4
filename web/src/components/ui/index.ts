@@ -570,3 +570,4 @@ export * from './chart-line-stoch-rsi-cross';
 export * from './chart-line-psar-cross';
 export * from './chart-line-supertrend-cross';
 export * from './chart-line-hma-pct';
+export * from './chart-line-kama-pct';
