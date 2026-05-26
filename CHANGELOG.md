@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.822] - 2026-05-26 -- UI: chart-line-trend-power primitive (TODO 11.804)
+
+Added `<ChartLineTrendPower />` -- pure-SVG dual-panel React/TS primitive
+that plots rolling OLS regression trend strength beneath the close.
+Trend Power = `slope^2 / max(residualVariance, MIN_RESIDUAL_VARIANCE)`
+where `MIN_RESIDUAL_VARIANCE = 2^-50` is a dyadic floor so a perfect
+linear fit yields `slope^2 * 2^50` (bit-exact) instead of `Infinity`.
+Top 60% renders the price line; bottom 40% renders the Trend Power
+oscillator with a dashed `strongThreshold` reference line. Defaults:
+`length = 14`, `strongThreshold = 1`. Zones: strong-trend (>= threshold),
+weak-trend, flat (power == 0), none (warmup). Markers fire only on
+strong-trend bars.
+
+Bit-exact anchors: CONST close -> `slope = 0` -> `power = 0` everywhere
+across `K in {0, 1, 5, 100, -3}` and `length in {3, 4, 7, 10}`; LINEAR
+`close = a*k` -> `slope = a`, `residualVariance = 0` -> `power =
+a^2 * 2^50` (verified `1 -> 2^50`, `2 -> 2^52`, both `length = 4` and
+`length = 8`). 95 vitest cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.804-ui-chart-line-trend-power.md`.
+
 ## [1.11.821] - 2026-05-26 -- UI: chart-line-trough-detector primitive (TODO 11.803)
 
 Added `<ChartLineTroughDetector />` -- pure-SVG dual-panel React/TS
