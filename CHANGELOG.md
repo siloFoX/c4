@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.831] - 2026-05-26 -- UI: chart-line-dynamic-rsi primitive (TODO 11.813)
+
+Added `<ChartLineDynamicRsi />` -- pure-SVG dual-panel React/TS
+primitive plotting a Dynamic RSI oscillator with adaptive lookback
+driven by the rolling volatility ratio (same dynLength logic as
+chart-line-dynamic-momentum). The RSI is recomputed fresh at each bar
+over the adaptive window using SMA smoothing of the up/down move
+arrays: `avgUp = mean(up window)`, `avgDown = mean(down window)`,
+`rsi = 100 * avgUp / (avgUp + avgDown)` with neutral fallback to 50
+when both averages are zero. Defaults: baseLength=14, shortVolLength=5,
+longVolLength=10, minLength=5, maxLength=30, overbought=70,
+oversold=30. Zones: overbought / oversold / neutral / none. Markers
+fire on overbought entries (up) and oversold entries (down). RSI axis
+is fixed at `[0, 100]`.
+
+Bit-exact anchors: CONST close (K) -> ups = downs = 0 -> neutral
+fallback -> rsi = 50 across `K in {1, 5, 100, -3}`; MONOTONIC UP
+(`close[k] = k + 1`) -> avgUp = 1, avgDown = 0 -> rsi = 100; MONOTONIC
+DOWN (`close[k] = N - k`) -> rsi = 0 (both bit-exact). 83 vitest cases
+(`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.813-ui-chart-line-dynamic-rsi.md`.
+
 ## [1.11.830] - 2026-05-26 -- UI: chart-line-dynamic-momentum primitive (TODO 11.812)
 
 Added `<ChartLineDynamicMomentum />` -- pure-SVG dual-panel React/TS
