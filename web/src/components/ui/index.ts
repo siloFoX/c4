@@ -470,3 +470,4 @@ export * from './chart-line-jurik-ma';
 export * from './chart-line-tema-cross';
 export * from './chart-line-wma-cross';
 export * from './chart-line-ehlers-supersmoother';
+export * from './chart-line-center-of-gravity';
