@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.885] - 2026-05-26 -- UI: chart-line-vroc-cross primitive (TODO 11.867)
+
+Added `<ChartLineVrocCross />` -- pure-SVG dual-panel React/TS
+primitive plotting Volume Rate of Change and its signal-line EMA
+beneath a price line. Markers fire at every VROC-vs-signal cross
+(up -> expanding regime, down -> contracting). Defaults
+`length = 12`, `signalLength = 6`. VROC = (volume[i] -
+volume[i-length]) / volume[i-length] * 100. Bit-exact anchor:
+CONST volume = V (V > 0) -> every difference is 0 -> VROC = 0,
+signal = EMA(0) = 0, relation `equal` forever, zero crosses
+(verified across multiple V and length tuples). CONST V = 0
+triggers the divide-by-zero guard -> VROC = null. LINEAR UP /
+DOWN volume yields VROC > 0 / VROC < 0. ARIA region + img-role
+SVG + sr-only desc; markers carry `role="graphics-symbol"` +
+`tabIndex={0}` and `data-kind`; motion-safe fade-in. 62 vitest
+cases.
+
 ## [1.11.884] - 2026-05-26 -- UI: chart-line-dema-cross primitive (TODO 11.866)
 
 Added `<ChartLineDemaCross />` -- pure-SVG dual-panel React/TS
