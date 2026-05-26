@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.874] - 2026-05-26 -- UI: chart-line-trix-cross primitive (TODO 11.856)
+
+Added `<ChartLineTrixCross />` -- pure-SVG dual-panel React/TS
+primitive plotting TRIX (triple-smoothed rate of change) and its
+signal-line EMA beneath a price line with markers at every
+TRIX-vs-signal cross (up -> accelerating-up, down ->
+accelerating-down). Defaults `length = 14`, `signalLength = 9`,
+trixColor `#0ea5e9` (sky), signalColor `#f97316` (orange).
+EMA helper carries the SMA-seeded `min === max` precision fix and
+the `next = v === smoothed ? v : ...` short-circuit, so CONST
+close = K (K > 0) collapses ema1=ema2=ema3=K bit-exactly,
+TRIX = 100*0/K = 0, signal = EMA(0) = 0, relation `equal` forever,
+zero crosses. LINEAR UP and LINEAR DOWN keep TRIX and signal on
+the same side of zero with signal trailing TRIX, so they never
+cross -- zero crosses for all three anchors across multiple
+length and signalLength settings. Oscillator axis always
+includes zero with a dashed reference line. ARIA region +
+img-role SVG + sr-only desc; markers carry `role="graphics-
+symbol"` + `tabIndex={0}` and `data-kind`; motion-safe fade-in.
+66 vitest cases.
+
 ## [1.11.873] - 2026-05-26 -- UI: chart-line-kama-cross primitive (TODO 11.855)
 
 Added `<ChartLineKamaCross />` -- pure-SVG dual-panel React/TS
