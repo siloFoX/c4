@@ -509,3 +509,4 @@ export * from './chart-line-cycle-strength';
 export * from './chart-line-trend-strength';
 export * from './chart-line-atr-trail';
 export * from './chart-line-spike-detector';
+export * from './chart-line-hilbert-instant';
