@@ -563,3 +563,4 @@ export * from './chart-line-adx-cross';
 export * from './chart-line-stoch-cross';
 export * from './chart-line-cci-cross';
 export * from './chart-line-obv-cross';
+export * from './chart-line-vwap-cross';
