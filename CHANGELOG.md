@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.851] - 2026-05-26 -- UI: chart-line-fractal-channel primitive (TODO 11.833)
+
+Added `<ChartLineFractalChannel />` -- pure-SVG single-panel
+React/TS primitive overlaying a Fractal Channel envelope on a price
+line. The channel tracks the highest confirmed upper-fractal high
+and the lowest confirmed lower-fractal low inside a fixed-bar
+lookback window; channel drops to `null` when an old fractal
+scrolls off the window without a new one having confirmed. Distinct
+from the Fractal Keltner primitive (11.832): no ATR; the pivot
+levels themselves define the band. Defaults: `length = 50`,
+`fractalLookback = 2`, upperColor `#7c2d12` (dark amber),
+lowerColor `#14532d` (dark green). Bit-exact anchors:
+`CONST h = l = K` -> `upper = lower = null` (no fractals); LINEAR
+data -> `null` (monotonic, no fractals); `SAWTOOTH` with constant
+peaks `peakK` and constant troughs `troughL`, period 4 ->
+`upper = peakK`, `lower = troughL` bit-exact once the window
+contains at least one pivot of each side. Verified across
+`(peakK, troughL, length)` sweeps. Surface: `runLineFractalChannel
+/ computeLineFractalChannelLayout / describeLineFractalChannelChart`
+plus `ChartLineFractalChannel` forwardRef with three legend toggles
+(`price`, `upper`, `lower`), config badge, fractal-pivot scatter
+markers, and tooltip surfacing `close / upper / lower / width /
+zone / cross`. 63 vitest cases.
+
 ## [1.11.850] - 2026-05-26 -- UI: chart-line-fractal-kc primitive (TODO 11.832)
 
 Added `<ChartLineFractalKc />` -- pure-SVG single-panel React/TS
