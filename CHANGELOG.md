@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.802] - 2026-05-26 -- UI: chart-line-donchian-mid primitive (TODO 11.784)
+
+### Added
+- `<ChartLineDonchianMid>` -- pure-SVG **single-panel** React
+  primitive that overlays the Donchian Channel midline on the close.
+  This is a departure from the recent dual-panel oscillator primitives
+  (kc-percent-k, vortex-vi-plus, vortex-vi-minus). Formula:
+  `upper = max(high, length)`,
+  `lower = min(low, length)`,
+  `middle = (upper + lower) / 2`.
+  Defaults: `length = 20`. Bars `0 .. length - 2` are warmup nulls.
+- Bit-exact algebraic anchors:
+  - CONST_FLAT (`h = l = c = K`) -> `middle = K` exactly; midline
+    coincides with close.
+  - CONST_BAR (constant `H`, `L`, with `close = (H + L) / 2`) ->
+    `middle = (H + L) / 2 = close` exactly; bar classifies as `at`.
+  - Ramped highs / lows (high = i + 2, low = i - 2) -> middle = i - 2,
+    integer arithmetic check.
+- Renders close + midline + upper / lower channel lines (dashed) +
+  optional filled channel polygon. Each series toggles independently
+  via legend (controlled + uncontrolled + defaultHidden). ARIA region
+  + img-role SVG with screen-reader description spelling out the
+  midpoint formula. Markers respond to click + Enter + Space; tooltip
+  surfaces close + H/L + middle + upper/lower + zone on hover and
+  focus.
+- 91 vitest cases covering finite coercion, length normalization,
+  rolling max / min helpers, computeLineDonchianMid (warmup + CONST
+  anchors + non-mutation + ramp + NaN length fallback), zone
+  classifier (above / at / below / none), run, layout (paths, marker
+  count, single-point graceful, channel y-range), description, the
+  React surface (legend, hide flags, markers, dots, axis, grid,
+  tooltip, animate, className, formatters), and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.802.
+
 ## [1.11.801] - 2026-05-26 -- UI: chart-line-vortex-vi-minus primitive (TODO 11.783)
 
 ### Added
