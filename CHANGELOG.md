@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.778] - 2026-05-26 -- UI: chart-line-ehlers-supersmoother primitive (TODO 11.760)
+
+### Added
+- `<ChartLineEhlersSupersmoother>` -- pure-SVG single-panel chart
+  with an Ehlers SuperSmoother overlay applying the two-pole
+  Butterworth recursive low-pass filter to the close:
+  `ss[i] = c1 * (close[i] + close[i - 1]) / 2 + c2 * ss[i - 1] +
+  c3 * ss[i - 2]`, with `c1 = 1 - c2 - c3` so the stationary fixed
+  point is the input itself. Seeds: `ss[0] = close[0]`,
+  `ss[1] = close[1]`. Bit-exact anchor at `K = 0`; numerically
+  exact stationary state at any `K`. 98 vitest cases (helpers,
+  layout, ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineEhlersSupersmootherFinitePoints`,
+  `normalizeLineEhlersSupersmootherPeriod`,
+  `computeLineEhlersSupersmootherCoefficients`,
+  `computeLineEhlersSupersmoother`,
+  `classifyLineEhlersSupersmootherZone`,
+  `runLineEhlersSupersmoother`,
+  `computeLineEhlersSupersmootherLayout`,
+  `describeLineEhlersSupersmootherChart`.
+
 ## [1.11.777] - 2026-05-26 -- UI: chart-line-wma-cross primitive (TODO 11.759)
 
 ### Added
