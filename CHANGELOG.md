@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.871] - 2026-05-26 -- UI: chart-line-obv-cross primitive (TODO 11.853)
+
+Added `<ChartLineObvCross />` -- pure-SVG dual-panel React/TS
+primitive plotting the cumulative On Balance Volume running total
+beneath a price line, together with its moving-average signal,
+and firing markers at every OBV-vs-signal crossover (up ->
+`accumulation` regime, down -> `distribution` regime). Defaults
+`signalLength = 20`, obvColor `#0ea5e9` (sky), signalColor
+`#f97316` (orange), accumulationColor `#16a34a`,
+distributionColor `#dc2626`. SMA helper carries the `min === max`
+window-constant precision fix; the three anchors all land
+bit-exactly: CONST close (delta = 0 -> OBV stays 0 -> signal = 0,
+relation equal, regime neutral, zero crosses); LINEAR UP close
+(`OBV[i] = i*V`, signal lags by `(n-1)/2`, diff = V*(n-1)/2 > 0,
+regime accumulation, zero crosses); LINEAR DOWN (mirror, diff =
+-V*(n-1)/2 < 0, regime distribution, zero crosses). OBV axis
+includes zero with a dashed reference line. ARIA region +
+img-role SVG + sr-only desc; markers carry
+`role="graphics-symbol"` + `tabIndex={0}` and `data-kind`;
+motion-safe fade-in. 72 vitest cases.
+
 ## [1.11.870] - 2026-05-26 -- UI: chart-line-cci-cross primitive (TODO 11.852)
 
 Added `<ChartLineCciCross />` -- pure-SVG dual-panel React/TS
