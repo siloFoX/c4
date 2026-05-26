@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.817] - 2026-05-26 -- UI: chart-line-spike-detector primitive (TODO 11.799)
+
+### Added
+- `<ChartLineSpikeDetector>` -- pure-SVG dual-panel React
+  primitive plotting the close on the top panel and a Price
+  Spike Detector on the bottom panel. The detector is the
+  Z-score of the bar-to-bar change relative to its rolling mean
+  and standard deviation:
+  `delta = close - prevClose`,
+  `spike = (delta - mean(delta, length)) / stdDev(delta, length)`.
+  Defaults: `length = 14`. Bars before `i = length` are warmup
+  nulls. When stdDev == 0 (every delta in the window identical)
+  the spike is null. `-0` normalized to `+0` defensively.
+- Bit-exact algebraic anchors:
+  - CONST close (any K) -> every delta = 0 -> stdDev = 0 ->
+    spike = null at every bar (singular).
+  - ALTERNATING close (`[0, 1, 0, 1, ...]`) with even length ->
+    rolling mean = 0, stdDev = sqrt(length / length) = 1 ->
+    spike = delta = +/-1 bit-exact. Integration sweep verifies
+    across even lengths {4, 6, 10, 14, 20}.
+- Zone classifier: extreme-up (>= 3) / spike-up (1.5..3) /
+  normal / at (== 0) / spike-down / extreme-down (<= -3) /
+  none. ARIA region + img-role SVG with screen-reader
+  description spelling out the formula. Legend supports
+  controlled + uncontrolled + defaultHidden hidden state;
+  markers / dots respond to click + Enter + Space; tooltip
+  surfaces close + delta + Z-score + zone on hover and focus.
+  Zero baseline dashed reference line in the spike panel.
+- 88 vitest cases covering finite coercion, length
+  normalization, delta helper, computeLineSpikeDetector (warmup
+  + CONST all-null + ALTERNATING +/-1 bit-exact + non-mutation +
+  NaN length + null propagation), zone classifier, run, layout,
+  description, the React surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.817.
+
 ## [1.11.816] - 2026-05-26 -- UI: chart-line-atr-trail primitive (TODO 11.798)
 
 ### Added
