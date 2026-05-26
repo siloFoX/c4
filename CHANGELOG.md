@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.855] - 2026-05-26 -- UI: chart-line-sma-pct primitive (TODO 11.837)
+
+Added `<ChartLineSmaPct />` -- pure-SVG dual-panel React/TS
+primitive plotting an SMA Percent-Change oscillator beneath a
+price line and overlaying the underlying SMA on the top panel.
+Parallel to 11.836 ema-pct, swapping the SMA-seeded EMA for a pure
+rolling mean. `smaPct = (close - sma) / sma * 100` with
+divide-by-zero guard returning `null` when `sma = 0`. Defaults:
+`length = 14`, thresholds = 0, smaColor `#10b981` (emerald),
+pctColor `#a855f7` (purple). The rolling-mean helper carries a
+`winMin === winMax` short-circuit so constant input is returned
+exactly without 1-ULP drift. Bit-exact anchors:
+`CONST close = K, K != 0` -> `smaPct = 0`; `CONST close = 0` ->
+`null`; `LINEAR UP at i = L - 1` -> `(L-1)/(L+1) * 100` dyadic
+for `L in {3, 7, 15}` -> `{50, 75, 87.5}` (matching the EMA-pct
+seed-time value); `LINEAR UP L = 3` -> `100 / i` for `i >= 2`
+bit-exact at `i in {2, 4, 5, 8, 10, 20, 25}` ->
+`{50, 25, 20, 12.5, 10, 5, 4}`. Surface: `runLineSmaPct /
+computeLineSmaPctLayout / describeLineSmaPctChart` plus
+`ChartLineSmaPct` forwardRef with three legend toggles, config
+badge, optional threshold band + zero-line overlay, markers on
+cross events, and tooltip surfacing
+`close / sma / delta / smaPct / zone / cross`. 73 vitest cases.
+
 ## [1.11.854] - 2026-05-26 -- UI: chart-line-ema-pct primitive (TODO 11.836)
 
 Added `<ChartLineEmaPct />` -- pure-SVG dual-panel React/TS
