@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.754] - 2026-05-26 -- UI: chart-line-stoch-momentum-index primitive (TODO 11.736)
+
+### Added
+- `<ChartLineStochMomentumIndex>` -- pure-SVG two-panel chart with a
+  **Stochastic Momentum Index** panel (William Blau). The close-to-
+  midpoint distance and the half-range are each double-smoothed with
+  EMAs, then divided: `SMI = 100 * smoothed(distance) /
+  smoothed(halfRange)`. Bounded `[-100, 100]`: +100 at a new high,
+  -100 at a new low, 0 at the midpoint. A zero smoothed halfRange
+  (a constant series) leaves the bar null. The top panel plots the
+  close; the bottom panel plots the SMI with a zero line and
+  `+/-threshold` overbought / oversold reference lines.
+- Pure helpers: `computeLineStochMomentumIndexEma`,
+  `computeLineStochMomentumIndexLegs`,
+  `computeLineStochMomentumIndex`,
+  `classifyLineStochMomentumIndexZone`,
+  `runLineStochMomentumIndex`,
+  `computeLineStochMomentumIndexLayout`,
+  `describeLineStochMomentumIndexChart`,
+  `getLineStochMomentumIndexFinitePoints`,
+  `normalizeLineStochMomentumIndexPeriod`,
+  `normalizeLineStochMomentumIndexSmooth`,
+  `normalizeLineStochMomentumIndexThreshold`, plus the
+  `CHART_LINE_STOCH_MOMENTUM_INDEX_EPSILON` constant.
+- 78 vitest cases covering three bit-exact anchors: **constant
+  series H=L=C -> halfRange = 0 -> SMI null at every defined bar**;
+  **CENTERED fixture (H=10, L=0, C=5) -> distance = 0 at every bar
+  -> smoothed distance = 0 -> SMI = 0 exact**; **ALL-HIGH (close
+  always at HH) -> distance = halfRange at every bar -> smoothed
+  numerator equals smoothed denominator -> SMI = 100 exact**; the
+  symmetric **ALL-LOW -> SMI = -100 exact**; the `[-100, 100]`
+  bound on a varied wave; the EMA helper (constant -> constant,
+  zero -> zero, null propagation); the threshold classifier; the
+  standard component contract (ARIA region, config badge
+  `SMI 5/3/3`, onPointClick, ref forwarding, overbought / oversold
+  marker zones on the ALL-HIGH / ALL-LOW fixtures).
+
+### Changed
+- 4 manifests bumped 1.11.753 -> 1.11.754.
+
 ## [1.11.753] - 2026-05-26 -- UI: chart-line-aroon-down primitive (TODO 11.735)
 
 ### Added
