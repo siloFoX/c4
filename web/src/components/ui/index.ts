@@ -539,3 +539,4 @@ export * from './chart-line-smi-double';
 export * from './chart-line-net-volume';
 export * from './chart-line-volume-ratio';
 export * from './chart-line-hl-osc';
+export * from './chart-line-hl-range';
