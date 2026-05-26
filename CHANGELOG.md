@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.890] - 2026-05-26 -- UI: chart-line-tema-cross-pct primitive (TODO 11.872)
+
+Added `<ChartLineTemaCrossPct />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with Triple Exponential Moving
+Average (top panel) and the close - TEMA deviation scaled to
+close as a percent (bottom panel). The percent normalisation
+makes the indicator comparable across instruments at different
+price magnitudes. TEMA = 3*EMA(close) - 3*EMA(EMA(close)) +
+EMA(EMA(EMA(close))). Regime classifier `above` / `below` /
+`at` / `none`. Defaults `length = 14`. Bit-exact anchor: CONST
+close = K (K > 0) -> every EMA collapses to K -> TEMA = 3K - 3K
++ K = K -> temaPct = 0 / K * 100 = 0 (verified across multiple
+K and length tuples). CONST K = 0 triggers divide-by-zero guard
+-> temaPct = null. ARIA region + img-role SVG + sr-only desc;
+motion-safe fade-in. 52 vitest cases.
+
 ## [1.11.889] - 2026-05-26 -- UI: chart-line-rsi-cross-sig primitive (TODO 11.871)
 
 Added `<ChartLineRsiCrossSig />` -- pure-SVG dual-panel React/TS
