@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.763] - 2026-05-26 -- UI: chart-line-chande-momentum primitive (TODO 11.745)
+
+### Added
+- `<ChartLineChandeMomentum>` -- pure-SVG two-panel chart with a
+  Tushar Chande **Momentum Oscillator** panel. For each bar `i`
+  with a filled lookback `period`:
+  ```
+  For j in [i - period + 1, i]:
+    delta[j] = close[j] - close[j - 1]
+    upPart[j]   = delta[j] > 0 ?  delta[j] : 0
+    downPart[j] = delta[j] < 0 ? -delta[j] : 0
+  upSum   = sum(upPart   over window)
+  downSum = sum(downPart over window)
+  CMO[i]  = 100 * (upSum - downSum) / (upSum + downSum)
+  ```
+  Bounded `[-100, +100]`. The first `period` bars are null; a
+  zero net move across the window (every delta zero) also nulls
+  the bar.
+- Pure helpers: `computeLineChandeMomentum`,
+  `classifyLineChandeMomentumZone` (overbought / positive /
+  flat / negative / oversold / none),
+  `runLineChandeMomentum`, `computeLineChandeMomentumLayout`,
+  `describeLineChandeMomentumChart`,
+  `getLineChandeMomentumFinitePoints`,
+  `normalizeLineChandeMomentumPeriod`,
+  `normalizeLineChandeMomentumThreshold`.
+- 70 vitest cases covering: the **CONST_FLAT identity** (`close
+  == K` -> every delta zero -> CMO is null at every bar); the
+  **monotone-rising identity** (`close == i + 10` -> every delta
+  `+1` -> `downSum = 0`, `upSum = period` -> `CMO = +100`
+  bit-exact); the **monotone-falling identity** (`close == 19 -
+  i` -> `CMO = -100` bit-exact); the **alternating identity**
+  (`close == [10, 11, 10, 11, ...]` period 4 -> `upSum == downSum
+  = 2` -> `CMO = 0` bit-exact); the **asymmetry anchor** (`close
+  = [10, 11, 12, 13, 12]` period 4 -> 3 ups + 1 down -> `CMO[4] =
+  100 * (3 - 1) / 4 = 50` bit-exact); translation invariance
+  (deltas unchanged); scale invariance (multiplying close by 100
+  leaves CMO unchanged bit-exact); antisymmetry (`CMO(RISING) =
+  -CMO(FALLING)`); non-finite close nulls the bar; CMO bounded in
+  `[-100, +100]` on the wave; layout / component / ARIA /
+  data-section hooks all covered.
+- Component renders top panel (close line) and bottom panel (CMO
+  line, zone-coloured markers, zero line, `+/- threshold` dashed
+  lines), `arps` design-system tokens, ARIA region / img /
+  graphics-symbol roles, and `data-section` hooks throughout.
+
 ## [1.11.762] - 2026-05-26 -- UI: chart-line-ichimoku-kijun primitive (TODO 11.744)
 
 ### Added
