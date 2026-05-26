@@ -452,3 +452,4 @@ export * from './chart-line-ehlers-fisher';
 export * from './chart-line-projection-bands';
 export * from './chart-line-ulcer-index';
 export * from './chart-line-relative-vigor';
+export * from './chart-line-ichimoku-tenkan';
