@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.837] - 2026-05-26 -- UI: chart-line-atr-ratio primitive (TODO 11.819)
+
+Added `<ChartLineAtrRatio />` -- pure-SVG dual-panel React/TS primitive
+plotting a short-over-long ATR ratio as a volatility regime indicator.
+`ratio = shortAtr(shortLength) / longAtr(longLength)`. Defaults:
+`shortLength = 5`, `longLength = 20`, `highThreshold = 1.2`,
+`lowThreshold = 0.8`. Zones: expanding / normal / contracting / flat /
+none. Markers fire on threshold entries.
+
+Bit-exact anchors: CONST `h = l = c = K` -> both ATRs = 0 -> ratio =
+null via divide-by-zero guard across `K in {0, 1, 5, 100, -3}` and
+`(shortLength, longLength) in {(3, 5), (5, 8)}`; LINEAR `close = k +
+1` with `high = low = close` -> `tr[0] = 0, tr[i >= 1] = 1`. Once
+`tr[0]` falls out of the longer window (at `i = longLength`), both
+ATRs evaluate to `1` exactly so `ratio = 1` (integer-exact). Verified
+for `(shortLength, longLength) in {(3, 5), (5, 8), (5, 10)}`. 71
+vitest cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.819-ui-chart-line-atr-ratio.md`.
+
 ## [1.11.836] - 2026-05-26 -- UI: chart-line-atr-multiplier primitive (TODO 11.818)
 
 Added `<ChartLineAtrMultiplier />` -- pure-SVG dual-panel React/TS
