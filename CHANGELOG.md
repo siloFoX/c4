@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.847] - 2026-05-26 -- UI: chart-line-hl-osc primitive (TODO 11.829)
+
+Added `<ChartLineHlOsc />` -- pure-SVG dual-panel React/TS
+primitive plotting a High-Low Oscillator beneath a price line.
+Subtracts the rolling-mean low from the rolling-mean high across
+the lookback:
+`osc = SMA(high, length) - SMA(low, length)`. For well-ordered OHLC
+data (`high >= low`) the oscillator is non-negative. Defaults:
+`length = 14`, `highThreshold = 1`, `lowThreshold = 0`,
+oscColor `#ea580c` (orange, distinct from prior teal/amber volume
+oscillators). Bit-exact anchors leverage SMA linearity:
+`CONST high = low = K` -> `osc = 0`;
+`CONSTANT-SPREAD high - low = D` -> `osc = D`;
+`LINEAR + CONSTANT-SPREAD` -> `osc = D` (SMA-of-difference
+collapses out the per-index drift). Verified across `(K, D, length)`
+sweeps. Surface: `runLineHlOsc / computeLineHlOscLayout /
+describeLineHlOscChart` plus `ChartLineHlOsc` forwardRef with
+legend toggle, config badge, threshold + zero-line overlays,
+markers on cross events, and tooltip surfacing
+`close / high / low / highSMA / lowSMA / osc / zone / cross`.
+72 vitest cases.
+
 ## [1.11.846] - 2026-05-26 -- UI: chart-line-volume-ratio primitive (TODO 11.828)
 
 Added `<ChartLineVolumeRatio />` -- pure-SVG dual-panel React/TS
