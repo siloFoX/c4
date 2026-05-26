@@ -435,3 +435,4 @@ export * from './chart-line-bayesian';
 export * from './chart-line-monte-carlo';
 export * from './chart-line-mahalanobis';
 export * from './chart-line-vama';
+export * from './chart-line-volatility-stop';

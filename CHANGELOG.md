@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.744] - 2026-05-26 -- UI: chart-line-volatility-stop primitive (TODO 11.726)
+
+### Added
+- `<ChartLineVolatilityStop>` -- pure-SVG single-panel chart with a
+  **Welles Wilder Volatility Stop** overlay. The trailing stop is
+  derived from the Average True Range: while long it sits at
+  `high - multiplier * ATR` and trails up only; while short it sits
+  at `low + multiplier * ATR` and trails down only. A close that
+  crosses the stop flips the position and seeds a new stop on the
+  opposite side at the same ATR offset. ATR uses Wilder's smoothing
+  (SMA seed on the first `period` true ranges, then
+  `ATR[i] = ((period - 1) * ATR[i-1] + TR[i]) / period`).
+- Pure helpers: `computeLineVolatilityStopTrueRange`,
+  `computeLineVolatilityStopATR`, `computeLineVolatilityStop`,
+  `runLineVolatilityStop`, `computeLineVolatilityStopLayout`,
+  `describeLineVolatilityStopChart`,
+  `getLineVolatilityStopFinitePoints`,
+  `normalizeLineVolatilityStopPeriod`,
+  `normalizeLineVolatilityStopMultiplier`.
+- 74 vitest cases covering: the **constant-series anchor** (zero TR
+  -> zero ATR -> stop = close, no flips, all bars long bit-exact);
+  the **rising-series anchor** (stays long throughout, 0 flips,
+  bit-exact long count); the **worked flip anchor** (falling series
+  `[10..1]` at `period=3, multiplier=2` produces exactly one flip
+  at bar 4, with the worked initial long stop
+  `high[2] - 2 * ATR[2] = 8 - 2 * (2/3) = 20/3` asserted to 12
+  places); the trailing-up monotonicity (long stop never decreases
+  until a flip); the trailing-down monotonicity (short stop never
+  increases between flips); the worked TR cases (gap-up / gap-down
+  / no-prev); the ATR Wilder convergence over a long unit-step
+  series; the standard component contract (ARIA region, config
+  badge `VSTOP 3/2`, flip marker, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.743 -> 1.11.744.
+
 ## [1.11.743] - 2026-05-26 -- UI: chart-line-vama primitive (TODO 11.725)
 
 ### Added
