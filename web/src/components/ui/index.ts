@@ -537,3 +537,4 @@ export * from './chart-line-stoch-slow';
 export * from './chart-line-hilbert-quadrature';
 export * from './chart-line-smi-double';
 export * from './chart-line-net-volume';
+export * from './chart-line-volume-ratio';
