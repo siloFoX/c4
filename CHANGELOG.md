@@ -4,6 +4,31 @@
 
 (no entries -- next release window)
 
+## [1.11.789] - 2026-05-26 -- UI: chart-line-elder-thermometer primitive (TODO 11.771)
+
+### Added
+- `<ChartLineElderThermometer>` -- pure-SVG dual-panel chart
+  with an Elder Market Thermometer oscillator panel beneath
+  the close. The thermometer is the larger of the high-gap
+  and low-gap magnitudes relative to the prior bar:
+  `thermo = max(|h - priorH|, |l - priorL|)`. Bit-exact
+  anchors: seed -> null, CONST_HL -> 0 at every bar,
+  rising-by-S (or falling-by-S) -> thermo = S bit-exact
+  (verified S in {0.25, 0.5, 1, 2, 5, 10, 100}); worked
+  asymmetric anchor `(10,8) -> (15,8.5) -> (15.5,2)` yields
+  thermo = 5, 6.5 bit-exact; translation invariance under
+  uniform HL shift. Hot-threshold classification with default
+  threshold 2. 88 vitest cases (helpers, layout, ARIA,
+  legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineElderThermometerFinitePoints`,
+  `normalizeLineElderThermometerThreshold`,
+  `computeLineElderThermometer`,
+  `classifyLineElderThermometerZone`,
+  `runLineElderThermometer`,
+  `computeLineElderThermometerLayout`,
+  `describeLineElderThermometerChart`.
+
 ## [1.11.788] - 2026-05-26 -- UI: chart-line-chaikin-volatility primitive (TODO 11.770)
 
 ### Added
