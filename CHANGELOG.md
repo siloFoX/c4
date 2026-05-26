@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.741] - 2026-05-26 -- UI: chart-line-monte-carlo primitive (TODO 11.723)
+
+### Added
+- `<ChartLineMonteCarlo>` -- pure-SVG single-panel chart with a
+  **Monte Carlo forecast fan** overlay from a non-parametric
+  bootstrap. Given a historical price series, the bar-to-bar returns
+  are pooled; for each of `simulations` sample paths and each of
+  `horizon` future steps, one return is drawn uniformly **with
+  replacement** from the pool and accumulated onto the last
+  historical price. The per-step quantile fan reports `lower` at
+  `quantileLow`, `median` at 0.5, `upper` at `quantileHigh`. The PRNG
+  is a deterministic Mulberry32 seeded from `seed`, so two runs with
+  the same input return the same fan bit-for-bit.
+- Pure helpers: `computeLineMonteCarloReturns`,
+  `computeLineMonteCarloQuantile`, `createLineMonteCarloRng`,
+  `computeLineMonteCarloForecast`, `runLineMonteCarlo`,
+  `computeLineMonteCarloLayout`, `describeLineMonteCarloChart`,
+  `getLineMonteCarloFinitePoints`, `normalizeLineMonteCarloHorizon`,
+  `normalizeLineMonteCarloSimulations`,
+  `normalizeLineMonteCarloSeed`, `normalizeLineMonteCarloQuantile`.
+- 88 vitest cases covering the **zero-variance anchors** (a constant
+  historical series gives a zero-return pool, every simulated path
+  equals the last price, so lower = median = upper = last bit-exact
+  at every step; a single-value pool `[k x m]` gives lower = median
+  = upper = last + k * step bit-exact for any seed and any number
+  of simulations -- both for positive and negative `k`), the
+  **determinism anchor** (same seed + same input -> same forecast
+  `toEqual`), the **different-seed property** (different seeds
+  produce different fans on a variable pool), the **quantile order
+  invariant** (lower <= median <= upper at every step), the
+  Mulberry32 PRNG contract (in `[0, 1)`, deterministic, distinct
+  per seed), the layout (history dots, divider, fan band, marker
+  per horizon step), and the standard component contract (ARIA
+  region, config badge `MC H5 S50`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.740 -> 1.11.741.
+
 ## [1.11.740] - 2026-05-26 -- UI: chart-line-bayesian primitive (TODO 11.722)
 
 ### Added
