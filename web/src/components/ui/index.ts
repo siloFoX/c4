@@ -441,3 +441,4 @@ export * from './chart-line-vsa';
 export * from './chart-line-confluence';
 export * from './chart-line-pivot-fibonacci';
 export * from './chart-line-pivot-demark';
+export * from './chart-line-pivot-woodie';

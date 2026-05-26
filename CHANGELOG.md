@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.750] - 2026-05-26 -- UI: chart-line-pivot-woodie primitive (TODO 11.732)
+
+### Added
+- `<ChartLinePivotWoodie>` -- pure-SVG single-panel chart with
+  **Woodie pivot** level overlays. Woodie weights the close TWICE
+  in the pivot point, so the levels lean toward the prior close.
+  From the PRIOR bar's `(high, low, close)`: `range = H - L`,
+  `PP = (H + L + 2*C) / 4`, `R1 = 2*PP - L`, `S1 = 2*PP - H`,
+  `R2 = PP + range`, `S2 = PP - range`. The first bar has no
+  prior and carries no levels.
+- Pure helpers: `computeLinePivotWoodieLevels`,
+  `computeLinePivotWoodie`, `classifyLinePivotWoodieZone`,
+  `runLinePivotWoodie`, `computeLinePivotWoodieLayout`,
+  `describeLinePivotWoodieChart`,
+  `getLinePivotWoodieFinitePoints`.
+- 68 vitest cases covering: **constant-series anchor** (every
+  level = constant bit-exact); **two worked anchors** all
+  integer-exact -- anchor A `(H=12, L=8, C=10) -> PP=10, R1=12,
+  S1=8, R2=14, S2=6`; anchor B `(H=14, L=6, C=12) -> PP=11, R1=16,
+  S1=8, R2=19, S2=3`; the strict order `R2 > R1 > PP > S1 > S2`;
+  the **R2/S2 symmetry around PP bit-exact** (`R2 + S2 = 2*PP`);
+  the **R1 + S1 = 4*PP - H - L identity bit-exact**; the
+  `R2 - PP = range` and `PP - S2 = range` identities; the warm-up
+  first bar null; the zone classifier across six bands; the
+  standard component contract (ARIA region, config badge
+  `WOODIE PIVOT`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.749 -> 1.11.750.
+
 ## [1.11.749] - 2026-05-26 -- UI: chart-line-pivot-demark primitive (TODO 11.731)
 
 ### Added
