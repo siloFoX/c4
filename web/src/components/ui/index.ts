@@ -505,3 +505,4 @@ export * from './chart-line-stiffness-indicator';
 export * from './chart-line-volatility-quality';
 export * from './chart-line-hl-spread';
 export * from './chart-line-range-osc';
+export * from './chart-line-cycle-strength';
