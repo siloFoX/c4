@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.794] - 2026-05-26 -- UI: chart-line-trend-quality primitive (TODO 11.776)
+
+### Added
+- `<ChartLineTrendQuality>` -- pure-SVG dual-panel chart with a
+  Trend Quality Index oscillator panel beneath the close. The
+  TQI is the Kaufman Efficiency Ratio scaled to 100:
+  `netChange = close[i] - close[i - n]`,
+  `sumAbs = sum(|close[j] - close[j - 1]|)` over n bars,
+  `TQI = 100 * netChange / sumAbs`. Bounded in `[-100, +100]`
+  by the triangle inequality. Lookback default 14, strong
+  threshold default 70. Bit-exact anchors: RISING_BY_S (S > 0)
+  -> TQI = +100 across 35 combos
+  `(S, lookback) in {1,2,5,10,100,0.5,0.25} x {3,5,7,14,20}`;
+  FALLING_BY_S -> TQI = -100 across the same combos;
+  CONST_FLAT -> null (singular path length); V-shape with
+  same start/end -> TQI = 0; worked anchor `[5,10,5]
+  lookback 2 -> TQI = 0`. 94 vitest cases (helpers, layout,
+  ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineTrendQualityFinitePoints`,
+  `normalizeLineTrendQualityLength`,
+  `normalizeLineTrendQualityThreshold`,
+  `computeLineTrendQuality`,
+  `classifyLineTrendQualityZone`,
+  `runLineTrendQuality`,
+  `computeLineTrendQualityLayout`,
+  `describeLineTrendQualityChart`.
+
 ## [1.11.793] - 2026-05-26 -- UI: chart-line-sinewave-trend primitive (TODO 11.775)
 
 ### Added
