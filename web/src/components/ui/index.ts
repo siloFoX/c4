@@ -547,3 +547,4 @@ export * from './chart-line-fractal-pivot';
 export * from './chart-line-momentum-pct';
 export * from './chart-line-ema-pct';
 export * from './chart-line-sma-pct';
+export * from './chart-line-adp';

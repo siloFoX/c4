@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.856] - 2026-05-26 -- UI: chart-line-adp primitive (TODO 11.838)
+
+Added `<ChartLineAdp />` -- pure-SVG dual-panel React/TS primitive
+plotting an Advance-Decline Percent breadth oscillator beneath a
+price line. Aggregates advancing and declining issues over the
+lookback and normalizes by rolling total issues:
+`adp = (rollAdv - rollDec) / rollTot * 100`. Distinct from 11.809
+adv-decline which returns absolute counts; this primitive bounds
+the output in `[-100, 100]`. Defaults: `length = 10`,
+`bullishThreshold = +30`, `bearishThreshold = -30`, adpColor
+`#f43f5e` (rose). `totalIssues` falls back to `advances + declines`
+when not supplied. Bit-exact anchors: `CONST (A, D, T)` collapses
+to `(A - D) / T * 100` because `L` cancels in the rolling-sum
+division. Tested dyadic combinations: `(100,0,100)->100`,
+`(0,100,100)->-100`, `(50,50,100)->0`, `(75,25,100)->50`,
+`(25,75,100)->-50`, `(200,0,200)->100`, `(50,0,100)->50`,
+`(0,50,100)->-50` across `length in {2, 4, 7, 10}`. `CONST T=0`
+returns `null` (divide guard). Surface: `runLineAdp /
+computeLineAdpLayout / describeLineAdpChart` plus `ChartLineAdp`
+forwardRef with legend toggle, config badge, threshold + zero-line
+overlays, markers on cross events, and tooltip surfacing
+`close / adv / dec / total / rollAdv / rollDec / rollTot / adp /
+zone`. 74 vitest cases.
+
 ## [1.11.855] - 2026-05-26 -- UI: chart-line-sma-pct primitive (TODO 11.837)
 
 Added `<ChartLineSmaPct />` -- pure-SVG dual-panel React/TS
