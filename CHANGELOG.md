@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.866] - 2026-05-26 -- UI: chart-line-rsi-cross primitive (TODO 11.848)
+
+Added `<ChartLineRsiCross />` -- pure-SVG dual-panel React/TS
+primitive plotting short and long Wilder RSI lines beneath a price
+line with scatter markers at every momentum-regime crossover.
+`up` when shortRsi newly exceeds longRsi; `down` when it newly
+falls below. Defaults: `shortLength = 7`, `longLength = 21`
+(quick-vs-positional pair), shortColor `#fb7185` (rose), longColor
+`#1d4ed8` (blue), markers `#16a34a` / `#dc2626`. Wilder helper
+carries the SMA-seeded `min === max` precision fix used since
+11.831 TRIX, plus the `next = v === smoothed ? v : ...` short-
+circuit, so CONST close (RSI = 50), LINEAR UP (RSI = 100), and
+LINEAR DOWN (RSI = 0) all land bit-exactly without 1-ULP drift.
+RSI panel axis is fixed to [0, 100] with the midline at 50;
+relation is exposed as `bullish` / `bearish` / `equal` / `none`.
+ARIA region + img-role SVG + sr-only desc; markers carry
+`role="graphics-symbol"` + `tabIndex={0}`; `data-section`
+attributes everywhere; motion-safe fade-in animation.
+71 vitest cases (33 helpers + 21 component + 3 integration anchors).
+
 ## [1.11.865] - 2026-05-26 -- UI: chart-line-atr-cross primitive (TODO 11.847)
 
 Added `<ChartLineAtrCross />` -- pure-SVG dual-panel React/TS
