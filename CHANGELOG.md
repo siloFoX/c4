@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.762] - 2026-05-26 -- UI: chart-line-ichimoku-kijun primitive (TODO 11.744)
+
+### Added
+- `<ChartLineIchimokuKijun>` -- pure-SVG single-panel chart with
+  an Ichimoku Kinko Hyo **Kijun-sen** (base-line) overlay. Same
+  midpoint-of-extremes computation as the Tenkan-sen, but with a
+  longer default base lookback of `26`:
+  ```
+  HH        = max(high over [i - period + 1, i])
+  LL        = min(low  over [i - period + 1, i])
+  kijun[i]  = (HH + LL) / 2
+  ```
+  The first `period - 1` bars are null.
+- Pure helpers: `computeLineIchimokuKijun`,
+  `classifyLineIchimokuKijunZone` (above-kijun / at-kijun /
+  below-kijun / none), `runLineIchimokuKijun`,
+  `computeLineIchimokuKijunLayout`,
+  `describeLineIchimokuKijunChart`,
+  `getLineIchimokuKijunFinitePoints`,
+  `normalizeLineIchimokuKijunPeriod`.
+- 66 vitest cases covering: the **CONST_FLAT identity** (`high ==
+  low == K` -> `HH == LL == K` -> `kijun = K` bit-exact); the
+  **integer-ramp identity** (`high == low == i + 10` period 4 ->
+  `kijun = i + 8.5` bit-exact dyadic); the **falling-ramp mirror**
+  (`high == low == 19 - i` period 4 -> `kijun = 20.5 - i`); period
+  2 / 1; **default period 26 warm-up** (25 nulls then `K` bit-exact
+  on the long CONST_FLAT fixture); translation invariance (`+1000`
+  shifts kijun by exactly 1000); non-finite high/low in the
+  window nulls the bar; layout / component / ARIA / data-section
+  hooks all covered.
+- Component renders price line + Kijun-sen line + zone-coloured
+  markers (above / at / below the Kijun-sen) + value-domain axis
+  labels, `arps` design-system tokens, ARIA region / img /
+  graphics-symbol roles, and `data-section` hooks throughout.
+
 ## [1.11.761] - 2026-05-26 -- UI: chart-line-ichimoku-tenkan primitive (TODO 11.743)
 
 ### Added
