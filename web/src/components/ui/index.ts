@@ -475,3 +475,4 @@ export * from './chart-line-laguerre-poly';
 export * from './chart-line-ad-line';
 export * from './chart-line-delta-volume';
 export * from './chart-line-swing-index';
+export * from './chart-line-squeeze-momentum';
