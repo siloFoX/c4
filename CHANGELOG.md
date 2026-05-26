@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.773] - 2026-05-26 -- UI: chart-line-fisher-stoch primitive (TODO 11.755)
+
+### Added
+- `<ChartLineFisherStoch>` -- pure-SVG two-panel chart applying
+  the inverse hyperbolic tangent (Fisher Transform) to the
+  normalised Stochastic value. For each bar `i >= period - 1`:
+  ```
+  HH      = max(high over [i - period + 1, i])
+  LL      = min(low  over [i - period + 1, i])
+  stochK  = (close - LL) / (HH - LL)
+  x       = clamp(2 * stochK - 1, -CLAMP, +CLAMP)    CLAMP = 0.999
+  fisher  = 0.5 * ln((1 + x) / (1 - x))              atanh(x)
+  ```
+  Bar null when `HH == LL` (no range). First `period - 1` bars
+  null.
+- Pure helpers: `computeLineFisherStoch`,
+  `clampLineFisherStoch`, `classifyLineFisherStochZone`
+  (peak-bull / bull / flat / bear / peak-bear / none),
+  `runLineFisherStoch`, `computeLineFisherStochLayout`,
+  `describeLineFisherStochChart`,
+  `getLineFisherStochFinitePoints`,
+  `normalizeLineFisherStochPeriod`,
+  `normalizeLineFisherStochThreshold`.
+- 67 vitest cases covering: **CONST_FLAT identity** (high ==
+  low -> HH == LL -> bar null); **AT_MIDPOINT anchor** (high =
+  12, low = 8, close = 10 -> stochK = 0.5 -> x = 0 -> atanh(0)
+  = 0 -> fisher = 0 bit-exact at every defined bar);
+  **AT_HIGH / AT_LOW** anchors (stochK = 1 or 0 -> x clamped to
+  +/- CLAMP -> fisher > 0 or < 0 with antisymmetric magnitude);
+  clamp bit-exact at +/- CLAMP; translation invariance
+  (additions to OHLC leave stochK / fisher unchanged); layout
+  / component / ARIA / data-section hooks all covered.
+- Component renders top panel (close line) and bottom panel
+  (Fisher Stochastic line + zone-coloured markers + zero
+  reference line + dashed `+/- threshold` reference lines),
+  `arps` design-system tokens, ARIA region / img /
+  graphics-symbol roles, and `data-section` hooks throughout.
+
 ## [1.11.772] - 2026-05-26 -- UI: chart-line-adx-di-minus primitive (TODO 11.754)
 
 ### Added
