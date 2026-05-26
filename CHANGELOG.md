@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.766] - 2026-05-26 -- UI: chart-line-kase-peak primitive (TODO 11.748)
+
+### Added
+- `<ChartLineKasePeak>` -- pure-SVG two-panel chart with a
+  Cynthia Kase **Peak Oscillator** panel. The KP is the
+  difference of two volatility-scaled momentum readings at two
+  cycle lengths. For each cycle `L` and bar `i >= L`:
+  ```
+  mom(L, i)     = close[i] - close[i - L]
+  volAvg(L, i)  = mean over [i - L + 1, i] of abs(close[j] - close[j - 1])
+  peakOut(L, i) = mom(L, i) / volAvg(L, i)
+  ```
+  The Kase Peak is `peakOut(fastLength) - peakOut(slowLength)`.
+  A zero `volAvg` on either leg nulls the bar.
+- Pure helpers: `computeLineKasePeakOut`, `computeLineKasePeak`,
+  `classifyLineKasePeakZone` (peak-bull / bull / flat / bear /
+  peak-bear / none), `runLineKasePeak`,
+  `computeLineKasePeakLayout`, `describeLineKasePeakChart`,
+  `getLineKasePeakFinitePoints`, `normalizeLineKasePeakLength`,
+  `normalizeLineKasePeakThreshold`.
+- 72 vitest cases covering: the **CONST_FLAT identity** (`close
+  == K` -> `volAvg = 0` -> KP null at every bar); the
+  **monotone-rising identity** (`close == i + 10` -> every delta
+  `+1` -> `volAvg(L) = 1`, `mom(L) = L`, `peakOut(L) = L` ->
+  with `fast = 2`, `slow = 4` `KP = 2 - 4 = -2` bit-exact); the
+  **monotone-falling identity** (`peakOut(L) = -L` -> `KP = -2
+  - (-4) = +2` bit-exact); antisymmetry (`KP(RISING) =
+  -KP(FALLING)` bit-exact); translation invariance (`+1000`
+  leaves deltas unchanged -> KP unchanged); scale invariance
+  (`*100` leaves KP unchanged via ratios); `fast == slow` -> KP
+  = 0 bit-exact at every defined bar; non-finite close nulls
+  the bar; layout / component / ARIA / data-section hooks all
+  covered.
+- Component renders top panel (close line) and bottom panel (KP
+  line + dashed fast / slow peakOut overlays + zone-coloured
+  markers + zero line + `+/- threshold` dashed lines), `arps`
+  design-system tokens, ARIA region / img / graphics-symbol
+  roles, and `data-section` hooks throughout.
+
 ## [1.11.765] - 2026-05-26 -- UI: chart-line-kaufman-efficiency primitive (TODO 11.747)
 
 ### Added
