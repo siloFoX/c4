@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.790] - 2026-05-26 -- UI: chart-line-ehlers-dominant-cycle primitive (TODO 11.772)
+
+### Added
+- `<ChartLineEhlersDominantCycle>` -- pure-SVG dual-panel chart
+  with an Ehlers Dominant Cycle period panel beneath the close.
+  The period is derived from the Hilbert transform phase
+  difference of the detrended close: a 6-tap FIR with
+  coefficients `(0.0962, 0, 0.5769, 0, -0.5769, 0, -0.0962)`
+  estimates the in-phase and quadrature components,
+  `phase = atan2(Q, I)`, and `period = 2*pi / unwrap(dPhase)`
+  clamped to `[minPeriod, maxPeriod]` (defaults 6, 50).
+  Bit-exact anchor: CONST_FLAT (close = K) -> FIR collapses to
+  within a few ULPs of zero; both |I| and |Q| fall under
+  PHASE_EPSILON = 1e-10 -> phase undefined -> period = maxPeriod
+  bit-exact past warmup. Verified across 24 combos of
+  `(K, maxPeriod) in {0,1,5,10,100,-3} x {25,40,50,100}`. K=0
+  yields exactly 0 from the FIR bit-exact. 94 vitest cases
+  (helpers, layout, ARIA, legend toggle, tooltip, keyboard
+  activation, sinusoid producing in-band period).
+- Helpers exported via barrel:
+  `getLineEhlersDominantCycleFinitePoints`,
+  `normalizeLineEhlersDominantCyclePeriod`,
+  `applyLineEhlersDominantCycleHilbert`,
+  `computeLineEhlersDominantCycle`,
+  `classifyLineEhlersDominantCycleZone`,
+  `runLineEhlersDominantCycle`,
+  `computeLineEhlersDominantCycleLayout`,
+  `describeLineEhlersDominantCycleChart`.
+
 ## [1.11.789] - 2026-05-26 -- UI: chart-line-elder-thermometer primitive (TODO 11.771)
 
 ### Added
