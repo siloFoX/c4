@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.774] - 2026-05-26 -- UI: chart-line-tilson-ma primitive (TODO 11.756)
+
+### Added
+- `<ChartLineTilsonMa>` -- pure-SVG single-panel chart with a
+  Tillson **T3** moving-average overlay. The T3 cascades six
+  EMAs of the close and recombines the last four with volume-
+  factor-weighted coefficients:
+  ```
+  EMA1 = EMA(close, period)
+  EMA2 = EMA(EMA1, period)
+  EMA3 = EMA(EMA2, period)
+  EMA4 = EMA(EMA3, period)
+  EMA5 = EMA(EMA4, period)
+  EMA6 = EMA(EMA5, period)
+  c1 = -a^3
+  c2 =  3*a^2 + 3*a^3
+  c3 = -3*a   - 6*a^2 - 3*a^3
+  c4 =  1 + 3*a + 3*a^2 + a^3
+  T3 = c1*EMA6 + c2*EMA5 + c3*EMA4 + c4*EMA3
+  ```
+  Coefficients sum to `1` algebraically. EMAs seed at the first
+  finite input (`EMA[0] = input[0]`) with `alpha = 2 / (length
+  + 1)`.
+- Pure helpers: `computeLineTilsonMaEma`,
+  `computeLineTilsonMaCoefficients`, `computeLineTilsonMa`,
+  `classifyLineTilsonMaZone` (above / at / below / none),
+  `runLineTilsonMa`, `computeLineTilsonMaLayout`,
+  `describeLineTilsonMaChart`,
+  `getLineTilsonMaFinitePoints`,
+  `normalizeLineTilsonMaPeriod`,
+  `normalizeLineTilsonMaVolumeFactor`.
+- 65 vitest cases covering: **EMA-of-constant lemma** (EMA of
+  constant = constant bit-exact); **coefficient anchors** (a =
+  0 -> `{c1, c2, c3, c4} = {0, 0, 0, 1}`; a = 1 -> `{-1, 6,
+  -12, 8}` with integer-arithmetic sum exactly 1; a = 0.5 ->
+  `{-0.125, 1.125, -3.375, 3.375}` bit-exact dyadic); the
+  **CONST_FLAT a=0 anchor** (T3 = EMA3 = K bit-exact at every
+  bar); the **CONST_FLAT a=1 anchor** (T3 = K bit-exact via
+  integer coefficients summing to 1); the default a=0.7 keeps
+  T3 close to K (`toBeCloseTo`); translation invariance
+  (`+1000` shifts T3 by exactly 1000); RISING / FALLING T3
+  trends with the close; layout / component / ARIA /
+  data-section hooks all covered.
+- Component renders price line + T3 line + zone-coloured
+  markers (above / at / below the T3), `arps` design-system
+  tokens, ARIA region / img / graphics-symbol roles, and
+  `data-section` hooks throughout.
+
 ## [1.11.773] - 2026-05-26 -- UI: chart-line-fisher-stoch primitive (TODO 11.755)
 
 ### Added
