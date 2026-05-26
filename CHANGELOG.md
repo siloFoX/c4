@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.848] - 2026-05-26 -- UI: chart-line-hl-range primitive (TODO 11.830)
+
+Added `<ChartLineHlRange />` -- pure-SVG dual-panel React/TS
+primitive plotting an SMA-smoothed High-Low Range beneath a price
+line. Computes the per-bar range first (`range = high - low`) and
+then averages across the lookback (`avgRange = SMA(range, length)`).
+Algebraically equivalent to 11.829 hl-osc by the linearity of SMA;
+differs only in operation order (range-then-SMA vs.
+SMA(high) - SMA(low)). Defaults: `length = 14`, `highThreshold = 1`,
+`lowThreshold = 0`, rangeColor `#ca8a04` (mustard, distinct from
+the orange hl-osc primitive). Bit-exact anchors:
+`CONST h = l = K` -> `avgRange = 0`;
+`CONSTANT SPREAD h - l = D` -> `avgRange = D`;
+`LINEAR + CONSTANT SPREAD` -> `avgRange = D` (per-bar drift cancels
+at the subtraction step before SMA). Verified across
+`(K, D, length)` sweeps. Surface: `runLineHlRange /
+computeLineHlRangeLayout / describeLineHlRangeChart` plus
+`ChartLineHlRange` forwardRef with legend toggle, config badge,
+threshold + zero-line overlays, markers on cross events, and
+tooltip surfacing `close / high / low / range / avgRange / zone /
+cross`. 73 vitest cases.
+
 ## [1.11.847] - 2026-05-26 -- UI: chart-line-hl-osc primitive (TODO 11.829)
 
 Added `<ChartLineHlOsc />` -- pure-SVG dual-panel React/TS
