@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.804] - 2026-05-26 -- UI: chart-line-bb-width primitive (TODO 11.786)
+
+### Added
+- `<ChartLineBbWidth>` -- pure-SVG dual-panel React primitive that
+  plots the close on the top panel and the Bollinger Band Width on
+  the bottom panel as a volatility proxy. BB Width normalizes the
+  Bollinger channel height to the midline (scaled to percent):
+  `middle = SMA(close, length)`,
+  `stdDev = sqrt(sum((close - middle)^2) / length)` (population),
+  `upper = middle + numStdDev * stdDev`,
+  `lower = middle - numStdDev * stdDev`,
+  `width = (upper - lower) / middle * 100`.
+  Defaults: `length = 20`, `numStdDev = 2`. Bars `0 .. length - 2`
+  are warmup nulls. When the midline is zero the width is null
+  (divide-by-zero guard). `-0` from `0 / negative_middle` is
+  normalized to `+0` so the bit-exact zero anchor holds for negative
+  K too.
+- Bit-exact algebraic anchor: CONST close (K != 0) -> stdDev = 0
+  -> width = 0 exactly past warmup. The integration sweep verifies
+  this across positive and negative K, `length` across `{3, 5, 7,
+  14, 20}`, and `numStdDev` across `{1, 2, 3}`. CONST close = 0 is
+  the singular case and surfaces all-null width.
+- Zone classifier mirrors the Donchian width buckets (wide / normal
+  / narrow / flat / none) with sane fallback when widthMaxSeen is
+  zero. ARIA region + img-role SVG with screen-reader description
+  spelling out the formula and the warmup window. Legend supports
+  controlled + uncontrolled + defaultHidden hidden state; markers
+  / dots respond to click + Enter + Space; tooltip surfaces close
+  + middle + width + upper/lower + zone on hover and focus. Zero
+  baseline dashed reference line.
+- 94 vitest cases covering finite coercion, length / numStdDev
+  normalization, SMA + population stdev helpers, computeLineBbWidth
+  (warmup + CONST K != 0 + CONST K = 0 + non-mutation + ramp +
+  numStdDev variants + NaN length fallback + width non-negativity),
+  zone classifier, run, layout, description, the React surface, and
+  integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.804.
+
 ## [1.11.803] - 2026-05-26 -- UI: chart-line-donchian-width primitive (TODO 11.785)
 
 ### Added
