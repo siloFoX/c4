@@ -489,3 +489,4 @@ export * from './chart-line-trend-quality';
 export * from './chart-line-tsi-signal';
 export * from './chart-line-stoch-signal';
 export * from './chart-line-cycle-amplitude';
+export * from './chart-line-bb-percent-b';

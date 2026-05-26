@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.798] - 2026-05-26 -- UI: chart-line-bb-percent-b primitive (TODO 11.780)
+
+### Added
+- `<ChartLineBbPercentB>` -- pure-SVG dual-panel chart with
+  John Bollinger's %B oscillator beneath the close.
+  `middle = SMA(close, length)`, `std = sqrt(sum((close -
+  middle)^2)/length)`, `upper = middle + numStd*std`,
+  `lower = middle - numStd*std`,
+  `%B = (close - lower)/(upper - lower)`. Defaults: length=20,
+  numStd=2. Population standard deviation (Bollinger's original
+  definition). Bit-exact anchors: `[10, 12] length=2 numStd=1`
+  -> %B=1 (close at upper band); `[12, 10] length=2 numStd=1`
+  -> %B=0 (close at lower band); alternating `[10, 12, 10, 12,
+  ...]` cycles `1, 0, 1, 0, ...` bit-exact; CONST_FLAT -> null
+  (singular std=0). Translation invariance under uniform close
+  shift. Zone classifier (above-upper, above-mid, below-mid,
+  below-lower). 88 vitest cases (helpers, layout, ARIA, legend
+  toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineBbPercentBFinitePoints`,
+  `normalizeLineBbPercentBLength`,
+  `normalizeLineBbPercentBNumStd`,
+  `computeLineBbPercentB`,
+  `classifyLineBbPercentBZone`,
+  `runLineBbPercentB`,
+  `computeLineBbPercentBLayout`,
+  `describeLineBbPercentBChart`.
+
 ## [1.11.797] - 2026-05-26 -- UI: chart-line-cycle-amplitude primitive (TODO 11.779)
 
 ### Added
