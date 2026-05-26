@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.813] - 2026-05-26 -- UI: chart-line-range-osc primitive (TODO 11.795)
+
+### Added
+- `<ChartLineRangeOsc>` -- pure-SVG dual-panel React primitive
+  that plots the close on the top panel and a Range Oscillator on
+  the bottom panel. The oscillator is the short-term EMA of true
+  range minus the long-term EMA:
+  `TR = max(h - l, |h - prevC|, |l - prevC|)`,
+  `shortEMA = EMA(TR, shortLength)`,
+  `longEMA = EMA(TR, longLength)`,
+  `rangeOsc = shortEMA - longEMA`.
+  Defaults: `shortLength = 14`, `longLength = 28`. Bars before
+  `i = longLength - 1` are warmup nulls so the long EMA has seen
+  at least `longLength` samples. `-0` normalized to `+0`.
+- Bit-exact algebraic anchors:
+  - CONST_FLAT (any K) -> every TR is zero -> both EMAs collapse
+    to zero -> rangeOsc = 0 exactly past warmup.
+  - CONST_BAR with dyadic TR (H - L a power of 2) -> both EMAs
+    of the constant TR equal TR bit-exact (the alpha*K +
+    (1-alpha)*K identity holds for dyadic K in IEEE 754), so
+    rangeOsc = TR - TR = 0 exactly.
+  - For non-dyadic TR the EMAs drift independently by up to 1
+    ULP and the difference is close to but not exactly zero;
+    that case is tested with toBeCloseTo(0, 9).
+- Zone classifier (expanding >= 50% of abs max / above / at / below
+  / contracting <= -50% / none) with sane fallback when
+  rangeOscAbsMaxSeen is zero (above / below by sign).
+- ARIA region + img-role SVG with screen-reader description
+  spelling out the formula. Legend supports controlled +
+  uncontrolled + defaultHidden hidden state; markers / dots
+  respond to click + Enter + Space; tooltip surfaces close + H/L
+  + short EMA + long EMA + rangeOsc + zone on hover and focus.
+  Zero baseline dashed reference line.
+- 89 vitest cases covering finite coercion, length normalization,
+  EMA + TR helpers, computeLineRangeOsc (warmup + CONST_FLAT
+  bit-exact + CONST_BAR dyadic bit-exact + CONST_BAR non-dyadic
+  close to 0 + non-mutation + NaN lengths), zone classifier (incl.
+  abs-max zero fallback), run, layout (panel order + gap + zero
+  baseline + marker count + single-point graceful), description,
+  the React surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.813.
+
 ## [1.11.812] - 2026-05-26 -- UI: chart-line-hl-spread primitive (TODO 11.794)
 
 ### Added
