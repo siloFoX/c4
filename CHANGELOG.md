@@ -4,6 +4,24 @@
 
 (no entries -- next release window)
 
+## [1.11.840] - 2026-05-26 -- UI: chart-line-range-bias primitive (TODO 11.822)
+
+Added `<ChartLineRangeBias />` -- pure-SVG dual-panel React/TS
+primitive plotting per-bar `bias = (close - midpoint) / (high - low)`
+positional ratio, bounded in `[-0.5, +0.5]`. Indicates whether the
+bar closed in the upper or lower half of its band; no rolling state.
+Defaults: `highThreshold = 0.3`, `lowThreshold = -0.3`. Zones:
+bullish / bearish / neutral / flat / none. Bias axis fixed at
+`[-0.5, +0.5]`.
+
+Bit-exact anchors (dyadic-exact, per-bar): close=high -> bias = 0.5
+(algebraic identity `((h-l)/2) / (h-l) = 0.5` across `(h, l)` pairs);
+close=low -> bias = -0.5; close=midpoint -> bias = 0; high=low ->
+bias = null (divide-by-zero guard); h=10, l=2, close=4 -> bias =
+-0.25 (quarter-position dyadic). 70 vitest cases (`vitest run`).
+Barrel export wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.822-ui-chart-line-range-bias.md`.
+
 ## [1.11.839] - 2026-05-26 -- UI: chart-line-absolute-momentum primitive (TODO 11.821)
 
 Added `<ChartLineAbsoluteMomentum />` -- pure-SVG dual-panel React/TS
