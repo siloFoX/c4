@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.830] - 2026-05-26 -- UI: chart-line-dynamic-momentum primitive (TODO 11.812)
+
+Added `<ChartLineDynamicMomentum />` -- pure-SVG dual-panel React/TS
+primitive plotting a Dynamic Momentum Index oscillator with **adaptive
+lookback proportional to volatility**. Per bar: `shortStd =
+popStdDev(close, shortVolLength)`, `longStd = SMA(shortStd,
+longVolLength)`, `ratio = shortStd / longStd` (fallback 1 when longStd
+= 0), `dynLength = clamp(round(baseLength / ratio), minLength,
+maxLength)`, `dmi = (close[i] - close[i - dynLength]) / close[i -
+dynLength] * 100`. Defaults: baseLength=14, shortVolLength=5,
+longVolLength=10, minLength=5, maxLength=30. Zones: positive /
+negative / zero / none. Markers fire on zero-line crosses.
+
+Bit-exact anchors: CONST close (K != 0) -> shortStd = longStd = 0,
+ratio falls back to 1, dynLength = baseLength, `(K - K) / K * 100 = 0`
+-> dmi = 0 across `K in {1, 5, 100, -3}`; CONST close = 0 -> dmi =
+null everywhere (divide-by-zero guard); dynLength always within
+`[minLength, maxLength]` regardless of input. 72 vitest cases
+(`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.812-ui-chart-line-dynamic-momentum.md`.
+
 ## [1.11.829] - 2026-05-26 -- UI: chart-line-recombining-bb primitive (TODO 11.811)
 
 Added `<ChartLineRecombiningBb />` -- pure-SVG single-panel React/TS
