@@ -528,3 +528,4 @@ export * from './chart-line-fractal-bb';
 export * from './chart-line-recombining-kc';
 export * from './chart-line-bb-fisher';
 export * from './chart-line-atr-multiplier';
+export * from './chart-line-atr-ratio';
