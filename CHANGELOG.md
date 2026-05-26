@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.880] - 2026-05-26 -- UI: chart-line-dema-pct primitive (TODO 11.862)
+
+Added `<ChartLineDemaPct />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with the Double Exponential
+Moving Average (top panel) and the DEMA percent deviation
+`(close - DEMA) / DEMA * 100` (bottom panel). Regime
+classifier: `above`, `below`, `at`, `none`. Defaults
+`length = 14`. The EMA helper carries the SMA-seeded
+`min === max` precision fix plus the
+`next = v === smoothed ? v : ...` short-circuit; CONST close
+= K (K > 0) collapses every EMA in the chain to K bit-exactly,
+DEMA = 2K - K = K, and demaPct = 0 (verified across multiple K
+and length). CONST K = 0 triggers the divide-by-zero guard ->
+demaPct = null. For linear inputs the `2*EMA - EMA` lag-
+cancellation property keeps DEMA equal to close in steady
+state, giving near-zero demaPct (tolerance 1.0 after 40-bar
+warmup). Bottom panel has a dashed zero reference. ARIA region
++ img-role SVG + sr-only desc; motion-safe fade-in. 56 vitest
+cases.
+
 ## [1.11.879] - 2026-05-26 -- UI: chart-line-kama-pct primitive (TODO 11.861)
 
 Added `<ChartLineKamaPct />` -- pure-SVG dual-panel React/TS
