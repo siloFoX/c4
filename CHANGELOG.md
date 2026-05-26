@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.876] - 2026-05-26 -- UI: chart-line-psar-cross primitive (TODO 11.858)
+
+Added `<ChartLinePsarCross />` -- pure-SVG dual-panel React/TS
+primitive overlaying Wilder Parabolic SAR dots on the close (top
+panel) and the close - SAR deviation (bottom panel). Markers fire
+at every SAR flip (flip-up = trend newly up, flip-down = trend
+newly down). Defaults `afInitial = 0.02`, `afStep = 0.02`,
+`afMax = 0.2` (classic). SAR dots tint green when trend is up,
+red when down; flip markers carry `data-kind`. Bit-exact anchors:
+CONST h=l=close (SAR stays K, trend up, 0 flips); LINEAR UP
+h=l=close=i+1 (starts up, SAR seeded at 1, stays below rising
+close, 0 flips); LINEAR DOWN h=l=close=N-i (starts up, first low
+breaches SAR -> exactly 1 flip-down at bar 1, then trend stays
+down). LINEAR DOWN behavior verified across multiple afInitial
+values. Deviation panel has a dashed zero reference. ARIA region
++ img-role SVG + sr-only desc; markers carry `role="graphics-
+symbol"` + `tabIndex={0}` and `data-kind`; motion-safe fade-in.
+68 vitest cases.
+
 ## [1.11.875] - 2026-05-26 -- UI: chart-line-stoch-rsi-cross primitive (TODO 11.857)
 
 Added `<ChartLineStochRsiCross />` -- pure-SVG dual-panel React/TS
