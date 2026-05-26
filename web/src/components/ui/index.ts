@@ -553,3 +553,4 @@ export * from './chart-line-sma-cross';
 export * from './chart-line-ema-cross';
 export * from './chart-line-momentum-cross';
 export * from './chart-line-donchian-cross';
+export * from './chart-line-kvo-signal';
