@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.777] - 2026-05-26 -- UI: chart-line-wma-cross primitive (TODO 11.759)
+
+### Added
+- `<ChartLineWmaCross>` -- pure-SVG single-panel chart with a
+  Weighted-MA fast-over-slow **crossover** overlay. For each
+  lookback `L`:
+  ```
+  WMA[i] = sum_{j=1..L} (j * close[i - L + j]) / sum_{j=1..L} j
+  ```
+  Crosses:
+  ```
+  upCross   at fast[i-1] <= slow[i-1] && fast[i] > slow[i]
+  downCross at fast[i-1] >= slow[i-1] && fast[i] < slow[i]
+  ```
+- Pure helpers: `computeLineWmaCrossWma`,
+  `classifyLineWmaCrossZone` (up-cross / down-cross / above /
+  below / at / none), `runLineWmaCross`,
+  `computeLineWmaCrossLayout`, `describeLineWmaCrossChart`,
+  `getLineWmaCrossFinitePoints`,
+  `normalizeLineWmaCrossLength`.
+- 61 vitest cases covering: **CONST_FLAT identity** (close ==
+  K -> WMA = K bit-exact at every defined bar, weighted mean of
+  K's collapses; holds at any length); **CONST_FLAT_HIGH** (K
+  = 1000) with the same identity; **worked anchor** (`close =
+  [0, 1, 2, 3]` period 4 -> `(1*0 + 2*1 + 3*2 + 4*3) / 10 = 20
+  / 10 = 2` bit-exact); **RISING_INT identity** (`close = i +
+  10` period 4 -> `WMA[i] = i + 9` bit-exact via the closed-form
+  cancellation `WMA = c + 2*(L - 1) / 3` reducing to `c + 2`
+  exactly for `L = 4`); period-2 worked anchor (`(10 + 24) / 3
+  = 34 / 3`); translation invariance (`+1000` shifts WMA by
+  exactly 1000 bit-exact); CONST_FLAT records zero crosses;
+  PIVOT fixture (20 rising + 20 falling bars) triggers at
+  least one cross; layout / component / ARIA / data-section
+  hooks all covered.
+- Component renders price line + fast WMA line + slow WMA
+  line + cross markers (up-cross / down-cross), `arps` design-
+  system tokens, ARIA region / img / graphics-symbol roles, and
+  `data-section` hooks throughout.
+
 ## [1.11.776] - 2026-05-26 -- UI: chart-line-tema-cross primitive (TODO 11.758)
 
 ### Added

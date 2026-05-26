@@ -468,3 +468,4 @@ export * from './chart-line-fisher-stoch';
 export * from './chart-line-tilson-ma';
 export * from './chart-line-jurik-ma';
 export * from './chart-line-tema-cross';
+export * from './chart-line-wma-cross';
