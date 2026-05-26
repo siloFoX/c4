@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.881] - 2026-05-26 -- UI: chart-line-ppo-cross primitive (TODO 11.863)
+
+Added `<ChartLinePpoCross />` -- pure-SVG dual-panel React/TS
+primitive plotting the Percentage Price Oscillator and its
+signal-line EMA beneath a price line. PPO normalises the MACD
+difference by the slow EMA so the oscillator is independent of
+price magnitude (comparable across instruments). Markers fire at
+every PPO-vs-signal cross (up -> accelerating-up, down ->
+accelerating-down). Tooltip surfaces the zero-line bias
+(`bullish`, `bearish`, `neutral`) alongside the cross direction.
+Defaults `fastLength = 12`, `slowLength = 26`, `signalLength = 9`
+(classic MACD/PPO parameters). The EMA helper carries the SMA-
+seeded `min === max` precision fix plus the
+`next = v === smoothed ? v : ...` short-circuit, so CONST close
+= K (K > 0) collapses every EMA to K bit-exactly, PPO = 0,
+signal = 0, relation `equal` forever, zero crosses. CONST K = 0
+triggers the divide-by-zero guard -> PPO = null. LINEAR UP /
+DOWN keep PPO and signal sharing the same sign with signal
+trailing PPO -- zero crosses. Oscillator axis always includes
+zero with a dashed reference line. ARIA region + img-role SVG
++ sr-only desc; markers carry `role="graphics-symbol"` +
+`tabIndex={0}` and `data-bias`; motion-safe fade-in. 65 vitest
+cases.
+
 ## [1.11.880] - 2026-05-26 -- UI: chart-line-dema-pct primitive (TODO 11.862)
 
 Added `<ChartLineDemaPct />` -- pure-SVG dual-panel React/TS

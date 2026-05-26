@@ -572,3 +572,4 @@ export * from './chart-line-supertrend-cross';
 export * from './chart-line-hma-pct';
 export * from './chart-line-kama-pct';
 export * from './chart-line-dema-pct';
+export * from './chart-line-ppo-cross';
