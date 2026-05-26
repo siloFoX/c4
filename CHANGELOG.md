@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.805] - 2026-05-26 -- UI: chart-line-kc-width primitive (TODO 11.787)
+
+### Added
+- `<ChartLineKcWidth>` -- pure-SVG dual-panel React primitive that
+  plots the close on the top panel and the Keltner Channel Width on
+  the bottom panel as a volatility proxy. KC Width normalizes the
+  Keltner channel height to the midline (scaled to percent):
+  `middle = EMA(close, length)`,
+  `TR = max(h - l, |h - prevC|, |l - prevC|)`,
+  `ATR = SMA(TR, length)`,
+  `upper = middle + multiplier * ATR`,
+  `lower = middle - multiplier * ATR`,
+  `width = (upper - lower) / middle * 100`.
+  Defaults: `length = 20`, `multiplier = 2`. Bars before
+  `i = length - 1` are warmup nulls. When the midline is zero the
+  width is null (divide-by-zero guard). `-0` from `0 / negative_middle`
+  is normalized to `+0`.
+- Bit-exact algebraic anchor: CONST_FLAT (`h = l = c = K`, `K != 0`)
+  -> TR = 0 -> ATR = 0 -> upper - lower = 0 -> width = 0 exactly
+  past warmup. The integration sweep verifies this across positive
+  and negative K, `length` across `{3, 5, 7, 14, 20}`, and
+  `multiplier` across `{1, 2, 3}`. CONST_FLAT K = 0 is the singular
+  case (all-null width).
+- Zone classifier mirrors the Donchian / BB width buckets (wide /
+  normal / narrow / flat / none) with sane fallback when
+  widthMaxSeen is zero. ARIA region + img-role SVG with screen-
+  reader description spelling out the formula and the warmup window.
+  Legend supports controlled + uncontrolled + defaultHidden hidden
+  state; markers / dots respond to click + Enter + Space; tooltip
+  surfaces close + H/L + width + upper/lower + zone on hover and
+  focus. Zero baseline dashed reference line.
+- 97 vitest cases covering finite coercion, length / multiplier
+  normalization, EMA + SMA + TR helpers, computeLineKcWidth (warmup
+  + CONST_FLAT K != 0 + CONST_FLAT K = 0 + non-mutation + multiplier
+  variants + NaN length fallback + width non-negativity + CONST_BAR
+  smoke), zone classifier, run, layout, description, the React
+  surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.805.
+
 ## [1.11.804] - 2026-05-26 -- UI: chart-line-bb-width primitive (TODO 11.786)
 
 ### Added

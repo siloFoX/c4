@@ -496,3 +496,4 @@ export * from './chart-line-vortex-vi-minus';
 export * from './chart-line-donchian-mid';
 export * from './chart-line-donchian-width';
 export * from './chart-line-bb-width';
+export * from './chart-line-kc-width';
