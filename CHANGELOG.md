@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.828] - 2026-05-26 -- UI: chart-line-hl-pct primitive (TODO 11.810)
+
+Added `<ChartLineHlPct />` -- pure-SVG dual-panel React/TS primitive
+plotting the High Low percent of price oscillator beneath the close.
+Each bar's range is scaled to a percent of `|midpoint|`, then smoothed
+with a rolling SMA: `hlPct = SMA((high - low) / |midpoint| * 100,
+length)`. Markers fire on `volatilityThreshold` crossings. Defaults:
+`length = 14`, `volatilityThreshold = 5`. Zones: high / low / flat /
+none.
+
+Bit-exact anchors: CONST `high = low = K` -> `raw = 0` -> `hlPct = 0`
+across `K in {1, 5, 100, -3}` and `length in {3, 4, 7, 10}`; CONST
+`high = 12, low = 8` -> midpoint = 10, `raw = 4 / 10 * 100 = 40`,
+SMA = 40 (bit-exact, integer-dyadic); CONST `high = 11, low = 9` ->
+`raw = 20` (bit-exact); CONST `high = low = 0` -> midpoint = 0 ->
+`raw = null` (divide-by-zero guard); `Math.abs(midpoint)` keeps `raw`
+non-negative for negative midpoints. 93 vitest cases (`vitest run`).
+Barrel export wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.810-ui-chart-line-hl-pct.md`.
+
 ## [1.11.827] - 2026-05-26 -- UI: chart-line-adv-decline primitive (TODO 11.809)
 
 Added `<ChartLineAdvDecline />` -- pure-SVG dual-panel React/TS
