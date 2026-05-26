@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.803] - 2026-05-26 -- UI: chart-line-donchian-width primitive (TODO 11.785)
+
+### Added
+- `<ChartLineDonchianWidth>` -- pure-SVG dual-panel React primitive
+  companion to `<ChartLineDonchianMid>` (TODO 11.784). Top panel
+  plots the close; bottom panel plots the Donchian channel width as a
+  volatility proxy. Formula:
+  `upper = max(high, length)`,
+  `lower = min(low, length)`,
+  `width = upper - lower` (non-negative).
+  Defaults: `length = 20`. Bars `0 .. length - 2` are warmup.
+- Bit-exact algebraic anchors:
+  - CONST_FLAT (`h = l = c = K`) -> `width = K - K = 0` exactly.
+  - CONST_BAR (constant `H`, `L`) -> `width = H - L` exactly --
+    integer arithmetic, no FP drift.
+  - Ramped highs / lows (high = i + 2, low = i - 2, length 5) ->
+    `width = 8` constant.
+- Zone classifier buckets the width by ratio to the maximum width
+  observed in the series (wide >= 75%, normal 25-75%, narrow < 25%,
+  flat = 0, none = null). Tooltip surfaces close + H/L + width +
+  upper/lower + zone; zero baseline drawn as a dashed reference line
+  in the width panel.
+- ARIA region + img-role SVG with screen-reader description spelling
+  out the formula. Legend supports controlled + uncontrolled +
+  defaultHidden hidden state for the two series; markers respond to
+  click + Enter + Space.
+- 92 vitest cases covering finite coercion, length normalization,
+  rolling max / min helpers, computeLineDonchianWidth (warmup +
+  CONST_FLAT + CONST_BAR with negative L + non-mutation + ramp +
+  width non-negativity + NaN length fallback), zone classifier
+  (including the widthMaxSeen = 0 fallback branch), run, layout
+  (paths, marker count, baseline containment, widthMin = 0,
+  single-point graceful), description, the React surface, and
+  integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.803.
+
 ## [1.11.802] - 2026-05-26 -- UI: chart-line-donchian-mid primitive (TODO 11.784)
 
 ### Added

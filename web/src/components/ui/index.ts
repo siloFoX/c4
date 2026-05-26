@@ -494,3 +494,4 @@ export * from './chart-line-kc-percent-k';
 export * from './chart-line-vortex-vi-plus';
 export * from './chart-line-vortex-vi-minus';
 export * from './chart-line-donchian-mid';
+export * from './chart-line-donchian-width';
