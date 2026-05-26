@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.775] - 2026-05-26 -- UI: chart-line-jurik-ma primitive (TODO 11.757)
+
+### Added
+- `<ChartLineJurikMa>` -- pure-SVG single-panel chart with a
+  Jurik moving-average overlay (simplified open-source
+  formulation). Three coupled recurrences with adaptive
+  lag-reduction parameterisation:
+  ```
+  beta       = 0.45 * (length - 1) / (0.45 * (length - 1) + 2)
+  alpha      = beta ^ power
+  phaseRatio = phase / 100 + 1.5
+  e0[i]      = (1 - alpha) * close + alpha * e0[i - 1]
+  e1[i]      = (close - e0) * (1 - beta) + beta * e1[i - 1]
+  e2[i]      = (e0 + phaseRatio * e1 - jma[i - 1])
+               * (1 - alpha)^2 + alpha^2 * e2[i - 1]
+  jma[i]     = jma[i - 1] + e2
+  ```
+  Seeds: `e0[0] = close[0]`, `e1[0] = 0`, `e2[0] = 0`, `jma[0]
+  = close[0]`. With those seeds, a constant close is a
+  stationary fixed point.
+- Pure helpers: `computeLineJurikMa`,
+  `classifyLineJurikMaZone` (above / at / below / none),
+  `runLineJurikMa`, `computeLineJurikMaLayout`,
+  `describeLineJurikMaChart`,
+  `getLineJurikMaFinitePoints`,
+  `normalizeLineJurikMaLength`,
+  `normalizeLineJurikMaPhase`, `normalizeLineJurikMaPower`.
+- 63 vitest cases covering: **CONST_FLAT identity** (close ==
+  K -> e0 = K, e1 = 0, e2 = 0 stationary -> jma = K bit-exact
+  at every bar) holding for any `(length, phase, power)` triple
+  -- tested with `(2, -100, 1)`, `(50, 0, 2)`, `(200, 100, 4)`,
+  `(7, 50, 3)`; CONST_FLAT_HIGH (close == 1000) with the same
+  identity; first-bar seed bit-exact; translation invariance
+  (`+1000` shifts JMA by exactly 1000 to 10dp); RISING /
+  FALLING JMA trends with the close; non-finite close nulls
+  the bar and resets the recurrence; layout / component /
+  ARIA / data-section hooks all covered.
+- Component renders price line + JMA line + zone-coloured
+  markers (above / at / below the JMA), `arps` design-system
+  tokens, ARIA region / img / graphics-symbol roles, and
+  `data-section` hooks throughout.
+
 ## [1.11.774] - 2026-05-26 -- UI: chart-line-tilson-ma primitive (TODO 11.756)
 
 ### Added

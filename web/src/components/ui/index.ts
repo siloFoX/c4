@@ -466,3 +466,4 @@ export * from './chart-line-adx-di-plus';
 export * from './chart-line-adx-di-minus';
 export * from './chart-line-fisher-stoch';
 export * from './chart-line-tilson-ma';
+export * from './chart-line-jurik-ma';
