@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.788] - 2026-05-26 -- UI: chart-line-chaikin-volatility primitive (TODO 11.770)
+
+### Added
+- `<ChartLineChaikinVolatility>` -- pure-SVG dual-panel chart
+  with a Chaikin Volatility oscillator panel beneath the close.
+  CV is the percentage rate of change of the EMA of the
+  high-minus-low range over a lookback (default 10):
+  `range = high - low`, `ema = EMA(range, n)`, `CV =
+  100 * (ema[i] - ema[i - n]) / ema[i - n]`.
+  Bit-exact anchor: CONST_HL (range = K, K != 0) -> both EMAs
+  drift identically so ratio is exactly 1, CV = 0 bit-exact
+  past warmup `2 * n`. Verified across 25 combos of
+  `(range, length) in {1, 2, 5, 10, 100} x {3, 5, 10, 14, 20}`.
+  FLAT_HL (range = 0) yields null at every bar. Expanding /
+  contracting range produces positive / negative CV. 92 vitest
+  cases (helpers, layout, ARIA, legend toggle, tooltip,
+  keyboard activation).
+- Helpers exported via barrel:
+  `getLineChaikinVolatilityFinitePoints`,
+  `normalizeLineChaikinVolatilityLength`,
+  `computeLineChaikinVolatilityEma`,
+  `computeLineChaikinVolatility`,
+  `classifyLineChaikinVolatilityZone`,
+  `runLineChaikinVolatility`,
+  `computeLineChaikinVolatilityLayout`,
+  `describeLineChaikinVolatilityChart`.
+
 ## [1.11.787] - 2026-05-26 -- UI: chart-line-chaikin-mf primitive (TODO 11.769)
 
 ### Added

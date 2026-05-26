@@ -479,3 +479,4 @@ export * from './chart-line-squeeze-momentum';
 export * from './chart-line-mass-index-signal';
 export * from './chart-line-kvo';
 export * from './chart-line-chaikin-mf';
+export * from './chart-line-chaikin-volatility';
