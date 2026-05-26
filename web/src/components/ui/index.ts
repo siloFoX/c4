@@ -535,3 +535,4 @@ export * from './chart-line-range-bias';
 export * from './chart-line-trend-detector';
 export * from './chart-line-stoch-slow';
 export * from './chart-line-hilbert-quadrature';
+export * from './chart-line-smi-double';
