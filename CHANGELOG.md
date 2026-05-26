@@ -4,6 +4,31 @@
 
 (no entries -- next release window)
 
+## [1.11.849] - 2026-05-26 -- UI: chart-line-trix-double-smoothed primitive (TODO 11.831)
+
+Added `<ChartLineTrixDoubleSmoothed />` -- pure-SVG dual-panel
+React/TS primitive plotting a doubly smoothed TRIX oscillator
+beneath a price line. Triple-EMA-smooths log close, takes the
+pair-wise difference in basis points (the standard TRIX), then
+applies an additional EMA pass on the TRIX output. Defaults:
+`length = 15`, `signalLength = 9`, thresholds = 0, trixColor
+`#6366f1` (indigo). The EMA helper now seeds with the exact input
+value when the seed window is constant (`min === max`), avoiding
+1-ULP drift from non-dyadic `ln(K)` for length-not-a-power-of-2,
+so the CONST short-circuit
+`next = v === prev ? v : alpha*v + (1-alpha)*prev` keeps the
+constant through all four EMA passes. Bit-exact anchor: `CONST
+close = K > 0` -> `trix = 0` and `double = 0` across `(K, length,
+signalLength)` sweeps; `CONST close <= 0` -> `null` (log
+undefined). Surface: `runLineTrixDoubleSmoothed /
+computeLineTrixDoubleSmoothedLayout /
+describeLineTrixDoubleSmoothedChart` plus
+`ChartLineTrixDoubleSmoothed` forwardRef with legend toggle,
+config badge, optional threshold band + zero-line overlay, markers
+on cross events, and tooltip surfacing
+`close / logClose / ema3 / trix / double / zone / cross`.
+73 vitest cases.
+
 ## [1.11.848] - 2026-05-26 -- UI: chart-line-hl-range primitive (TODO 11.830)
 
 Added `<ChartLineHlRange />` -- pure-SVG dual-panel React/TS
