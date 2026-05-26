@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.808] - 2026-05-26 -- UI: chart-line-elder-force primitive (TODO 11.790)
+
+### Added
+- `<ChartLineElderForce>` -- pure-SVG dual-panel React primitive
+  plotting the close on the top panel and the Elder Force Index
+  (EFI) oscillator on the bottom panel. EFI weights price change
+  by volume and smooths the result with an EMA:
+  `raw[i] = (close[i] - close[i - 1]) * volume[i]` (i >= 1),
+  `EFI[i] = EMA(raw, length)[i]`.
+  Defaults: `length = 13` (Elder's classic period). Bar 0 is null
+  (no prevClose); EMA seeds at the first finite raw. `-0` from
+  `0 * negative_volume` is normalized to `+0`.
+- Bit-exact algebraic anchor: CONST close (any K) -> every raw is
+  zero (regardless of volume sign or magnitude, including zero
+  volume) -> EFI = 0 exactly. The integration sweep verifies this
+  across many K (including 0 and negatives), V (including 0 and
+  negatives), and length.
+- Zone classifier buckets by ratio to maxAbs (strong-up,
+  above, at, below, strong-down, none) with sane fallback when
+  efiAbsMaxSeen is zero (all-zero series).
+- ARIA region + img-role SVG with screen-reader description
+  spelling out the formula. Legend supports controlled +
+  uncontrolled + defaultHidden hidden state; markers / dots
+  respond to click + Enter + Space; tooltip surfaces close +
+  volume + EFI + zone on hover and focus. Zero baseline dashed
+  reference line.
+- 91 vitest cases covering finite coercion, length normalization,
+  EMA helper, computeLineElderForceRaw (null at bar 0 + CONST
+  close raw=0 + zero volume + negative volume -0 normalization),
+  computeLineElderForce (CONST close -> EFI=0 across many K/V/L
+  + non-mutation + NaN length + ramp produces nonzero EFI), zone
+  classifier (incl. efiAbsMaxSeen=0 fallback), run, layout,
+  description, the React surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.808.
+
 ## [1.11.807] - 2026-05-26 -- UI: chart-line-momentum-roc primitive (TODO 11.789)
 
 ### Added
