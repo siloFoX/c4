@@ -461,3 +461,4 @@ export * from './chart-line-kase-peak';
 export * from './chart-line-connors-rsi';
 export * from './chart-line-williams-vix-fix';
 export * from './chart-line-trix-signal';
+export * from './chart-line-adx-trend';

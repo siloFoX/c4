@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.770] - 2026-05-26 -- UI: chart-line-adx-trend primitive (TODO 11.752)
+
+### Added
+- `<ChartLineAdxTrend>` -- pure-SVG two-panel chart with a
+  Wilder **ADX** trend-filter panel (SMA-smoothed variant). For
+  each bar `i >= 1`:
+  ```
+  upMove   = high[i] - high[i - 1]
+  downMove = low[i - 1] - low[i]
+  plusDM   = (upMove   > downMove && upMove   > 0) ? upMove   : 0
+  minusDM  = (downMove > upMove   && downMove > 0) ? downMove : 0
+  TR       = max(high - low, abs(high - prevClose),
+                 abs(low - prevClose))
+  plusS, minusS, trS = SMA(plusDM, period), SMA(minusDM, period),
+                       SMA(TR, period)
+  +DI = 100 * plusS  / trS
+  -DI = 100 * minusS / trS
+  DX  = 100 * abs(+DI - -DI) / (+DI + -DI)
+  ADX = SMA(DX, period)
+  ```
+  A bar is null when `trS == 0` or `+DI + -DI == 0`.
+- Pure helpers: `computeLineAdxTrendSma`, `computeLineAdxTrend`,
+  `classifyLineAdxTrendZone` (strong / trend / weak / none
+  ladder against `threshold` and `2 * threshold`),
+  `runLineAdxTrend`, `computeLineAdxTrendLayout`,
+  `describeLineAdxTrendChart`,
+  `getLineAdxTrendFinitePoints`,
+  `normalizeLineAdxTrendPeriod`,
+  `normalizeLineAdxTrendThreshold`.
+- 66 vitest cases covering: the **CONST_FLAT identity** (`high
+  == low == close == K` -> `TR = 0` and all DMs zero -> ADX is
+  null at every bar); the **RISING anchor** (`high == low ==
+  close == i + 10` with period 4 -> `plusDM = 1, minusDM = 0,
+  TR = 1` -> `+DI = 100, -DI = 0, DX = 100` -> `ADX = 100`
+  bit-exact once the second SMA is warm); the **FALLING mirror**
+  (`high == low == close == 19 - i` -> `+DI = 0, -DI = 100, DX
+  = 100, ADX = 100` bit-exact); the **ALTERNATING identity**
+  (`high / low` cycles `[10/9, 11/10]` repeatedly -> steady-
+  state `+DI == -DI` -> `DX = 0` -> `ADX = 0` bit-exact);
+  translation invariance (additions to OHLC leave ADX
+  unchanged); ADX bounded `[0, 100]` on the wave; layout /
+  component / ARIA / data-section hooks all covered.
+- Component renders top panel (close line) and bottom panel
+  (ADX line + optional dashed `+DI` / `-DI` overlays +
+  zone-coloured markers + zero reference line + dashed
+  `threshold` / `2 * threshold` reference lines), `arps`
+  design-system tokens, ARIA region / img / graphics-symbol
+  roles, and `data-section` hooks throughout.
+
 ## [1.11.769] - 2026-05-26 -- UI: chart-line-trix-signal primitive (TODO 11.751)
 
 ### Added
