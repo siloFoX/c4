@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.843] - 2026-05-26 -- UI: chart-line-hilbert-quadrature primitive (TODO 11.825)
+
+Added `<ChartLineHilbertQuadrature />` -- pure-SVG dual-panel React/TS
+primitive plotting the Hilbert Transform Quadrature component
+beneath a price line. The quadrature is approximated by
+FIR-detrending the close (subtracting the equal-weight SMA over the
+cycle length) and lagging the result by the quarter-cycle delay
+`floor(length / 4)`, giving a 90-degree phase-shifted view of the
+detrended price. Defaults: `length = 20`, `threshold = 0`,
+quadColor `#0891b2` (cyan). Bit-exact anchors: `CONST close = K`
+collapses `sma = K`, `detrend = 0`, `quad = 0`; `LINEAR UP close =
+i + 1` yields detrend = `(length - 1) / 2` (dyadic) propagated by
+the shift; `LINEAR DOWN close = N - i` yields `-(length - 1) / 2`.
+Verified across `(K, length)` sweeps. Surface mirrors prior
+primitives: `runLineHilbertQuadrature /
+computeLineHilbertQuadratureLayout /
+describeLineHilbertQuadratureChart` plus `ChartLineHilbertQuadrature`
+forwardRef with legend toggle, config badge, zero line, optional
+threshold band, cross markers, and tooltip surfacing `close / sma /
+detrend / quadrature / zone / cross`. 88 vitest cases.
+
 ## [1.11.842] - 2026-05-26 -- UI: chart-line-stoch-slow primitive (TODO 11.824)
 
 Added `<ChartLineStochSlow />` -- pure-SVG dual-panel React/TS
