@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.870] - 2026-05-26 -- UI: chart-line-cci-cross primitive (TODO 11.852)
+
+Added `<ChartLineCciCross />` -- pure-SVG dual-panel React/TS
+primitive plotting the Commodity Channel Index beneath a price
+line with markers at six threshold crossover events: `enter100`,
+`exit100`, `enterN100`, `exitN100`, `zeroUp`, `zeroDown`.
+Defaults: `length = 14`, cciColor `#7c3aed`, upper line `#dc2626`
+(at +100), lower line `#16a34a` (at -100), zero line `#475569`.
+SMA helper carries the `min === max` window-constant precision
+fix so CONST h=l=close lands CCI = null forever (meanDev=0 ->
+divide-by-zero guard) with zero events. LINEAR UP / DOWN
+converge to constants on the +100 / -100 boundaries (with 1-ULP
+drift over due to the non-dyadic 0.015 Lambert constant), so the
+classifier reports them as overbought / oversold; no events fire
+because CCI jumps null -> constant with no prev relation. Bit-
+exact anchor: LINEAR UP n=3 lands `cci === 1 / (0.015 * 2/3)`
+verbatim in IEEE 754. ARIA region + img-role SVG + sr-only desc;
+markers carry `role="graphics-symbol"` + `tabIndex={0}` and
+`data-event`; motion-safe fade-in. 81 vitest cases.
+
 ## [1.11.869] - 2026-05-26 -- UI: chart-line-stoch-cross primitive (TODO 11.851)
 
 Added `<ChartLineStochCross />` -- pure-SVG dual-panel React/TS

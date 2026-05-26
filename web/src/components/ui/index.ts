@@ -561,3 +561,4 @@ export * from './chart-line-rsi-cross';
 export * from './chart-line-macd-cross';
 export * from './chart-line-adx-cross';
 export * from './chart-line-stoch-cross';
+export * from './chart-line-cci-cross';
