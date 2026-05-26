@@ -544,3 +544,4 @@ export * from './chart-line-trix-double-smoothed';
 export * from './chart-line-fractal-kc';
 export * from './chart-line-fractal-channel';
 export * from './chart-line-fractal-pivot';
+export * from './chart-line-momentum-pct';

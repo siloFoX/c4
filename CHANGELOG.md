@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.853] - 2026-05-26 -- UI: chart-line-momentum-pct primitive (TODO 11.835)
+
+Added `<ChartLineMomentumPct />` -- pure-SVG dual-panel React/TS
+primitive plotting a Momentum-Percent oscillator beneath a price
+line. Computes
+`momentum = (close - close[i - length]) / close[i - length] * 100`
+with divide-by-zero guard returning `null` when the lookback close
+is zero. Algebraically equivalent to standard Rate-of-Change;
+re-skinned with momentum-style naming to complement 11.807
+momentum-divergence which compares absolute-units Momentum against
+ROC. Defaults: `length = 10`, thresholds = 0, momentumColor
+`#ec4899` (pink). Bit-exact anchors: `CONST close = K, K != 0`
+-> `momentum = 0`; `CONST close = 0` -> `null`; `DOUBLED step
+close = K for i < L, 2K for i >= L` -> `momentum = 100` for
+`L <= i < 2L`, `0` thereafter; `LINEAR UP close = i + 1` at
+`i = L = 4` -> 400 spot-check. Surface: `runLineMomentumPct /
+computeLineMomentumPctLayout / describeLineMomentumPctChart` plus
+`ChartLineMomentumPct` forwardRef with legend toggle, config badge,
+optional threshold band + zero-line overlay, markers on cross
+events, and tooltip surfacing
+`close / prior / delta / momentum / zone / cross`. 68 vitest cases.
+
 ## [1.11.852] - 2026-05-26 -- UI: chart-line-fractal-pivot primitive (TODO 11.834)
 
 Added `<ChartLineFractalPivot />` -- pure-SVG single-panel React/TS
