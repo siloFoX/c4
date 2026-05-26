@@ -511,3 +511,4 @@ export * from './chart-line-atr-trail';
 export * from './chart-line-spike-detector';
 export * from './chart-line-hilbert-instant';
 export * from './chart-line-alligator';
+export * from './chart-line-peak-detector';

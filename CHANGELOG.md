@@ -4,6 +4,21 @@
 
 (no entries -- next release window)
 
+## [1.11.820] - 2026-05-26 -- UI: chart-line-peak-detector primitive (TODO 11.802)
+
+Added `<ChartLinePeakDetector />` -- pure-SVG dual-panel React/TS primitive
+that marks local maxima of `close` above the rolling `SMA(close, length) +
+threshFactor * populationStdDev(close, length)` threshold. Top 60% renders
+the price line; bottom 40% renders a binary 0/1 peak indicator with strict
+`>` neighbour comparisons (no plateau peaks). Defaults: `length = 14`,
+`threshFactor = 1`. Bit-exact anchors: CONST close -> threshold equals K
+and the strict comparison fails so every valid bar peaks at 0 across
+`(K, length, threshFactor)`; ALTERNATING `[0, 1, 0, 1, ...]` with
+`threshFactor = 0` -> odd bars peak at 1 because `1 > mean = 0.5`. 79
+vitest cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.802-ui-chart-line-peak-detector.md`.
+
 ## [1.11.819] - 2026-05-26 -- UI: chart-line-alligator primitive (TODO 11.801)
 
 ### Added
