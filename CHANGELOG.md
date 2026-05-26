@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.751] - 2026-05-26 -- UI: chart-line-pivot-classic primitive (TODO 11.733)
+
+### Added
+- `<ChartLinePivotClassic>` -- pure-SVG single-panel chart with the
+  **Classic Floor Pivot** overlays for the pivot, S1, S2, R1, R2
+  lines. From the PRIOR bar's `(high, low, close)`:
+  `range = H - L`, `PP = (H + L + C) / 3`, `R1 = 2*PP - L`,
+  `S1 = 2*PP - H`, `R2 = PP + range`, `S2 = PP - range`. The first
+  bar has no prior reference and carries no levels.
+- Pure helpers: `computeLinePivotClassicLevels`,
+  `computeLinePivotClassic`, `classifyLinePivotClassicZone`,
+  `runLinePivotClassic`, `computeLinePivotClassicLayout`,
+  `describeLinePivotClassicChart`,
+  `getLinePivotClassicFinitePoints`.
+- 69 vitest cases covering: **constant-series anchor** (every
+  level = constant bit-exact); **two worked anchors** all
+  integer-exact -- anchor A `(H=12, L=8, C=10) -> PP=10, R1=12,
+  S1=8, R2=14, S2=6`; anchor B `(H=15, L=6, C=9) -> PP=10, R1=14,
+  S1=5, R2=19, S2=1`; the **Classic vs Woodie sanity** anchor
+  (asymmetric `(H=10, L=8, C=11)` gives Classic `PP = 29/3 ~ 9.67`
+  while Woodie would give 10); the strict order
+  `R2 > R1 > PP > S1 > S2`; the **R2 + S2 = 2*PP** identity
+  bit-exact; the **R1 + S1 = 4*PP - H - L** identity bit-exact;
+  the **R2 - PP = range and PP - S2 = range** identities; the
+  warm-up first bar null; the zone classifier across six bands;
+  the standard component contract (ARIA region, config badge
+  `CLASSIC PIVOT`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.750 -> 1.11.751.
+
 ## [1.11.750] - 2026-05-26 -- UI: chart-line-pivot-woodie primitive (TODO 11.732)
 
 ### Added
