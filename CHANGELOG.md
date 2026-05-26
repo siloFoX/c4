@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.833] - 2026-05-26 -- UI: chart-line-fractal-bb primitive (TODO 11.815)
+
+Added `<ChartLineFractalBb />` -- pure-SVG single-panel React/TS
+primitive overlaying a Bollinger Band envelope **anchored to fractal
+pivots** rather than to mean +/- sigma * stdDev. Each bar reseeds
+upper/lower from the highest/lowest fractal pivots confirmed within
+the lookback window; the mean is the midpoint. Fractal high at bar k
+is a strict local max in `high` across `pivotRadius` neighbors each
+side; mirror condition on `low` defines a fractal low. `windowEnd =
+i - pivotRadius` enforces confirmation (no look-ahead). Defaults:
+`length = 20`, `pivotRadius = 1` (3-bar fractal). Zones: above-upper
+/ below-lower / in-band / at-mid / none. Fractal markers render at
+the pivot bars (high in red, low in green).
+
+Bit-exact anchors: CONST input -> strict-inequality fails -> no
+pivots -> band null everywhere across `K in {0, 1, 5, 100, -3}` and
+`length in {3, 5, 7, 10}`; constructed peak fixture
+`highs = [10, 11, 12, 11, 10, 8, 9, 13, 12, 11, 10]`,
+`lows = [9, 10, 11, 10, 9, 7, 8, 12, 11, 10, 9]` with `pivotRadius =
+1` detects fractal highs at bars 2 (value 12) and 7 (value 13), and
+fractal low at bar 5 (value 7); at bar 8 with `length = 5` the
+window `[4, 7]` yields `upper = 13`, `lower = 7`, `mean = 10` (all
+integer-exact). 69 vitest cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.815-ui-chart-line-fractal-bb.md`.
+
 ## [1.11.832] - 2026-05-26 -- UI: chart-line-cum-tick primitive (TODO 11.814)
 
 Added `<ChartLineCumTick />` -- pure-SVG dual-panel React/TS primitive

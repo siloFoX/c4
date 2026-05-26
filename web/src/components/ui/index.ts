@@ -524,3 +524,4 @@ export * from './chart-line-recombining-bb';
 export * from './chart-line-dynamic-momentum';
 export * from './chart-line-dynamic-rsi';
 export * from './chart-line-cum-tick';
+export * from './chart-line-fractal-bb';
