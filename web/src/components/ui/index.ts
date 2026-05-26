@@ -449,3 +449,4 @@ export * from './chart-line-stoch-momentum-index';
 export * from './chart-line-acceleration-bands';
 export * from './chart-line-tsf';
 export * from './chart-line-ehlers-fisher';
+export * from './chart-line-projection-bands';
