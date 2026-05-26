@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.832] - 2026-05-26 -- UI: chart-line-cum-tick primitive (TODO 11.814)
+
+Added `<ChartLineCumTick />` -- pure-SVG dual-panel React/TS primitive
+plotting the Cumulative Tick oscillator beneath the close. Each bar
+contributes `direction = sign(close[i] - close[i - 1]) in {-1, 0, +1}`
+and the rolling window sums these directions across the lookback.
+Defaults: `length = 14`. Zones: positive / negative / zero / none.
+Markers fire on zero-line crosses. y-axis default seeded at
+`[-length, +length]`.
+
+Bit-exact anchors: CONST close -> direction = 0 -> cumTick = 0 across
+`K in {0, 1, 5, 100, -3}` and `length in {3, 4, 7, 10}`; MONOTONIC UP
+(`close[k] = k + 1`) -> cumTick = +length; MONOTONIC DOWN
+(`close[k] = N - k`) -> cumTick = -length; ALTERNATING `[10, 11, 10,
+11, ...]` with even length -> cumTick = 0 (all integer-exact in IEEE
+754). 78 vitest cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.814-ui-chart-line-cum-tick.md`.
+
 ## [1.11.831] - 2026-05-26 -- UI: chart-line-dynamic-rsi primitive (TODO 11.813)
 
 Added `<ChartLineDynamicRsi />` -- pure-SVG dual-panel React/TS
