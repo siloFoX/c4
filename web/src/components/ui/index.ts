@@ -464,3 +464,4 @@ export * from './chart-line-trix-signal';
 export * from './chart-line-adx-trend';
 export * from './chart-line-adx-di-plus';
 export * from './chart-line-adx-di-minus';
+export * from './chart-line-fisher-stoch';
