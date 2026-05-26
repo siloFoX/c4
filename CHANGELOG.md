@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.858] - 2026-05-26 -- UI: chart-line-sma-cross primitive (TODO 11.840)
+
+Added `<ChartLineSmaCross />` -- pure-SVG single-panel React/TS
+primitive overlaying a fast SMA and a slow SMA on a price line,
+with scatter markers placed at every fast-over-slow crossover (the
+classic golden / death cross). Cross detection: prev fast <= slow
+AND curr fast > slow -> up; prev fast >= slow AND curr fast < slow
+-> down. Defaults: `fastLength = 10`, `slowLength = 50`, fastColor
+`#f59e0b` (amber), slowColor `#1d4ed8` (deep blue), markers
+`#16a34a` green (up) and `#dc2626` red (down). Bit-exact anchors:
+`CONST close = K` -> zero crosses (fast=slow); `LINEAR UP close =
+i + 1` -> zero crosses (fast > slow always when slowLength >
+fastLength); `STEP close = K1 -> K2 at index N` -> exactly one
+up-cross at a deterministic index (verified for `fast=2 slow=4
+K1=1 K2=5 N=4 -> cross at i=4`). Live cross counts exposed as
+`data-up-cross-count` / `data-down-cross-count` attributes. Surface:
+`runLineSmaCross / computeLineSmaCrossLayout /
+describeLineSmaCrossChart` plus `ChartLineSmaCross` forwardRef
+with three legend toggles, config badge with live counts, markers,
+and tooltip surfacing `close / fast / slow / relation / cross`.
+62 vitest cases.
+
 ## [1.11.857] - 2026-05-26 -- UI: chart-line-relative-vigor-signal primitive (TODO 11.839)
 
 Added `<ChartLineRelativeVigorSignal />` -- pure-SVG dual-panel
