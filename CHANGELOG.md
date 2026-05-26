@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.864] - 2026-05-26 -- UI: chart-line-tema-pct primitive (TODO 11.846)
+
+Added `<ChartLineTemaPct />` -- pure-SVG dual-panel React/TS
+primitive plotting a Triple-EMA Percent-Change oscillator beneath a
+price line and overlaying the underlying TEMA on the top panel.
+Fourth and final "moving average percent change" variant after
+11.836 ema-pct, 11.837 sma-pct, 11.845 wma-pct.
+`tema = 3*ema1 - 3*ema2 + ema3` cancels the EMA lag at
+linear-trend order; `temaPct = (close - tema) / tema * 100` with
+divide-by-zero guard. Defaults: `length = 14`, thresholds = 0,
+temaColor `#0d9488` (dark teal), pctColor `#db2777` (pink). EMA
+helper carries the min===max seed precision fix; CONST inputs
+collapse all three EMAs to `K` exactly so `3K-3K+K=K` and
+`temaPct = 0` bit-exact. Bit-exact anchors: `CONST K != 0` ->
+`tema = K`, `temaPct = 0` across `(K, length)` sweeps;
+`CONST K = 0` -> `tema = 0`, `temaPct = null`. Surface:
+`runLineTemaPct / computeLineTemaPctLayout /
+describeLineTemaPctChart` plus `ChartLineTemaPct` forwardRef with
+three legend toggles, config badge, optional threshold band +
+zero-line overlay, markers on cross events, and tooltip surfacing
+`close / ema1 / ema2 / ema3 / tema / temaPct / zone / cross`.
+62 vitest cases.
+
 ## [1.11.863] - 2026-05-26 -- UI: chart-line-wma-pct primitive (TODO 11.845)
 
 Added `<ChartLineWmaPct />` -- pure-SVG dual-panel React/TS
