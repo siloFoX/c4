@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.860] - 2026-05-26 -- UI: chart-line-momentum-cross primitive (TODO 11.842)
+
+Added `<ChartLineMomentumCross />` -- pure-SVG dual-panel React/TS
+primitive plotting an absolute-units Momentum oscillator beneath a
+price line, with scatter markers at every zero-line crossover.
+`momentum = close[i] - close[i - length]`. Distinct from 11.807
+momentum-divergence (Momentum vs ROC side-by-side) and 11.835
+momentum-pct (percent-normalized). Defaults: `length = 10`,
+momentumColor `#d946ef` (fuchsia), markers `#16a34a` (green) for up
+crosses and `#dc2626` (red) for down crosses. Bit-exact anchors:
+`CONST close = K` -> momentum=0, zero crosses; `LINEAR UP` ->
+momentum=L>0 constant, zero crosses; `LINEAR DOWN` -> momentum=-L,
+zero crosses; `STEP K1 -> K2 at index N` -> deterministic single
+cross at `i = N` (up if K2>K1, down if K2<K1) -- verified across
+`(K1, K2, length)` sweeps. Live cross counts exposed via
+`data-up-cross-count` / `data-down-cross-count` attributes.
+Surface: `runLineMomentumCross / computeLineMomentumCrossLayout /
+describeLineMomentumCrossChart` plus `ChartLineMomentumCross`
+forwardRef with two legend toggles, config badge with live counts,
+markers, and tooltip surfacing `close / prior / momentum / zone /
+cross`. 71 vitest cases.
+
 ## [1.11.859] - 2026-05-26 -- UI: chart-line-ema-cross primitive (TODO 11.841)
 
 Added `<ChartLineEmaCross />` -- pure-SVG single-panel React/TS
