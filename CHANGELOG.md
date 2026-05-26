@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.816] - 2026-05-26 -- UI: chart-line-atr-trail primitive (TODO 11.798)
+
+### Added
+- `<ChartLineAtrTrail>` -- pure-SVG single-panel React primitive
+  that overlays a Chandelier-style long-side ATR trailing stop
+  on the close, with a monotonic ratchet rule:
+  `TR = max(h - l, |h - prevC|, |l - prevC|)`,
+  `ATR = SMA(TR, length)`,
+  `highest = max(close, length)`,
+  `candidate = highest - multiplier * ATR`,
+  `trail[i] = max(trail[i - 1], candidate[i])`.
+  Defaults: `length = 14`, `multiplier = 2`. Bars before
+  `i = length - 1` are warmup nulls. The ratchet never lets the
+  trail descend.
+- Bit-exact algebraic anchors:
+  - CONST_FLAT (`h = l = c = K`) -> TR = 0 -> ATR = 0 -> trail
+    = K exactly past warmup; the trail coincides with the close.
+    Verified across many K, length, and multiplier combinations.
+  - CONST_BAR with dyadic TR (e.g. H=11, L=9, C=10, mult=2) ->
+    ATR = 2 bit-exact, trail = 10 - 2*2 = 6 exactly past warmup.
+- Ratchet rule verified explicitly with a rising-then-falling
+  series and a noisy random walk: `trail[i] >= trail[i - 1]` at
+  every valid bar.
+- Zone classifier: breakout (close > trail AND trail rose) /
+  above / at / broken / none. ARIA region + img-role SVG with
+  screen-reader description spelling out the formula and ratchet
+  mention. Legend supports controlled + uncontrolled +
+  defaultHidden hidden state; markers / dots respond to click +
+  Enter + Space; tooltip surfaces close + H/L + ATR + highest +
+  trail + zone on hover and focus.
+- 88 vitest cases covering finite coercion, length / multiplier
+  normalization, SMA + rolling max + TR helpers,
+  computeLineAtrTrail (warmup + CONST_FLAT + CONST_BAR dyadic +
+  ratchet on V-shape + non-mutation + NaN length), zone
+  classifier, run, layout (paths + marker count + y-range +
+  single-point graceful), description, the React surface, and
+  integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.816.
+
 ## [1.11.815] - 2026-05-26 -- UI: chart-line-trend-strength primitive (TODO 11.797)
 
 ### Added
