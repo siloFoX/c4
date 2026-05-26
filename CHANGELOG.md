@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.854] - 2026-05-26 -- UI: chart-line-ema-pct primitive (TODO 11.836)
+
+Added `<ChartLineEmaPct />` -- pure-SVG dual-panel React/TS
+primitive plotting an EMA Percent-Change oscillator beneath a price
+line and overlaying the underlying EMA on the top panel.
+`emaPct = (close - ema) / ema * 100` with divide-by-zero guard.
+Defaults: `length = 14`, thresholds = 0, emaColor `#f97316`
+(orange), pctColor `#8b5cf6` (violet). EMA helper carries the
+`min === max` seed precision fix from 11.831 / 11.832. Bit-exact
+anchors: `CONST close = K, K != 0` -> `emaPct = 0` across
+`(K, length)`; `CONST close = 0` -> `null` (divide guard);
+`LINEAR UP close = i + 1 at i = L - 1` ->
+`(L-1)/(L+1) * 100` dyadic for `L in {3, 7, 15}` ->
+`{50, 75, 87.5}`. Surface: `runLineEmaPct /
+computeLineEmaPctLayout / describeLineEmaPctChart` plus
+`ChartLineEmaPct` forwardRef with three legend toggles (`price`,
+`ema`, `pct`), config badge, optional threshold band + zero-line
+overlay, markers on cross events, and tooltip surfacing
+`close / ema / delta / emaPct / zone / cross`. 71 vitest cases.
+
 ## [1.11.853] - 2026-05-26 -- UI: chart-line-momentum-pct primitive (TODO 11.835)
 
 Added `<ChartLineMomentumPct />` -- pure-SVG dual-panel React/TS

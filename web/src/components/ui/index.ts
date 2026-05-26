@@ -545,3 +545,4 @@ export * from './chart-line-fractal-kc';
 export * from './chart-line-fractal-channel';
 export * from './chart-line-fractal-pivot';
 export * from './chart-line-momentum-pct';
+export * from './chart-line-ema-pct';
