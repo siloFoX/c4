@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.868] - 2026-05-26 -- UI: chart-line-adx-cross primitive (TODO 11.850)
+
+Added `<ChartLineAdxCross />` -- pure-SVG dual-panel React/TS
+primitive plotting a Wilder ADX line beneath a price line with
+scatter markers at every threshold crossover (low = 20, high = 40).
+Four event kinds: `enter20`, `exit20`, `enter40`, `exit40`. Regime
+classifier: `weak` (< low), `trending` (low..high), `strong`
+(>= high), `none` (null). Defaults: `length = 14`, adxColor
+`#7c3aed` (violet), low line `#0ea5e9` (sky), high line `#f97316`
+(orange), enter marker `#16a34a`, exit marker `#dc2626`. Wilder
+helper carries the SMA-seeded `min === max` precision fix plus the
+`next = v === smoothed ? v : ...` short-circuit, so the three
+anchors all land bit-exactly: CONST h=l=close (TR=0, DX null,
+ADX null forever -> zero events, regime `none`); LINEAR UP
+h=close=i+1, l=i (TR=1, +DM=1, -DM=0 -> -DI=0 -> DX=100 ->
+ADX=100); LINEAR DOWN h=(N-i)+5, l=(N-i)-5, close=N-i (TR=10,
+-DM=1, +DM=0 -> +DI=0 -> DX=100 -> ADX=100). In all three cases
+ADX never crosses the 20/40 thresholds (null forever or jumps from
+null to 100 with no prev relation). ADX axis fixed to [0, 100]
+with dashed lines at the two threshold levels. ARIA region +
+img-role SVG + sr-only desc; markers carry `role="graphics-symbol"`
++ `tabIndex={0}` and `data-event`; motion-safe fade-in animation.
+78 vitest cases (helpers + component + integration anchors).
+
 ## [1.11.867] - 2026-05-26 -- UI: chart-line-macd-cross primitive (TODO 11.849)
 
 Added `<ChartLineMacdCross />` -- pure-SVG dual-panel React/TS
