@@ -575,3 +575,4 @@ export * from './chart-line-dema-pct';
 export * from './chart-line-ppo-cross';
 export * from './chart-line-fisher-cross';
 export * from './chart-line-zlema-cross';
+export * from './chart-line-dema-cross';
