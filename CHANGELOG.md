@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.797] - 2026-05-26 -- UI: chart-line-cycle-amplitude primitive (TODO 11.779)
+
+### Added
+- `<ChartLineCycleAmplitude>` -- pure-SVG dual-panel chart with
+  a Cycle Amplitude oscillator panel beneath the close. The
+  amplitude is the peak-to-trough span of the detrended close
+  (close minus rolling SMA) over the lookback window:
+  `detrended = close - SMA(close, smoothLength)`,
+  `amplitude = max(detrended) - min(detrended)` over lookback.
+  Defaults: lookback=30, smoothLength=4, highThreshold=5,
+  lowThreshold=1. Bit-exact anchors: CONST_FLAT -> amplitude=0
+  (verified 72 combos `(K, lookback, smoothLength) in
+  {0,1,5,10,100,-3} x {10,20,30,40} x {2,4,6}`); RISING_BY_S
+  -> detrended is constant lag -> amplitude=0 (verified 20
+  combos `(S, lookback) in {1,2,5,10,0.5} x {10,20,30,40}`);
+  FALLING_BY_S -> amplitude=0 (symmetric); translation
+  invariance under uniform close shift; non-negative by
+  construction; sinusoid amplitude A -> peak-to-trough
+  bounded by 2*A. 91 vitest cases (helpers, layout, ARIA,
+  legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineCycleAmplitudeFinitePoints`,
+  `normalizeLineCycleAmplitudeLength`,
+  `normalizeLineCycleAmplitudeThreshold`,
+  `applyLineCycleAmplitudeSma`,
+  `computeLineCycleAmplitude`,
+  `classifyLineCycleAmplitudeZone`,
+  `runLineCycleAmplitude`,
+  `computeLineCycleAmplitudeLayout`,
+  `describeLineCycleAmplitudeChart`.
+
 ## [1.11.796] - 2026-05-26 -- UI: chart-line-stoch-signal primitive (TODO 11.778)
 
 ### Added

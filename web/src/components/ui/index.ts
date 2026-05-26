@@ -488,3 +488,4 @@ export * from './chart-line-sinewave-trend';
 export * from './chart-line-trend-quality';
 export * from './chart-line-tsi-signal';
 export * from './chart-line-stoch-signal';
+export * from './chart-line-cycle-amplitude';
