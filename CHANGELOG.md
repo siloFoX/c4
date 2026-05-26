@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.745] - 2026-05-26 -- UI: chart-line-rocket-rsi primitive (TODO 11.727)
+
+### Added
+- `<ChartLineRocketRsi>` -- pure-SVG two-panel chart with a **Rocket
+  RSI** panel applying the Fisher Transform to a double-smoothed RSI
+  to sharpen turning points. Pipeline: standard RSI of close-to-close
+  changes over `rsiPeriod` (a flat window yields RSI = 50 by
+  convention); two SMA smoothings of length `smooth1` and `smooth2`;
+  normalize to [-1, 1] as `x = RSI / 50 - 1`; clamp x past the
+  Fisher singularity to [-clamp, clamp]; Fisher Transform
+  `0.5 * ln((1 + x_clamped) / (1 - x_clamped))`. Top panel plots
+  the price, bottom panel plots the rocket reading with a horizontal
+  zero line.
+- Pure helpers: `computeLineRocketRsiRSI`,
+  `computeLineRocketRsiSmooth`, `computeLineRocketRsiFisher`,
+  `computeLineRocketRsi`, `classifyLineRocketRsiZone`,
+  `runLineRocketRsi`, `computeLineRocketRsiLayout`,
+  `describeLineRocketRsiChart`, `getLineRocketRsiFinitePoints`,
+  `normalizeLineRocketRsiInteger`, `normalizeLineRocketRsiClamp`.
+- 89 vitest cases covering: **Fisher(0) = 0 bit-exact** (the
+  defining algebraic anchor: `ln(1) = 0` exactly, `0.5 * 0 = 0`);
+  **constant-series anchor** (every bar-to-bar change zero -> RSI
+  by convention 50 -> double SMA stays at 50 -> normalize gives
+  x = 0 -> Fisher(0) = 0 bit-exact at every defined bar); the
+  worked Fisher(0.5) = 0.5 * ln(3); Fisher symmetry within ULP;
+  Fisher clamp saturation; the rising / falling antisymmetry
+  within ULP; the SMA-of-constant identity bit-exact; the SMA
+  null-propagation; the rolling RSI shapes (100 on rising, 0 on
+  falling, in [0, 100] on wave); the standard component contract
+  (ARIA region, config badge `ROCKET 4/3/3`, onPointClick, ref
+  forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.744 -> 1.11.745.
+
 ## [1.11.744] - 2026-05-26 -- UI: chart-line-volatility-stop primitive (TODO 11.726)
 
 ### Added
