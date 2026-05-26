@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.771] - 2026-05-26 -- UI: chart-line-adx-di-plus primitive (TODO 11.753)
+
+### Added
+- `<ChartLineAdxDiPlus>` -- pure-SVG two-panel chart with the
+  Wilder **+DI** directional indicator (SMA-smoothed). For
+  each bar `i >= 1`:
+  ```
+  upMove   = high[i] - high[i - 1]
+  downMove = low[i - 1] - low[i]
+  plusDM   = (upMove > downMove && upMove > 0) ? upMove : 0
+  TR       = max(high - low, abs(high - prevClose),
+                 abs(low - prevClose))
+  plusS = SMA(plusDM, period)
+  trS   = SMA(TR, period)
+  +DI[i] = 100 * plusS / trS
+  ```
+  A bar is null when `trS == 0`.
+- Pure helpers: `computeLineAdxDiPlusSma`,
+  `computeLineAdxDiPlus`, `classifyLineAdxDiPlusZone` (strong /
+  bull / weak / none ladder against `threshold` and `2 *
+  threshold`), `runLineAdxDiPlus`,
+  `computeLineAdxDiPlusLayout`, `describeLineAdxDiPlusChart`,
+  `getLineAdxDiPlusFinitePoints`,
+  `normalizeLineAdxDiPlusPeriod`,
+  `normalizeLineAdxDiPlusThreshold`.
+- 65 vitest cases covering: the **CONST_FLAT identity** (`high
+  == low == close == K` -> `TR = 0` -> `+DI` null at every
+  bar); the **RISING anchor** (`high == low == close == i +
+  10` -> `plusDM = 1, TR = 1` -> `+DI = 100` bit-exact); the
+  **RISING_HALF anchor** (`high == close == i + 10, low == i
+  + 8` -> `plusDM = 1, TR = 2` via the `high - low = 2` term
+  dominating -> `+DI = 100 * 1 / 2 = 50` bit-exact); the
+  **FALLING mirror** (`high == low == close == 19 - i` ->
+  `plusDM = 0, TR = 1` -> `+DI = 0` bit-exact); translation
+  invariance (`+1000` leaves +DI unchanged via diff
+  invariance); +DI bounded `[0, 100]` on the wave; layout /
+  component / ARIA / data-section hooks all covered.
+- Component renders top panel (close line) and bottom panel
+  (+DI line + zone-coloured markers + zero reference line +
+  dashed `threshold` and `2 * threshold` reference lines),
+  `arps` design-system tokens, ARIA region / img /
+  graphics-symbol roles, and `data-section` hooks throughout.
+
 ## [1.11.770] - 2026-05-26 -- UI: chart-line-adx-trend primitive (TODO 11.752)
 
 ### Added
