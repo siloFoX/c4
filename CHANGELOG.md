@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.845] - 2026-05-26 -- UI: chart-line-net-volume primitive (TODO 11.827)
+
+Added `<ChartLineNetVolume />` -- pure-SVG dual-panel React/TS
+primitive plotting a Net Volume oscillator beneath a price line.
+Buckets each bar's volume by close-on-close direction (up / down /
+flat), sums per bucket over the lookback, and scales the
+difference by the total window volume:
+`net = (upVol - downVol) / totalVol * 100` in `[-100, 100]`. First
+bar is flat (no prior close); the divide-by-zero guard returns
+`null` whenever `totalVol = 0`. Defaults: `length = 20`,
+`overbought = +30`, `oversold = -30`, netColor `#0d9488` (teal).
+Bit-exact anchors: `CONST` -> `net = 0` (or `null` if vol=0);
+`LINEAR UP` from index `length` -> `net = 100` (window excludes the
+index-0 flat bar); `LINEAR DOWN` -> `net = -100`. Surface:
+`runLineNetVolume / computeLineNetVolumeLayout /
+describeLineNetVolumeChart` plus `ChartLineNetVolume` forwardRef
+with legend toggle, config badge, threshold + midline overlays,
+markers on cross events, and tooltip surfacing
+`close / vol / dir / up / down / total / net / zone`. 75 vitest cases.
+
 ## [1.11.844] - 2026-05-26 -- UI: chart-line-smi-double primitive (TODO 11.826)
 
 Added `<ChartLineSmiDouble />` -- pure-SVG dual-panel React/TS
