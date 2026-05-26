@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.752] - 2026-05-26 -- UI: chart-line-aroon-up primitive (TODO 11.734)
+
+### Added
+- `<ChartLineAroonUp>` -- pure-SVG two-panel chart with an **Aroon
+  Up** panel from the distance to the most recent high scaled to
+  the lookback window. For each bar `i`, the window of `period + 1`
+  bars `[i - period .. i]` is scanned for the highest high; the
+  most-recent bar wins on a tie (strict `>`). The Aroon Up scales
+  the bars-since-the-high to a percent:
+  `aroonUp = 100 * (period - barsSinceHigh) / period`. Bounded
+  `[0, 100]` with reference lines at 70 (strong uptrend) and 30
+  (weak).
+- Pure helpers: `computeLineAroonUp`, `classifyLineAroonUpZone`,
+  `runLineAroonUp`, `computeLineAroonUpLayout`,
+  `describeLineAroonUpChart`, `getLineAroonUpFinitePoints`,
+  `normalizeLineAroonUpPeriod`, `normalizeLineAroonUpThreshold`,
+  plus the `CHART_LINE_AROON_UP_MIN/MAX` constants.
+- 67 vitest cases covering: pure-rational arithmetic anchors
+  bit-exact -- **rising series -> Aroon Up = 100 at every defined
+  bar**; **falling series -> Aroon Up = 0**; **constant series ->
+  ties resolve to the most-recent -> Aroon Up = 100**; the
+  **worked peak fixture** highs `[1..6, 5..2]` at period 4 ->
+  exact `[null x4, 100, 100, 75, 50, 25, 0]` (the high stays at
+  bar 5 then ages out in 25-point steps); the `[0, 100]` bound
+  on a wave fixture; the threshold classifier (at-or-above the
+  high threshold -> strong, at-or-below the low -> weak); the
+  standard component contract (ARIA region, config badge
+  `AROON UP 4`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.751 -> 1.11.752.
+
 ## [1.11.751] - 2026-05-26 -- UI: chart-line-pivot-classic primitive (TODO 11.733)
 
 ### Added
