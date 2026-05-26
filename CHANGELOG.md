@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.861] - 2026-05-26 -- UI: chart-line-donchian-cross primitive (TODO 11.843)
+
+Added `<ChartLineDonchianCross />` -- pure-SVG single-panel React/TS
+primitive overlaying the Donchian channel on a price line with
+scatter markers at every event where the close newly breaks above
+the upper band or below the lower band. Channel uses rolling
+max-high / min-low over `length` bars excluding the current bar so
+a fresh breakout in close[i] can register. Cross fires only on the
+bar that newly enters the breakout zone (strict inequality + prev
+state guard). Defaults: `length = 20` (Donchian standard),
+upperColor `#06b6d4` (cyan), lowerColor `#0e7490` (dark teal),
+bullish markers `#16a34a` (green), bearish markers `#dc2626`
+(red). Bit-exact anchors: `CONST h = l = close = K` -> zero crosses
+(equal); `LINEAR UP / LINEAR DOWN` -> zero crosses (continuous
+breakout, no new entry); `STEP K1 -> K2 at index N` ->
+deterministic single cross at i = N (up if K2>K1, down if K2<K1)
+across `(K1, K2, length)` sweeps. Live cross counts exposed via
+`data-up-cross-count` / `data-down-cross-count` attributes.
+Surface: `runLineDonchianCross / computeLineDonchianCrossLayout /
+describeLineDonchianCrossChart` plus `ChartLineDonchianCross`
+forwardRef with three legend toggles, config badge with live counts,
+markers, and tooltip surfacing `close / high / low / upper / lower /
+relation / cross`. 64 vitest cases.
+
 ## [1.11.860] - 2026-05-26 -- UI: chart-line-momentum-cross primitive (TODO 11.842)
 
 Added `<ChartLineMomentumCross />` -- pure-SVG dual-panel React/TS
