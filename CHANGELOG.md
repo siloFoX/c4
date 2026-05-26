@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.783] - 2026-05-26 -- UI: chart-line-swing-index primitive (TODO 11.765)
+
+### Added
+- `<ChartLineSwingIndex>` -- pure-SVG dual-panel chart with a
+  Wilder Swing Index oscillator panel beneath the close.
+  `SI = 50 * (N / R) * (K / T)` where N is directional bar
+  pressure, R is the larger of true range and price gap, K is
+  the larger gap from the prior close, and T is the limit move
+  (default 1). Bit-exact anchors: prev`{o:2,h:4,l:2,c:2}` +
+  curr`{o:2,h:4,l:2,c:4}` with T=1 yields `SI = 150` exact;
+  K=0 yields SI=0; T=2 halves SI to 75; case-B fixture
+  prev`{10,10,10,10}` + curr`{10,9,2,2}` yields `SI = -640`
+  exact; ALL_FLAT yields all nulls (R=0 singular); seed bar
+  yields null (no prior). 97 vitest cases (helpers, layout,
+  ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineSwingIndexFinitePoints`,
+  `normalizeLineSwingIndexLimitMove`,
+  `computeLineSwingIndexBar`, `computeLineSwingIndex`,
+  `classifyLineSwingIndexZone`, `runLineSwingIndex`,
+  `computeLineSwingIndexLayout`,
+  `describeLineSwingIndexChart`.
+
 ## [1.11.782] - 2026-05-26 -- UI: chart-line-delta-volume primitive (TODO 11.764)
 
 ### Added
