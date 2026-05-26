@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.889] - 2026-05-26 -- UI: chart-line-rsi-cross-sig primitive (TODO 11.871)
+
+Added `<ChartLineRsiCrossSig />` -- pure-SVG dual-panel React/TS
+primitive plotting the Wilder RSI and its EMA-smoothed signal
+line beneath a price line. Markers fire at every RSI-vs-signal
+cross (up -> accelerating-up, down -> accelerating-down) --
+distinct from RSI overbought/oversold level crosses; these are
+momentum trigger events as the RSI moves relative to its own
+short-term mean. Defaults `rsiLength = 14`, `signalLength = 9`.
+Bit-exact anchors (all three): CONST close (RSI=50, signal=50);
+LINEAR UP close (RSI=100, signal=100); LINEAR DOWN close (RSI=0,
+signal=0). All three yield zero crosses with relation `equal`
+forever -- verified across multiple K and (rsiLength,
+signalLength) tuples. Wilder + EMA helpers carry the
+`min === max` precision fix. RSI axis fixed to [0, 100] with a
+dashed midline at 50. ARIA region + img-role SVG + sr-only desc;
+markers carry `role="graphics-symbol"` + `tabIndex={0}` and
+`data-kind`; motion-safe fade-in. 70 vitest cases.
+
 ## [1.11.888] - 2026-05-26 -- UI: chart-line-macd-cross-pct primitive (TODO 11.870)
 
 Added `<ChartLineMacdCrossPct />` -- pure-SVG dual-panel React/TS
