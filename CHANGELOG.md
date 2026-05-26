@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.767] - 2026-05-26 -- UI: chart-line-connors-rsi primitive (TODO 11.749)
+
+### Added
+- `<ChartLineConnorsRsi>` -- pure-SVG two-panel chart with a
+  **Connors RSI** panel. The CRSI averages three components,
+  each scaled to `[0, 100]`:
+  1. `RSI(close, lenRsi)` -- classic Wilder/SMA RSI of the close.
+  2. `RSI(streak, lenStreak)` -- RSI of the consecutive up/down
+     streak series.
+  3. `PercentRank(returns, lenRank)` -- percent rank of the
+     latest one-bar return against the past returns in the
+     window (strict-less; denominator is the count of valid past
+     returns).
+  `CRSI[i] = (RSI_close + RSI_streak + PercentRank) / 3`.
+- Pure helpers: `computeLineConnorsRsiRsi`,
+  `computeLineConnorsRsiStreak`,
+  `computeLineConnorsRsiPercentRank`, `computeLineConnorsRsi`,
+  `classifyLineConnorsRsiZone` (overbought / positive /
+  negative / oversold / none), `runLineConnorsRsi`,
+  `computeLineConnorsRsiLayout`,
+  `describeLineConnorsRsiChart`,
+  `getLineConnorsRsiFinitePoints`,
+  `normalizeLineConnorsRsiLength`,
+  `normalizeLineConnorsRsiThreshold`.
+- 79 vitest cases covering: the **CONST_FLAT identity** (`close
+  == K` -> RSI null, streak constant zero -> RSI_streak null,
+  percent rank all-tied -> CRSI null at every bar); the
+  **ACCELERATING_UP anchor** (`close = [10, 11, 12, 13, 20]`
+  with `lenRsi = 3, lenStreak = 2, lenRank = 4` at bar 4 ->
+  every component reads 100, CRSI = 100 bit-exact); the
+  **DECELERATING_DOWN mirror** (`close = [31, 30, 25, 20, 10]`
+  -> every component reads 0, CRSI = 0 bit-exact); the **streak
+  identities** (RISING streak = 0, 1, 2, ...; FALLING streak =
+  0, -1, -2, ...; direction-change reset to +/-1; flat bar
+  resets to 0); the **RSI extremes** (all gains -> 100, all
+  losses -> 0); the **percent rank edge cases** (first bar
+  null, non-positive prev close nulls return); RSI translation
+  invariance (additions leave RSI unchanged); CRSI bounded `[0,
+  100]` on the wave; layout / component / ARIA / data-section
+  hooks all covered.
+- Component renders top panel (close line) and bottom panel
+  (CRSI line, zone-coloured markers, midline 50, dashed
+  overbought / oversold lines), `arps` design-system tokens,
+  ARIA region / img / graphics-symbol roles, and `data-section`
+  hooks throughout.
+
 ## [1.11.766] - 2026-05-26 -- UI: chart-line-kase-peak primitive (TODO 11.748)
 
 ### Added
