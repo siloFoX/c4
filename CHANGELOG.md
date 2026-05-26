@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.806] - 2026-05-26 -- UI: chart-line-atr-band primitive (TODO 11.788)
+
+### Added
+- `<ChartLineAtrBand>` -- pure-SVG single-panel React primitive that
+  overlays an ATR-based band envelope on the close. The midline is
+  an SMA of the close; the bands are offset by
+  `multiplier * ATR` over the same lookback:
+  `middle = SMA(close, length)`,
+  `TR = max(h - l, |h - prevC|, |l - prevC|)`,
+  `ATR = SMA(TR, length)`,
+  `upper = middle + multiplier * ATR`,
+  `lower = middle - multiplier * ATR`.
+  Defaults: `length = 20`, `multiplier = 2`. Bars before
+  `i = length - 1` are warmup nulls.
+- Bit-exact algebraic anchors:
+  - CONST_FLAT (`h = l = c = K`) -> `upper = lower = middle = K`
+    exactly past warmup.
+  - CONST_BAR with close at midpoint (constant `H = K + r`,
+    `L = K - r`, `C = K`) -> `middle = K`, `ATR = 2r`,
+    `upper = K + 2*multiplier*r`,
+    `lower = K - 2*multiplier*r` exactly. Integer arithmetic; no FP
+    drift. The integration sweep verifies this across `(K, r, mult,
+    length)` combos.
+- Zone classifier: breakout-up / above / at / below / breakout-down
+  / none with a sane fallback when `upper == lower` (zero-width
+  band) so a CONST_FLAT bar reads `at` (close = middle) rather than
+  firing both breakout buckets.
+- Renders close + midline + upper / lower channel lines (dashed) +
+  optional filled channel polygon. Each series toggles independently
+  via legend (controlled + uncontrolled + defaultHidden). ARIA
+  region + img-role SVG with screen-reader description spelling out
+  the formula. Markers respond to click + Enter + Space; tooltip
+  surfaces close + H/L + middle + upper + lower + zone on hover and
+  focus.
+- 95 vitest cases covering finite coercion, length / multiplier
+  normalization, SMA + TR helpers, computeLineAtrBand (warmup +
+  CONST_FLAT bit-exact + CONST_BAR midpoint bit-exact across many
+  combos + upper >= middle >= lower invariant + non-mutation +
+  NaN length fallback), zone classifier (all five + none + zero-
+  width fallback), run, layout, description, the React surface,
+  and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.806.
+
 ## [1.11.805] - 2026-05-26 -- UI: chart-line-kc-width primitive (TODO 11.787)
 
 ### Added
