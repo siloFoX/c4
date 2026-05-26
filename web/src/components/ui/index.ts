@@ -485,3 +485,4 @@ export * from './chart-line-ehlers-dominant-cycle';
 export * from './chart-line-hilbert-cycle';
 export * from './chart-line-cycle-period';
 export * from './chart-line-sinewave-trend';
+export * from './chart-line-trend-quality';
