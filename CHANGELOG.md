@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.792] - 2026-05-26 -- UI: chart-line-cycle-period primitive (TODO 11.774)
+
+### Added
+- `<ChartLineCyclePeriod>` -- pure-SVG dual-panel chart with a
+  Cycle Period oscillator panel beneath the close. The period
+  is measured by counting strict zero crossings of the
+  detrended close (close minus rolling SMA) over the lookback
+  window: `period = 2 * lookback / crossings` clamped to
+  `[minPeriod, maxPeriod]` (defaults `[2, 50]`).
+  Lookback default 30, smoothLength default 4. Bit-exact
+  anchor: CONST_FLAT (close = K) -> detrended = 0, no
+  crossings -> period = maxPeriod bit-exact past warmup
+  `lookback + smoothLength - 1`. Verified 54 combos
+  `(K, lookback, maxP) in {0,1,5,10,100,-3} x {20,30,40}
+  x {25,50,100}`. Rising trend -> no crossings -> maxPeriod.
+  Sinusoid of period P produces an in-band period reading.
+  Period stays in `[minP, maxP]` for any input. 97 vitest
+  cases (helpers, layout, ARIA, legend toggle, tooltip,
+  keyboard activation).
+- Helpers exported via barrel:
+  `getLineCyclePeriodFinitePoints`,
+  `normalizeLineCyclePeriodLength`,
+  `countLineCyclePeriodZeroCrossings`,
+  `applyLineCyclePeriodSma`, `computeLineCyclePeriod`,
+  `classifyLineCyclePeriodZone`, `runLineCyclePeriod`,
+  `computeLineCyclePeriodLayout`,
+  `describeLineCyclePeriodChart`.
+
 ## [1.11.791] - 2026-05-26 -- UI: chart-line-hilbert-cycle primitive (TODO 11.773)
 
 ### Added
