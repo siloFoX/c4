@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.732] - 2026-05-26 -- UI: chart-line-stiffness primitive (TODO 11.714)
+
+New **ChartLineStiffness** UI primitive in
+`web/src/components/ui/chart-line-stiffness.tsx`: pure-SVG
+two-panel line chart with a Katsanos Stiffness indicator panel
+counting bars above a lower volatility band.
+
+computeLineStiffnessSma and computeLineStiffnessStdev compute the
+simple moving average and the population standard deviation over
+the lookback. computeLineStiffness derives the lower volatility
+band `sma - factor * stdev`, flags each bar by whether the close
+sat above the band, sums the flags over the same lookback window
+scaled to a 0..100 percentage, and passes the raw count through
+an exponential moving average. classifyLineStiffnessZone marks
+each bar stiff (at or above the high threshold), mid (between
+thresholds) or loose (below the low threshold).
+
+runLineStiffness sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with the SMA, the lower band, the
+stiffness and the zone, with the zone counts. computeLineStiffnessLayout
+stacks a close panel above a stiffness panel anchored in a 0..100
+band with two horizontal threshold reference lines.
+
+ChartLineStiffness renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Close / Stiffness)
+and a hover/focus tooltip. Controlled and uncontrolled series
+visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 85 vitest cases: the sign of `close - lowerBand` is
+deterministic for a rising, falling or constant series, so the
+stiffness pins exactly to 100, 0 and 0 respectively across those
+fixtures.
+
 ## [1.11.731] - 2026-05-26 -- UI: chart-line-vroc primitive (TODO 11.713)
 
 New **ChartLineVroc** UI primitive in

@@ -423,3 +423,4 @@ export * from './chart-line-ergodic';
 export * from './chart-line-elder-thermo';
 export * from './chart-line-vfi';
 export * from './chart-line-vroc';
+export * from './chart-line-stiffness';
