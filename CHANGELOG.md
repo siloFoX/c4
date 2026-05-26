@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.825] - 2026-05-26 -- UI: chart-line-momentum-divergence primitive (TODO 11.807)
+
+Added `<ChartLineMomentumDivergence />` -- pure-SVG dual-panel React/TS
+primitive plotting `divergence = ROC(close, length) - momentum(close,
+length)` where `ROC` is the percent change and `momentum` is the
+absolute change over the lookback. Top 60% renders the price line;
+bottom 40% renders the divergence with a dashed zero reference line
+and bullish/bearish markers on zero-line crosses. Defaults: `length =
+14`. Zones: positive / negative / zero / none.
+
+Bit-exact anchors: CONST close (K != 0) -> ROC = 0 and momentum = 0 ->
+divergence = 0 across `K in {1, 5, 100, -3}` and `length in {3, 4, 7,
+10}`; ZERO close -> null everywhere (div-by-zero guard on ROC);
+GEOMETRIC `close = 2^k` exploits the unit mismatch -- ROC stays at
+`(2^L - 1) * 100` (constant integer) while momentum scales as
+`2^(i - L) * (2^L - 1)`, so for `L=4` divergence at `i=4` is exactly
+`1500 - 15 = 1485` and at `i=5` is `1500 - 30 = 1470` (both bit-exact).
+`-0 -> +0` normalization in ROC and momentum helpers keeps CONST tests
+`Object.is`-bit-exact. 88 vitest cases (`vitest run`). Barrel export
+wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.807-ui-chart-line-momentum-divergence.md`.
+
 ## [1.11.824] - 2026-05-26 -- UI: chart-line-hl-mean primitive (TODO 11.806)
 
 Added `<ChartLineHlMean />` -- pure-SVG single-panel React/TS primitive
