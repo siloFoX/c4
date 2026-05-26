@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.862] - 2026-05-26 -- UI: chart-line-kvo-signal primitive (TODO 11.844)
+
+Added `<ChartLineKvoSignal />` -- pure-SVG dual-panel React/TS
+primitive plotting the Klinger Volume Oscillator signal line
+beneath a price line. Uses simplified sign-based Volume Force
+(per-bar volume signed by typical-price direction) instead of
+Klinger's full accumulator-based force; KVO = fast EMA - slow EMA
+of vf, signal = EMA(kvo, signalLength). Defaults: `fastLength =
+34`, `slowLength = 55`, `signalLength = 13` (canonical Klinger),
+kvoColor `#facc15` (yellow), signalColor `#ea580c` (orange). The
+EMA helper carries the min===max seed precision fix used in MACD
+primitives. Bit-exact anchors:
+`CONST OHLC and volume = V` -> vf=0 -> KVO=0 -> signal=0 across
+`(K, V, fast, slow, signal)` sweeps;
+`LINEAR UP volume = V > 0` -> vf=V constant -> KVO=0 -> signal=0;
+`LINEAR DOWN` -> vf=-V constant -> KVO=0 -> signal=0. Surface:
+`runLineKvoSignal / computeLineKvoSignalLayout /
+describeLineKvoSignalChart` plus `ChartLineKvoSignal` forwardRef
+with three legend toggles, config badge, zero-line overlay, markers
+on signal-line zero crosses, and tooltip surfacing
+`close / vol / tp / vf / kvo / signal / zone / cross`. 68 vitest
+cases.
+
 ## [1.11.861] - 2026-05-26 -- UI: chart-line-donchian-cross primitive (TODO 11.843)
 
 Added `<ChartLineDonchianCross />` -- pure-SVG single-panel React/TS
