@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.834] - 2026-05-26 -- UI: chart-line-recombining-kc primitive (TODO 11.816)
+
+Added `<ChartLineRecombiningKc />` -- pure-SVG single-panel React/TS
+primitive overlaying a recombining Keltner Channel envelope on the
+close. Mirror of 11.811 recombining-bb but with **EMA** replacing SMA
+and **ATR** replacing standard deviation. Standard band
+`EMA +/- multiplier * ATR` is computed every bar; upper and lower lines
+collapse to the EMA mean on bars where `close >= fullUpper || close <=
+fullLower`. Defaults: `length = 20` (EMA), `atrLength = 10`,
+`multiplier = 2`. Zones: recombine / above-mid / below-mid / at-mid /
+none.
+
+Bit-exact anchor: CONST `h = l = c = K` -> `tr = 0` -> `atr = 0`; EMA
+of constant is the constant via **CONST short-circuit** (`next = v ===
+prev ? v : alpha * v + (1 - alpha) * prev`) -- this guard avoids 1-ULP
+drift when `alpha = 2 / (length + 1)` is non-dyadic (e.g. `1/3` at
+`length = 5`). Band edges collapse to `K` and `>=` trigger fires every
+valid bar across `K in {0, 1, 5, 100, -3}`, `length in {3, 5, 7, 10}`,
+and `multiplier in {0, 1, 2, 3}` (full integration sweep). 73 vitest
+cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.816-ui-chart-line-recombining-kc.md`.
+
 ## [1.11.833] - 2026-05-26 -- UI: chart-line-fractal-bb primitive (TODO 11.815)
 
 Added `<ChartLineFractalBb />` -- pure-SVG single-panel React/TS
