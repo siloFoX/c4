@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.757] - 2026-05-26 -- UI: chart-line-ehlers-fisher primitive (TODO 11.739)
+
+### Added
+- `<ChartLineEhlersFisher>` -- pure-SVG two-panel chart with an
+  **Ehlers Fisher Transform** panel. For each bar `i` with a filled
+  lookback `period`:
+  ```
+  hl2   = (high + low) / 2
+  HH    = max(hl2 over [i-period+1 .. i])
+  LL    = min(hl2 over [i-period+1 .. i])
+  ratio = HH == LL ? 0 : (hl2 - LL) / (HH - LL) - 0.5
+  v[i]  = clamp(0.66 * ratio + 0.67 * v[i-1], -0.999, +0.999)
+  fisher[i] = 0.5 * ln((1 + v[i]) / (1 - v[i])) + 0.5 * fisher[i-1]
+  ```
+  The `atanh` mapping pushes turning points into the Gaussian tails.
+  The first `period - 1` bars are null.
+- Pure helpers: `computeLineEhlersFisherWindow`,
+  `computeLineEhlersFisher`, `classifyLineEhlersFisherZone`,
+  `clampLineEhlersFisherNorm`, `runLineEhlersFisher`,
+  `computeLineEhlersFisherLayout`, `describeLineEhlersFisherChart`,
+  `getLineEhlersFisherFinitePoints`,
+  `normalizeLineEhlersFisherPeriod`,
+  `normalizeLineEhlersFisherThreshold`.
+- 77 vitest cases covering: the **CONST_FLAT identity** (`high ==
+  low == K` -> `range = 0` -> `ratio = 0` -> `norm = 0` and
+  `fisher = 0` bit-exact at every defined bar, since the recurrence
+  seed is `0`); the integer-fixture **window identity** (`hh = i +
+  10` and `ll = i - period + 1 + 10` bit-exact for the integer
+  RISING ramp); the FALLING mirror (`hh = 19 - (i - period + 1)`,
+  `ll = 19 - i`); RISING vs FALLING antisymmetry (same magnitude,
+  opposite sign at the tail via `toBeCloseTo(_, 10)`); the
+  monotonicity property (RISING strictly non-decreasing, FALLING
+  strictly non-increasing once the recurrence is warm); the clamp
+  bit-exactly capping at `+/-CLAMP`; translation invariance (`H/L
+  -> H/L + 1000` leaves Fisher unchanged); layout emitting one
+  marker per defined bar (seven for the 10-bar ramp), markers
+  contained in the Fisher panel, non-overlapping panels; component
+  coverage of the legend toggle, `showFisher = false`, ARIA
+  description, badge text, click-to-emit via `onPointClick`, and
+  forwardRef.
+- Component renders top panel (`hl2` price line) and bottom panel
+  (Fisher line with zone-coloured markers: overbought / oversold /
+  positive / negative / none), `arps` design-system tokens, ARIA
+  region / img / graphics-symbol roles, and `data-section` hooks
+  throughout.
+
 ## [1.11.756] - 2026-05-26 -- UI: chart-line-tsf primitive (TODO 11.738)
 
 ### Added
