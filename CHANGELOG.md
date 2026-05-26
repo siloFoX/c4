@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.869] - 2026-05-26 -- UI: chart-line-stoch-cross primitive (TODO 11.851)
+
+Added `<ChartLineStochCross />` -- pure-SVG dual-panel React/TS
+primitive plotting Stochastic %K and %D lines beneath a price line
+with markers at every K-vs-D crossover, tagged by the
+overbought / oversold zone at the cross bar. Strong triggers:
+`oversoldTrigger` (up cross at %K <= 20) and `overboughtTrigger`
+(down cross at %K >= 80). Defaults: `kLength = 14`, `dLength = 3`,
+`overboughtLevel = 80`, `oversoldLevel = 20`, kColor `#0ea5e9`,
+dColor `#f97316`, overbought line `#dc2626`, oversold line
+`#16a34a`. SMA helper carries the `min === max` window-constant
+precision fix, so the three anchors land bit-exactly: CONST
+h=l=close (range=0 -> %K null forever -> zero crosses, zone
+none); LINEAR UP h=l=close=i+1 (range=kLen-1, close-low=kLen-1
+-> %K=%D=100, settles overbought, zero crosses); LINEAR DOWN
+h=l=close=N-i (range=kLen-1, close-low=0 -> %K=%D=0, settles
+oversold, zero crosses). Stoch axis fixed to [0, 100] with
+dashed overbought / oversold / midline references. ARIA region +
+img-role SVG + sr-only desc; markers carry
+`role="graphics-symbol"` + `tabIndex={0}` and `data-trigger`;
+motion-safe fade-in animation. 81 vitest cases (helpers +
+component + integration anchors).
+
 ## [1.11.868] - 2026-05-26 -- UI: chart-line-adx-cross primitive (TODO 11.850)
 
 Added `<ChartLineAdxCross />` -- pure-SVG dual-panel React/TS
