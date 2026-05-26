@@ -558,3 +558,4 @@ export * from './chart-line-wma-pct';
 export * from './chart-line-tema-pct';
 export * from './chart-line-atr-cross';
 export * from './chart-line-rsi-cross';
+export * from './chart-line-macd-cross';

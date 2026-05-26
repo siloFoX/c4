@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.867] - 2026-05-26 -- UI: chart-line-macd-cross primitive (TODO 11.849)
+
+Added `<ChartLineMacdCross />` -- pure-SVG dual-panel React/TS
+primitive plotting the MACD line and its signal line beneath a
+price line with scatter markers at every signal crossover, tinted
+by the zero-line bias (bullish when MACD > 0, bearish when < 0,
+neutral when exactly 0). Defaults: classic MACD
+`fastLength = 12`, `slowLength = 26`, `signalLength = 9`,
+macdColor `#0ea5e9` (sky), signalColor `#f97316` (orange),
+markers `#16a34a` / `#dc2626` / `#475569`. EMA helper carries the
+SMA-seeded `min === max` precision fix plus the
+`next = v === smoothed ? v : ...` short-circuit, so CONST close
+yields `macd = 0`, `signal = 0`, relation `equal`, and zero
+crosses bit-exactly. LINEAR UP / DOWN converge to a constant macd
+that the signal EMA tracks, again landing the equal relation.
+Oscillator y-axis is clamped to include the zero line. ARIA
+region + img-role SVG + sr-only desc; markers carry
+`role="graphics-symbol"` + `tabIndex={0}` and `data-bias`;
+motion-safe fade-in animation. 65 vitest cases (helpers +
+component + integration anchors).
+
 ## [1.11.866] - 2026-05-26 -- UI: chart-line-rsi-cross primitive (TODO 11.848)
 
 Added `<ChartLineRsiCross />` -- pure-SVG dual-panel React/TS
