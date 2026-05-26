@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.738] - 2026-05-26 -- UI: chart-line-gauss primitive (TODO 11.720)
+
+### Added
+- `<ChartLineGauss>` -- pure-SVG single-panel chart with the **Ehlers
+  Gaussian Filter** overlay from an N-pole cascaded low-pass smoother
+  whose alpha is derived from the Gaussian frequency response. For a
+  lookback `period` and a pole count `poles`,
+  `beta = (1 - cos(2 * pi / period)) / (sqrt(2)^(2 / poles) - 1)` and
+  `alpha = -beta + sqrt(beta^2 + 2 * beta)`. The filter is then N
+  stages of a one-pole EMA cascaded in series; stages are seeded from
+  the first value so the filter is defined from bar 0. Each one-pole
+  stage has unity DC gain (coefficients sum to one), so the whole
+  cascade passes a constant series through unchanged.
+- Pure helpers: `computeLineGaussAlpha`, `computeLineGauss`,
+  `classifyLineGaussSlope`, `runLineGauss`, `computeLineGaussLayout`,
+  `describeLineGaussChart`, `getLineGaussFinitePoints`,
+  `normalizeLineGaussPeriod`, `normalizeLineGaussPoles`.
+- 77 vitest cases covering the DC-invariance anchor (constant series
+  -> constant filter, exact `toEqual`, asserted across `period in
+  {2, 4, 10, 20}` and `poles in {1, 2, 4, 8}` -- 16 combinations),
+  the seed (first output equals first input), the single-bar input,
+  the analytic two-bar form for poles 2 (`gauss[1] = seed + delta *
+  alpha^2`, `toBeCloseTo`), monotonicity (rising input -> rising
+  filter, falling input -> falling filter), alpha sanity (strictly
+  inside (0, 1), shorter period -> larger alpha, more poles ->
+  larger alpha), slope classification, layout (price path / one dot
+  per bar / one segment between each pair / one marker per bar /
+  every marker inside the panel / value domain spans price and
+  filter / not-ok on single-point or collapsed-canvas), screen-reader
+  summary, and the standard component contract (ARIA region, config
+  badge `GAUSS 4/2`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.737 -> 1.11.738.
+
 ## [1.11.737] - 2026-05-26 -- UI: chart-line-aroon-osc primitive (TODO 11.719)
 
 ### Added

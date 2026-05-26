@@ -429,3 +429,4 @@ export * from './chart-line-rmta';
 export * from './chart-line-trend-trigger';
 export * from './chart-line-ud-ratio';
 export * from './chart-line-aroon-osc';
+export * from './chart-line-gauss';
