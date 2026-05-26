@@ -482,3 +482,4 @@ export * from './chart-line-chaikin-mf';
 export * from './chart-line-chaikin-volatility';
 export * from './chart-line-elder-thermometer';
 export * from './chart-line-ehlers-dominant-cycle';
+export * from './chart-line-hilbert-cycle';
