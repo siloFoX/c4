@@ -4,6 +4,24 @@
 
 (no entries -- next release window)
 
+## [1.11.824] - 2026-05-26 -- UI: chart-line-hl-mean primitive (TODO 11.806)
+
+Added `<ChartLineHlMean />` -- pure-SVG single-panel React/TS primitive
+that overlays a High Low Mean line on the close. The mean is the
+rolling SMA of each bar's midpoint `(high + low) / 2` over the
+lookback. Close and mean share the same y-axis; markers fire on cross
+events (close transitioning from `below`/`at` to `above` or the
+mirror). Defaults: `length = 14`. Zones: above / below / at / none.
+
+Bit-exact anchors: CONST `high = low = close = K` -> midpoint = K, SMA
+= K, close == hlMean -> zone `'at'` at every valid bar across
+`K in {0, 1, 5, 100, -3}` and `length in {3, 4, 7, 10}`; ASYMMETRIC
+CONST `high = 10, low = 2, close = 8` -> midpoint = 6, SMA = 6, close
+= 8 > 6 -> zone `'above'` everywhere (mirror with close = 4 yields
+`'below'`). 85 vitest cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.806-ui-chart-line-hl-mean.md`.
+
 ## [1.11.823] - 2026-05-26 -- UI: chart-line-coppock-signal primitive (TODO 11.805)
 
 Added `<ChartLineCoppockSignal />` -- pure-SVG dual-panel React/TS
