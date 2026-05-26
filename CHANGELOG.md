@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.786] - 2026-05-26 -- UI: chart-line-kvo primitive (TODO 11.768)
+
+### Added
+- `<ChartLineKvo>` -- pure-SVG dual-panel chart with a Klinger
+  Volume Oscillator panel beneath the close. The KVO is the
+  difference between two EMAs of the signed volume force:
+  `T = (h + l + c)/3`, trend-direction signed by `sgn(dT)`,
+  `dm = h - l`, `cm` accumulates dm within the trend run,
+  `vf = volume * |2*(dm/cm) - 1| * trend * 100`, and
+  `KVO = EMA(vf, fast) - EMA(vf, slow)` (defaults
+  fast=34, slow=55). Bit-exact anchors: ZERO_VOLUME -> vf=0
+  -> KVO=0 at every bar; CONST_OHLC -> trend=0, dm=0 -> vf=0
+  -> KVO=0. Verified across `(fast, slow) in {3,5,13,34} x
+  {10,20,55}` (valid combos). EMA helper: zeros stay zero,
+  dyadic constant 2 stays 2 bit-exact. 97 vitest cases
+  (helpers, layout, ARIA, legend toggle, tooltip, keyboard
+  activation).
+- Helpers exported via barrel:
+  `getLineKvoFinitePoints`, `normalizeLineKvoLength`,
+  `computeLineKvoVolumeForce`, `computeLineKvoEma`,
+  `computeLineKvo`, `classifyLineKvoZone`, `runLineKvo`,
+  `computeLineKvoLayout`, `describeLineKvoChart`.
+
 ## [1.11.785] - 2026-05-26 -- UI: chart-line-mass-index-signal primitive (TODO 11.767)
 
 ### Added
