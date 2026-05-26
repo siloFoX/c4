@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.810] - 2026-05-26 -- UI: chart-line-stiffness-indicator primitive (TODO 11.792)
+
+### Added
+- `<ChartLineStiffnessIndicator>` -- pure-SVG dual-panel React
+  primitive that plots the close on the top panel and the Markos
+  Katsanos Stiffness Indicator on the bottom panel:
+  `middle = SMA(close, length)`,
+  `stdDev = sqrt(sum((close - middle)^2) / length)` (population),
+  `threshold = middle - stiffnessFactor * stdDev`,
+  `above[i] = 1 if close[i] >= threshold[i] else 0`,
+  `stiffness[i] = sum(above, length) / length * 100`.
+  Defaults: `length = 20`, `stiffnessFactor = 0.2`. Bars before
+  `i = 2 * length - 2` are warmup nulls (count window needs
+  `length` valid `above` samples; `above` needs the SMA / stdDev
+  ready).
+- Bit-exact algebraic anchor: CONST close (any K) -> stdDev = 0
+  -> threshold = K -> close >= K is always true -> stiffness = 100
+  exactly past warmup. The integration sweep verifies this across
+  K, length, and stiffnessFactor (including factor = 0). Factor
+  independence demonstrates that the volatility band cannot leak
+  in when the close is flat.
+- Zone classifier (rigid >= 75 / firm 50..75 / soft 25..50 /
+  fluid < 25 / none). ARIA region + img-role SVG with screen-
+  reader description spelling out the formula. Legend supports
+  controlled + uncontrolled + defaultHidden hidden state; markers
+  / dots respond to click + Enter + Space; tooltip surfaces close
+  + stiffness + zone on hover and focus. Mid-line baseline at 50%
+  on the panel.
+- 87 vitest cases covering finite coercion, length and factor
+  normalization, SMA + population stdev helpers,
+  computeLineStiffnessIndicator (warmup nulls + CONST close ->
+  100 + factor independence + non-mutation + NaN length + mid-band
+  oscillation smoke), zone classifier, run, layout (fixed [0,100]
+  axis + mid baseline containment + marker count + single-point
+  graceful), description, the React surface, and integration
+  sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.810.
+
 ## [1.11.809] - 2026-05-26 -- UI: chart-line-pivot-camarilla primitive (TODO 11.791)
 
 ### Added
