@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.765] - 2026-05-26 -- UI: chart-line-kaufman-efficiency primitive (TODO 11.747)
+
+### Added
+- `<ChartLineKaufmanEfficiency>` -- pure-SVG two-panel chart
+  with a Perry Kaufman **Efficiency Ratio** panel. For each bar
+  `i >= period`:
+  ```
+  net    = abs(close[i] - close[i - period])
+  volSum = sum(abs(close[j] - close[j - 1])) for j in [i - period + 1, i]
+  ER[i]  = net / volSum
+  ```
+  Bounded `[0, 1]`. The first `period` bars are null. A bar with
+  a zero `volSum` (every delta in the window is zero) is also
+  null.
+- Pure helpers: `computeLineKaufmanEfficiency`,
+  `classifyLineKaufmanEfficiencyZone` (high / medium / low /
+  none ladder against `threshold` and `2 * threshold`),
+  `runLineKaufmanEfficiency`,
+  `computeLineKaufmanEfficiencyLayout`,
+  `describeLineKaufmanEfficiencyChart`,
+  `getLineKaufmanEfficiencyFinitePoints`,
+  `normalizeLineKaufmanEfficiencyPeriod`,
+  `normalizeLineKaufmanEfficiencyThreshold`.
+- 65 vitest cases covering: the **CONST_FLAT identity** (`close
+  == K` -> `net = volSum = 0` -> ER is null at every bar); the
+  **monotone-rising identity** (`close == i + 10` -> every delta
+  `+1` -> `net = period`, `volSum = period` -> `ER = 1`
+  bit-exact); the **monotone-falling identity** (`ER = 1`
+  bit-exact); the **alternating identity** (`close == [10, 11,
+  10, 11, ...]` period 4 -> `net = 0`, `volSum = 4` -> `ER = 0`
+  bit-exact); the **asymmetric anchor** (`close = [10, 11, 12,
+  11, 12]` period 4 -> `net = 2`, `volSum = 4` -> `ER[4] = 0.5`
+  bit-exact); translation invariance (`+1000` leaves deltas
+  unchanged -> ER unchanged); scale invariance (`*100` leaves
+  ER unchanged via the ratio); non-finite close in the window
+  nulls the bar; ER bounded `[0, 1]` on the wave; layout /
+  component / ARIA / data-section hooks all covered.
+- Component renders top panel (close line) and bottom panel
+  (ER line, zone-coloured markers, zero / one reference lines,
+  dashed `threshold` reference line), `arps` design-system
+  tokens, ARIA region / img / graphics-symbol roles, and
+  `data-section` hooks throughout.
+
 ## [1.11.764] - 2026-05-26 -- UI: chart-line-chande-kroll primitive (TODO 11.746)
 
 ### Added
