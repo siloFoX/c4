@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.835] - 2026-05-26 -- UI: chart-line-bb-fisher primitive (TODO 11.817)
+
+Added `<ChartLineBbFisher />` -- pure-SVG dual-panel React/TS primitive
+plotting a Bollinger Band Fisher Transform oscillator. Each bar
+normalizes `percentB = (close - lower) / (upper - lower)` to
+`[-clampLimit, +clampLimit]` via `normalized = clamp(2 * percentB -
+1)`, then applies `Math.atanh(normalized)` to produce an unbounded
+oscillator that highlights extremes. Defaults: `length = 20`, `sigma =
+2`, `clampLimit = 0.999`, `overbought = 1.5`, `oversold = -1.5`.
+Zones: overbought / oversold / neutral / none. Markers fire on
+overbought/oversold entries.
+
+Bit-exact anchors: CONST close -> band has zero width -> percentB =
+null -> fisher = null everywhere across `K in {1, 5, 100, -3}` and
+`length in {3, 4, 7, 10}` (divide-by-zero guard); ALTERNATING
+`[0, 1, 0, 1, ...]` with `length = 4`, `sigma = 2` -> at bar 3
+`percentB = 0.75`, `normalized = 0.5`, `fisher = Math.atanh(0.5)`
+(deterministic library value, asserted with `toBe(Math.atanh(0.5))`);
+mirror at bar 4 yields `fisher = Math.atanh(-0.5)`. 79 vitest cases
+(`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.817-ui-chart-line-bb-fisher.md`.
+
 ## [1.11.834] - 2026-05-26 -- UI: chart-line-recombining-kc primitive (TODO 11.816)
 
 Added `<ChartLineRecombiningKc />` -- pure-SVG single-panel React/TS
