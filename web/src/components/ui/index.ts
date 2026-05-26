@@ -457,3 +457,4 @@ export * from './chart-line-ichimoku-kijun';
 export * from './chart-line-chande-momentum';
 export * from './chart-line-chande-kroll';
 export * from './chart-line-kaufman-efficiency';
+export * from './chart-line-kase-peak';
