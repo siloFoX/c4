@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.785] - 2026-05-26 -- UI: chart-line-mass-index-signal primitive (TODO 11.767)
+
+### Added
+- `<ChartLineMassIndexSignal>` -- pure-SVG dual-panel chart with
+  a Mass Index oscillator panel beneath the close. The
+  oscillator sums the ratio of `EMA(high - low)` over
+  `EMA(EMA(high - low))` across a lookback window (defaults:
+  EMA length 9, lookback 25, reversal threshold 27).
+  Bit-exact anchor: CONST_HL (high - low == K, K != 0) yields
+  `ratio = 1` at every bar (both EMAs drift identically so the
+  ratio is exact), so `MI = lookback` bit-exact past warmup.
+  Verified across `(range, ema, lookback) in
+  {1,2,5,10,100} x {5,9,20} x {10,15,25}` (45 combos).
+  FLAT_HL (range == 0) yields `MI = null` everywhere (singular
+  ratio). 106 vitest cases (helpers, layout, ARIA, legend
+  toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineMassIndexSignalFinitePoints`,
+  `normalizeLineMassIndexSignalLength`,
+  `normalizeLineMassIndexSignalLookback`,
+  `computeLineMassIndexSignalEma`,
+  `computeLineMassIndexSignal`,
+  `classifyLineMassIndexSignalZone`,
+  `runLineMassIndexSignal`,
+  `computeLineMassIndexSignalLayout`,
+  `describeLineMassIndexSignalChart`.
+
 ## [1.11.784] - 2026-05-26 -- UI: chart-line-squeeze-momentum primitive (TODO 11.766)
 
 ### Added
