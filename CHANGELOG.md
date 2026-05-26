@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.743] - 2026-05-26 -- UI: chart-line-vama primitive (TODO 11.725)
+
+### Added
+- `<ChartLineVama>` -- pure-SVG single-panel chart with a **Volume
+  Adjusted Moving Average** overlay weighting recent prices by the
+  excess volume above the rolling-window mean. For each rolling
+  window the mean volume is taken; every bar with volume above the
+  mean gets weight `volume - volumeMean`, others get zero, and
+  VAMA = `sum(price * weight) / sum(weight)`. If no bar in the
+  window is above average (every weight is zero -- a flat-volume
+  regime), the VAMA falls back to a plain SMA of the closes.
+- Pure helpers: `computeLineVamaWindow`, `computeLineVama`,
+  `classifyLineVamaTrend`, `runLineVama`, `computeLineVamaLayout`,
+  `describeLineVamaChart`, `getLineVamaFinitePoints`,
+  `normalizeLineVamaPeriod`.
+- 74 vitest cases covering: the **equal-volume fallback anchor** (a
+  series with identical volumes falls back to the SMA -- asserted
+  bit-exact across the entire rolling series); the **single-high-
+  volume anchor** (one bar with above-average volume in the window
+  -> VAMA equals that bar's close, asserted with `toBe`); the
+  **two-weighted anchor** (the carefully chosen fixture prices
+  `[10, 20, 30, 40, 50]` volumes `[3, 3, 4, 7, 8]` produces
+  `sum(p*w) = 230`, `sum(w) = 5`, VAMA = 46 exact); the **price
+  translation invariance anchor** (shifting every price by k shifts
+  every defined VAMA by k bit-exact across the entire rolling
+  series); the all-zero-volume fallback; the warm-up window; trend
+  classification; the standard component contract (ARIA region,
+  config badge `VAMA 5`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.742 -> 1.11.743.
+
 ## [1.11.742] - 2026-05-26 -- UI: chart-line-mahalanobis primitive (TODO 11.724)
 
 ### Added
