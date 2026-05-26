@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.809] - 2026-05-26 -- UI: chart-line-pivot-camarilla primitive (TODO 11.791)
+
+### Added
+- `<ChartLinePivotCamarilla>` -- pure-SVG single-panel React
+  primitive that overlays Camarilla pivot levels on the close.
+  For each bar the pivot and the four R / four S levels are
+  derived from the **prior** bar's high, low, and close:
+  `pivot = (H + L + C) / 3`,
+  `R_n = C + (H - L) * 1.1 / k_n`,
+  `S_n = C - (H - L) * 1.1 / k_n`,
+  where `k_1 = 12, k_2 = 6, k_3 = 4, k_4 = 2`. Bar 0 has no prior
+  bar so all levels are null.
+- Bit-exact algebraic anchor: CONST_FLAT (`H = L = C = K`) -> the
+  prior range is zero, every R/S offset vanishes, and
+  `pivot = R1 = R2 = R3 = R4 = S1 = S2 = S3 = S4 = K` exactly past
+  bar 0. The integration sweep verifies this across many K
+  including negatives.
+- For non-flat constant-bar inputs the level offsets contain the
+  non-dyadic 1.1 factor, so the checks use `toBeCloseTo` to 9
+  decimals. The algebraic identity `R_n - C == -(S_n - C)` is also
+  verified.
+- Zone classifier: breakout-up / above-pivot / at-pivot /
+  below-pivot / breakout-down / none, with a sane fallback for
+  zero-width stacks (R4 == pivot == S4 -> classify by pivot only).
+- Renders close + pivot + four resistance lines (R1..R4, dashed)
+  + four support lines (S1..S4, dashed) on a single Y-axis. All
+  ten series toggle independently via the legend (controlled +
+  uncontrolled + defaultHidden); `showResistance` and `showSupport`
+  group-toggle the respective bundles. ARIA region + img-role SVG
+  with screen-reader description spelling out the formula. Tooltip
+  surfaces close + H/L + pivot + R1/R2 + R3/R4 + S1/S2 + S3/S4 +
+  zone on hover and focus.
+- 77 vitest cases covering finite coercion,
+  computeLinePivotCamarilla (bar 0 null + CONST_FLAT bit-exact +
+  CONST_BAR offsets + algebraic R/S symmetry + non-mutation +
+  non-finite prior), zone classifier (incl. zero-width fallback),
+  run, layout (paths, marker count, y-range, single-point graceful),
+  description, the React surface (ten-series legend, group hide
+  flags, markers, dots, axis, grid, tooltip, animate, className,
+  formatter), and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.809.
+
 ## [1.11.808] - 2026-05-26 -- UI: chart-line-elder-force primitive (TODO 11.790)
 
 ### Added
