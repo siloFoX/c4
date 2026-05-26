@@ -521,3 +521,4 @@ export * from './chart-line-coppock-trigger';
 export * from './chart-line-adv-decline';
 export * from './chart-line-hl-pct';
 export * from './chart-line-recombining-bb';
+export * from './chart-line-dynamic-momentum';
