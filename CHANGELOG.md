@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.731] - 2026-05-26 -- UI: chart-line-vroc primitive (TODO 11.713)
+
+New **ChartLineVroc** UI primitive in
+`web/src/components/ui/chart-line-vroc.tsx`: pure-SVG two-panel
+line chart with a Volume Rate of Change panel from the percent
+change of volume across a lookback.
+
+computeLineVroc reads each bar's volume against its volume from
+`period` bars ago and returns the percent change
+`100 * (volume - volume[-period]) / volume[-period]`. A bar with
+a non-finite volume or a zero prior volume (the divisor) yields
+null. classifyLineVrocZone marks each bar by the sign of the
+indicator.
+
+runLineVroc sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples with the VROC, the prior volume and the
+zone, with the zone counts. computeLineVrocLayout stacks a close
+panel above a VROC panel with a dynamic domain seeded at zero so
+the zero line is always in view.
+
+ChartLineVroc renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Close / VROC) and a
+hover/focus tooltip. Controlled and uncontrolled series
+visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 66 vitest cases: the VROC is pure rational
+arithmetic, so a constant volume reads exactly 0, a doubling
+volume pins to +100, a halving volume to -50, and an integer
+fixture computes to the exact series [50, 100, -50, 100, -50].
+
 ## [1.11.730] - 2026-05-26 -- UI: chart-line-vfi primitive (TODO 11.712)
 
 New **ChartLineVfi** UI primitive in
