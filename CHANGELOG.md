@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.787] - 2026-05-26 -- UI: chart-line-chaikin-mf primitive (TODO 11.769)
+
+### Added
+- `<ChartLineChaikinMf>` -- pure-SVG dual-panel chart with a
+  Chaikin Money Flow oscillator panel beneath the close. The
+  CMF is the sum of money flow volume divided by the sum of
+  volume across a lookback (default 20):
+  `MFM = ((close - low) - (high - close)) / (high - low)`,
+  `MFV = MFM * volume`,
+  `CMF = sum(MFV) / sum(volume)`.
+  Bit-exact anchors: close-at-high -> CMF=+1, close-at-low ->
+  CMF=-1, close-at-midpoint -> CMF=0, flat bar (high==low) ->
+  CMF=0, zero-volume window -> null, mixed equal-counts ->
+  CMF=0. CMF=+1 verified across 80 combos of
+  `(range, volume, length) in {1,2,5,10,100} x {1,50,100,1000}
+  x {5,14,20,30}`. Worked dyadic MFM anchors `(10,2,8) -> 0.5`
+  and `(10,2,4) -> -0.5` bit-exact. 97 vitest cases (helpers,
+  layout, ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineChaikinMfFinitePoints`,
+  `normalizeLineChaikinMfLength`,
+  `computeLineChaikinMfMultiplier`,
+  `computeLineChaikinMf`, `classifyLineChaikinMfZone`,
+  `runLineChaikinMf`, `computeLineChaikinMfLayout`,
+  `describeLineChaikinMfChart`.
+
 ## [1.11.786] - 2026-05-26 -- UI: chart-line-kvo primitive (TODO 11.768)
 
 ### Added
