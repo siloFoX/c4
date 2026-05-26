@@ -424,3 +424,4 @@ export * from './chart-line-elder-thermo';
 export * from './chart-line-vfi';
 export * from './chart-line-vroc';
 export * from './chart-line-stiffness';
+export * from './chart-line-snr';

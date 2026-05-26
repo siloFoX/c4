@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.733] - 2026-05-26 -- UI: chart-line-snr primitive (TODO 11.715)
+
+New **ChartLineSnr** UI primitive in
+`web/src/components/ui/chart-line-snr.tsx`: pure-SVG two-panel
+line chart with a Signal to Noise Ratio panel from the decibel
+ratio of bar range to its rolling average.
+
+computeLineSnrRange takes the high minus low per bar.
+computeLineSnrSma is the simple moving average of that range.
+computeLineSnrDb is the decibel formula `10 * log10(value /
+reference)`, returning null for non-positive or non-finite
+inputs. computeLineSnr chains them: the bar range, its rolling
+average, and the SNR as the dB ratio of the two.
+classifyLineSnrZone marks each bar by the sign of the SNR.
+
+runLineSnr sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples with the midpoint, range, average and the
+zone, with the zone counts. computeLineSnrLayout stacks a
+midpoint panel above an SNR panel with a dynamic domain seeded at
+zero so the zero line is always in view.
+
+ChartLineSnr renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Midpoint / SNR) and
+a hover/focus tooltip. Controlled and uncontrolled series
+visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 81 vitest cases: the dB formula reads exactly 0 when
+value equals reference, so a constant-range series reads exactly
+0 dB; a rising range gives positive dB on every defined bar, a
+falling range gives negative dB.
+
 ## [1.11.732] - 2026-05-26 -- UI: chart-line-stiffness primitive (TODO 11.714)
 
 New **ChartLineStiffness** UI primitive in
