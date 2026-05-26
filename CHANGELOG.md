@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.811] - 2026-05-26 -- UI: chart-line-volatility-quality primitive (TODO 11.793)
+
+### Added
+- `<ChartLineVolatilityQuality>` -- pure-SVG dual-panel React
+  primitive that plots the close on the top panel and a
+  Volatility Quality Index (VQI) oscillator on the bottom panel.
+  VQI compares EMA-smoothed true range to the rolling ATR:
+  `TR = max(h - l, |h - prevC|, |l - prevC|)`,
+  `ATR = SMA(TR, length)`,
+  `EMA_TR = EMA(TR, length)`,
+  `VQI = EMA_TR / ATR`.
+  Defaults: `length = 14`. Bars before `i = length - 1` are
+  warmup. When `ATR == 0` (singular: completely flat bars) VQI is
+  null. `-0` from `0 / negative_atr` normalized to `+0` (mostly
+  defensive since ATR is non-negative).
+- Bit-exact algebraic anchor: CONST_BAR (constant `H`, `L`, `C`
+  with `L <= C <= H`) -> every TR = `H - L` -> EMA_TR = ATR = TR
+  -> VQI = 1. For dyadic TR (powers of 2) the EMA-of-constant
+  identity holds bit-exact in IEEE 754, so VQI = 1 exactly. For
+  non-dyadic TR the EMA drifts by at most 1 ULP, but the ratio
+  rounds to 1 within 1e-12. The integration sweep validates both
+  cases. CONST_FLAT yields all-null VQI (singular).
+- Zone classifier: expanding (>= 1.1) / above (1.0..1.1) / at
+  (== 1.0) / below (0.9..1.0) / contracting (<= 0.9) / none.
+- ARIA region + img-role SVG with screen-reader description
+  spelling out the formula. Legend supports controlled +
+  uncontrolled + defaultHidden hidden state; markers / dots
+  respond to click + Enter + Space; tooltip surfaces close + H/L
+  + VQI + emaTR/ATR + zone on hover and focus. Unity reference
+  line at 1.
+- 91 vitest cases covering finite coercion, length normalization,
+  EMA + SMA + TR helpers, computeLineVolatilityQuality (warmup +
+  CONST_BAR dyadic bit-exact + CONST_BAR non-dyadic close to 1 +
+  CONST_FLAT all-null + non-mutation + NaN length + VQI
+  positivity), zone classifier, run, layout (panel order + gap +
+  unity line containment + marker count + single-point graceful),
+  description, the React surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.811.
+
 ## [1.11.810] - 2026-05-26 -- UI: chart-line-stiffness-indicator primitive (TODO 11.792)
 
 ### Added
