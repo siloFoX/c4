@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.759] - 2026-05-26 -- UI: chart-line-ulcer-index primitive (TODO 11.741)
+
+### Added
+- `<ChartLineUlcerIndex>` -- pure-SVG two-panel chart with a Peter
+  Martin **Ulcer Index** panel. For each bar `i` with a filled
+  lookback `period`:
+  ```
+  For j in [i - period + 1, i]:
+    peak[j]  = max(close over [i - period + 1, j])
+    ddPct[j] = 100 * (close[j] - peak[j]) / peak[j]   (<= 0)
+  ulcer[i]   = sqrt(mean of ddPct[j]^2)
+  ```
+  The reading is bounded below by zero. The first `period - 1`
+  bars are null. Non-finite or non-positive closes inside the
+  window null the bar.
+- Pure helpers: `computeLineUlcerIndex`,
+  `classifyLineUlcerIndexZone` (low / medium / high / none),
+  `runLineUlcerIndex`, `computeLineUlcerIndexLayout`,
+  `describeLineUlcerIndexChart`,
+  `getLineUlcerIndexFinitePoints`,
+  `normalizeLineUlcerIndexPeriod`,
+  `normalizeLineUlcerIndexThreshold`.
+- 67 vitest cases covering: the **CONST_FLAT identity** (`close =
+  K` -> every drawdown is zero, so `UI = 0` bit-exact); the
+  **monotone-rising identity** (every bar's peak is itself, every
+  drawdown is zero, `UI = 0` bit-exact); the **DRAWDOWN_25
+  anchor** (`close = [12, 6, 12, 12]` period 4 -> only the second
+  bar is a -50% drawdown, sum of squares = 2500, divided by 4 =
+  625 = `25^2` -> `UI[3] = 25` bit-exact); the **scaled variant**
+  (`close = [4, 2, 4, 4]` -> same -50% drawdown -> same `UI = 25`);
+  scale invariance (multiplying close by 100 leaves the UI
+  unchanged bit-exact, since drawdowns are relative); non-finite /
+  non-positive close in the window null the bar; layout emitting
+  one marker per defined bar (seven on a 10-bar ramp), markers
+  contained in the Ulcer panel, non-overlapping panels, `ulcerMin
+  = 0` exactly; component coverage of legend toggle, `showUlcer =
+  false`, ARIA description, badge text, `onPointClick`, and
+  forwardRef.
+- Component renders top panel (close line) and bottom panel
+  (Ulcer line with zone-coloured markers: low / medium / high /
+  none), zero line, threshold dashed line, `arps` design-system
+  tokens, ARIA region / img / graphics-symbol roles, and
+  `data-section` hooks throughout.
+
 ## [1.11.758] - 2026-05-26 -- UI: chart-line-projection-bands primitive (TODO 11.740)
 
 ### Added
