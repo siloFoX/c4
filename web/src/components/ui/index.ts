@@ -550,3 +550,4 @@ export * from './chart-line-sma-pct';
 export * from './chart-line-adp';
 export * from './chart-line-relative-vigor-signal';
 export * from './chart-line-sma-cross';
+export * from './chart-line-ema-cross';

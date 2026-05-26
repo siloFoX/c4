@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.859] - 2026-05-26 -- UI: chart-line-ema-cross primitive (TODO 11.841)
+
+Added `<ChartLineEmaCross />` -- pure-SVG single-panel React/TS
+primitive overlaying a fast EMA and a slow EMA on a price line,
+with scatter markers at every fast-over-slow crossover event.
+Parallel to 11.840 sma-cross, swapping rolling SMA for SMA-seeded
+EMA with the min===max precision fix and CONST short-circuit so
+constant inputs produce bit-exactly equal EMAs (no spurious
+crosses). Defaults: `fastLength = 12`, `slowLength = 26`
+(canonical MACD pair), fastColor `#f97316` (orange), slowColor
+`#7c3aed` (purple). Bit-exact anchors: `CONST close = K` -> zero
+crosses; `LINEAR UP` -> zero crosses (fast > slow steady state);
+`STEP K1 -> K2` -> deterministic single up-cross at `i = 4` for
+`(fast=2, slow=4, K1=1, K2=5, N=4)`. Live cross counts exposed via
+`data-up-cross-count` / `data-down-cross-count` attributes.
+Surface: `runLineEmaCross / computeLineEmaCrossLayout /
+describeLineEmaCrossChart` plus `ChartLineEmaCross` forwardRef with
+three legend toggles, config badge, markers, and tooltip surfacing
+`close / fast / slow / relation / cross`. 61 vitest cases.
+
 ## [1.11.858] - 2026-05-26 -- UI: chart-line-sma-cross primitive (TODO 11.840)
 
 Added `<ChartLineSmaCross />` -- pure-SVG single-panel React/TS
