@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.747] - 2026-05-26 -- UI: chart-line-confluence primitive (TODO 11.729)
+
+### Added
+- `<ChartLineConfluence>` -- pure-SVG two-panel chart with a
+  **Confluence** panel summing aligned signals from multiple
+  oscillators into an integer score. For each lookback `L_k`,
+  the per-bar signal is the sign of the bar's value minus the
+  value `L_k` bars ago; the score sums the signals across the
+  lookbacks into `[-N, +N]`. A reading above the threshold marks
+  bullish confluence; below the negative threshold bearish;
+  inside the band neutral. Default lookbacks: `[5, 10, 20]`;
+  default threshold: `floor(N / 2)`.
+- Pure helpers: `computeLineConfluenceSignal`, `computeLineConfluence`,
+  `classifyLineConfluenceZone`, `runLineConfluence`,
+  `computeLineConfluenceLayout`, `describeLineConfluenceChart`,
+  `getLineConfluenceFinitePoints`,
+  `normalizeLineConfluenceLookbacks`,
+  `normalizeLineConfluenceThreshold`.
+- 80 vitest cases covering: **rising series score = N bit-exact**
+  at every defined bar; **falling series score = -N bit-exact**;
+  **constant series score = 0 bit-exact**; the warm-up window (the
+  score is null until every lookback has filled, i.e. until
+  bar = max(lookbacks)); the integer-in-`[-N, +N]` invariant on
+  a varied wave; the lookback normalizer (sort, floor, drop sub-1,
+  fallback for empty); the threshold normalizer (the default is
+  `floor(N / 2)`); the zone classifier including the at-threshold
+  boundary (neutral, strict inequality); the standard component
+  contract (ARIA region, config badge `CONF 3/5/10 t1`,
+  onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.746 -> 1.11.747.
+
 ## [1.11.746] - 2026-05-26 -- UI: chart-line-vsa primitive (TODO 11.728)
 
 ### Added
