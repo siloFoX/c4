@@ -500,3 +500,4 @@ export * from './chart-line-kc-width';
 export * from './chart-line-atr-band';
 export * from './chart-line-momentum-roc';
 export * from './chart-line-elder-force';
+export * from './chart-line-pivot-camarilla';
