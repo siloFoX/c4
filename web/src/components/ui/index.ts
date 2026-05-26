@@ -473,3 +473,4 @@ export * from './chart-line-ehlers-supersmoother';
 export * from './chart-line-center-of-gravity';
 export * from './chart-line-laguerre-poly';
 export * from './chart-line-ad-line';
+export * from './chart-line-delta-volume';
