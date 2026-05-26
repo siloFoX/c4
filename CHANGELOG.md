@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.873] - 2026-05-26 -- UI: chart-line-kama-cross primitive (TODO 11.855)
+
+Added `<ChartLineKamaCross />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with the Kaufman Adaptive Moving
+Average (top panel) and the close - KAMA deviation (bottom panel).
+Markers fire on every close-vs-KAMA crossover (up -> trending-up,
+down -> trending-down). The efficiency ratio (ER) maps how
+directional recent price action is, then weights the smoothing
+constant between fastSC = 2/(fastLength+1) and
+slowSC = 2/(slowLength+1) extremes: `SC = (ER*(fastSC-slowSC) +
+slowSC)^2`. Defaults `erLength = 10`, `fastLength = 2`,
+`slowLength = 30`. Seed convention: `KAMA[erLength] =
+close[erLength]`, so the seed bar lands `equal` and the next bar
+fires the first cross. Bit-exact anchors: CONST close (ER=0 ->
+SC=slowSC^2, KAMA stays K forever, 0 crosses); LINEAR UP close
+(ER=1, SC=fastSC^2 < 1, KAMA lags by 1-fastSC^2 > 0, exactly
+1 up cross); LINEAR DOWN (mirror, exactly 1 down cross). Bottom
+deviation panel has a dashed zero reference. ARIA region +
+img-role SVG + sr-only desc; markers carry `role="graphics-
+symbol"` + `tabIndex={0}` and `data-kind`; motion-safe fade-in.
+72 vitest cases including integration anchors across `erLength
+in {3, 5, 7}`.
+
 ## [1.11.872] - 2026-05-26 -- UI: chart-line-vwap-cross primitive (TODO 11.854)
 
 Added `<ChartLineVwapCross />` -- pure-SVG dual-panel React/TS
