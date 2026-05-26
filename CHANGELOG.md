@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.760] - 2026-05-26 -- UI: chart-line-relative-vigor primitive (TODO 11.742)
+
+### Added
+- `<ChartLineRelativeVigor>` -- pure-SVG two-panel chart with a
+  John Ehlers **Relative Vigor Index** panel. For each bar `i`:
+  ```
+  num_raw[i] = close[i] - open[i]
+  den_raw[i] = high[i]  - low[i]
+  SWMA(x, i) = (x[i] + 2 * x[i-1] + 2 * x[i-2] + x[i-3]) / 6
+  num_smooth[i] = SWMA(num_raw, i)
+  den_smooth[i] = SWMA(den_raw, i)
+  RVI[i]    = SMA(num_smooth, period) / SMA(den_smooth, period)
+  Signal[i] = SWMA(RVI, i)
+  ```
+  A zero smoothed denominator nulls the bar. The first
+  `period + 2` bars are null on the RVI track; the signal track
+  needs three more.
+- Pure helpers: `computeLineRelativeVigorSwma` (4-bar 1/2/2/1
+  symmetric weighted average, divided by 6),
+  `computeLineRelativeVigorSma` (length-`period` simple moving
+  average), `computeLineRelativeVigor` (the full pipeline,
+  returning `{ rvi, signal }`), `classifyLineRelativeVigorZone`
+  (strong-up / up / flat / down / strong-down / none),
+  `runLineRelativeVigor`, `computeLineRelativeVigorLayout`,
+  `describeLineRelativeVigorChart`,
+  `getLineRelativeVigorFinitePoints`,
+  `normalizeLineRelativeVigorPeriod`,
+  `normalizeLineRelativeVigorThreshold`.
+- 77 vitest cases covering: the **CONSTANT_UP identity** (`open =
+  10, close = 20, high = 20, low = 10` -> `num_raw = den_raw = 10`
+  constant -> SWMA of constant `c = (c + 2c + 2c + c) / 6 = c`
+  bit-exact (integer 1/2/2/1 weights divide by 6 cleanly) -> SMA
+  of constant `c = c` bit-exact -> `RVI = 10 / 10 = 1` bit-exact at
+  every defined bar; signal `= 1` bit-exact too); the
+  **CONSTANT_DOWN mirror** (`open = 20, close = 10` -> `RVI = -1`
+  bit-exact); the **CONST_FLAT identity** (`open == high == low
+  == close == K` -> `num = den = 0` -> denominator below epsilon
+  -> RVI is null at every bar); the SWMA worked anchor (`[1,2,3,4]
+  -> (4 + 2*3 + 2*2 + 1) / 6 = 15 / 6 = 2.5` bit-exact); the SMA
+  integer-mean anchor (`[2,4,6,8] / 4 = 5` bit-exact);
+  translation invariance (`+1000` leaves RVI unchanged via the
+  zero-mean numerator); component coverage of legend toggle,
+  `showSignal=false`, ARIA description, badge text,
+  `onPointClick`, and forwardRef.
+- Component renders top panel (close line) and bottom panel (RVI
+  + signal lines, zone-coloured markers, zero line, `+/-
+  threshold` dashed lines), `arps` design-system tokens, ARIA
+  region / img / graphics-symbol roles, and `data-section` hooks
+  throughout.
+
 ## [1.11.759] - 2026-05-26 -- UI: chart-line-ulcer-index primitive (TODO 11.741)
 
 ### Added
