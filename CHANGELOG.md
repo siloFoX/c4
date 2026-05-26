@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.814] - 2026-05-26 -- UI: chart-line-cycle-strength primitive (TODO 11.796)
+
+### Added
+- `<ChartLineCycleStrength>` -- pure-SVG dual-panel React
+  primitive plotting the close on the top panel and a Cycle
+  Strength oscillator on the bottom panel. The oscillator
+  measures the amplitude of the lagged-difference (cycle)
+  component relative to total signal energy:
+  `detrended[i] = close[i] - close[i - cycleLag]`,
+  `cycleEnergy[i] = sum(detrended^2, length)`,
+  `totalEnergy[i] = sum(close^2, length)`,
+  `strength[i] = cycleEnergy[i] / totalEnergy[i]`.
+  Defaults: `length = 14`, `cycleLag = 7`. Bars before
+  `i = cycleLag + length - 1` are warmup nulls. When the close
+  is all-zero over the window the strength is null (divide-by-
+  zero guard).
+- Bit-exact algebraic anchor: CONST close (any K != 0) -> every
+  detrended = 0 -> cycleEnergy = 0 -> strength = 0 exactly past
+  warmup, regardless of K's sign or magnitude. The integration
+  sweep verifies this across many K, length, and cycleLag
+  combinations. CONST close = 0 is the singular all-null case.
+- Zone classifier: cyclic (>= 0.5) / mixed (0.1..0.5) / trending
+  (< 0.1) / flat (== 0) / none.
+- ARIA region + img-role SVG with screen-reader description
+  spelling out the formula. Legend supports controlled +
+  uncontrolled + defaultHidden hidden state; markers / dots
+  respond to click + Enter + Space; tooltip surfaces close +
+  Cycle Strength + zone on hover and focus. Mid baseline at 0.5
+  in the strength panel.
+- 90 vitest cases covering finite coercion, length / cycleLag
+  normalization, detrended computation, computeLineCycleStrength
+  (warmup + CONST anchor + oscillating positivity + non-mutation
+  + NaN length fallback + null propagation), zone classifier,
+  run, layout (panel order + gap + baseline + marker count +
+  single-point graceful), description, the React surface, and
+  integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.814.
+
 ## [1.11.813] - 2026-05-26 -- UI: chart-line-range-osc primitive (TODO 11.795)
 
 ### Added
