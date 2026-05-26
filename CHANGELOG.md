@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.850] - 2026-05-26 -- UI: chart-line-fractal-kc primitive (TODO 11.832)
+
+Added `<ChartLineFractalKc />` -- pure-SVG single-panel React/TS
+primitive overlaying a fractal-anchored Keltner Channel envelope on
+a price line. The channel middle reseeds off the most recently
+confirmed Bill Williams 5-bar fractal pivots (mid = pivot midpoint
+when both directions are available, single pivot when only one is,
+else close); Wilder's ATR provides the channel half-width. Defaults:
+`atrLength = 14`, `fractalLookback = 2`, `multiplier = 2`. The
+Wilder helper now seeds with the exact input value when the seed
+window is constant (`min === max`) to avoid 1-ULP drift when the
+constant is non-dyadic under length not a power of 2; the CONST
+short-circuit then preserves the constant through the recursive
+smoothing. Bit-exact anchors: `CONST h = l = close = K` ->
+`upper = lower = mid = K` (TR=0, ATR=0, no fractals); `CONSTANT-SPREAD
+high = K + D, low = K, close = K + D/2` -> `upper = K + D/2 + m*D`,
+`lower = K + D/2 - m*D` bit-exact (TR=D from index 0, ATR=D, no
+fractals). LINEAR data is NOT bit-exact because TR[0] = 0 breaks
+the constant-TR invariant; CONSTANT-SPREAD restores it. Surface:
+`runLineFractalKc / computeLineFractalKcLayout /
+describeLineFractalKcChart` plus `ChartLineFractalKc` forwardRef
+with four legend toggles (`price`, `upper`, `mid`, `lower`), config
+badge, dashed mid line, fractal-pivot scatter markers, and tooltip
+surfacing `close / upper / mid / lower / atr / lastUF / lastLF /
+zone / cross`. 72 vitest cases.
+
 ## [1.11.849] - 2026-05-26 -- UI: chart-line-trix-double-smoothed primitive (TODO 11.831)
 
 Added `<ChartLineTrixDoubleSmoothed />` -- pure-SVG dual-panel
