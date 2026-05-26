@@ -531,3 +531,4 @@ export * from './chart-line-atr-multiplier';
 export * from './chart-line-atr-ratio';
 export * from './chart-line-stoch-fast';
 export * from './chart-line-absolute-momentum';
+export * from './chart-line-range-bias';
