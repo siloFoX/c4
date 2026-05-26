@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.818] - 2026-05-26 -- UI: chart-line-hilbert-instant primitive (TODO 11.800)
+
+### Added
+- `<ChartLineHilbertInstant>` -- pure-SVG dual-panel React
+  primitive plotting the close on the top panel and a Hilbert-
+  Transform-inspired Instantaneous Trendline on the bottom panel.
+  Formula: 4-bar WMA-smoothed close minus its lagged value.
+  `smoothed[i] = (4*c[i] + 3*c[i-1] + 2*c[i-2] + c[i-3]) / 10`
+  (weights sum to 10);
+  `instant[i] = smoothed[i] - smoothed[i - lag]`.
+  Defaults: `lag = 6`. Bars before `i = 3 + lag` are warmup
+  nulls.
+- Bit-exact algebraic anchors:
+  - CONST close (any K) -> smoothed = K exactly -> instant = 0
+    exactly past warmup. Integration sweep covers many K and lag.
+  - RAMP close = a*i (integer a != 0) -> smoothed = a*(i-1)
+    bit-exact (numerator `10*i - 10` is exact integer multiple of
+    10) -> instant = a*lag bit-exact past warmup. Integration
+    sweep covers `a` in `{1, 2, 3, -1, -5}` and `lag` in
+    `{2, 4, 6, 10}`.
+- Zone classifier (strong-up >= 50% of abs max / up / flat ==
+  0 / down / strong-down <= -50% / none) with sane fallback when
+  abs-max is zero. ARIA region + img-role SVG with screen-reader
+  description spelling out the formula. Legend supports
+  controlled + uncontrolled + defaultHidden hidden state;
+  markers / dots respond to click + Enter + Space; tooltip
+  surfaces close + smoothed + instant + zone on hover and focus.
+  Zero baseline dashed reference line.
+- 88 vitest cases covering finite coercion, lag normalization,
+  WMA smoothing helper (CONST + RAMP bit-exact),
+  computeLineHilbertInstant (warmup + CONST 0 + RAMP a*lag +
+  non-mutation + NaN lag fallback + null propagation), zone
+  classifier, run, layout, description, the React surface, and
+  integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.818.
+
 ## [1.11.817] - 2026-05-26 -- UI: chart-line-spike-detector primitive (TODO 11.799)
 
 ### Added
