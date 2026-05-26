@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.730] - 2026-05-26 -- UI: chart-line-vfi primitive (TODO 11.712)
+
+New **ChartLineVfi** UI primitive in
+`web/src/components/ui/chart-line-vfi.tsx`: pure-SVG two-panel
+line chart with a Markos Katsanos Volume Flow Indicator panel
+from cumulative signed volume relative to its mean.
+
+computeLineVfiTypical takes the bar typical `(high + low + close)
+/ 3`. computeLineVfiSignedVolume signs each bar's volume by the
+direction of the typical change from the prior bar: positive when
+it rose, negative when it fell, zero when it held. computeLineVfi
+divides the cumulative signed volume over the lookback by the
+cumulative volume over the same window and scales to 100 -- a
+bounded ratio that reads +100 when every bar in the window was an
+up bar, -100 when every bar was a down bar, and 0 when up and
+down volume balanced. classifyLineVfiZone marks each bar by the
+sign of the indicator.
+
+runLineVfi sorts the finite bars by x, runs the pipeline, and
+returns per-bar samples with the typical, the VFI and the zone,
+with the zone counts. computeLineVfiLayout stacks a close panel
+above a VFI panel fixed to a [-100, 100] band with a zero line.
+
+ChartLineVfi renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Close / VFI) and a
+hover/focus tooltip. Controlled and uncontrolled series
+visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 76 vitest cases: the signed-volume sum is integer
+arithmetic, so an all-up series pins to +100, an all-down series
+to -100, a flat-typical series to 0, and an alternating fixture
+to the exact integer series [60, 0, 60, 0, 60].
+
 ## [1.11.729] - 2026-05-22 -- UI: chart-line-elder-thermo primitive (TODO 11.711)
 
 New **ChartLineElderThermo** UI primitive in
