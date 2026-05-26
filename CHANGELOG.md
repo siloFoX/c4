@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.872] - 2026-05-26 -- UI: chart-line-vwap-cross primitive (TODO 11.854)
+
+Added `<ChartLineVwapCross />` -- pure-SVG dual-panel React/TS
+primitive overlaying the anchored VWAP on the close (top panel)
+and the close - VWAP deviation (bottom panel). Markers fire at
+every close-vs-VWAP cross (up -> bullish bias, down -> bearish
+bias). Anchor reset supported via per-point `anchor` flag: when
+true, cumulative sum(typical*volume) and sum(volume) restart, the
+cross detector suppresses that bar, and the renderer breaks
+VWAP / deviation paths into separate session subpaths with
+dashed vertical reset markers. Bit-exact anchors: CONST h=l=close
+-> deviation=0 forever -> zero crosses; LINEAR UP h=l=close=i+1
+-> VWAP=(i+2)/2 -> deviation=i/2 -> exactly one up cross at i=1;
+LINEAR DOWN -> mirror, one down cross at i=1; two-session anchor
+test fires exactly two up crosses (one per session). 62 vitest
+cases including bit-exact assertions on every deviation value.
+ARIA region + img-role SVG + sr-only desc; markers carry
+`role="graphics-symbol"` + `tabIndex={0}` and `data-kind`;
+motion-safe fade-in.
+
 ## [1.11.871] - 2026-05-26 -- UI: chart-line-obv-cross primitive (TODO 11.853)
 
 Added `<ChartLineObvCross />` -- pure-SVG dual-panel React/TS
