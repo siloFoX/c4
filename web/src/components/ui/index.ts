@@ -459,3 +459,4 @@ export * from './chart-line-chande-kroll';
 export * from './chart-line-kaufman-efficiency';
 export * from './chart-line-kase-peak';
 export * from './chart-line-connors-rsi';
+export * from './chart-line-williams-vix-fix';

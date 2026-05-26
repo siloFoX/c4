@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.768] - 2026-05-26 -- UI: chart-line-williams-vix-fix primitive (TODO 11.750)
+
+### Added
+- `<ChartLineWilliamsVixFix>` -- pure-SVG two-panel chart with a
+  Larry Williams **VIX Fix** panel. For each bar `i >= period -
+  1`:
+  ```
+  hh[i]   = max(close over [i - period + 1, i])
+  WVF[i]  = 100 * (hh[i] - low[i]) / hh[i]
+  ```
+  Bars with a non-positive `hh` or any non-finite close in the
+  window are null. The first `period - 1` bars are null.
+- Pure helpers: `computeLineWilliamsVixFix`,
+  `classifyLineWilliamsVixFixZone` (spike / elevated / normal /
+  zero / none ladder against `threshold` and `2 * threshold`),
+  `runLineWilliamsVixFix`,
+  `computeLineWilliamsVixFixLayout`,
+  `describeLineWilliamsVixFixChart`,
+  `getLineWilliamsVixFixFinitePoints`,
+  `normalizeLineWilliamsVixFixPeriod`,
+  `normalizeLineWilliamsVixFixThreshold`.
+- 65 vitest cases covering: the **CONST_FLAT identity** (`low ==
+  close == K` -> `hh = K = low` -> `WVF = 0` bit-exact at every
+  defined bar); the **RISING low == close identity** (`hh = i +
+  10 = low` -> `WVF = 0` bit-exact); the **SPIKE_50 anchor**
+  (closes constant 20, low at the last bar drops to 10 -> `hh =
+  20, low = 10` -> `WVF = 100 * 10 / 20 = 50` bit-exact); the
+  **SPIKE_25 anchor** (low = 15 -> `WVF = 100 * 5 / 20 = 25`
+  bit-exact); non-positive `hh` and non-finite close in the
+  window null the bar; scale invariance (`*100` on close and low
+  leaves WVF unchanged via the ratio); WVF bounded `[0, 100]` on
+  the wave; layout / component / ARIA / data-section hooks all
+  covered.
+- Component renders top panel (close line) and bottom panel (WVF
+  line, zone-coloured markers, zero reference line, dashed
+  `threshold` reference line), `arps` design-system tokens,
+  ARIA region / img / graphics-symbol roles, and `data-section`
+  hooks throughout.
+
 ## [1.11.767] - 2026-05-26 -- UI: chart-line-connors-rsi primitive (TODO 11.749)
 
 ### Added
