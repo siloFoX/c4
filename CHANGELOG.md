@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.761] - 2026-05-26 -- UI: chart-line-ichimoku-tenkan primitive (TODO 11.743)
+
+### Added
+- `<ChartLineIchimokuTenkan>` -- pure-SVG single-panel chart with
+  an Ichimoku Kinko Hyo **Tenkan-sen** (conversion line) overlay.
+  For each bar `i` with a filled lookback `period` (default 9):
+  ```
+  HH        = max(high over [i - period + 1, i])
+  LL        = min(low  over [i - period + 1, i])
+  tenkan[i] = (HH + LL) / 2
+  ```
+  The first `period - 1` bars are null.
+- Pure helpers: `computeLineIchimokuTenkan`,
+  `classifyLineIchimokuTenkanZone` (above-tenkan / at-tenkan /
+  below-tenkan / none), `runLineIchimokuTenkan`,
+  `computeLineIchimokuTenkanLayout`,
+  `describeLineIchimokuTenkanChart`,
+  `getLineIchimokuTenkanFinitePoints`,
+  `normalizeLineIchimokuTenkanPeriod`.
+- 66 vitest cases covering: the **CONST_FLAT identity** (`high ==
+  low == K` -> `HH == LL == K` -> `tenkan = K` bit-exact at every
+  defined bar); the **integer-ramp identity** (`high == low == i +
+  10` period 4 -> `HH = i + 10`, `LL = i + 7`, `tenkan = i + 8.5`
+  exactly dyadic -- `(2i + 17) / 2`); the **falling-ramp mirror**
+  (`high == low == 19 - i` period 4 -> `tenkan = 20.5 - i`
+  bit-exact dyadic); period 2 (`tenkan = i + 9.5`); period 1
+  (`tenkan = high[i]` bit-exact); translation invariance (`+1000`
+  shifts tenkan by exactly 1000); non-finite high/low in the
+  window nulls the bar; layout emitting one marker per defined
+  bar contained in the panel, value domain spanning price +
+  Tenkan-sen; component coverage of legend toggle,
+  `showTenkan=false`, ARIA description, badge text,
+  `onPointClick`, and forwardRef.
+- Component renders price line + Tenkan-sen line + zone-coloured
+  markers (above / at / below the Tenkan-sen) + value-domain
+  axis labels, `arps` design-system tokens, ARIA region / img /
+  graphics-symbol roles, and `data-section` hooks throughout.
+
 ## [1.11.760] - 2026-05-26 -- UI: chart-line-relative-vigor primitive (TODO 11.742)
 
 ### Added
