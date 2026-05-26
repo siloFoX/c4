@@ -4,6 +4,31 @@
 
 (no entries -- next release window)
 
+## [1.11.793] - 2026-05-26 -- UI: chart-line-sinewave-trend primitive (TODO 11.775)
+
+### Added
+- `<ChartLineSinewaveTrend>` -- pure-SVG dual-panel chart with
+  the Ehlers Sinewave Trend oscillator panel beneath the close.
+  Two lines plotted in the bottom panel:
+  `phase = atan2(Q, I)`, `sine = sin(phase)`,
+  `leadSine = sin(phase + pi/4)`, where I and Q come from a
+  6-tap Hilbert FIR over the detrended close. Bit-exact anchor:
+  CONST_FLAT (close = K) -> FIR within ULPs of zero -> both
+  |I| and |Q| below PHASE_EPSILON = 1e-10 -> phase undefined
+  -> sine and leadSine both null at every bar past warmup
+  (verified K in {0, 1, 5, 10, 100, -3, 0.5}). Sine and lead
+  sine are bounded in `[-1, +1]` by construction. 81 vitest
+  cases (helpers, layout, ARIA, legend toggle, tooltip,
+  keyboard activation, sinusoid sanity).
+- Helpers exported via barrel:
+  `getLineSinewaveTrendFinitePoints`,
+  `applyLineSinewaveTrendHilbert`,
+  `computeLineSinewaveTrend`,
+  `classifyLineSinewaveTrendZone`,
+  `runLineSinewaveTrend`,
+  `computeLineSinewaveTrendLayout`,
+  `describeLineSinewaveTrendChart`.
+
 ## [1.11.792] - 2026-05-26 -- UI: chart-line-cycle-period primitive (TODO 11.774)
 
 ### Added
