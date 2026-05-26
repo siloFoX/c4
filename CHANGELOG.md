@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.852] - 2026-05-26 -- UI: chart-line-fractal-pivot primitive (TODO 11.834)
+
+Added `<ChartLineFractalPivot />` -- pure-SVG single-panel React/TS
+primitive marking confirmed Bill Williams n-bar swing-high and
+swing-low fractal pivots on a price line. Distinct from the other
+fractal primitives in this batch (11.815 BB, 11.832 KC, 11.833
+channel): pure marker overlay with no band, just scatter markers at
+each pivot. Defaults: `fractalLookback = 2`, `markerRadius = 5`,
+upperPivotColor `#ef4444`, lowerPivotColor `#22c55e`,
+`showLabels = false`. Bit-exact anchors:
+`CONST h = l = K` -> `upperPivotCount = lowerPivotCount = 0` (no
+fractals); LINEAR data -> 0 (monotonic, no fractals);
+`SAWTOOTH` with constant `peakK / troughL` period 4 -> deterministic
+pivot counts (`upper = lower = N / 4 - 1` for 20-bar input -> 4
+each); `pivotValue` equals `peakK` / `troughL` bit-exact. Surface:
+`runLineFractalPivot / computeLineFractalPivotLayout /
+describeLineFractalPivotChart` plus `ChartLineFractalPivot`
+forwardRef with three legend toggles, config badge with live pivot
+counts, optional price labels above/below markers, and tooltip
+surfacing `close / high / low / pivotKind / pivotValue`. Live pivot
+counts also exposed as `data-upper-pivots` / `data-lower-pivots`
+attributes. 64 vitest cases.
+
 ## [1.11.851] - 2026-05-26 -- UI: chart-line-fractal-channel primitive (TODO 11.833)
 
 Added `<ChartLineFractalChannel />` -- pure-SVG single-panel
