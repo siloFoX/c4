@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.742] - 2026-05-26 -- UI: chart-line-mahalanobis primitive (TODO 11.724)
+
+### Added
+- `<ChartLineMahalanobis>` -- pure-SVG two-panel chart with a
+  **Mahalanobis Distance** panel from the multivariate standardized
+  deviation off the rolling mean. Each bar carries a bivariate
+  feature vector `f = [value, return]`. For a rolling window of
+  `window` features ending at bar i, the sample mean vector `mu`
+  and the 2x2 sample covariance matrix `Sigma` (with the
+  `1/(window - 1)` normalization) are formed, and
+  `d(i) = sqrt((f[i] - mu)^T * Sigma^(-1) * (f[i] - mu))`. If
+  `det(Sigma)` is below the epsilon (constant series, linear ramps
+  -- the rolling features are collinear), the distance is left null
+  because the inverse is undefined. The top panel plots the price;
+  the bottom panel plots the distance with a dashed horizontal
+  threshold line.
+- Pure helpers: `computeLineMahalanobisFeatures`,
+  `computeLineMahalanobisStats`, `computeLineMahalanobisDistance`,
+  `computeLineMahalanobisRolling`, `classifyLineMahalanobisZone`,
+  `runLineMahalanobis`, `computeLineMahalanobisLayout`,
+  `describeLineMahalanobisChart`, `getLineMahalanobisFinitePoints`,
+  `normalizeLineMahalanobisWindow`,
+  `normalizeLineMahalanobisThreshold`, plus the
+  `CHART_LINE_MAHALANOBIS_DET_EPSILON` constant.
+- 83 vitest cases covering: the singular-cov anchors (constant
+  series -> null at every defined bar, linear ramp -> null at every
+  defined bar -- both because the bivariate features are
+  collinear); the worked symmetric anchor (the
+  `[[1, 0], [0, 1], [-1, -1]]` window with mean at origin and
+  sample cov `[[1, 0.5], [0.5, 1]]` -- the inverse is
+  `[[4/3, -2/3], [-2/3, 4/3]]`, so `d([1, 0]) = sqrt(4/3)` exact
+  to 10 places); zero-distance anchor (a point exactly at the
+  rolling mean -> distance 0); the **translation invariance**
+  anchor (shifting all values by `k` leaves every distance
+  within ULP -- the value-feature shifts cancel in `f - mu`,
+  the return feature is unchanged); the **scale invariance**
+  anchor (multiplying every value by 2 leaves the distance
+  within ULP -- `d^2` cancels `c^2` in the diff against `1/c^2`
+  in the inverse); warm-up window null; standard component
+  contract (ARIA region, config badge `MAHA 5/2`, onPointClick,
+  ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.741 -> 1.11.742.
+
 ## [1.11.741] - 2026-05-26 -- UI: chart-line-monte-carlo primitive (TODO 11.723)
 
 ### Added
