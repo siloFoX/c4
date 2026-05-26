@@ -421,3 +421,4 @@ export * from './chart-line-mesa-sine';
 export * from './chart-line-corrected-ma';
 export * from './chart-line-ergodic';
 export * from './chart-line-elder-thermo';
+export * from './chart-line-vfi';
