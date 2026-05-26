@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.776] - 2026-05-26 -- UI: chart-line-tema-cross primitive (TODO 11.758)
+
+### Added
+- `<ChartLineTemaCross>` -- pure-SVG single-panel chart with a
+  Triple-EMA fast-over-slow **crossover** overlay. For each
+  lookback `L`:
+  ```
+  ema1 = EMA(close, L)
+  ema2 = EMA(ema1, L)
+  ema3 = EMA(ema2, L)
+  TEMA = 3 * ema1 - 3 * ema2 + ema3
+  ```
+  Crosses are marked when the fast TEMA crosses the slow TEMA:
+  ```
+  upCross   at bar i: fast[i-1] <= slow[i-1] && fast[i] > slow[i]
+  downCross at bar i: fast[i-1] >= slow[i-1] && fast[i] < slow[i]
+  ```
+- Pure helpers: `computeLineTemaCrossEma`,
+  `computeLineTemaCrossTema`, `classifyLineTemaCrossZone`
+  (up-cross / down-cross / above / below / at / none),
+  `runLineTemaCross`, `computeLineTemaCrossLayout`,
+  `describeLineTemaCrossChart`,
+  `getLineTemaCrossFinitePoints`,
+  `normalizeLineTemaCrossLength`.
+- 60 vitest cases covering: **CONST_FLAT identity** (close ==
+  K -> ema1 = ema2 = ema3 = K -> TEMA = 3K - 3K + K = K bit
+  exact at every bar via integer coefficient cancellation,
+  holds at any length); CONST_FLAT_HIGH (close == 1000) with
+  the same identity; first-bar seed (TEMA[0] = close[0] bit
+  exact); translation invariance (`+1000` shifts TEMA by
+  exactly 1000 to 10dp); CONST_FLAT records zero crosses
+  (fast == slow at every bar -> `at` zone); PIVOT fixture (20
+  rising then 20 falling bars) triggers at least one
+  down-cross post-pivot; layout / component / ARIA /
+  data-section hooks all covered.
+- Component renders price line + fast TEMA line + slow TEMA
+  line + cross markers (up-cross / down-cross), `arps`
+  design-system tokens, ARIA region / img / graphics-symbol
+  roles, and `data-section` hooks throughout.
+
 ## [1.11.775] - 2026-05-26 -- UI: chart-line-jurik-ma primitive (TODO 11.757)
 
 ### Added
