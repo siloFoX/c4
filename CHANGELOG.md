@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.764] - 2026-05-26 -- UI: chart-line-chande-kroll primitive (TODO 11.746)
+
+### Added
+- `<ChartLineChandeKroll>` -- pure-SVG single-panel chart with
+  the **Chande-Kroll Stop** trailing-stop overlay. For each bar
+  `i`:
+  ```
+  TR[i]        = max(high - low,
+                     abs(high - prevClose),
+                     abs(low  - prevClose))
+  ATR[i]       = SMA(TR, atrPeriod)
+  stopHigh[i]  = high[i] - multiplier * ATR[i]
+  stopLow[i]   = low[i]  + multiplier * ATR[i]
+  longStop[i]  = max(stopHigh over stopPeriod-bar window)
+  shortStop[i] = min(stopLow  over stopPeriod-bar window)
+  ```
+  The first bar's TR uses `high - low` only. The first `atrPeriod
+  + stopPeriod - 2` bars are null on the trailing stops.
+- Pure helpers: `computeLineChandeKrollTrueRange`,
+  `computeLineChandeKrollSma`, `computeLineChandeKroll`,
+  `classifyLineChandeKrollZone` (above-short / between /
+  below-long / none), `runLineChandeKroll`,
+  `computeLineChandeKrollLayout`,
+  `describeLineChandeKrollChart`,
+  `getLineChandeKrollFinitePoints`,
+  `normalizeLineChandeKrollPeriod`,
+  `normalizeLineChandeKrollMultiplier`.
+- 72 vitest cases covering: the **CONST_FLAT identity** (`high
+  == low == close == K` -> every `TR == 0` -> `ATR == 0` -> both
+  stops collapse to `K` bit-exact); the **STEADY_RANGE anchor**
+  (`high == 11, low == 9, close == 10` -> `TR == 2` at every bar
+  via the `high - low` term dominating -> `ATR == 2` bit-exact ->
+  `longStop = 11 - 2 = 9`, `shortStop = 9 + 2 = 11` bit-exact with
+  `multiplier = 1`); the **wider variant** (`high == 14, low ==
+  6, close == 10` -> `TR == 8` -> `longStop = 6, shortStop = 14`
+  bit-exact); the **multiplier scaling** (`mult = 2 -> longStop =
+  7, shortStop = 13`; `mult = 0 -> longStop = high, shortStop =
+  low`); the **TR worked anchor** (prev close = 5, high = 10,
+  low = 8 -> `hl = 2, hc = 5, lc = 3, TR = 5` bit-exact);
+  translation invariance (`+1000` shifts stops by exactly 1000);
+  non-finite OHLC nulls bar; long stop `<=` short stop; layout
+  emits two stub segments per defined bar (long + short); markers
+  contained in panel; component coverage of legend toggle,
+  `showShort=false`, ARIA description, badge text,
+  `onPointClick`, and forwardRef.
+- Component renders price line + long-stop line + short-stop
+  line + per-bar stub segments + zone-coloured markers, `arps`
+  design-system tokens, ARIA region / img / graphics-symbol
+  roles, and `data-section` hooks throughout.
+
 ## [1.11.763] - 2026-05-26 -- UI: chart-line-chande-momentum primitive (TODO 11.745)
 
 ### Added
