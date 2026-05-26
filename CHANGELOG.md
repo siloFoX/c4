@@ -4,6 +4,31 @@
 
 (no entries -- next release window)
 
+## [1.11.784] - 2026-05-26 -- UI: chart-line-squeeze-momentum primitive (TODO 11.766)
+
+### Added
+- `<ChartLineSqueezeMomentum>` -- pure-SVG dual-panel chart with
+  a LazyBear Squeeze Momentum oscillator panel beneath the
+  close. The oscillator is the linear regression of
+  `close - avg(avg(highest, lowest), sma(close))` over a length
+  window (default 20). Bit-exact anchors: CONST_FLAT collapses
+  to `val = 0` past warmup at any K (verified across
+  `(K, length) in {0,1,5,50,-10,100} x {3,5,10,20}`); linreg
+  of constants returns the constant; linreg of zeros is zero;
+  linreg of `[0,1,...,n-1]` returns `n - 1`. Translation
+  invariance under uniform OHLC shift. 96 vitest cases
+  (helpers, layout, ARIA, legend toggle, tooltip, keyboard
+  activation).
+- Helpers exported via barrel:
+  `getLineSqueezeMomentumFinitePoints`,
+  `normalizeLineSqueezeMomentumLength`,
+  `computeLineSqueezeMomentumLinreg`,
+  `computeLineSqueezeMomentum`,
+  `classifyLineSqueezeMomentumZone`,
+  `runLineSqueezeMomentum`,
+  `computeLineSqueezeMomentumLayout`,
+  `describeLineSqueezeMomentumChart`.
+
 ## [1.11.783] - 2026-05-26 -- UI: chart-line-swing-index primitive (TODO 11.765)
 
 ### Added
