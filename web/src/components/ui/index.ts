@@ -552,3 +552,4 @@ export * from './chart-line-relative-vigor-signal';
 export * from './chart-line-sma-cross';
 export * from './chart-line-ema-cross';
 export * from './chart-line-momentum-cross';
+export * from './chart-line-donchian-cross';
