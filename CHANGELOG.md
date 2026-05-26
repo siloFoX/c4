@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.888] - 2026-05-26 -- UI: chart-line-macd-cross-pct primitive (TODO 11.870)
+
+Added `<ChartLineMacdCrossPct />` -- pure-SVG dual-panel React/TS
+primitive plotting the MACD percent oscillator beneath a price
+line. The MACD difference (ema1 - ema2) is scaled to the close
+so the resulting series is comparable across instruments at
+different price magnitudes: `macdPct = MACD / close * 100`.
+Single oscillator (no signal line) with regime classifier
+`above` / `below` / `at` / `none`. Defaults classic MACD periods
+`fastLength = 12`, `slowLength = 26`. Bit-exact anchor: CONST
+close = K (K > 0) -> every EMA collapses to K via SMA-seeded
+min===max precision fix -> macd = 0, macdPct = 0 / K * 100 = 0,
+regime `at` (verified across multiple K and (fast, slow)
+tuples). CONST K = 0 triggers the divide-by-zero guard ->
+macdPct = null. LINEAR UP / DOWN yields macd > 0 / macd < 0.
+Oscillator axis always includes zero with a dashed reference
+line. ARIA region + img-role SVG + sr-only desc; motion-safe
+fade-in. 54 vitest cases.
+
 ## [1.11.887] - 2026-05-26 -- UI: chart-line-vroc-pct primitive (TODO 11.869)
 
 Added `<ChartLineVrocPct />` -- pure-SVG dual-panel React/TS
