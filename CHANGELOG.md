@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.807] - 2026-05-26 -- UI: chart-line-momentum-roc primitive (TODO 11.789)
+
+### Added
+- `<ChartLineMomentumRoc>` -- pure-SVG dual-panel React primitive
+  that plots the close on the top panel and the Rate-of-Change
+  (ROC) momentum oscillator on the bottom panel:
+  `ROC[i] = (close[i] - close[i - length]) / close[i - length] * 100`.
+  Defaults: `length = 10`. Bars before `i = length` are warmup nulls
+  (need a valid lookback close). When the lookback close is zero
+  ROC is null. `-0` from `0 / negative_K` normalized to `+0`.
+- Bit-exact algebraic anchors:
+  - CONST close (`K != 0`) -> ROC = 0 exactly past warmup. Sweep
+    covers positive and negative K and several lengths.
+  - GEOMETRIC close = 2^i -> ROC = `(2^length - 1) * 100`
+    bit-exact past warmup. Sweep covers length in `{2, 3, 4, 5}`
+    (powers of 2 stay exact in IEEE 754).
+  - CONST close = 0 is the singular case (all-null ROC).
+- Zone classifier: strong-up (>= 10) / above (0..10) / at (== 0) /
+  below (-10..0) / strong-down (<= -10) / none. ARIA region +
+  img-role SVG with screen-reader description spelling out the
+  formula. Legend supports controlled + uncontrolled +
+  defaultHidden hidden state; markers / dots respond to click +
+  Enter + Space; tooltip surfaces close + ROC + zone on hover and
+  focus. Zero baseline dashed reference line.
+- 87 vitest cases covering finite coercion, length normalization,
+  computeLineMomentumRoc (warmup + CONST K != 0 + CONST K = 0 +
+  GEOMETRIC bit-exact + non-mutation + length 1 + null close
+  propagation + NaN length fallback), zone classifier, run, layout
+  (panel order + gap + baseline containment + marker count),
+  description, the React surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.807.
+
 ## [1.11.806] - 2026-05-26 -- UI: chart-line-atr-band primitive (TODO 11.788)
 
 ### Added
