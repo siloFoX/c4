@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.769] - 2026-05-26 -- UI: chart-line-trix-signal primitive (TODO 11.751)
+
+### Added
+- `<ChartLineTrixSignal>` -- pure-SVG two-panel chart with a
+  Jack Hutson **TRIX + signal** panel. For each bar `i`:
+  ```
+  ema1[i] = EMA(log(close), period)
+  ema2[i] = EMA(ema1, period)
+  ema3[i] = EMA(ema2, period)
+  TRIX[i] = 10000 * (ema3[i] - ema3[i - 1])
+  Signal[i] = EMA(TRIX, signalPeriod)
+  ```
+  EMAs seed at `EMA[0] = input[0]` with `alpha = 2 / (length +
+  1)`. The first bar is null on the TRIX (no prior `ema3`).
+- Pure helpers: `computeLineTrixSignalEma`,
+  `computeLineTrixSignal`, `classifyLineTrixSignalZone`
+  (strong-bull / bull / flat / bear / strong-bear / none),
+  `runLineTrixSignal`, `computeLineTrixSignalLayout`,
+  `describeLineTrixSignalChart`,
+  `getLineTrixSignalFinitePoints`,
+  `normalizeLineTrixSignalLength`,
+  `normalizeLineTrixSignalThreshold`.
+- 67 vitest cases covering: the **CONST_FLAT identity** (`close
+  == K > 0` -> `log(K)` constant -> EMA-of-constant lemma forces
+  `ema1 = ema2 = ema3 = log(K)` -> `TRIX = 10000 * 0 = 0`
+  bit-exact at every defined bar, `Signal = EMA(0) = 0`
+  bit-exact); the **CONST_FLAT_HIGH variant** (`close == 1000`)
+  with the same identity; the **EMA-of-constant identity** (any
+  constant -> EMA = constant exactly); the **EMA-of-zero
+  identity**; first-value seed bit-exact; RISING -> positive
+  TRIX, FALLING -> negative TRIX; scale invariance (`*100`
+  leaves TRIX unchanged via `log(k * c) = log(k) + log(c)` and
+  the bar-over-bar difference cancelling the additive constant);
+  non-positive close drops the bar; layout / component / ARIA /
+  data-section hooks all covered.
+- Component renders top panel (close line) and bottom panel
+  (TRIX line + dashed signal line + zone-coloured markers +
+  zero reference line + dashed `+/- threshold` reference lines),
+  `arps` design-system tokens, ARIA region / img /
+  graphics-symbol roles, and `data-section` hooks throughout.
+
 ## [1.11.768] - 2026-05-26 -- UI: chart-line-williams-vix-fix primitive (TODO 11.750)
 
 ### Added
