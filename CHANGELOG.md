@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.791] - 2026-05-26 -- UI: chart-line-hilbert-cycle primitive (TODO 11.773)
+
+### Added
+- `<ChartLineHilbertCycle>` -- pure-SVG dual-panel chart with
+  a Hilbert Transform cycle oscillator panel beneath the close.
+  The cycle is the SMA-smoothed Quadrature component of the
+  analytic signal: 6-tap Hilbert FIR (Ehlers coefficients
+  `0.0962, 0.5769`) produces a detrender; In-Phase is the
+  detrender delayed by 3 bars; Quadrature is the FIR applied to
+  the detrender; both are SMA-smoothed over `smoothLength`
+  (default 4). Bit-exact anchor: CONST_FLAT K=0 -> cycle = 0
+  bit-exact past warmup `11 + smoothLength` (verified across
+  smoothLength in {1,2,4,6,10}); CONST_FLAT K!=0 -> cycle ~ 0
+  to numerical tolerance. InPhase exposed as secondary
+  togglable series. 93 vitest cases (helpers, layout, ARIA,
+  legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineHilbertCycleFinitePoints`,
+  `normalizeLineHilbertCycleLength`,
+  `applyLineHilbertCycleFir`, `applyLineHilbertCycleSma`,
+  `computeLineHilbertCycle`, `classifyLineHilbertCycleZone`,
+  `runLineHilbertCycle`, `computeLineHilbertCycleLayout`,
+  `describeLineHilbertCycleChart`.
+
 ## [1.11.790] - 2026-05-26 -- UI: chart-line-ehlers-dominant-cycle primitive (TODO 11.772)
 
 ### Added
