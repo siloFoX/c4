@@ -569,3 +569,4 @@ export * from './chart-line-trix-cross';
 export * from './chart-line-stoch-rsi-cross';
 export * from './chart-line-psar-cross';
 export * from './chart-line-supertrend-cross';
+export * from './chart-line-hma-pct';

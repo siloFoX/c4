@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.878] - 2026-05-26 -- UI: chart-line-hma-pct primitive (TODO 11.860)
+
+Added `<ChartLineHmaPct />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with the Hull Moving Average
+(top panel) and the HMA percent deviation `(close - HMA) /
+HMA * 100` (bottom panel). Regime classifier: `above`
+(hmaPct > 0), `below` (< 0), `at` (= 0), `none` (null).
+Defaults `length = 9` (classic Hull period). The WMA helper
+carries a `min === max` window-constant precision fix; CONST
+close = K (K > 0) collapses every WMA in the chain to K
+bit-exactly so HMA = K and hmaPct = 0 (verified across
+multiple K and length tuples). CONST K = 0 triggers the
+divide-by-zero guard -> hmaPct = null. The Hull formula's
+property of perfectly tracking linear series gives near-zero
+hmaPct for LINEAR UP / DOWN (small 1-ULP drift due to the
+non-dyadic 1/3 intermediates; test tolerance 1e-10). Bottom
+panel has a dashed zero reference. ARIA region + img-role
+SVG + sr-only desc; motion-safe fade-in. 60 vitest cases.
+
 ## [1.11.877] - 2026-05-26 -- UI: chart-line-supertrend-cross primitive (TODO 11.859)
 
 Added `<ChartLineSupertrendCross />` -- pure-SVG dual-panel
