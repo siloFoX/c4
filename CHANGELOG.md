@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.796] - 2026-05-26 -- UI: chart-line-stoch-signal primitive (TODO 11.778)
+
+### Added
+- `<ChartLineStochSignal>` -- pure-SVG dual-panel chart with
+  the classic Stochastic Oscillator (%K) and its SMA signal
+  line (%D) beneath the close.
+  `%K = 100*(close - lowest) / (highest - lowest)` over
+  kPeriod bars, `%D = SMA(%K, dPeriod)`. Defaults: kPeriod=14,
+  dPeriod=3, overbought=80, oversold=20. Bit-exact anchors:
+  close-at-high -> %K=100 and %D=100 (verified 20 combos
+  `(range, kPeriod) in {1,2,5,10,100} x {5,7,14,21}`);
+  close-at-low -> %K=0 and %D=0 same combos; close-at-midpoint
+  -> %K=50 and %D=50 across dyadic ranges `{2,4,8,16}` and
+  kPeriod `{5,7,14,21}`. CONST_HL -> null (singular HH=LL).
+  %K bounded `[0, 100]`. 94 vitest cases (helpers, layout,
+  ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineStochSignalFinitePoints`,
+  `normalizeLineStochSignalLength`,
+  `applyLineStochSignalSma`, `computeLineStochSignal`,
+  `classifyLineStochSignalZone`, `runLineStochSignal`,
+  `computeLineStochSignalLayout`,
+  `describeLineStochSignalChart`.
+
 ## [1.11.795] - 2026-05-26 -- UI: chart-line-tsi-signal primitive (TODO 11.777)
 
 ### Added
