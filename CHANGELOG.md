@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.836] - 2026-05-26 -- UI: chart-line-atr-multiplier primitive (TODO 11.818)
+
+Added `<ChartLineAtrMultiplier />` -- pure-SVG dual-panel React/TS
+primitive plotting a normalized volatility ratio
+`closeRange(length) / atr(atrLength)` beneath the close. High ratios
+indicate trending regimes; low ratios indicate chop. Defaults:
+`length = 14`, `atrLength = 14`, `highThreshold = 1.5`, `lowThreshold
+= 0.5`. Zones: high / normal / low / flat / none. Markers fire on
+high-zone entries (up) and low-zone entries (down).
+
+Bit-exact anchors: CONST `h = l = c = K` -> `closeRange = 0`, `atr =
+0` -> `ratio = null` everywhere via divide-by-zero guard across `K in
+{0, 1, 5, 100, -3}` and `length in {3, 4, 7, 10}`; LINEAR
+`close = k + 1` with `high = low = close` -> after ATR warmup
+(`tr[0] = 0` falls out of window) `atr = 1` exactly, and rolling
+`closeRange` over a unit-step sequence of `length` bars is exactly
+`length - 1`, so `ratio = (length - 1) / 1 = length - 1`
+(integer-exact). Verified for `length in {4, 5, 7, 10}`. 77 vitest
+cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.818-ui-chart-line-atr-multiplier.md`.
+
 ## [1.11.835] - 2026-05-26 -- UI: chart-line-bb-fisher primitive (TODO 11.817)
 
 Added `<ChartLineBbFisher />` -- pure-SVG dual-panel React/TS primitive
