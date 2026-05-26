@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.772] - 2026-05-26 -- UI: chart-line-adx-di-minus primitive (TODO 11.754)
+
+### Added
+- `<ChartLineAdxDiMinus>` -- pure-SVG two-panel chart with the
+  Wilder **-DI** directional indicator (SMA-smoothed). Mirror
+  of the v1.11.771 +DI primitive showing the negative
+  directional movement over the true range scaled to 100.
+- Pure helpers: `computeLineAdxDiMinusSma`,
+  `computeLineAdxDiMinus`, `classifyLineAdxDiMinusZone` (strong
+  / bear / weak / none), `runLineAdxDiMinus`,
+  `computeLineAdxDiMinusLayout`,
+  `describeLineAdxDiMinusChart`,
+  `getLineAdxDiMinusFinitePoints`,
+  `normalizeLineAdxDiMinusPeriod`,
+  `normalizeLineAdxDiMinusThreshold`.
+- 65 vitest cases covering: **CONST_FLAT identity** -> null;
+  **RISING anchor** (`high == low == close == i + 10`) ->
+  -DI = 0 bit-exact; **FALLING anchor** (`high == low == close
+  == 19 - i`) -> -DI = 100 bit-exact; **FALLING_HALF anchor**
+  (`low == close == 19 - i, high == 21 - i`) -> -DI = 50
+  bit-exact via `minusDM = 1, TR = 2`; translation invariance
+  (`+1000` leaves -DI unchanged); -DI bounded `[0, 100]` on
+  the wave; layout / component / ARIA / data-section hooks
+  all covered.
+- Component renders top panel (close line) and bottom panel
+  (-DI line + zone-coloured markers + zero reference line +
+  dashed `threshold` and `2 * threshold` reference lines),
+  `arps` design-system tokens, ARIA region / img /
+  graphics-symbol roles, and `data-section` hooks throughout.
+
 ## [1.11.771] - 2026-05-26 -- UI: chart-line-adx-di-plus primitive (TODO 11.753)
 
 ### Added
