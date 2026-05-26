@@ -437,3 +437,4 @@ export * from './chart-line-mahalanobis';
 export * from './chart-line-vama';
 export * from './chart-line-volatility-stop';
 export * from './chart-line-rocket-rsi';
+export * from './chart-line-vsa';
