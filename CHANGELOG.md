@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.735] - 2026-05-26 -- UI: chart-line-trend-trigger primitive (TODO 11.717)
+
+New **ChartLineTrendTrigger** UI primitive in
+`web/src/components/ui/chart-line-trend-trigger.tsx`: pure-SVG
+two-panel line chart with a Trend Trigger Factor panel comparing
+buying power against selling power across two lookbacks.
+
+computeLineTrendTrigger reads, per bar, the highs and lows of the
+recent `period` bars and the prior `period` bars, takes
+BP = recentHigh - priorLow and SP = priorHigh - recentLow, and
+returns the TTF = 100 * (BP - SP) / ((BP + SP) / 2). A zero
+denominator (a flat market) yields null.
+classifyLineTrendTriggerZone marks each bar by the TTF against
+plus or minus the trigger level.
+
+runLineTrendTrigger sorts the finite bars by x, runs the
+pipeline, and returns per-bar samples with the BP, SP, TTF and
+the zone, with the zone counts. computeLineTrendTriggerLayout
+stacks a midpoint panel above a TTF panel with the +/- trigger
+level reference lines and a zero baseline.
+
+ChartLineTrendTrigger renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Midpoint / TTF) and a
+hover/focus tooltip. Controlled and uncontrolled series
+visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 70 vitest cases: the TTF is pure rational arithmetic,
+so a strictly rising ramp at period 3 gives TTF = +300 on every
+defined bar, a strictly falling ramp gives -300, and a constant
+series collapses BP and SP to zero so the TTF is null.
+
 ## [1.11.734] - 2026-05-26 -- UI: chart-line-rmta primitive (TODO 11.716)
 
 New **ChartLineRmta** UI primitive in

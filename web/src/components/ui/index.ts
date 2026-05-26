@@ -426,3 +426,4 @@ export * from './chart-line-vroc';
 export * from './chart-line-stiffness';
 export * from './chart-line-snr';
 export * from './chart-line-rmta';
+export * from './chart-line-trend-trigger';
