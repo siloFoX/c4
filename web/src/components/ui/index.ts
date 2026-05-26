@@ -486,3 +486,4 @@ export * from './chart-line-hilbert-cycle';
 export * from './chart-line-cycle-period';
 export * from './chart-line-sinewave-trend';
 export * from './chart-line-trend-quality';
+export * from './chart-line-tsi-signal';

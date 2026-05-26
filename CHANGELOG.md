@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.795] - 2026-05-26 -- UI: chart-line-tsi-signal primitive (TODO 11.777)
+
+### Added
+- `<ChartLineTsiSignal>` -- pure-SVG dual-panel chart with the
+  Blau True Strength Index and its EMA signal line beneath the
+  close. Doubly smoothed momentum over doubly smoothed absolute
+  momentum: `TSI = 100 * EMA(EMA(mom, long), short) /
+  EMA(EMA(|mom|, long), short)`, with `Signal =
+  EMA(TSI, signalLength)`. Defaults: long=25, short=13,
+  signal=13, overbought=+25, oversold=-25. Bit-exact anchors:
+  RISING_BY_S -> TSI = +100 (both EMAs share identical ULP
+  drift on constant +S so ratio is exactly 1); FALLING_BY_S
+  -> TSI = -100; CONST_FLAT -> null (singular). Verified
+  across `S in {0.25, 0.5, 1, 2, 5, 10, 100}`. Signal of
+  constant TSI = ±100 settles to ±100 bit-exact. TSI bounded
+  in `[-100, +100]` by `|ema(mom)| <= ema(|mom|)`. 99 vitest
+  cases (helpers, layout, ARIA, legend toggle, tooltip,
+  keyboard activation).
+- Helpers exported via barrel:
+  `getLineTsiSignalFinitePoints`,
+  `normalizeLineTsiSignalLength`,
+  `applyLineTsiSignalEma`, `computeLineTsiSignal`,
+  `classifyLineTsiSignalZone`, `runLineTsiSignal`,
+  `computeLineTsiSignalLayout`,
+  `describeLineTsiSignalChart`.
+
 ## [1.11.794] - 2026-05-26 -- UI: chart-line-trend-quality primitive (TODO 11.776)
 
 ### Added
