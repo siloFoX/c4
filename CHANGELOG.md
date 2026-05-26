@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.844] - 2026-05-26 -- UI: chart-line-smi-double primitive (TODO 11.826)
+
+Added `<ChartLineSmiDouble />` -- pure-SVG dual-panel React/TS
+primitive plotting Blau's doubly-smoothed Stochastic Momentum Index
+beneath a price line. Re-centers the close on the lookback midpoint
+(half-range), divides by half the range, then double-EMA-smooths
+both numerator and denominator before scaling to `[-100, 100]`.
+Defaults: `length = 10`, `smoothLength1 = 3`, `smoothLength2 = 3`,
+`overbought = +40`, `oversold = -40`, smiColor `#db2777`
+(pink, distinct from prior stochastic primitives). Bit-exact
+anchors: `CONST` -> `range = 0` -> divide-by-zero guard returns
+`null`; `LINEAR UP` -> `smi = 100`; `LINEAR DOWN` -> `smi = -100`.
+The EMA helper uses an SMA-seeded EMA with the
+`next = v === prev ? v : alpha*v + (1-alpha)*prev` CONST short-circuit
+so constant streams survive both smoothing passes without 1-ULP
+drift. Surface: `runLineSmiDouble / computeLineSmiDoubleLayout /
+describeLineSmiDoubleChart` plus `ChartLineSmiDouble` forwardRef
+with legend toggle, config badge, threshold + midline overlays,
+markers on cross events, and tooltip surfacing `close / hh / ll /
+centered / range / smi / zone`. 79 vitest cases.
+
 ## [1.11.843] - 2026-05-26 -- UI: chart-line-hilbert-quadrature primitive (TODO 11.825)
 
 Added `<ChartLineHilbertQuadrature />` -- pure-SVG dual-panel React/TS
