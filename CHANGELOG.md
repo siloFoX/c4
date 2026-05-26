@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.801] - 2026-05-26 -- UI: chart-line-vortex-vi-minus primitive (TODO 11.783)
+
+### Added
+- `<ChartLineVortexViMinus>` -- pure-SVG dual-panel chart with the
+  close on the top panel and a Vortex Indicator -VI oscillator on the
+  bottom panel; companion to `<ChartLineVortexViPlus>` (TODO 11.782).
+  -VI measures negative vortex movement:
+  `VM-[i] = |low[i] - high[i - 1]|` (i >= 1),
+  `TR[i] = max(h - l, |h - prevC|, |l - prevC|)`,
+  `-VI[i] = sum(VM-, length) / sum(TR, length)`.
+  Defaults: `length = 14`. Bar 0's VM- is `null` (no prior high) so
+  the rolling sum window must start at bar 1 -- this leaves `length`
+  warmup bars. When the TR sum is zero (`high = low = close` at every
+  bar) -VI is emitted as `null`.
+- Bit-exact algebraic anchor: CONST_BAR (constant `H`, `L`, `C` with
+  `L <= C <= H`) yields exactly `-VI = 1` past warmup, because
+  `VM-[i] = |L - H| = H - L` and `TR[i] = H - L` at every `i >= 1`.
+  Numerator and denominator are both `length * (H - L)`, integer
+  accumulations that trivially cancel.
+- ARIA region root + img-role SVG with screen-reader description
+  spelling out the formula and the unity-crossing interpretation.
+  Legend supports controlled + uncontrolled `hidden` state, markers /
+  dots respond to click + Enter + Space, tooltip reveals on hover and
+  focus with close + H/L + -VI + zone. Unity reference line at 1.
+- 97 vitest cases mirroring the +VI suite: finite coercion, length
+  normalization, computeVm / computeTrueRange, rolling sum, compute
+  (warmup + CONST_BAR -> 1 bit-exact + CONST_FLAT all-null +
+  non-mutation), zone classifier, run, layout (panel order + gap +
+  unity line containment), description, React surface, integration
+  sweep.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.801.
+
 ## [1.11.800] - 2026-05-26 -- UI: chart-line-vortex-vi-plus primitive (TODO 11.782)
 
 ### Added
