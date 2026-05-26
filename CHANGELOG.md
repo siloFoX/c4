@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.781] - 2026-05-26 -- UI: chart-line-ad-line primitive (TODO 11.763)
+
+### Added
+- `<ChartLineAdLine>` -- pure-SVG dual-panel chart with a
+  Chaikin Accumulation / Distribution line beneath the close.
+  The AD line cumulates the Close Location Value times volume:
+  `CLV[i] = ((close - low) - (high - close)) / (high - low)`,
+  `AD[i] = AD[i - 1] + CLV[i] * volume[i]`. Bit-exact anchors:
+  close-at-high yields `CLV = 1`, close-at-low yields `CLV = -1`,
+  close-at-midpoint yields `CLV = 0`, flat bars (high == low)
+  and zero-volume bars contribute zero flow. Worked anchors:
+  five close-at-high bars at volume 100 cumulate to
+  `100, 200, 300, 400, 500` bit-exact; `high = 8, low = 0,
+  close = 2, volume = 10` yields `CLV = -0.5, flow = -5`
+  bit-exact. 92 vitest cases (helpers, layout, ARIA, legend
+  toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineAdLineFinitePoints`, `computeLineAdLineClv`,
+  `computeLineAdLine`, `classifyLineAdLineZone`,
+  `runLineAdLine`, `computeLineAdLineLayout`,
+  `describeLineAdLineChart`.
+
 ## [1.11.780] - 2026-05-26 -- UI: chart-line-laguerre-poly primitive (TODO 11.762)
 
 ### Added
