@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.779] - 2026-05-26 -- UI: chart-line-center-of-gravity primitive (TODO 11.761)
+
+### Added
+- `<ChartLineCenterOfGravity>` -- pure-SVG dual-panel chart with
+  an Ehlers Center of Gravity oscillator beneath the close. The
+  oscillator is
+  `CG = -sum((1 + j) * close[i - j]) / sum(close[i - j]) +
+  (L + 1) / 2`
+  over a `length`-bar window, where the `(L + 1) / 2` shift
+  recentres the centroid so a flat close collapses to zero
+  bit-exact (for any non-zero K). Anchors include the worked
+  fixtures `close = [1,2,3,4], L = 4 -> CG = 0.5` and
+  `close = [4,3,2,1], L = 4 -> CG = -0.5`. Singular zero-sum
+  windows return `null`. 102 vitest cases (helpers, layout,
+  ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineCenterOfGravityFinitePoints`,
+  `normalizeLineCenterOfGravityLength`,
+  `computeLineCenterOfGravity`,
+  `classifyLineCenterOfGravityZone`,
+  `runLineCenterOfGravity`,
+  `computeLineCenterOfGravityLayout`,
+  `describeLineCenterOfGravityChart`.
+
 ## [1.11.778] - 2026-05-26 -- UI: chart-line-ehlers-supersmoother primitive (TODO 11.760)
 
 ### Added
