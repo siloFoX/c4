@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.827] - 2026-05-26 -- UI: chart-line-adv-decline primitive (TODO 11.809)
+
+Added `<ChartLineAdvDecline />` -- pure-SVG dual-panel React/TS
+primitive plotting the Advance Decline line beneath a market index
+close. The line is the rolling window sum of per-bar net breadth
+`advances - declines` across the lookback. Input shape
+`{ x, close, advances, declines }`. Default `length = 14`. Zones:
+positive / negative / zero / none. Cross detector flags `'up'` /
+`'down'` on zero-line transitions; markers render only on cross bars.
+
+Bit-exact anchors: CONST `advances = A, declines = D` -> rolling sum
+collapses to `(A - D) * length` at every valid bar (integer-exact in
+IEEE 754); verified across `A in {0, 5, 100}`, `D in {0, 3, 50}`, and
+`length in {3, 4, 7, 10}`. Special cases: `A = D` -> exactly zero,
+zone `'zero'`; `A > D` -> positive; `A < D` -> negative. `-0 -> +0`
+normalization on `net` and `rollingSum` keeps tests
+`Object.is`-bit-exact. 84 vitest cases (`vitest run`). Barrel export
+wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.809-ui-chart-line-adv-decline.md`.
+
 ## [1.11.826] - 2026-05-26 -- UI: chart-line-coppock-trigger primitive (TODO 11.808)
 
 Added `<ChartLineCoppockTrigger />` -- pure-SVG dual-panel React/TS
