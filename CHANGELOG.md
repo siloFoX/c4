@@ -4,6 +4,20 @@
 
 (no entries -- next release window)
 
+## [1.11.887] - 2026-05-26 -- UI: chart-line-vroc-pct primitive (TODO 11.869)
+
+Added `<ChartLineVrocPct />` -- pure-SVG dual-panel React/TS
+primitive plotting the Volume Rate of Change percent oscillator
+beneath a price line. Single-oscillator counterpart of
+`chart-line-vroc-cross` (no signal line). Defaults `length = 12`.
+Regime classifier: `above` (VROC > 0), `below` (< 0), `at` (= 0),
+`none` (null). Bit-exact anchor: CONST volume = V (V > 0) -> every
+difference is 0 -> VROC = 0 / V * 100 = 0 bit-exactly, regime
+`at` for every bar after warmup (verified across multiple V and
+length tuples). CONST V = 0 triggers the divide-by-zero guard ->
+VROC = null. ARIA region + img-role SVG + sr-only desc;
+motion-safe fade-in. 56 vitest cases.
+
 ## [1.11.886] - 2026-05-26 -- UI: chart-line-vsa-cross primitive (TODO 11.868)
 
 Added `<ChartLineVsaCross />` -- pure-SVG dual-panel React/TS

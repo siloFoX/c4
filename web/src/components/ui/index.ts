@@ -578,3 +578,4 @@ export * from './chart-line-zlema-cross';
 export * from './chart-line-dema-cross';
 export * from './chart-line-vroc-cross';
 export * from './chart-line-vsa-cross';
+export * from './chart-line-vroc-pct';
