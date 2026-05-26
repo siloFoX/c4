@@ -4,6 +4,31 @@
 
 (no entries -- next release window)
 
+## [1.11.865] - 2026-05-26 -- UI: chart-line-atr-cross primitive (TODO 11.847)
+
+Added `<ChartLineAtrCross />` -- pure-SVG dual-panel React/TS
+primitive plotting short and long Wilder ATRs beneath a price line
+with scatter markers at every volatility-regime crossover.
+`expanding` when shortAtr newly exceeds longAtr; `contracting`
+when it newly falls below. Defaults: `shortLength = 7`,
+`longLength = 21` (classic volatility-cycle pair), shortColor
+`#fbbf24` (amber), longColor `#7c3aed` (purple), markers
+`#16a34a` (green) for expanding and `#dc2626` (red) for contracting.
+Wilder helper carries the `min === max` seed precision fix and the
+CONST short-circuit so constant inputs collapse to the exact value
+without 1-ULP drift. Bit-exact anchors:
+`CONST h = l = close = K` -> both ATRs = 0, zero crosses across
+`(K, short, long)` sweeps; `CONSTANT-SPREAD h = K + D, l = K,
+close = K + D/2` -> both ATRs = `D` exactly, zero crosses across
+`(K, D, short, long)` sweeps. LINEAR data deliberately not used as
+an anchor (TR[0] = 0 breaks constant-TR invariant). Live cross
+counts exposed via `data-expanding-cross-count` /
+`data-contracting-cross-count` attributes. Surface:
+`runLineAtrCross / computeLineAtrCrossLayout /
+describeLineAtrCrossChart` plus `ChartLineAtrCross` forwardRef with
+three legend toggles, config badge, markers, and tooltip surfacing
+`close / tr / short / long / relation / cross`. 61 vitest cases.
+
 ## [1.11.864] - 2026-05-26 -- UI: chart-line-tema-pct primitive (TODO 11.846)
 
 Added `<ChartLineTemaPct />` -- pure-SVG dual-panel React/TS
