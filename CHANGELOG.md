@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.846] - 2026-05-26 -- UI: chart-line-volume-ratio primitive (TODO 11.828)
+
+Added `<ChartLineVolumeRatio />` -- pure-SVG dual-panel React/TS
+primitive plotting a Volume Ratio oscillator beneath a price line.
+Computes `ratio = volume / SMA(volume, length)`, bounded below at
+zero and unbounded above; `null` propagates from both the warmup
+window and the divide-by-zero guard when `avgVol = 0`. Defaults:
+`length = 14`, `highThreshold = 1.5`, `lowThreshold = 0.5`,
+ratioColor `#f59e0b` (amber, distinct from the teal net-volume
+primitive). Bit-exact anchors: `CONST volume = V > 0` ->
+`ratio = 1`; `CONST volume = 0` -> `ratio = null`;
+`LINEAR UP volume = i + 1` at `i = L - 1` -> `ratio = 2L/(L+1)`,
+dyadic and bit-exact for `L in {3, 7, 15}`. Surface: standard
+`runLineVolumeRatio / computeLineVolumeRatioLayout /
+describeLineVolumeRatioChart` plus `ChartLineVolumeRatio`
+forwardRef with legend toggle, config badge, threshold + midline
+overlays (midline at 1.0 parity), markers on cross events, and
+tooltip surfacing `close / vol / avgVol / ratio / zone / cross`.
+71 vitest cases.
+
 ## [1.11.845] - 2026-05-26 -- UI: chart-line-net-volume primitive (TODO 11.827)
 
 Added `<ChartLineNetVolume />` -- pure-SVG dual-panel React/TS
