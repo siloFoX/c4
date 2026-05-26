@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.875] - 2026-05-26 -- UI: chart-line-stoch-rsi-cross primitive (TODO 11.857)
+
+Added `<ChartLineStochRsiCross />` -- pure-SVG dual-panel React/TS
+primitive plotting Stochastic RSI %K and %D beneath a price line,
+with markers at every K-vs-D crossover tagged by the zone of %K
+at the cross bar. Strong triggers: `oversold-exit` (up cross at
+%K <= 20) and `overbought-exit` (down cross at %K >= 80).
+Defaults: `rsiLength = 14`, `stochLength = 14`, `kSmooth = 3`,
+`dSmooth = 3`, `overboughtLevel = 80`, `oversoldLevel = 20`. The
+Wilder + SMA helpers carry the `min === max` precision fix, so
+all three anchors land bit-exactly with zero crosses: CONST close
+(RSI = 50 every bar -> stoch range = 0 -> k=d=null forever);
+LINEAR UP close (RSI = 100 -> range = 0 -> k=d=null); LINEAR DOWN
+(RSI = 0 -> range = 0 -> k=d=null). Verified across multiple
+(rsiLength, stochLength, kSmooth, dSmooth) tuples. Stoch axis
+fixed to [0, 100] with dashed overbought / oversold / midline
+references. ARIA region + img-role SVG + sr-only desc; markers
+carry `role="graphics-symbol"` + `tabIndex={0}` and
+`data-trigger`; motion-safe fade-in. 83 vitest cases.
+
 ## [1.11.874] - 2026-05-26 -- UI: chart-line-trix-cross primitive (TODO 11.856)
 
 Added `<ChartLineTrixCross />` -- pure-SVG dual-panel React/TS
