@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.740] - 2026-05-26 -- UI: chart-line-bayesian primitive (TODO 11.722)
+
+### Added
+- `<ChartLineBayesian>` -- pure-SVG two-panel chart with a **Bayesian
+  Trend** probability panel. Three trend hypotheses
+  (`H_up: N(+delta, sigma^2)`, `H_flat: N(0, sigma^2)`,
+  `H_down: N(-delta, sigma^2)`) are scored against the rolling
+  lookback of returns; equal priors and a softmax over the log-
+  likelihoods give the per-bar posterior `(pUp, pFlat, pDown)`. The
+  log-likelihood drops the normal-density constants since they
+  cancel in the softmax. The price panel is on top; the three
+  probability curves share a fixed `[0, 1]` band below with a dashed
+  midline at `0.5`. Each defined bar is classified by `argmax`.
+- Pure helpers: `computeLineBayesianReturns`,
+  `computeLineBayesianPosteriorWindow`, `computeLineBayesianPosterior`,
+  `classifyLineBayesianZone`, `runLineBayesian`,
+  `computeLineBayesianLayout`, `describeLineBayesianChart`,
+  `getLineBayesianFinitePoints`, `normalizeLineBayesianWindow`,
+  `normalizeLineBayesianDelta`, `normalizeLineBayesianSigma`, plus
+  the `CHART_LINE_BAYESIAN_MIDLINE` constant (0.5).
+- 90 vitest cases covering the simplex invariant
+  `pUp + pFlat + pDown = 1` within ULP at every defined bar, the
+  symmetry anchor (constant series -> `pUp === pDown` bit-exact at
+  every defined bar), the mirror property (mirrored windows swap up
+  and down probabilities bit-exact), the concentration property
+  (a wider window pulls the posterior toward the leader), worked
+  ordering anchors (rising -> P_up leads, falling -> P_down leads,
+  constant -> P_flat leads), the warm-up window, classifier ties
+  (flat-favoured), layout (two panels stacked, marker per defined
+  bar, midline inside the prob panel), and the standard component
+  contract (ARIA region, config badge `BAYES 5`, onPointClick, ref
+  forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.739 -> 1.11.740.
+
 ## [1.11.739] - 2026-05-26 -- UI: chart-line-butterworth primitive (TODO 11.721)
 
 ### Added
