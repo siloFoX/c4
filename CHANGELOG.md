@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.749] - 2026-05-26 -- UI: chart-line-pivot-demark primitive (TODO 11.731)
+
+### Added
+- `<ChartLinePivotDemark>` -- pure-SVG single-panel chart with
+  **DeMark pivot** level overlays from the prior bar's open, close,
+  and direction. The X seed varies with direction:
+  bullish `X = 2H + L + C`, bearish `X = H + 2L + C`,
+  neutral `X = H + L + 2C`. Then `PP = X/4`, `R1 = X/2 - L`,
+  `S1 = X/2 - H`. The first bar has no prior and carries no
+  levels.
+- Pure helpers: `computeLinePivotDemarkDirection`,
+  `computeLinePivotDemarkX`, `computeLinePivotDemarkLevels`,
+  `computeLinePivotDemark`, `classifyLinePivotDemarkZone`,
+  `runLinePivotDemark`, `computeLinePivotDemarkLayout`,
+  `describeLinePivotDemarkChart`, `getLinePivotDemarkFinitePoints`.
+- 70 vitest cases covering: **constant-series anchor** (every
+  level = constant bit-exact); **three worked anchors** all
+  integer-exact -- bullish `(O=10, H=14, L=8, C=12) -> X=48, PP=12,
+  R1=16, S1=10`; bearish `(O=12, H=14, L=8, C=10) -> X=40, PP=10,
+  R1=12, S1=6`; neutral `(O=10, H=14, L=8, C=10) -> X=42, PP=10.5,
+  R1=13, S1=7` (1/2 is dyadic in IEEE 754); the direction
+  classifier (bullish / bearish / neutral); the strict
+  `R1 > PP > S1` order; the warm-up first bar null; the zone
+  classifier across four bands; the standard component contract
+  (ARIA region, config badge `DEMARK PIVOT`, onPointClick, ref
+  forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.748 -> 1.11.749.
+
 ## [1.11.748] - 2026-05-26 -- UI: chart-line-pivot-fibonacci primitive (TODO 11.730)
 
 ### Added
