@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.736] - 2026-05-26 -- UI: chart-line-ud-ratio primitive (TODO 11.718)
+
+New **ChartLineUdRatio** UI primitive in
+`web/src/components/ui/chart-line-ud-ratio.tsx`: pure-SVG
+two-panel line chart with an Up/Down Ratio panel from the ratio
+of total up-bar change to total down-bar change.
+
+computeLineUdRatio splits each bar's bar-to-bar price change into
+an upGain (the positive change) and a downLoss (the absolute
+negative change), sums the two over the lookback, and returns
+`100 * sumUp / (sumUp + sumDown)` -- a bull-share percentage
+bounded 0..100. A window with zero total change is null.
+classifyLineUdRatioZone marks each bar by the ratio against the
+50 midline.
+
+runLineUdRatio sorts the finite points by x, runs the pipeline,
+and returns per-bar samples with the upGain, downLoss, ratio and
+zone, with the zone counts. computeLineUdRatioLayout stacks a
+close panel above a UD panel fixed to a 0..100 band with a
+horizontal 50 midline.
+
+ChartLineUdRatio renders as an accessible region with an
+`role="img"` SVG, an off-screen description, both panel labels, a
+config badge, a two-item toggleable legend (Close / UD Ratio) and
+a hover/focus tooltip. Controlled and uncontrolled series
+visibility, `motion-safe` fade-in, `data-section` hooks
+throughout. 67 vitest cases: the whole pipeline is integer
+arithmetic, so a rising ramp gives 100 exactly, a falling ramp
+gives 0, a constant series gives null, and an alternating
+fixture gives the exact integer series [80, 50, 80, 50, 80].
+
 ## [1.11.735] - 2026-05-26 -- UI: chart-line-trend-trigger primitive (TODO 11.717)
 
 New **ChartLineTrendTrigger** UI primitive in
