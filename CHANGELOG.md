@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.782] - 2026-05-26 -- UI: chart-line-delta-volume primitive (TODO 11.764)
+
+### Added
+- `<ChartLineDeltaVolume>` -- pure-SVG dual-panel chart with a
+  Delta Volume oscillator panel beneath the close. Each bar's
+  volume is signed by the direction of the close relative to the
+  prior close: `sign[i] = sgn(close[i] - close[i-1])`,
+  `delta[i] = sign[i] * volume[i]`. Bit-exact anchors: rising
+  close -> +volume, falling close -> -volume, unchanged close
+  -> 0, seed bar -> 0. Verified rising(5) -> deltas
+  `0,+100,+100,+100,+100` and falling(5) -> deltas
+  `0,-100,-100,-100,-100`. Antisymmetry, scaling, zigzag, and
+  sum-of-deltas anchors all bit-exact. 95 vitest cases (helpers,
+  layout, ARIA, legend toggle, tooltip, keyboard activation).
+- Helpers exported via barrel:
+  `getLineDeltaVolumeFinitePoints`, `computeLineDeltaVolumeSign`,
+  `computeLineDeltaVolume`, `classifyLineDeltaVolumeZone`,
+  `runLineDeltaVolume`, `computeLineDeltaVolumeLayout`,
+  `describeLineDeltaVolumeChart`.
+
 ## [1.11.781] - 2026-05-26 -- UI: chart-line-ad-line primitive (TODO 11.763)
 
 ### Added
