@@ -542,3 +542,4 @@ export * from './chart-line-hl-osc';
 export * from './chart-line-hl-range';
 export * from './chart-line-trix-double-smoothed';
 export * from './chart-line-fractal-kc';
+export * from './chart-line-fractal-channel';
