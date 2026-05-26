@@ -519,3 +519,4 @@ export * from './chart-line-hl-mean';
 export * from './chart-line-momentum-divergence';
 export * from './chart-line-coppock-trigger';
 export * from './chart-line-adv-decline';
+export * from './chart-line-hl-pct';
