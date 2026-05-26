@@ -507,3 +507,4 @@ export * from './chart-line-hl-spread';
 export * from './chart-line-range-osc';
 export * from './chart-line-cycle-strength';
 export * from './chart-line-trend-strength';
+export * from './chart-line-atr-trail';
