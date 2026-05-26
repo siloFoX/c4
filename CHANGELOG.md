@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.877] - 2026-05-26 -- UI: chart-line-supertrend-cross primitive (TODO 11.859)
+
+Added `<ChartLineSupertrendCross />` -- pure-SVG dual-panel
+React/TS primitive overlaying the close with the volatility-
+adaptive Supertrend (top panel) and the close - Supertrend
+deviation (bottom panel). Markers fire at every direction flip
+(flip-up = newly up, flip-down = newly down). Defaults
+`length = 10`, `multiplier = 3` (classic Supertrend). Supertrend
+line is recoloured by current direction (green up, red down).
+Bit-exact anchor: CONST h=l=close (TR=0, ATR=0, both bands
+collapse to K, supertrend=K bit-exactly, direction stays up,
+zero flips) verified across multiple `(length, multiplier, K)`
+tuples. Wilder ATR smoothing carries the `min === max` precision
+fix; the upper / lower trailing-band ratchet logic matches the
+canonical Supertrend specification. Deviation panel has a dashed
+zero reference. ARIA region + img-role SVG + sr-only desc;
+markers carry `role="graphics-symbol"` + `tabIndex={0}` and
+`data-kind`; motion-safe fade-in. 61 vitest cases.
+
 ## [1.11.876] - 2026-05-26 -- UI: chart-line-psar-cross primitive (TODO 11.858)
 
 Added `<ChartLinePsarCross />` -- pure-SVG dual-panel React/TS
