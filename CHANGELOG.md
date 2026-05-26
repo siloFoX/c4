@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.756] - 2026-05-26 -- UI: chart-line-tsf primitive (TODO 11.738)
+
+### Added
+- `<ChartLineTsf>` -- pure-SVG single-panel chart with a **Time
+  Series Forecast** overlay. Per bar `i` (with lookback `period`):
+  run an ordinary-least-squares linear regression over the most
+  recent `period` closes (`j = 0 .. period - 1`), then project the
+  regression line one bar forward: `TSF[i] = intercept + slope *
+  period`. The first `period - 1` bars are null.
+- Pure helpers: `computeLineTsfRegression` (returns `{slope,
+  intercept}` or null when `n < 2` or X-variance is zero),
+  `computeLineTsf` (rolling `{tsf, slope}` per bar),
+  `classifyLineTsfTrend` (slope sign -> `up` / `down` / `flat` /
+  `none`), `runLineTsf`, `computeLineTsfLayout`,
+  `describeLineTsfChart`, `getLineTsfFinitePoints`,
+  `normalizeLineTsfPeriod`.
+- 71 vitest cases covering: the LSQ **linear-ramp identity**
+  (`close = j + c` -> `slope = 1`, `intercept = c` bit-exact -> for
+  period 4 on `[10..19]` the TSF reads `[null * 3, 14, 15, 16,
+  17, 18, 19, 20]` bit-exact -- i.e. `TSF[i] = close[i + 1]`); the
+  symmetric falling ramp (`TSF` mirrors `close[i + 1]` exactly); the
+  **CONST_FLAT identity** (`slope = 0`, `TSF = K` bit-exact at every
+  defined bar via IEEE 754 `c * 0 = 0`); translation invariance (`y
+  -> y + 1000` shifts the TSF by exactly 1000); the regression line
+  passing through the bar mean at `j = (N - 1) / 2`; the layout
+  emitting one segment between each consecutive defined bar (six
+  for the 10-bar ramp), one marker per defined bar (seven on the
+  10-bar ramp), and the value domain covering both the price and
+  the projected TSF; component coverage of the legend toggle, the
+  `showTsf=false` prop, click-to-emit via `onPointClick`, ARIA
+  description, badge text, and forwardRef.
+- Component renders a price line plus segment-coloured TSF
+  segments by slope sign, ARIA region/img roles, the `arps`
+  design-system tokens, and `data-section` hooks throughout.
+
 ## [1.11.755] - 2026-05-26 -- UI: chart-line-acceleration-bands primitive (TODO 11.737)
 
 ### Added

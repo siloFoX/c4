@@ -447,3 +447,4 @@ export * from './chart-line-aroon-up';
 export * from './chart-line-aroon-down';
 export * from './chart-line-stoch-momentum-index';
 export * from './chart-line-acceleration-bands';
+export * from './chart-line-tsf';
