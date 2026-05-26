@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.829] - 2026-05-26 -- UI: chart-line-recombining-bb primitive (TODO 11.811)
+
+Added `<ChartLineRecombiningBb />` -- pure-SVG single-panel React/TS
+primitive overlaying a recombining Bollinger Band envelope on the
+close. Standard band `mean +/- sigmaScale * stdDev` is computed every
+bar, but the upper and lower lines collapse to the mean on bars where
+the close touches or breaches the band (`close >= fullUpper ||
+close <= fullLower`). Markers anchor on the mean at recombine bars.
+Defaults: `length = 20`, `sigmaScale = 2`. Zones: recombine / above-mid
+/ below-mid / at-mid / none.
+
+Bit-exact anchors: CONST close (K) -> `mean = K, stdDev = 0`, both
+band edges collapse to `K` and the `>=` trigger fires every valid bar
+across `K in {0, 1, 5, 100, -3}` and `length in {3, 5, 7, 10}`;
+ALTERNATING `[0, 1, 0, 1, ...]` with `length = 4` and `sigmaScale = 2`
+yields `mean = 0.5`, `stdDev = 0.5`, `fullUpper = 1.5`, `fullLower =
+-0.5` (all exact dyadics) and no recombines; `sigmaScale = 0` forces
+recombine on every valid bar. 71 vitest cases (`vitest run`). Barrel
+export wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.811-ui-chart-line-recombining-bb.md`.
+
 ## [1.11.828] - 2026-05-26 -- UI: chart-line-hl-pct primitive (TODO 11.810)
 
 Added `<ChartLineHlPct />` -- pure-SVG dual-panel React/TS primitive
