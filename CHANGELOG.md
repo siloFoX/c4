@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.838] - 2026-05-26 -- UI: chart-line-stoch-fast primitive (TODO 11.820)
+
+Added `<ChartLineStochFast />` -- pure-SVG dual-panel React/TS
+primitive plotting the Fast Stochastic Oscillator (raw `%K`, no SMA
+smoothing). `%K = (close - lowestLow) / (highestHigh - lowestLow) *
+100` maps the close into `[0, 100]` within the rolling high-low band.
+Defaults: `length = 14`, `overbought = 80`, `oversold = 20`. Zones:
+overbought / oversold / neutral / none. Stoch axis is fixed at `[0,
+100]`. Markers fire on overbought/oversold entries.
+
+Bit-exact anchors: CONST `h = l = c = K` -> degenerate window -> `%K
+= null` everywhere across (K, length) sweep; LINEAR UP `close[i] = i
++ 1` with `h = l = close` -> numerator = denominator = `length - 1`
+-> `%K = 100` exactly; LINEAR DOWN `close[i] = N - i` -> `close =
+lowestLow` -> `%K = 0` exactly; ALTERNATING `close = i % 2` -> `%K`
+alternates `100, 0, 100, 0, ...`. All integer-exact in IEEE 754. 75
+vitest cases (`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.820-ui-chart-line-stoch-fast.md`.
+
 ## [1.11.837] - 2026-05-26 -- UI: chart-line-atr-ratio primitive (TODO 11.819)
 
 Added `<ChartLineAtrRatio />` -- pure-SVG dual-panel React/TS primitive
