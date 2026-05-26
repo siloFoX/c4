@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.819] - 2026-05-26 -- UI: chart-line-alligator primitive (TODO 11.801)
+
+### Added
+- `<ChartLineAlligator>` -- pure-SVG single-panel React primitive
+  that overlays Bill Williams' Alligator on the close. Three
+  smoothed moving averages (SMMA, Wilder smoothing) of the
+  median price ((high + low) / 2), each shifted forward:
+  - jaw = SMMA(median, 13) shifted 8 bars
+  - teeth = SMMA(median, 8) shifted 5 bars
+  - lips = SMMA(median, 5) shifted 3 bars
+  Configurable periods and shifts. First valid jaw bar is
+  `i = jawPeriod + jawShift - 1 = 20`.
+- Bit-exact algebraic anchor: CONST_FLAT (`h = l = K`) ->
+  median = K -> SMA seed = K -> the SMMA recurrence collapses
+  to `(K*(L - 1) + K) / L = K * L / L = K` bit-exact for any
+  IEEE 754 representable K. After shifting,
+  `jaw = teeth = lips = K` past warmup. Integration sweep
+  verifies this across many K (including 0 and negatives).
+- Zone classifier: eating (lines stacked monotonically, strong
+  trend) / awake (transitional, inversion present) / sleeping
+  (at least two lines coincide, range-bound) / none.
+- ARIA region + img-role SVG with screen-reader description
+  spelling out the formula and parameters. Four-series legend
+  (close + jaw + teeth + lips) toggles independently (controlled
+  + uncontrolled + defaultHidden); showJaw / showTeeth /
+  showLips group toggles. Markers respond to click + Enter +
+  Space; tooltip surfaces close + median + jaw + teeth + lips +
+  state on hover and focus.
+- 81 vitest cases covering finite coercion, period / shift
+  normalization, SMMA helper (CONST K bit-exact + seed math),
+  computeLineAlligator (CONST_FLAT bit-exact + median math +
+  non-mutation + NaN periods), zone classifier, run, layout,
+  description, the React surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.819.
+
 ## [1.11.818] - 2026-05-26 -- UI: chart-line-hilbert-instant primitive (TODO 11.800)
 
 ### Added
