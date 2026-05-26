@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.826] - 2026-05-26 -- UI: chart-line-coppock-trigger primitive (TODO 11.808)
+
+Added `<ChartLineCoppockTrigger />` -- pure-SVG dual-panel React/TS
+primitive plotting the Coppock Curve with emphasis on zero-line
+crossings as actionable triggers. Trigger variant of
+`<ChartLineCoppockSignal />` (11.805) -- same WMA(sumROC) math, but:
+hard bullish/bearish fill split at the zero line via user-space
+`linearGradient` with paired stops at `zeroSplitOffset`; SVG triangle
+markers (upward bullish, downward bearish) instead of circles; explicit
+`run.triggers: Array<{ index, x, close, coppock, kind }>` for
+downstream consumption; `onTriggerClick` callback.
+
+Defaults: `longROC = 14`, `shortROC = 11`, `wmaPeriod = 10`,
+`triangleSize = 6`. Bit-exact anchors: CONST close (K != 0) -> coppock
+= 0 -> zero triggers across `K in {1, 5, 100, -3}` and `(long, short,
+wma)` sweep; GEOMETRIC `close = 2^k` -> coppock = 1843000 (defaults)
+-> zero triggers (stable positive after warmup). 88 vitest cases
+(`vitest run`). Barrel export wired in
+`web/src/components/ui/index.ts`. See
+`docs/patches/11.808-ui-chart-line-coppock-trigger.md`.
+
 ## [1.11.825] - 2026-05-26 -- UI: chart-line-momentum-divergence primitive (TODO 11.807)
 
 Added `<ChartLineMomentumDivergence />` -- pure-SVG dual-panel React/TS

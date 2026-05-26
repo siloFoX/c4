@@ -517,3 +517,4 @@ export * from './chart-line-trend-power';
 export * from './chart-line-coppock-signal';
 export * from './chart-line-hl-mean';
 export * from './chart-line-momentum-divergence';
+export * from './chart-line-coppock-trigger';
