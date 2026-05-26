@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.746] - 2026-05-26 -- UI: chart-line-vsa primitive (TODO 11.728)
+
+### Added
+- `<ChartLineVsa>` -- pure-SVG two-panel chart with a **Volume Spread
+  Analysis** panel highlighting effort-versus-result divergences
+  from bar range against volume. For each rolling window of `period`
+  bars, the spread mean and volume mean are computed; the per-bar
+  index is `effort - result` where `effort = volume / volumeMean`
+  and `result = spread / spreadMean`. A reading above the threshold
+  marks "no-demand" (high effort, low result); below the negative
+  threshold marks "ease-of-move" (low effort, high result); inside
+  the band is "agreement".
+- Pure helpers: `computeLineVsa`, `classifyLineVsaZone`,
+  `runLineVsa`, `computeLineVsaLayout`, `describeLineVsaChart`,
+  `getLineVsaFinitePoints`, `normalizeLineVsaPeriod`,
+  `normalizeLineVsaThreshold`.
+- 74 vitest cases covering: the **equal-all anchor** (constant
+  spread + constant volume -> effort = result = 1 -> VSA = 0
+  bit-exact at every defined bar); the **ease-of-move anchor**
+  (spreads `[2, 2, 2, 2, 12]`, volumes `[4, 4, 4, 4, 4]` -> at
+  bar 4 effort = 1, result = 3, VSA = -2 bit-exact); the
+  **no-demand anchor** (spreads `[4 x 5]`, volumes
+  `[2, 2, 2, 2, 12]` -> effort = 3, result = 1, VSA = 2 bit-exact);
+  the degenerate-window cases (zero mean spread or zero mean volume
+  -> null); the threshold classifier including the at-threshold
+  boundary (treated as agreement, strict inequality); the standard
+  component contract (ARIA region, config badge `VSA 5/0.5`,
+  onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.745 -> 1.11.746.
+
 ## [1.11.745] - 2026-05-26 -- UI: chart-line-rocket-rsi primitive (TODO 11.727)
 
 ### Added
