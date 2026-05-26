@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.842] - 2026-05-26 -- UI: chart-line-stoch-slow primitive (TODO 11.824)
+
+Added `<ChartLineStochSlow />` -- pure-SVG dual-panel React/TS
+primitive plotting a Slow Stochastic Oscillator beneath a price line.
+Slow %K is the SMA-smoothed fast %K, so the oscillator inherits the
+fast formula's range `[0, 100]` while dampening short-window
+whipsaws. Defaults: `length=14`, `smoothLength=3`, `overbought=80`,
+`oversold=20`, stoch color `#7c3aed` (purple, distinct from the
+Stoch Fast indigo `#4f46e5`). Surface mirrors the Stoch Fast
+primitive: `runLineStochSlow / computeLineStochSlowLayout /
+describeLineStochSlowChart` plus `ChartLineStochSlow` forwardRef
+with legend toggle, config badge, threshold/midline overlays,
+markers, and a tooltip exposing `high / low / close / highestHigh /
+lowestLow / fastK / slowK`. Bit-exact anchors: `CONST` collapses
+both fastK and slowK to `null`; `LINEAR UP` makes slowK = 100 (close
+hits the rolling high) and `LINEAR DOWN` makes slowK = 0 (close
+hits the rolling low) -- both verified across `(K, length,
+smoothLength)` sweeps. 73 vitest cases (helpers, compute pipeline,
+classifier, cross detector, layout, describe, React surface,
+integration sweep).
+
 ## [1.11.841] - 2026-05-26 -- UI: chart-line-trend-detector primitive (TODO 11.823)
 
 Added `<ChartLineTrendDetector />` -- pure-SVG dual-panel React/TS
