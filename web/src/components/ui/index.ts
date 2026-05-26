@@ -439,3 +439,4 @@ export * from './chart-line-volatility-stop';
 export * from './chart-line-rocket-rsi';
 export * from './chart-line-vsa';
 export * from './chart-line-confluence';
+export * from './chart-line-pivot-fibonacci';

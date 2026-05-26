@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.748] - 2026-05-26 -- UI: chart-line-pivot-fibonacci primitive (TODO 11.730)
+
+### Added
+- `<ChartLinePivotFibonacci>` -- pure-SVG single-panel chart with
+  **Fibonacci pivot level** overlays at 0.382 / 0.618 / 1.0 of the
+  prior bar range. Each bar carries a pivot point
+  `pp = (prevHigh + prevLow + prevClose) / 3` and three pairs of
+  resistance / support levels `R/S = pp +/- ratio * (prevHigh - prevLow)`.
+  The first bar carries no prior reference and is left null on every
+  level. Each defined bar's seven levels render as a single bar-wide
+  horizontal stub segment so the chart reads as a step function of
+  pivot levels for the close to interact with.
+- Pure helpers: `computeLinePivotFibonacciLevels`,
+  `computeLinePivotFibonacci`, `classifyLinePivotFibonacciZone`,
+  `runLinePivotFibonacci`, `computeLinePivotFibonacciLayout`,
+  `describeLinePivotFibonacciChart`,
+  `getLinePivotFibonacciFinitePoints`,
+  `normalizeLinePivotFibonacciRatios`.
+- 71 vitest cases covering: the **constant-series anchor** (every
+  level equals the constant 5 bit-exact when `range = 0`); the
+  **worked anchor** (prev `H=12 L=6 C=9` -> `pp = 9` and `range = 6`
+  bit-exact, `R3 = 15` and `S3 = 3` bit-exact at the 1.0 ratio,
+  `R1 ~= 11.292` and `R2 ~= 12.708` close to 12 places); the **mirror
+  identity** (`Sk = 2 * PP - Rk` for k = 1, 2, 3 within ULP); the
+  **strict order R3 > R2 > R1 > PP > S1 > S2 > S3**; the **first-bar
+  warm-up** (every level null on bar 0); the ratio normalizer
+  (per-key fallback); the zone classifier across all six bands; the
+  standard component contract (ARIA region, config badge
+  `FIBPIVOT 0.382/0.618/1`, onPointClick, ref forwarding).
+
+### Changed
+- 4 manifests bumped 1.11.747 -> 1.11.748.
+
 ## [1.11.747] - 2026-05-26 -- UI: chart-line-confluence primitive (TODO 11.729)
 
 ### Added
