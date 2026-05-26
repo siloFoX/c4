@@ -567,3 +567,4 @@ export * from './chart-line-vwap-cross';
 export * from './chart-line-kama-cross';
 export * from './chart-line-trix-cross';
 export * from './chart-line-stoch-rsi-cross';
+export * from './chart-line-psar-cross';
