@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.734] - 2026-05-26 -- UI: chart-line-rmta primitive (TODO 11.716)
+
+New **ChartLineRmta** UI primitive in
+`web/src/components/ui/chart-line-rmta.tsx`: pure-SVG
+single-panel line chart with a Recursive Moving Trend Average
+overlay folding price into a recursive EMA-like trend.
+
+computeLineRmta runs the recursive trend filter seeded from the
+first finite price: each bar pulls the running average toward the
+current price by an EMA-style alpha, then adds the one-bar price
+change scaled by beta as a momentum lead. classifyLineRmtaTrend
+marks each bar up / down / flat by the slope of the RMTA line.
+
+runLineRmta sorts the finite points by x, runs the pipeline, and
+returns per-bar samples with the RMTA value and the trend, with
+the trend counts. computeLineRmtaLayout overlays the RMTA on the
+price in a single panel.
+
+ChartLineRmta renders as an accessible region with an
+`role="img"` SVG, an off-screen description, a config badge, a
+two-item toggleable legend (Price / RMTA) and a hover/focus
+tooltip. Controlled and uncontrolled series visibility,
+`motion-safe` fade-in, `data-section` hooks throughout. 63 vitest
+cases: when alpha + beta equals one, the RMTA tracks the price
+exactly for any integer-price series (asserted with `toEqual`)
+because the residual `rmta - price` is multiplied by `1 - alpha`
+each step and starts at zero; a constant series stays at the
+constant exactly for any weights.
+
 ## [1.11.733] - 2026-05-26 -- UI: chart-line-snr primitive (TODO 11.715)
 
 New **ChartLineSnr** UI primitive in
