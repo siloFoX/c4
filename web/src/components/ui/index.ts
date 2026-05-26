@@ -432,3 +432,4 @@ export * from './chart-line-aroon-osc';
 export * from './chart-line-gauss';
 export * from './chart-line-butterworth';
 export * from './chart-line-bayesian';
+export * from './chart-line-monte-carlo';
