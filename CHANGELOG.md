@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.857] - 2026-05-26 -- UI: chart-line-relative-vigor-signal primitive (TODO 11.839)
+
+Added `<ChartLineRelativeVigorSignal />` -- pure-SVG dual-panel
+React/TS primitive plotting the Ehlers Relative Vigor Index signal
+line beneath a price line. The signal is a 4-bar
+symmetrically-weighted moving average of the raw RVI value, which
+itself is `sum(SWMA(close - open)) / sum(SWMA(high - low))` over
+the lookback. Three-channel display: raw RVI, signal, and close.
+Defaults: `length = 10`, thresholds = 0, rviColor `#0ea5e9` (sky
+blue), signalColor `#14b8a6` (teal). Bit-exact anchors:
+`CONST OHLC = K` -> `signal = null` (0/0 divide guard);
+`CONSTANT-SPREAD close = open + D, high = low + R, R > 0` ->
+`signal = D / R` bit-exact for dyadic ratios
+`D/R in {0, 0.5, 1, -0.5, -1}`. Verified across `(K, L)` sweeps.
+Surface: `runLineRelativeVigorSignal /
+computeLineRelativeVigorSignalLayout /
+describeLineRelativeVigorSignalChart` plus
+`ChartLineRelativeVigorSignal` forwardRef with three legend toggles,
+config badge, threshold + zero-line overlays, markers on signal
+cross events, and tooltip surfacing
+`close / coSwma / hlSwma / sumCo / sumHl / rvi / signal / zone /
+cross`. 70 vitest cases.
+
 ## [1.11.856] - 2026-05-26 -- UI: chart-line-adp primitive (TODO 11.838)
 
 Added `<ChartLineAdp />` -- pure-SVG dual-panel React/TS primitive
