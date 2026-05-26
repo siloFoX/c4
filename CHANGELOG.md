@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.812] - 2026-05-26 -- UI: chart-line-hl-spread primitive (TODO 11.794)
+
+### Added
+- `<ChartLineHlSpread>` -- pure-SVG dual-panel React primitive
+  that plots the close on the top panel and a High-Low Spread
+  oscillator on the bottom panel. The spread is the per-bar
+  range scaled to percent of close, smoothed by an SMA:
+  `raw[i] = (high[i] - low[i]) / close[i] * 100`,
+  `spread[i] = SMA(raw, length)[i]`.
+  Defaults: `length = 14`. Bars before `i = length - 1` are
+  warmup nulls. `close[i] == 0` nulls raw (divide-by-zero
+  guard) and nulls every spread bar whose window includes it.
+  `-0` normalized to `+0`.
+- Bit-exact algebraic anchors:
+  - CONST_FLAT (`K != 0`) -> raw = 0 -> spread = 0 exactly past
+    warmup.
+  - CONST_FLAT K = 0 -> singular all-null spread.
+  - CONST_BAR with dyadic `(H-L)/C` -- when the ratio is IEEE
+    754 representable (e.g. `10/20 = 0.5`, `20/20 = 1`,
+    `8/16 = 0.5`, `5/20 = 0.25`), the spread is bit-exact
+    constant past warmup. The integration sweep covers several
+    such anchors.
+- Zone classifier (wide >= 75% of max / normal 25..75% / narrow
+  < 25% / flat == 0 / none) with sane fallback when
+  spreadMaxSeen is zero. ARIA region + img-role SVG with
+  screen-reader description spelling out the formula. Legend
+  supports controlled + uncontrolled + defaultHidden hidden
+  state; markers / dots respond to click + Enter + Space;
+  tooltip surfaces close + H/L + bar spread + smoothed spread
+  + zone on hover and focus. Zero baseline dashed reference
+  line.
+- 91 vitest cases covering finite coercion, length
+  normalization, raw computation (divide-by-zero guard +
+  dyadic), SMA, computeLineHlSpread (warmup + CONST_FLAT +
+  CONST_BAR dyadic bit-exact + non-mutation + NaN length +
+  non-negativity), zone classifier, run, layout (panels +
+  baseline + marker count + single-point graceful),
+  description, the React surface, and integration sweeps.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.812.
+
 ## [1.11.811] - 2026-05-26 -- UI: chart-line-volatility-quality primitive (TODO 11.793)
 
 ### Added

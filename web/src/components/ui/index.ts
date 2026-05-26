@@ -503,3 +503,4 @@ export * from './chart-line-elder-force';
 export * from './chart-line-pivot-camarilla';
 export * from './chart-line-stiffness-indicator';
 export * from './chart-line-volatility-quality';
+export * from './chart-line-hl-spread';
