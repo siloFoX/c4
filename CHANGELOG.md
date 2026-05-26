@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.800] - 2026-05-26 -- UI: chart-line-vortex-vi-plus primitive (TODO 11.782)
+
+### Added
+- `<ChartLineVortexViPlus>` -- pure-SVG dual-panel chart with the
+  close on the top panel and a Vortex Indicator +VI oscillator on the
+  bottom panel. +VI measures positive vortex movement as a fraction of
+  total true range over the lookback:
+  `VM+[i] = |high[i] - low[i - 1]|` (i >= 1),
+  `TR[i] = max(h - l, |h - prevC|, |l - prevC|)`,
+  `+VI[i] = sum(VM+, length) / sum(TR, length)`.
+  Defaults: `length = 14`. Bar 0's VM+ is `null` (no prior low) so the
+  rolling sum window for +VI must start at bar 1 -- this leaves
+  `length` warmup bars. When the TR sum is zero (`high = low = close`
+  at every bar) the component emits `null` rather than dividing by
+  zero.
+- Bit-exact algebraic anchor: CONST_BAR (constant `H`, `L`, `C` with
+  `L <= C <= H`) yields exactly `+VI = 1` past warmup, because
+  `VM+[i] = H - L` and `TR[i] = max(H - L, |H - C|, |L - C|) = H - L`
+  at every `i >= 1`. The numerator and denominator are both exactly
+  `length * (H - L)`, an integer accumulation that trivially cancels.
+- ARIA region root + img-role SVG with screen-reader description
+  spelling out the formula and the unity-crossing interpretation.
+  Legend supports controlled + uncontrolled `hidden` state, markers /
+  dots respond to click + Enter + Space, tooltip reveals on hover and
+  focus with close + H/L + +VI + zone. Unity reference line at 1.
+- 97 vitest cases covering finite coercion, length normalization,
+  computeVm / computeTrueRange (both anchors), rolling sum (null
+  propagation), computeLineVortexViPlus (warmup, CONST_BAR -> 1
+  bit-exact across multiple shapes, CONST_FLAT all-null, non-mutation),
+  zone classifier, run, layout (panel order + gap + unity line
+  containment), description, the React surface, integration sweep.
+
+### Changed
+- `web/src/components/ui/index.ts` re-exports the new primitive.
+- All four manifests bumped to v1.11.800.
+
 ## [1.11.799] - 2026-05-26 -- UI: chart-line-kc-percent-k primitive (TODO 11.781)
 
 ### Added
