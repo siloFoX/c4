@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.883] - 2026-05-26 -- UI: chart-line-zlema-cross primitive (TODO 11.865)
+
+Added `<ChartLineZlemaCross />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with Ehlers Zero-Lag EMA (top
+panel) and the close - ZLEMA deviation (bottom panel). Markers
+fire at every close-vs-ZLEMA crossover (up -> trending-up, down
+-> trending-down). Defaults `length = 14`. ZLEMA formula:
+`adjusted[i] = 2 * close[i] - close[i - lag]` where `lag =
+floor((length - 1) / 2)`, then `ZLEMA = EMA(adjusted, length)`.
+The `2x` term cancels the natural EMA lag on a linear series so
+ZLEMA tracks close more tightly than a plain EMA. Bit-exact
+anchor: CONST close = K -> adjusted = 2K - K = K -> ZLEMA = K
+bit-exactly (via SMA-seeded min===max precision fix), close -
+ZLEMA = 0, relation `equal` forever, zero crosses. Verified
+across multiple K and length tuples. ARIA region + img-role SVG
++ sr-only desc; markers carry `role="graphics-symbol"` +
+`tabIndex={0}` and `data-kind`; motion-safe fade-in. 60 vitest
+cases.
+
 ## [1.11.882] - 2026-05-26 -- UI: chart-line-fisher-cross primitive (TODO 11.864)
 
 Added `<ChartLineFisherCross />` -- pure-SVG dual-panel React/TS
