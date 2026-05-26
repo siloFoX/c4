@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.863] - 2026-05-26 -- UI: chart-line-wma-pct primitive (TODO 11.845)
+
+Added `<ChartLineWmaPct />` -- pure-SVG dual-panel React/TS
+primitive plotting a WMA Percent-Change oscillator beneath a
+price line and overlaying the underlying WMA on the top panel.
+Parallel to 11.836 ema-pct and 11.837 sma-pct, swapping the EMA /
+rolling SMA for the linearly-weighted WMA (weights run from
+`length` at current to `1` at oldest). `wmaPct = (close - wma) /
+wma * 100` with divide-by-zero guard. Defaults: `length = 14`,
+thresholds = 0, wmaColor `#84cc16` (lime), pctColor `#c026d3`
+(magenta-purple). The WMA helper carries a `winMin === winMax`
+short-circuit so constant-window slices return their exact value
+without 1-ULP drift. Bit-exact anchors: `CONST K != 0` ->
+`wmaPct = 0` across `(K, length)` sweeps; `CONST K = 0` -> `null`;
+`LINEAR UP L = 7 at i = 6` -> `wma = 5` exact and `wmaPct ~= 40`
+asserted with `toBeCloseTo` (the `2/5` intermediate is not dyadic
+so the percent may carry 1 ULP). Surface: `runLineWmaPct /
+computeLineWmaPctLayout / describeLineWmaPctChart` plus
+`ChartLineWmaPct` forwardRef with three legend toggles, config
+badge, optional threshold band + zero-line overlay, markers on
+cross events, and tooltip surfacing
+`close / wma / delta / wmaPct / zone / cross`. 68 vitest cases.
+
 ## [1.11.862] - 2026-05-26 -- UI: chart-line-kvo-signal primitive (TODO 11.844)
 
 Added `<ChartLineKvoSignal />` -- pure-SVG dual-panel React/TS
