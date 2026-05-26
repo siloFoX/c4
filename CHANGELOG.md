@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.823] - 2026-05-26 -- UI: chart-line-coppock-signal primitive (TODO 11.805)
+
+Added `<ChartLineCoppockSignal />` -- pure-SVG dual-panel React/TS
+primitive that plots the Coppock Curve `WMA(ROC(longROC) + ROC(shortROC),
+wmaPeriod)` beneath the close. Top 60% renders the price line; bottom
+40% renders the Coppock signal with a dashed zero reference line and
+bullish/bearish markers on every zero-line cross. Defaults:
+`longROC = 14`, `shortROC = 11`, `wmaPeriod = 10` (Coppock's monthly
+preset). Zones: positive / negative / zero / none. Cross detector
+(`detectLineCoppockSignalCrosses`) flags `'up'` when previous coppock
+was `<= 0` and current is `> 0`, mirror for `'down'`.
+
+Bit-exact anchors: CONST close (K != 0) -> ROC = 0 -> coppock = 0
+everywhere across `K in {1, 5, 100, -3}` and parameter sweep; ZERO close
+yields null everywhere (divide-by-zero guard); GEOMETRIC `close = 2^k`
+-> `ROC(L) = (2^L - 1) * 100` is a constant integer in IEEE 754,
+defaults yield `sumROC = 1843000` and `coppock = 1843000` exactly
+(verified for both canonical 14/11/10 and small 4/2/3 presets).
+`-0 -> +0` normalization in the ROC helper keeps negative-K CONST tests
+`Object.is`-bit-exact. 90 vitest cases (`vitest run`). Barrel export
+wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.805-ui-chart-line-coppock-signal.md`.
+
 ## [1.11.822] - 2026-05-26 -- UI: chart-line-trend-power primitive (TODO 11.804)
 
 Added `<ChartLineTrendPower />` -- pure-SVG dual-panel React/TS primitive

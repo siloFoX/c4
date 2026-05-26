@@ -514,3 +514,4 @@ export * from './chart-line-alligator';
 export * from './chart-line-peak-detector';
 export * from './chart-line-trough-detector';
 export * from './chart-line-trend-power';
+export * from './chart-line-coppock-signal';
