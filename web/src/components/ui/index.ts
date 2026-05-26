@@ -431,3 +431,4 @@ export * from './chart-line-ud-ratio';
 export * from './chart-line-aroon-osc';
 export * from './chart-line-gauss';
 export * from './chart-line-butterworth';
+export * from './chart-line-bayesian';
