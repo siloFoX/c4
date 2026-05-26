@@ -580,3 +580,4 @@ export * from './chart-line-vroc-cross';
 export * from './chart-line-vsa-cross';
 export * from './chart-line-vroc-pct';
 export * from './chart-line-macd-cross-pct';
+export * from './chart-line-rsi-cross-sig';
