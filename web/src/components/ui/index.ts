@@ -425,3 +425,4 @@ export * from './chart-line-vfi';
 export * from './chart-line-vroc';
 export * from './chart-line-stiffness';
 export * from './chart-line-snr';
+export * from './chart-line-rmta';
