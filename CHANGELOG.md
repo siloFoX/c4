@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.758] - 2026-05-26 -- UI: chart-line-projection-bands primitive (TODO 11.740)
+
+### Added
+- `<ChartLineProjectionBands>` -- pure-SVG single-panel chart with
+  Mel Widner **Projection Band** envelope overlays. For each bar
+  `i` with a filled lookback `period`:
+  ```
+  slope_h = OLS slope of high[i-period+1..i] against j = 0..period-1
+  slope_l = OLS slope of low[i-period+1..i]  against j = 0..period-1
+  hPrime[j] = high[j] + slope_h * (i - j)    for j in window
+  lPrime[j] = low[j]  + slope_l * (i - j)    for j in window
+  upper[i] = max(hPrime[j])
+  lower[i] = min(lPrime[j])
+  ```
+  Each bar in the window is shifted by its own window slope times
+  the distance to bar `i`, then the envelope is the extremes of
+  the shifted values. The first `period - 1` bars are null.
+- Pure helpers: `computeLineProjectionBandsSlope`,
+  `computeLineProjectionBands`,
+  `classifyLineProjectionBandsZone` (above-upper / inside /
+  below-lower / none), `runLineProjectionBands`,
+  `computeLineProjectionBandsLayout`,
+  `describeLineProjectionBandsChart`,
+  `getLineProjectionBandsFinitePoints`,
+  `normalizeLineProjectionBandsPeriod`.
+- 70 vitest cases covering: the **linear-ramp identity** (`high =
+  low = c + j` collapses the bands bit-exact: every projected
+  high/low equals `c + i`, so `upper = lower = c + i` exactly; the
+  algebraic cancellation `high[k] + slope * (period - 1 - k) =
+  (c + k) + 1 * (period - 1 - k) = c + period - 1` for the latest
+  bar reduces to `c + i` bit-exact); the FALLING mirror (slope =
+  -1, upper = lower = 19 - i bit-exact); the **CONST_FLAT
+  identity** (slope = 0, upper = lower = K bit-exact); the integer
+  slope identities (`[0,1,2,3] -> slope = 1`, `[10,12,14,16] ->
+  slope = 2`); translation invariance `+1000` shifts both bands by
+  exactly 1000 (integer K); the upper band is always greater than
+  or equal to the current high (choose k = period - 1, distance =
+  0, projection = high[i]); the lower band is always less than or
+  equal to the current low; layout emitting two stub segments per
+  defined bar (upper + lower), markers contained in the panel, the
+  value domain spanning price + bands; component coverage of
+  legend toggle (hide upper), `showLower=false`, ARIA description,
+  badge text, `onPointClick`, and forwardRef.
+- Component renders price line + per-bar upper / lower stub
+  segments, zone-coloured markers, `arps` design-system tokens,
+  ARIA region / img / graphics-symbol roles, and `data-section`
+  hooks throughout.
+
 ## [1.11.757] - 2026-05-26 -- UI: chart-line-ehlers-fisher primitive (TODO 11.739)
 
 ### Added
