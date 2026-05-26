@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.841] - 2026-05-26 -- UI: chart-line-trend-detector primitive (TODO 11.823)
+
+Added `<ChartLineTrendDetector />` -- pure-SVG dual-panel React/TS
+primitive comparing SMA slope against a threshold to flag bars as
+uptrend / downtrend / ranging. Per-bar slope `(mean[i] - mean[i -
+slopeLookback]) / slopeLookback` is plotted on the lower panel with
++/- threshold reference lines and a zero midline. Defaults: `length =
+14`, `slopeLookback = 5`, `threshold = 0.1`. Markers fire on regime
+transitions.
+
+Bit-exact anchors: CONST close (K) -> slope = 0 -> regime = 0
+everywhere across `K in {0, 1, 5, 100, -3}` and `length in {3, 4, 7,
+10}`; LINEAR UP `close = k + 1` -> SMA of consecutive integers gives
+slope = `slopeLookback / slopeLookback = 1` (integer-exact) across
+`(length, slopeLookback)` pairs; LINEAR DOWN `close = N - k` -> slope
+= -1; threshold gates regime (LINEAR UP with `threshold = 2` ->
+ranging because `1 < 2`). 74 vitest cases (`vitest run`). Barrel
+export wired in `web/src/components/ui/index.ts`. See
+`docs/patches/11.823-ui-chart-line-trend-detector.md`.
+
 ## [1.11.840] - 2026-05-26 -- UI: chart-line-range-bias primitive (TODO 11.822)
 
 Added `<ChartLineRangeBias />` -- pure-SVG dual-panel React/TS
