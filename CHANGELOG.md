@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1010] - 2026-05-27 -- UI: chart-line-stc-mid-cross-sig primitive (TODO 11.992)
+
+Added `<ChartLineStcMidCrossSig />` -- close-only Schaff Trend
+Cycle (STC) signal-line midline-50 crossover primitive that
+flags discrete cycle-centerline trigger events with bias
+coloring derived from the signal slope at the trigger bar.
+Signal-line companion to `chart-line-stc-mid-cross` (11.974):
+smooths the STC line with an additional SMA so the trigger
+fires only when the smoothed cycle centerline crosses the
+midline 50 -- suppresses the raw-STC whipsaws that plague the
+unfiltered variant while preserving the cycle-centerline
+trigger semantics. Cross markers carry both a kind and a `bias`
+tag, rendered tinted so a rising-signal entry reads brighter
+than a flat-signal one. Defaults `fastLength = 23`, `slowLength
+= 50`, `cycleLength = 10`, `factor = 0.5`, `kSmoothing = 3`
+(signal smoothing inherited from MACD lineage), `threshold =
+50` (midline). Six-stage pipeline: macd -> stochastic -> EMA ->
+stochastic -> EMA = STC -> SMA = signal. Bit-exact anchors:
+CONST K -> macd=0, stc=50, signal=50 (Object.is verified) ->
+bullish at boundary (0 crosses); LINEAR UP -> macd=13.5 ->
+stc=50, signal=50 -> bullish (0 crosses); LINEAR DOWN -> macd=
+-13.5 -> stc=50, signal=50 -> bullish (0 crosses). Strict
+inequality on `cur` so boundary equality (signal == 50) never
+double-fires. Layout uses fixed oscMin=0 / oscMax=100. 65
+vitest cases. Bumped 1.11.1009 -> 1.11.1010.
+
 ## [1.11.1009] - 2026-05-27 -- UI: chart-line-stc-oversold-cross primitive (TODO 11.991)
 
 Added `<ChartLineStcOversoldCross />` -- close-only Schaff Trend
