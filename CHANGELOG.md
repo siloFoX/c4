@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1013] - 2026-05-27 -- UI: chart-line-qstick-overbought-cross primitive (TODO 11.995)
+
+Added `<ChartLineQstickOverboughtCross />` -- OHLC-input QStick
+(SMA of close - open candle body) overbought-threshold (default
++0.5) crossover primitive that flags candle-body-momentum
+overbought trigger events at a configurable positive upper band.
+Companion to `chart-line-qstick-cross-sig` (11.989, signal-line
+variant) and the upcoming oversold mirror: this one uses a
+fixed positive threshold to flag sustained bullish-body
+strength. Data interface is `{ x, open, close }` because the
+body = close - open is the underlying measurement. Defaults
+`length = 8`, `threshold = 0.5`. Bit-exact anchors: CONST
+open=close=K -> body=0 -> qstick=0 -> bearish (0 < 0.5, 0
+crosses); body=+1 (open=i-1, close=i) -> qstick=1 -> bullish
+(1 >= 0.5, in overbought zone, 0 crosses); body=-1 (open=i+1,
+close=i) -> qstick=-1 -> bearish (0 crosses). Strict inequality
+on `cur` so boundary equality (qstick == 0.5) never double-
+fires. Layout auto-fits with 10% padding and expands to include
+the threshold band on degenerate. 57 vitest cases. Bumped
+1.11.1012 -> 1.11.1013.
+
 ## [1.11.1012] - 2026-05-27 -- UI: chart-line-dpo-oversold-cross primitive (TODO 11.994)
 
 Added `<ChartLineDpoOversoldCross />` -- close-only Detrended
