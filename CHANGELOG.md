@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.906] - 2026-05-27 -- UI: chart-line-stoch-rsi-cross-sig primitive (TODO 11.888)
+
+Added `<ChartLineStochRsiCrossSig />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every cross trigger, and Stochastic
+RSI %K over its EMA-smoothed signal line in the bottom panel
+with cross dot markers. Trigger-focused StochRSI variant
+distinct from 11.857 chart-line-stoch-rsi-cross (K-over-D): this
+primitive replaces %D with an EMA signal so the StochRSI
+participates in the cross-sig family alongside MACD, ATR, RSI,
+MFI. RSI = Wilder; stochRSI = (RSI - lowest) / (highest -
+lowest) * 100 with midpoint=50 fallback for degenerate ranges;
+K = SMA(stochRSI, slowKLength); signal = EMA(K, signalLength).
+Bullish / bearish crosses fire when (K - signal) sign changes.
+Regime classifier `bullish` / `bearish` / `neutral` / `none`.
+Defaults rsiLength=14, stochLength=14, slowKLength=3,
+signalLength=9. Three bit-exact anchors all yielding K = signal
+= 50, regime neutral, 0 crosses: CONST K -> RSI=50 (Wilder
+midpoint); LINEAR UP -> RSI=100; LINEAR DOWN -> RSI=0. In all
+three cases highest===lowest triggers the stochRSI midpoint
+fallback (50). ARIA region + img-role SVG + sr-only desc;
+oscillator + overlay markers carry role="graphics-symbol"
+tabIndex={0}; motion-safe fade-in. 58 vitest cases.
+
 ## [1.11.905] - 2026-05-27 -- UI: chart-line-fisher-cross-pct primitive (TODO 11.887)
 
 Added `<ChartLineFisherCrossPct />` -- pure-SVG dual-panel
