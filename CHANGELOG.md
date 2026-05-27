@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1040] - 2026-05-27 -- UI: chart-line-dema-cross-sig primitive (TODO 11.1022)
+
+Added `<ChartLineDemaCrossSig />` -- close-only Patrick Mulloy
+Double Exponential Moving Average (DEMA = 2*EMA1 - EMA2) over
+signal crossover trigger detector that flags lag-reduced
+trend trigger events with bias coloring. DEMA is the lighter-
+weight sibling of TEMA (2 EMAs vs 3) with the same zero-lag
+property for linear input. Bias-coloured cross markers
+(up/down/flat/none from DEMA slope at trigger bar) match the
+chart-line-tema-cross-sig / chart-line-ema-cross-sig
+convention. Default `period = 14`, `signalLength = 3`. Bit-
+exact anchors: CONST K (any K) -> dema=K, signal=K,
+dema===signal, regime bullish (>=), 0 triggers; LINEAR UP ->
+dema=i (zero lag!), signal=i-1, dema-signal=+1, regime
+bullish, 0 triggers; LINEAR DOWN -> dema=-i, signal=-i+1,
+dema-signal=-1, regime bearish, 0 triggers. Shorter warmup
+than TEMA (`2*(L-1)+SIG-1 = 28` vs `3*(L-1)+SIG-1 = 41`).
+DEMA helper locally exported. 49 vitest cases. Pure SVG, no
+chart libs.
+
 ## [1.11.1039] - 2026-05-27 -- UI: chart-line-tema-cross-sig primitive (TODO 11.1021)
 
 Added `<ChartLineTemaCrossSig />` -- close-only Patrick Mulloy
