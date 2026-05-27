@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1035] - 2026-05-27 -- UI: chart-line-stoch-rsi-divergence-cross primitive (TODO 11.1017)
+
+Added `<ChartLineStochRsiDivergenceCross />` -- close-only
+Stochastic RSI (rolling stochastic applied to Wilder RSI)
+divergence detector that flags discrete price-versus-stoch-RSI
+direction disagreement events for smoothed momentum reversal
+warning. Stoch RSI companion to the MACD / RSI / CMO / Stoch
+/ CCI / Awesome / TSI / TRIX / ADX / Fisher / DPO / QStick /
+STC / RMI / KVO / PSAR divergence primitives. Default
+`length = 14`, `stochLength = 14`, `divergenceWindow = 5`.
+Bit-exact anchors: CONST K (any K) -> rsi=50 -> stochRsi=50
+(degenerate cascade) -> aligned-bearish, 0 crosses; LINEAR
+UP -> rsi=100 -> stochRsi=50 (rsi flat -> stoch degenerate)
+-> divergent-bearish 48/80 samples; LINEAR DOWN -> rsi=0 ->
+stochRsi=50 -> aligned-bearish. Crosses suppressed when prev
+or cur is `none`. Raw stochRsi line (no %K signal smoothing
+-- that variant is `chart-line-stoch-rsi-mid-cross-sig`). 54
+vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1034] - 2026-05-27 -- UI: chart-line-psar-divergence-cross primitive (TODO 11.1016)
 
 Added `<ChartLinePsarDivergenceCross />` -- HLC-input Wilder
