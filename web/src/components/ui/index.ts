@@ -664,3 +664,4 @@ export * from './chart-line-schaff-zero-cross';
 export * from './chart-line-tsi-zero-cross';
 export * from './chart-line-coppock-zero-cross';
 export * from './chart-line-bb-percent-zero-cross';
+export * from './chart-line-kc-percent-zero-cross';

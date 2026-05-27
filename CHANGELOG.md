@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.973] - 2026-05-27 -- UI: chart-line-kc-percent-zero-cross primitive (TODO 11.955)
+
+Added `<ChartLineKcPercentZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every Chester Keltner %K
+0.5-midline crossover, and a %K panel (bottom) with auto-
+fitted range (always containing `[0, 1]` plus padding) and the
+midline reference band. Keltner %K normalises the close to its
+position within fixed-multiple Keltner Channels centered on
+the rolling EMA, with channel width scaled by a close-only ATR
+(EMA of `|close - close_prev|`). 0.5 = middle band, 1 = upper,
+0 = lower, > 1 or < 0 = close has exited the channel. Midline
+(0.5) crossovers mark position-within-channel centerline
+regime transition events. Bit-exact anchors verified by tests:
+CONST close=K yields `pctK = 0.5` (atr=0, range=0, fallback);
+LINEAR UP with length=5, mult=2 yields `pctK = 1.0` exactly
+(close - middle = `(length-1)/2 = 2` from EMA lag, atr = 1,
+upper-lower = `2*mult*atr = 4`, pctK = `0.5 + 2/4 = 1.0`);
+LINEAR DOWN yields `pctK = 0.0`. Standard pipeline --
+`applyLineKcPercentZeroCrossEma(values, length, firstValidIdx)`
+SMA-seeded EMA with CONST short-circuit and length=1 identity,
+`computeLineKcPercentZeroCross(series, {length, mult}) ->
+{middle, atr, upper, lower, percentk, length, mult}` running
+the full EMA / close-only ATR / band / %K pipeline with
+`range = 0` fallback to 0.5,
+`classifyLineKcPercentZeroCrossRegime` with threshold default
+0.5 (null -> none, pctK >= T -> bullish, pctK < T -> bearish),
+`detectLineKcPercentZeroCrossCrosses` with strict boundary
+behaviour, `runLineKcPercentZeroCross`, and
+`computeLineKcPercentZeroCrossLayout` returning per-cross-
+marker `(cx, cyOsc, cyPrice, kind)` triples for the overlay
+arrow + osc circle pair. Layout defaults: 720 x 460 with a
+~55% / 45% price / %K panel split, auto-fit `[oscMin, oscMax]`
+always containing `[0, 1]` and the threshold with 5% padding,
+deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing close
+/ %K / regime / length / mult, configurable showBands /
+showAxis / showGrid / showLegend / showCrosses /
+showOverlayCrosses / showConfigBadge flags, data-* attrs
+reflecting length / mult / threshold / cross-count /
+bullish-count / bearish-count, and forwardRef wired to the
+outer `<div>`. Defaults: length=20, mult=2 (Keltner canonical),
+threshold=0.5. 78 vitest cases green (incl. K in
+`{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN bit-exact
+1.0 / 0.0 constants for length=5 mult=2, middle / atr steady-
+state verification, decline-then-rise / rise-then-decline
+cross detection, custom length / mult warmup, and layout
+determinism across calls). Pure SVG, no canvas / chart
+libraries.
+
 ## [1.11.972] - 2026-05-27 -- UI: chart-line-bb-percent-zero-cross primitive (TODO 11.954)
 
 Added `<ChartLineBbPercentZeroCross />` -- pure-SVG dual-panel
