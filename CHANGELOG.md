@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.905] - 2026-05-27 -- UI: chart-line-fisher-cross-pct primitive (TODO 11.887)
+
+Added `<ChartLineFisherCrossPct />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) and Fisher
+Transform with EMA-smoothed signal plus (fisher - signal)
+deviation channel (bottom panel) surfacing the magnitude of
+gaussian-normalised momentum events separate from sign-based
+crossings. Fisher Transform with standard 0.66 / 0.67 / 0.5
+mixing: norm = (close - lowest) / (highest - lowest) (0.5 when
+range degenerate); xRaw = 0.66*2*(norm-0.5) + 0.67*x[-1]; x =
+clamp(xRaw, +/-0.999); fisher = 0.5*ln((1+x)/(1-x)) +
+0.5*fisher[-1]. signal = EMA(fisher, signalLength). Regime
+classifier `above` / `below` / `at` / `none`. Defaults `length
+= 10` (canonical), `signalLength = 9`. Bit-exact anchor: CONST
+close = K -> norm = 0.5 -> x = 0 every bar -> fisher = 0 ->
+signal = 0 -> fisherPct = 0 (verified K = 0..1234). ARIA region
++ img-role SVG + sr-only desc; motion-safe fade-in. 48 vitest
+cases.
+
 ## [1.11.904] - 2026-05-27 -- UI: chart-line-kvo-cross primitive (TODO 11.886)
 
 Added `<ChartLineKvoCross />` -- pure-SVG dual-panel React/TS
