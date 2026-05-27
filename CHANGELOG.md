@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1020] - 2026-05-27 -- UI: chart-line-obv-divergence-cross primitive (TODO 11.1002)
+
+Added `<ChartLineObvDivergenceCross />` -- close+volume On
+Balance Volume (OBV) cumulative divergence detector that flags
+discrete price-versus-OBV direction disagreement events for
+accumulation / distribution warning. Second volume-aware
+primitive in the family (after KVO mid-cross-sig), and the
+first cumulative-running-total divergence detector. Defaults
+`divergenceWindow = 5` (no length-based warmup; OBV is a
+running cumulative total). Bit-exact anchors: CONST K, V=const
+-> direction=0 -> obv=0 -> aligned-bearish (0 crosses); LINEAR
+UP close=i, V=1000 -> obv=[0,V,2V,...] -> aligned-bullish (OBV
+correctly tracks the uptrend, unlike RSI/Stoch/CMO which
+saturate and read divergent on monotonic uptrends); LINEAR
+DOWN close=-i, V=1000 -> obv=[0,-V,-2V,...] -> aligned-bearish.
+For 50 bars: noneCount=5, post-warmup regime count=45. Layout
+uses symmetric +/-1.1*span around zero with [-1, 1] fallback.
+61 vitest cases. Bumped 1.11.1019 -> 1.11.1020.
+
 ## [1.11.1019] - 2026-05-27 -- UI: chart-line-cci-divergence-cross primitive (TODO 11.1001)
 
 Added `<ChartLineCciDivergenceCross />` -- close-only Commodity
