@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.930] - 2026-05-27 -- UI: chart-line-atr-channel-cross primitive (TODO 11.912)
+
+Added `<ChartLineAtrChannelCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close + upper / middle / lower
+ATR Channel (top panel) with bullish / bearish arrow overlays
+at every close vs middle line cross, and the `close - mid`
+deviation oscillator (bottom panel) with cross dot markers and
+a dashed zero baseline. ATR Channel variant of the volatility-
+band family that uses an SMA mid (instead of the Keltner EMA
+mid) to anchor ATR-band-dependent trend regime events. Close-
+only formula: `mid = SMA(close, length)`, `TR = |delta close|`,
+`atr = Wilder(TR, atrLength)`, `upper = mid + mult*atr`,
+`lower = mid - mult*atr`, `diff = close - mid`. Bullish /
+bearish crosses on `diff` vs 0. Defaults `length=20`,
+`atrLength=10`, `mult=2`. Regime classifier `bullish` (close >
+mid) / `bearish` / `neutral` / `none`. Bit-exact anchor:
+CONST K -> mid=upper=lower=K via SMA + Wilder short-circuits,
+diff=0, regime `neutral`, 0 crosses. LINEAR UP anchor: diff>0,
+regime `bullish`. 57 vitest cases, all pass. ARIA region, img-
+role SVG with sr-only desc, `role="graphics-symbol"` cross
+markers, `data-section` attributes, motion-safe fade-in.
+
 ## [1.11.929] - 2026-05-27 -- UI: chart-line-accumulation-cross primitive (TODO 11.911)
 
 Added `<ChartLineAccumulationCross />` -- pure-SVG dual-panel
