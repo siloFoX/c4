@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.908] - 2026-05-27 -- UI: chart-line-zlema-cross-pct primitive (TODO 11.890)
+
+Added `<ChartLineZlemaCrossPct />` -- pure-SVG dual-panel
+React/TS primitive overlaying the close with Zero Lag EMA (top
+panel) and the close - ZLEMA deviation scaled to close as a
+percent (bottom panel) for cross-instrument comparable lag-
+corrected trend momentum. ZLEMA = EMA(close + (close - close[i
+- lag]), length) where lag = floor((length - 1) / 2). Regime
+classifier `above` / `below` / `at` / `none`. Defaults length=
+14. Bit-exact anchor: CONST close = K (K > 0) -> close -
+close[i-lag] = 0 -> zlemaIn = K -> ZLEMA = K via min === max
+fix -> zlemaPct = 0 / K * 100 = 0 (verified K = 1..1234 and
+length = 9..21). CONST K = 0 triggers divide-by-zero guard ->
+zlemaPct = null. ARIA region + img-role SVG + sr-only desc;
+motion-safe fade-in. 52 vitest cases.
+
 ## [1.11.907] - 2026-05-27 -- UI: chart-line-ehlers-fisher-cross primitive (TODO 11.889)
 
 Added `<ChartLineEhlersFisherCross />` -- pure-SVG dual-panel
