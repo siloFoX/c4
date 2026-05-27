@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1061] - 2026-05-27 -- UI: chart-line-ichimoku-divergence-cross primitive (TODO 11.1043)
+
+Added `<ChartLineIchimokuDivergenceCross />` -- HLC-input
+Ichimoku Cloud (kumo) midpoint divergence detector that
+flags price-vs-kumo direction disagreement events as cloud
+reversal warnings with bias coloring. The kumo midpoint
+condenses the full Ichimoku cloud (Senkou Span A + Senkou
+Span B) into a single direction-indicating line: tenkan =
+midpoint(HH/LL, 9), kijun = midpoint(HH/LL, 26), senkouA =
+(tenkan + kijun) / 2, senkouB = midpoint(HH/LL, 52),
+midpoint = (senkouA + senkouB) / 2. Tracks the long-range
+mean of the rolling high-low range, so direction changes
+correspond to the cloud flipping colour. Sixth
+divergence-cross primitive but the first using rolling HH/
+LL range midpoint rather than a moving-average centerline.
+Uses current-bar reads (no 26-bar forward displacement) so
+the kumo's *current* direction can be compared with the
+current close. Default tenkan=9, kijun=26, senkouB=52,
+warmup=51. Bit-exact anchors (HLC): CONST band [K-1,K+1] ->
+all spans=K, midpoint=K, both flat, regime none, 0 triggers;
+LINEAR UP -> tenkan=i-4, kijun=i-12.5, senkouA=i-8.25,
+senkouB=i-25.5, midpoint=i-16.875, both up ->
+aligned-bullish, 0 triggers; LINEAR DOWN -> mirror, midpoint
+=-i+16.875, both down -> aligned-bearish, 0 triggers. The
+i-16.875 lag is a direct consequence of the rolling-range
+midpoint identity on linear input. Complementary to MA
+siblings: a stock that diverges from its kumo but not its
+MA suggests range-driven sentiment shift; a stock that
+diverges from its MA but not its kumo suggests trend-driven
+mean reversion. 48 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1060] - 2026-05-27 -- UI: chart-line-kama-divergence-cross primitive (TODO 11.1042)
 
 Added `<ChartLineKamaDivergenceCross />` -- close-only
