@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.894] - 2026-05-27 -- UI: chart-line-macd-cross-sig primitive (TODO 11.876)
+
+Added `<ChartLineMacdCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and MACD over its EMA
+signal line in the bottom panel with cross dot markers. Trigger-
+focused variant distinct from 11.870 chart-line-macd-cross-pct
+(which is a single-line close-scaled MACD%% oscillator). MACD =
+EMA(close, fast) - EMA(close, slow). signal = EMA(MACD,
+signalLength). bullish / bearish crosses fire when (MACD -
+signal) sign changes. Regime classifier `bullish` / `bearish` /
+`neutral` / `none`. Defaults `fast = 12`, `slow = 26`, `signal =
+9` (canonical MACD). Bit-exact anchor: CONST close = K (any K)
+-> ema_fast = ema_slow = K -> MACD = 0 every bar -> signal = 0
+-> regime neutral / 0 crosses (verified for K = 0 and K > 0
+across multiple fast / slow tuples). ARIA region + img-role SVG
++ sr-only desc; oscillator + overlay markers carry
+role="graphics-symbol" tabIndex={0}; motion-safe fade-in. 54
+vitest cases.
+
 ## [1.11.893] - 2026-05-27 -- UI: chart-line-vroc-cross-sig primitive (TODO 11.875)
 
 Added `<ChartLineVrocCrossSig />` -- pure-SVG dual-panel React/TS
