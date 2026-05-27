@@ -717,3 +717,4 @@ export * from './chart-line-awesome-divergence-cross';
 export * from './chart-line-tsi-divergence-cross';
 export * from './chart-line-trix-divergence-cross';
 export * from './chart-line-adx-divergence-cross';
+export * from './chart-line-fisher-divergence-cross';
