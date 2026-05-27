@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.949] - 2026-05-27 -- UI: chart-line-cci-oversold-cross primitive (TODO 11.931)
+
+Added `<ChartLineCciOversoldCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (exit upward from oversold) / bearish (entry downward
+into oversold) chevron overlays at every CCI threshold cross,
+and the close-only Commodity Channel Index line (bottom
+panel) on an auto-expanding +/- 300 oscillator with threshold
+(-100) and 0 reference bands. Single-threshold cross variant
+of the CCI family. Mirror of 11.930 `chart-line-cci-
+overbought-cross` using the oversold level (-100) instead of
+the overbought level (+100); regime semantics and arrow
+direction are inverted (bullish arrow points up out of
+oversold, bearish arrow points down into oversold). Bit-exact
+anchor: CONST `close = K` -> sma = K -> md = 0 -> 0/0 guard
+returns cci = 0, 0 > -100, regime `neutral`, 0 crosses,
+verified across K in {0, 1, 42, 100, 1234}. LINEAR UP -> cci
+= 126.667 constant, 126.667 > -100, regime `neutral`, 0
+crosses. LINEAR DOWN -> cci = -126.667, -126.667 < -100,
+regime `oversold`, 0 crosses (cci jumps from null to -126.667
+in one bar). Single negative spike with length 14 -> cci =
+-466.67 crosses the -100 band, firing 1 bearish entry.
+Defaults `length=20`, `threshold=-100`. Regime classifier
+`oversold` / `neutral` / `none`. ARIA region + role=img SVG
+with sr-only desc, `data-section` attributes on every drawn
+group, `role="graphics-symbol"` + `tabIndex=0` on every cross
+/ overlay marker, motion-safe fade-in, controlled /
+uncontrolled hidden-series legend. 72 vitest cases covering
+pure helpers (`getLineCciOversoldCrossFinitePoints`,
+`normalizeLineCciOversoldCrossLength`,
+`normalizeLineCciOversoldCrossThreshold`,
+`applyLineCciOversoldCrossSma`), the close-only CCI compute
+pipeline (CONST / LINEAR UP / LINEAR DOWN / negative spike),
+the regime classifier, the bullish / bearish cross detector,
+layout (band y ordering, path M/L precision, oscillator range
+expansion downward for extreme negative values, marker
+placement), and the JSX render path. Manifests 1.11.948 ->
+1.11.949.
+
 ## [1.11.948] - 2026-05-27 -- UI: chart-line-cci-overbought-cross primitive (TODO 11.930)
 
 Added `<ChartLineCciOverboughtCross />` -- pure-SVG dual-panel
