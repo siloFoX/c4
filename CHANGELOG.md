@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1064] - 2026-05-27 -- UI: chart-line-atr-divergence-cross primitive (TODO 11.1046)
+
+Added `<ChartLineAtrDivergenceCross />` -- HLC-input
+Average True Range divergence detector that flags
+price-vs-ATR direction disagreement events as
+volatility-regime reversal warnings with bias coloring.
+ATR is Wilder's 1978 volatility proxy: rolling average of
+true-range bar magnitude. Direction-agnostic and
+non-negative -- rising ATR = expanding volatility, falling
+ATR = contracting volatility. Divergence semantics:
+divergent-bullish (price falling but ATR rising) suggests
+selling pressure releases on expanding range; divergent-
+bearish (price rising but ATR falling) suggests rally
+fades on contracting range. Uses SMA-based ATR (matching
+chart-line-atr-breakout-cross v1.11.1048) for bit-exact
+integer test values rather than Wilder smoothing (used by
+chart-line-supertrend-divergence-cross v1.11.1062). The
+two ATR variants in the codebase are a documented
+family-level tuning choice. Default period=14, warmup=14.
+Bit-exact anchors (HLC): CONST band [K-1,K+1] -> TR=2,
+ATR=2, both flat, regime none, 0 triggers; LINEAR UP ->
+TR=2, ATR=2 constant, price up but ATR flat -> regime
+none, 0 triggers; LINEAR DOWN -> mirror, ATR=2 constant,
+regime none, 0 triggers. Flat-ATR-on-LINEAR is canonical
+behaviour -- per-bar range is constant in steady trends.
+Layout clamps oscMin to 0 since ATR is non-negative.
+Complementary to chart-line-atr-breakout-cross (orthogonal
+volatility signal: breakout cross vs threshold, divergence
+cross vs price direction). 46 vitest cases. Pure SVG, no
+chart libs.
+
 ## [1.11.1063] - 2026-05-27 -- UI: chart-line-williams-divergence-cross primitive (TODO 11.1045)
 
 Added `<ChartLineWilliamsDivergenceCross />` -- HLC-input
