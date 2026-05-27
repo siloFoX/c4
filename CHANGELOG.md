@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1026] - 2026-05-27 -- UI: chart-line-fisher-divergence-cross primitive (TODO 11.1008)
+
+Added `<ChartLineFisherDivergenceCross />` -- close-only Ehlers
+Fisher Transform (rolling min/max normalise -> clamp -> atanh)
+divergence detector that flags discrete price-versus-Fisher
+direction disagreement events for Gaussian-normalised momentum
+reversal warning. Ehlers Fisher companion to the MACD / RSI /
+CMO / Stoch / CCI / Awesome / TSI / TRIX / ADX divergence
+primitives. Default `length = 9` (Ehlers' canonical Fisher
+window), `divergenceWindow = 5`, `clampLimit = 0.999` (Ehlers'
+clamp to avoid the atanh singularity at +/-1). Bit-exact
+anchors: CONST K (any K) -> fisher=0 (degenerate fallback when
+the rolling range collapses) -> aligned-bearish, 0 crosses;
+LINEAR UP -> raw=1 -> clamped to 0.999 -> fisher=atanh(0.999) ~=
++3.80 constant -> divergent-bearish 47/60 samples (canonical
+bearish divergence); LINEAR DOWN -> fisher = -atanh(0.999) ~=
+-3.80 -> aligned-bearish. Crosses suppressed when prev or cur
+is `none`. Configurable `clampLimit` (strictly 0 < v < 1).
+Single-step transform variant chosen so saturated anchors are
+bit-exact in steady state. 65 vitest cases. Pure SVG, no chart
+libs.
+
 ## [1.11.1025] - 2026-05-27 -- UI: chart-line-adx-divergence-cross primitive (TODO 11.1007)
 
 Added `<ChartLineAdxDivergenceCross />` -- HLC-input Wilder
