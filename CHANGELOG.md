@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1041] - 2026-05-27 -- UI: chart-line-kama-cross-sig primitive (TODO 11.1023)
+
+Added `<ChartLineKamaCrossSig />` -- close-only Perry Kaufman
+Adaptive Moving Average (KAMA, volatility-adaptive smoothing
+via efficiency ratio scaling between fast and slow SC weights)
+over signal crossover trigger detector that flags volatility-
+adaptive trend trigger events with bias coloring. KAMA is
+more responsive in clean trends (high efficiency) and more
+damped in choppy markets (low efficiency). Bias-coloured
+cross markers (up/down/flat/none from KAMA slope at trigger
+bar) match the chart-line-ema-cross-sig / chart-line-tema-
+cross-sig convention. Default `efficiencyPeriod = 10`,
+`fastPeriod = 2`, `slowPeriod = 30`, `signalLength = 3`
+(Kaufman canonical). Bit-exact anchors: CONST K (any K) ->
+kama=K, signal=K, kama===signal, regime bullish (>=), 0
+triggers; LINEAR UP -> er=1, sc=4/9, kama=i-1.25 (steady
+state), signal=i-2.25, kama-signal=+1, regime bullish, 0
+triggers; LINEAR DOWN -> kama=-i+1.25, signal=-i+2.25,
+kama-signal=-1, regime bearish, 0 triggers. KAMA helper
+locally exported. 49 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1040] - 2026-05-27 -- UI: chart-line-dema-cross-sig primitive (TODO 11.1022)
 
 Added `<ChartLineDemaCrossSig />` -- close-only Patrick Mulloy
