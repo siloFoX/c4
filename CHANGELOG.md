@@ -4,6 +4,31 @@
 
 (no entries -- next release window)
 
+## [1.11.1052] - 2026-05-27 -- UI: chart-line-hma-divergence-cross primitive (TODO 11.1034)
+
+Added `<ChartLineHmaDivergenceCross />` -- close-only Hull
+Moving Average divergence detector that flags price-vs-HMA
+direction disagreement events as fast trend reversal
+warnings with bias coloring. Uses the canonical 5-state
+divergence regime model (aligned-bullish / aligned-bearish /
+divergent-bullish / divergent-bearish / none) shared by the
+chart-line-*-divergence-cross family. HMA is Alan Hull's
+near-zero-lag composite: 2*WMA(close, period/2) - WMA(close,
+period) smoothed by WMA(., round(sqrt(period))). For
+period=14, sqrtPeriod=4, warmup=16. Bit-exact anchors
+(close-only): CONST K -> HMA=K, both flat, regime none, 0
+triggers; LINEAR UP close=i -> WMA(7)=i-2, WMA(14)=i-13/3,
+inner=i+1/3, HMA=i-2/3, both up -> aligned-bullish, 0
+triggers; LINEAR DOWN close=-i -> mirror, HMA=-i+2/3,
+aligned-bearish, 0 triggers. The clean i - 2/3 lag is a
+direct consequence of the WMA-centroid arithmetic chained
+through the Hull recipe -- a fixed property of HMA
+construction. Cross detection fires only on transition INTO
+a divergent state (not while staying in one), preventing
+double-fire. wmaHalf/wmaFull/inner values exposed on the
+run object for bit-exact audit. 51 vitest cases. Pure SVG,
+no chart libs.
+
 ## [1.11.1051] - 2026-05-27 -- UI: chart-line-donchian-mid-cross-sig primitive (TODO 11.1033)
 
 Added `<ChartLineDonchianMidCrossSig />` -- HLC-input
