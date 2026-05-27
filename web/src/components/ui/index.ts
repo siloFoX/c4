@@ -729,3 +729,4 @@ export * from './chart-line-psar-divergence-cross';
 export * from './chart-line-stoch-rsi-divergence-cross';
 export * from './chart-line-macd-zero-cross-sig';
 export * from './chart-line-hma-cross-sig';
+export * from './chart-line-ema-cross-sig';

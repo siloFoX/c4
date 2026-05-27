@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1038] - 2026-05-27 -- UI: chart-line-ema-cross-sig primitive (TODO 11.1020)
+
+Added `<ChartLineEmaCrossSig />` -- close-only Exponential
+Moving Average over signal crossover trigger detector that
+flags trend trigger events with bias coloring: bullish when
+EMA crosses up through its SMA signal line, bearish when EMA
+crosses down through its SMA signal line. EMA cross-sig
+companion to the chart-line-hma-cross-sig / chart-line-macd-
+zero-cross-sig family, mirroring the same trigger pattern
+with a single-EMA underlying. Bias-coloured cross markers
+(up/down/flat/none from EMA slope at trigger bar) match the
+chart-line-stc-overbought-cross convention. Default `period =
+14`, `signalLength = 3`. Bit-exact anchors: CONST K (any K)
+-> ema=K, signal=K, ema===signal, regime bullish (>=), 0
+triggers; LINEAR UP -> ema=i-6.5, signal=i-7.5, ema-signal=
++1, regime bullish, 0 triggers; LINEAR DOWN -> ema=-i+6.5,
+signal=-i+7.5, ema-signal=-1, regime bearish, 0 triggers.
+SMA-seeded EMA helper locally exported. 47 vitest cases.
+Pure SVG, no chart libs.
+
 ## [1.11.1037] - 2026-05-27 -- UI: chart-line-hma-cross-sig primitive (TODO 11.1019)
 
 Added `<ChartLineHmaCrossSig />` -- close-only Alan Hull
