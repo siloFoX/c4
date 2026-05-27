@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.988] - 2026-05-27 -- UI: chart-line-rmi-overbought-cross primitive (TODO 11.970)
+
+Added `<ChartLineRmiOverboughtCross />` -- Relative Momentum
+Index overbought (70) cross variant. Shares the RSI-with-lookback
+Wilder pipeline with `chart-line-rmi-zero-cross` /
+`chart-line-rmi-mid-cross`: lookback-step momentum delta ->
+Wilder-smoothed gain / loss (SMA-seeded at `lookback + length -
+1`) -> `100 - 100 / (1 + avgGain / avgLoss)` with neutral /
+extreme fallbacks (both-zero -> 50, no-loss -> 100, no-gain ->
+0). Defaults `length = 14`, `lookback = 5`, `threshold = 70`.
+Bit-exact anchors: CONST close=K -> rmi=50 -> regime bearish
+(50 < 70, opposite of the mid-cross variant where 50 sat on the
+threshold and read bullish; shares the same RMI literal with the
+zero-cross variant). LINEAR UP -> rmi=100 (bullish, 0 crosses
+because rmi jumps from null to 100 across the warmup boundary).
+LINEAR DOWN -> rmi=0 (bearish, 0 crosses). 71 passing cases
+covering finite filtering, length / threshold normalization,
+Wilder seed semantics (CONST + null + insufficient + seedIdx),
+the full RMI pipeline, regime + cross detector (strict `>` /
+`<`), layout determinism (`.toFixed(2)`, single-M rmi path,
+thresholdY sits above midpoint at threshold=70), ARIA region +
+role=img SVG + sr-only desc claiming "overbought trigger
+events", config badge, legend toggle (pointer + Enter / Space),
+hover tooltip, controlled `hiddenSeries`, threshold band, axes /
+grid / legend / crosses / overlay visibility flags, `data-*`
+counters matching run output, default `{ length: 14, lookback:
+5, threshold: 70 }`, and `forwardRef` exposing the wrapping
+div.
+
 ## [1.11.987] - 2026-05-27 -- UI: chart-line-fisher-oversold-cross primitive (TODO 11.969)
 
 Added `<ChartLineFisherOversoldCross />` -- John Ehlers' Fisher
