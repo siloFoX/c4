@@ -744,3 +744,4 @@ export * from './chart-line-bollinger-mid-cross-sig';
 export * from './chart-line-keltner-mid-cross-sig';
 export * from './chart-line-donchian-mid-cross-sig';
 export * from './chart-line-hma-divergence-cross';
+export * from './chart-line-ema-divergence-cross';
