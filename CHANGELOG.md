@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.1047] - 2026-05-27 -- UI: chart-line-adx-trend-cross primitive (TODO 11.1029)
+
+Added `<ChartLineAdxTrendCross />` -- pure-SVG dual-panel
+HLC-input Average Directional Index trend-strength
+threshold-cross primitive that flags ADX crossing the
+canonical Wilder thresholds (lower = 20 = trend forming,
+upper = 25 = trend confirmed) as trend emerging
+confirmation / trend dissolution events with bias coloring
+from the ADX slope at the trigger bar. First chart-line
+primitive to surface a 3-zone semantic regime classifier
+(weak / forming / strong) rather than the 2-zone
+bullish/bearish convention used by the rest of the family
+-- intentional, since ADX is non-directional trend-strength
+(it does not say which direction the trend is going, only
+how strongly it is trending). Each cross event also carries
+an extra threshold field (lower/upper) so callers can
+distinguish trend-emerging events (cross through 20) from
+trend-confirmation events (cross through 25). Default
+period = 14, lower = 20, upper = 25. Bit-exact anchors
+(HLC): CONST band [K-1, K+1] -> upMove = downMove = 0 ->
++DM = -DM = 0 -> +DI = -DI = 0 -> DX = 0 (via +DI + -DI = 0
+zero-guard) -> ADX = 0, regime weak, 0 triggers; LINEAR UP
+[i-1, i+1] -> +DM = 1, -DM = 0 -> +DI = 50, -DI = 0 -> DX
+= 100 -> ADX = 100, regime strong, 0 triggers; LINEAR DOWN
+[-i-1, -i+1] -> +DM = 0, -DM = 1 -> +DI = 0, -DI = 50 -> DX
+= 100 -> ADX = 100, regime strong, 0 triggers. Warmup is
+2 * period - 1 = 27 per Wilder's standard ADX initialisation
+(+DM/-DM/TR sum-init at i = period, ADX SMA-init at i =
+2 * period - 1). Wilder smoothing uses sum-init for
++DM/-DM/TR (1978 original) but SMA-init for ADX (keeps
+bounded in [0, 100]). Threshold lines use distinct dash
+patterns (4 3 lower, 6 3 upper) for high-contrast /
+colour-blind safety. 54 vitest cases. Pure SVG, no chart
+libs.
+
 ## [1.11.1046] - 2026-05-27 -- UI: chart-line-vortex-mid-cross primitive (TODO 11.1028)
 
 Added `<ChartLineVortexMidCross />` -- canonical Vortex
