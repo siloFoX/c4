@@ -695,3 +695,4 @@ export * from './chart-line-awesome-oversold-cross';
 export * from './chart-line-stoch-mid-cross-sig';
 export * from './chart-line-stoch-rsi-mid-cross-sig';
 export * from './chart-line-macd-divergence-cross';
+export * from './chart-line-rsi-divergence-cross';
