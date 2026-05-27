@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1050] - 2026-05-27 -- UI: chart-line-keltner-mid-cross-sig primitive (TODO 11.1032)
+
+Added `<ChartLineKeltnerMidCrossSig />` -- close-only
+Keltner Channel middle line (EMA(close, 20)) over its SMA
+signal smoothing crossover trigger detector that flags
+centerline volatility trend trigger events with bias
+coloring. EMA sibling of chart-line-bollinger-mid-cross-sig
+(v1.11.1049): both use period=20, but Keltner's middle is
+an EMA (vs Bollinger's SMA), giving the centerline a
+slightly faster response to recent bars while keeping the
+same steady-state lag on linear input thanks to SMA-seed
+EMA initialisation. Bias-coloured cross markers
+(up/down/flat/none from middle slope at trigger bar) match
+the convention. Default period=20, signalLength=3,
+warmup=21. Bit-exact anchors: CONST K -> middle=K, signal=K,
+regime bullish (>=), 0 triggers; LINEAR UP -> middle=i-9.5
+(EMA's steady-state lag on linear input solves to
+(period-1)/2, matching SMA exactly via SMA seeding),
+signal=i-10.5, middle-signal=+1, regime bullish, 0 triggers;
+LINEAR DOWN -> middle=-i+9.5, signal=-i+10.5,
+middle-signal=-1, regime bearish, 0 triggers. The clean
++1/-1 separation matches every chart-line-*-cross-sig
+sibling. 49 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1049] - 2026-05-27 -- UI: chart-line-bollinger-mid-cross-sig primitive (TODO 11.1031)
 
 Added `<ChartLineBollingerMidCrossSig />` -- close-only
