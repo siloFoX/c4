@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.982] - 2026-05-27 -- UI: chart-line-schaff-overbought-cross primitive (TODO 11.964)
+
+Added `<ChartLineSchaffOverboughtCross />` -- Schaff Trend
+Cycle crossover variant tracking the canonical 75 overbought
+line. Shares the bit-exact STC pipeline with the
+`chart-line-schaff-zero-cross` sibling; only difference is
+the default threshold (75). Bit-exact anchors verified by
+tests: CONST close=K yields `stc = 50` (regime bearish since
+50 < 75 -- opposite from zero-cross where 50 sat on
+boundary); LINEAR UP and LINEAR DOWN both also yield
+`stc = 50` because both EMAs hit their steady-state lag
+exactly, leaving MACD constant so the stochastic of a
+constant stays at the 50 seed -- also bearish. The
+interesting cross activity lives in transients (decline-then-
+rise pushes stc through the cycle dynamics). Standard
+pipeline -- `applyLineSchaffOverboughtCrossEma` (SMA-seeded
+EMA with CONST short-circuit), `computeLineSchaffOverbought
+Cross(series, {cycle, fast, slow}) -> {macd, k1, d1, k2, stc,
+cycle, fast, slow}` running the full two-pass stochastic +
+smoothing pipeline with the 50 seed,
+`classifyLineSchaffOverboughtCrossRegime` with threshold
+default 75, `detectLineSchaffOverboughtCrossCrosses` with
+strict boundary behaviour,
+`runLineSchaffOverboughtCross`, and
+`computeLineSchaffOverboughtCrossLayout` returning per-
+cross-marker `(cx, cyOsc, cyPrice, kind)` triples. Layout
+defaults: 720 x 460 with a ~55% / 45% price / STC panel
+split, fixed `[0, 100]` STC range with the threshold band at
+the 75-line (above midpoint), deterministic `.toFixed(2)`
+SVG paths, ARIA region + `role="img"` SVG + sr-only desc,
+`role="graphics-symbol"` + `tabIndex={0}` on each cross
+marker, motion-safe fade-in, controlled / uncontrolled
+legend, hover tooltip showing close / STC / regime /
+entries / exits counters / cycle-fast-slow parameters,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting cycle / fast / slow / threshold /
+cross-count / bullish-count / bearish-count, and forwardRef
+wired to the outer `<div>`. Defaults: cycle=10, fast=23,
+slow=50 (Schaff canonical), threshold=75. 67 vitest cases
+green (incl. K in `{0, 1, 42, 100, 1234}` anchors, LINEAR
+UP/DOWN bit-exact, MACD steady-state verification,
+decline-then-rise transient validation, and layout
+determinism across calls). Pure SVG, no canvas / chart
+libraries.
+
 ## [1.11.981] - 2026-05-27 -- UI: chart-line-tsi-oversold-cross primitive (TODO 11.963)
 
 Added `<ChartLineTsiOversoldCross />` -- mirror of the
