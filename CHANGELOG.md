@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.895] - 2026-05-27 -- UI: chart-line-stoch-cross-pct primitive (TODO 11.877)
+
+Added `<ChartLineStochCrossPct />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) and Stochastic %K, %D,
+plus the K - D percent deviation (bottom panel) surfacing the
+momentum magnitude separate from the sign-based K-over-D
+crossings. rawK = (close - lowest) / (highest - lowest) * 100;
+K = SMA(rawK, slowKLength); D = SMA(K, dLength); stochPct = K -
+D. Regime classifier `above` / `below` / `at` / `none`. Defaults
+`kLength = 14`, `slowKLength = 3`, `dLength = 3` (canonical slow
+stochastic). Bit-exact anchors: LINEAR UP step=1 -> rawK = 100
+every bar -> K = D = 100 -> stochPct = 0 (regime at, verified
+across multiple start values); CONST close = K -> highest === l
+owest triggers divide-by-zero guard -> rawK = K = D = stochPct =
+null (regime none everywhere). ARIA region + img-role SVG + sr-
+only desc; motion-safe fade-in. 50 vitest cases.
+
 ## [1.11.894] - 2026-05-27 -- UI: chart-line-macd-cross-sig primitive (TODO 11.876)
 
 Added `<ChartLineMacdCrossSig />` -- pure-SVG dual-panel React/TS
