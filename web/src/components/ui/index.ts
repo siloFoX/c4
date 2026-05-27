@@ -584,3 +584,4 @@ export * from './chart-line-rsi-cross-sig';
 export * from './chart-line-tema-cross-pct';
 export * from './chart-line-hma-cross-pct';
 export * from './chart-line-dema-cross-pct';
+export * from './chart-line-vroc-cross-sig';
