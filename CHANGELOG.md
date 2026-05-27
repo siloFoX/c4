@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1032] - 2026-05-27 -- UI: chart-line-stc-divergence-cross primitive (TODO 11.1014)
+
+Added `<ChartLineStcDivergenceCross />` -- **bias-coloured**
+variant of the Schaff Trend Cycle divergence detector.
+Sibling of `chart-line-schaff-divergence-cross` (11.1011):
+same STC pipeline and 5-state divergence regime model, but
+every sample and every cross marker additionally carries a
+`bias` field (up/down/flat/none) derived from the STC slope
+at the trigger bar. Cross markers are coloured by bias so the
+chart distinguishes a divergence cross fired on rising STC
+vs. falling STC vs. parked STC. Mirrors the bias classifier
+already used by `chart-line-stc-overbought-cross` /
+`chart-line-stc-oversold-cross`. Default `fastLength = 23`,
+`slowLength = 50`, `cycleLength = 10`, `factor = 0.5`,
+`divergenceWindow = 5`. Bit-exact anchors: CONST K (any K)
+-> stc=50 -> aligned-bearish, all bias flat, 0 crosses;
+LINEAR UP -> macd=+13.5 -> stc=50 -> divergent-bearish, all
+bias flat; LINEAR DOWN -> macd=-13.5 -> stc=50 ->
+aligned-bearish, all bias flat. 55 vitest cases. Pure SVG, no
+chart libs.
+
 ## [1.11.1031] - 2026-05-27 -- UI: chart-line-kvo-divergence-cross primitive (TODO 11.1013)
 
 Added `<ChartLineKvoDivergenceCross />` -- HLCV-input Stephen
