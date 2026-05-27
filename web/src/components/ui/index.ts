@@ -760,3 +760,4 @@ export * from './chart-line-cci-mid-cross-sig';
 export * from './chart-line-rsi-mid-cross-sig';
 export * from './chart-line-ichimoku-mid-cross-sig';
 export * from './chart-line-supertrend-mid-cross-sig';
+export * from './chart-line-williams-mid-cross-sig';
