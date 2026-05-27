@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.917] - 2026-05-27 -- UI: chart-line-macd-hist-cross primitive (TODO 11.899)
+
+Added `<ChartLineMacdHistCross />` -- pure-SVG dual-panel React
+/TS primitive rendering the close (top panel) with bullish /
+bearish arrow overlays at every MACD histogram zero crossover,
+and the MACD histogram (`macd - signal`) bottom panel as colored
+bars centered on a zero baseline. Histogram-cross variant of
+the MACD family that flags momentum acceleration triggers
+distinct from the MACD line / signal cross primitives. Canonical
+formula: `ema_fast = EMA(close, fastLength)`, `ema_slow = EMA(
+close, slowLength)`, `macd = ema_fast - ema_slow`, `signal =
+EMA(macd, signalLength)`, `hist = macd - signal`. Bullish /
+bearish crosses on `hist` vs 0. Defaults `fastLength=12`,
+`slowLength=26`, `signalLength=9`. Regime classifier `bullish`
+/ `bearish` / `neutral` / `none`. Bit-exact anchor: CONST K ->
+ema_fast = ema_slow = K -> macd = 0 -> signal = 0 -> hist = 0,
+regime `neutral`, 0 crosses. 57 vitest cases, all pass. ARIA
+region, img-role SVG with sr-only desc, `role="graphics-symbol"`
+cross markers, `data-section` attributes, motion-safe fade-in.
+
 ## [1.11.916] - 2026-05-27 -- UI: chart-line-supertrend-cross-sig primitive (TODO 11.898)
 
 Added `<ChartLineSupertrendCrossSig />` -- pure-SVG dual-panel
