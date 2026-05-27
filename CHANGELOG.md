@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.903] - 2026-05-27 -- UI: chart-line-obv-cross-sig primitive (TODO 11.885)
+
+Added `<ChartLineObvCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and On Balance Volume
+(OBV) over its EMA-smoothed signal line in the bottom panel with
+cross dot markers. Trigger-focused OBV variant marking
+accumulation / distribution trigger events. OBV is cumulative:
+OBV[i] = OBV[i-1] + sign(close[i] - close[i-1]) * volume[i].
+signal = EMA(OBV, signalLength). Bullish / bearish crosses fire
+when (OBV - signal) sign changes. Regime classifier `bullish` /
+`bearish` / `neutral` / `none`. Defaults `signalLength = 20`.
+Three bit-exact anchors all with 0 crosses: CONST {K, V} ->
+close unchanged -> OBV = 0 every bar -> signal = 0 -> regime
+neutral; LINEAR UP step>0 with V>0 -> OBV grows monotonically
+(i*V) -> signal lags below -> regime bullish (no transition);
+LINEAR DOWN step<0 with V>0 -> regime bearish. ARIA region +
+img-role SVG + sr-only desc; oscillator + overlay markers carry
+role="graphics-symbol" tabIndex={0}; motion-safe fade-in. 58
+vitest cases.
+
 ## [1.11.902] - 2026-05-27 -- UI: chart-line-cci-cross-sig primitive (TODO 11.884)
 
 Added `<ChartLineCciCrossSig />` -- pure-SVG dual-panel React/TS
