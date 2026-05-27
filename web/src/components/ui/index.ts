@@ -602,3 +602,4 @@ export * from './chart-line-ehlers-fisher-cross';
 export * from './chart-line-zlema-cross-pct';
 export * from './chart-line-roc-cross-sig';
 export * from './chart-line-roc-cross-pct';
+export * from './chart-line-kvo-cross-sig';
