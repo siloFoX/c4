@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.900] - 2026-05-27 -- UI: chart-line-adx-cross-pct primitive (TODO 11.882)
+
+Added `<ChartLineAdxCrossPct />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) and simplified single-
+series Average Directional Index (ADX) with EMA-smoothed signal
+plus (ADX - signal) / 100 * 100 deviation channel (bottom panel)
+scaled by 0..100 ADX range for relative trend strength
+comparison. ADX = Wilder(DX) where DX = 100 * |+DI - -DI| / (+DI
++ -DI) and +DI, -DI are 100 * Wilder(+/-DM) / Wilder(TR). Regime
+classifier `above` / `below` / `at` / `none`. Defaults `length =
+14` (canonical Wilder), `signalLength = 9`. Bit-exact anchors:
+CONST close = K (any K) -> TR = +DM = -DM = 0 -> DX = 0 -> ADX
+= 0 -> signal = 0 -> adxPct = 0 (verified K = 0..1234); LINEAR
+UP step=1 -> TR = +DM = 1, -DM = 0 -> +DI = 100, -DI = 0 -> DX
+= 100 -> ADX = 100, signal = 100, adxPct = 0; LINEAR DOWN
+step=-1 -> symmetric, ADX = 100, signal = 100, adxPct = 0. All
+three anchors hit adxPct = 0 bit-exact. ARIA region + img-role
+SVG + sr-only desc; motion-safe fade-in. 51 vitest cases.
+
 ## [1.11.899] - 2026-05-27 -- UI: chart-line-atr-cross-sig primitive (TODO 11.881)
 
 Added `<ChartLineAtrCrossSig />` -- pure-SVG dual-panel React/TS
