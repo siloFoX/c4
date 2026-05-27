@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.995] - 2026-05-27 -- UI: chart-line-cmo-oversold-cross primitive (TODO 11.977)
+
+Added `<ChartLineCmoOversoldCross />` -- Chande Momentum
+Oscillator oversold (-50) cross variant. Mirror of
+`chart-line-cmo-overbought-cross` (11.976): shares the same
+close-only CMO pipeline (delta -> gain / loss -> windowed sums ->
+`100 * (sumGain - sumLoss) / (sumGain + sumLoss)` with bit-exact
++0 fallback when both sums are zero), threshold flipped from +50
+to -50. Defaults `length = 14`, `threshold = -50`. Joins
+`chart-line-cmo-zero-cross` (11.946),
+`chart-line-cmo-mid-cross` (11.966), and
+`chart-line-cmo-overbought-cross` (11.976) to round out the
+canonical CMO threshold layer. Bit-exact anchors: CONST close=K
+-> cmo=+0 (Object.is verified) -> regime bullish (0 >= -50,
+opposite of the overbought variant where 0 < 50 gave bearish).
+LINEAR UP -> cmo=100 (bullish, 0 crosses). LINEAR DOWN ->
+cmo=-100 (bearish, 0 crosses because cmo jumps from null to
+-100). Balanced alternation -> cmo=0 (bullish above oversold).
+Rise-then-decline yields a confirmed bearish oversold-entry
+cross. CONST K full-run counters under defaults, 30 bars:
+noneCount=14, bullishCount=16, bearishCount=0. thresholdY at
+-50 sits BELOW panel midpoint of [-100, 100] -- exact mirror of
+the overbought variant. 66 passing cases covering finite
+filtering, length / threshold normalization (threshold range
+[-100, 100]), the full CMO pipeline, regime classifier (strict
+`>=`), cross detector (strict `>` / `<`), layout determinism
+(`.toFixed(2)`, single-M cmo path, thresholdY below midpoint),
+ARIA region + role=img SVG + sr-only desc claiming "oversold
+trigger entry / exit", config badge, legend toggle (pointer +
+Enter / Space), hover tooltip, controlled `hiddenSeries`,
+threshold band, axes / grid / legend / crosses / overlay
+visibility flags, `data-*` counters matching run output, default
+`{ length: 14, threshold: -50 }`, and `forwardRef` exposing the
+wrapping div.
+
 ## [1.11.994] - 2026-05-27 -- UI: chart-line-cmo-overbought-cross primitive (TODO 11.976)
 
 Added `<ChartLineCmoOverboughtCross />` -- Chande Momentum
