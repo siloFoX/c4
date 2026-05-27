@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.981] - 2026-05-27 -- UI: chart-line-tsi-oversold-cross primitive (TODO 11.963)
+
+Added `<ChartLineTsiOversoldCross />` -- mirror of the
+overbought-cross primitive with the threshold negated to the
+canonical -25 oversold line. Bullish (= exit, crossing UP
+through -25) and bearish (= entry, crossing DOWN through
+-25). Bit-exact anchors verified by tests: CONST close=K
+yields `tsi = 0` (bullish since 0 >= -25); LINEAR UP yields
+`tsi = 100` (bullish); LINEAR DOWN yields `tsi = -100`
+(bearish since -100 < -25). Cross events fire during
+transients: decline-then-rise pushes tsi from -100 through
+-25 going up (bullish exit); rise-then-decline pulls tsi
+from 100 through -25 going down (bearish entry). Standard
+pipeline -- `applyLineTsiOversoldCrossEma`,
+`computeLineTsiOversoldCross` running the double-EMA TSI
+with 0/0 fallback,
+`classifyLineTsiOversoldCrossRegime` with threshold default
+-25, `detectLineTsiOversoldCrossCrosses` with strict
+boundary behaviour, `runLineTsiOversoldCross`, and
+`computeLineTsiOversoldCrossLayout` returning per-cross-
+marker `(cx, cyOsc, cyPrice, kind)` triples. Layout
+defaults: 720 x 460 with a ~55% / 45% price / TSI panel
+split, fixed `[-100, 100]` TSI range with the threshold
+band at the -25 line (below midpoint), deterministic
+`.toFixed(2)` SVG paths, ARIA region + `role="img"` SVG +
+sr-only desc, `role="graphics-symbol"` + `tabIndex={0}` on
+each cross marker, motion-safe fade-in, controlled /
+uncontrolled legend, hover tooltip showing close / TSI /
+regime / exits / entries counters / long-short-T
+parameters, configurable showBands / showAxis / showGrid /
+showLegend / showCrosses / showOverlayCrosses /
+showConfigBadge flags, data-* attrs reflecting long / short
+/ threshold / cross-count / bullish-count / bearish-count,
+and forwardRef wired to the outer `<div>`. Defaults:
+long=25, short=13 (Blau canonical), threshold=-25. 71
+vitest cases green (incl. K in `{0, 1, 42, 100, 1234}`
+anchors, LINEAR UP/DOWN bit-exact +/-100 constants,
+decline-then-rise bullish exit, rise-then-decline bearish
+entry, custom larger long/short warmup, and layout
+determinism across calls). Pure SVG, no canvas / chart
+libraries.
+
 ## [1.11.980] - 2026-05-27 -- UI: chart-line-tsi-overbought-cross primitive (TODO 11.962)
 
 Added `<ChartLineTsiOverboughtCross />` -- pure-SVG dual-panel
