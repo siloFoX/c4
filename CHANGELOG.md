@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1071] - 2026-05-27 -- UI: chart-line-trix-mid-cross-sig primitive (TODO 11.1053)
+
+Added `<ChartLineTrixMidCrossSig />` -- close-input Jack
+Hutson (1980) TRIX midline-over-signal crossover detector
+flagging triple smoothed centerline trigger events with
+bias coloring from the TRIX slope. TRIX is the canonical
+triple-exponential smoothed rate-of-change oscillator: by
+chaining three EMAs and taking the change of the third, it
+filters short-term noise while preserving turning-point
+detection. Pipeline: ema1 = EMA(close, period) SMA-seeded,
+ema2 = EMA(ema1, period), ema3 = EMA(ema2, period), trix =
+ema3[i] - ema3[i-1] (absolute-slope variant), signal =
+SMA(trix, signalLength). Bullish: TRIX crosses up signal.
+Bearish: TRIX crosses down signal. Default period=15,
+signalLength=3, warmup=45. Bit-exact anchors (close):
+CONST [K] -> ema1=ema2=ema3=K, TRIX = 0 (exactly the
+centerline), signal = 0, regime bullish (===), 0 crosses;
+LINEAR UP -> ema1 = i - 7, ema2 = i - 14, ema3 = i - 21
+(canonical 3x SMA centroid lag), TRIX = +1 (unit slope of
+LINEAR), signal = +1, regime bullish (===), 0 crosses;
+LINEAR DOWN -> mirror, TRIX = -1, regime bullish (===), 0
+crosses. Uses absolute-slope variant (`ema3[i] - ema3[i-
+1]`) rather than Hutson's percentage form for bit-exact
+testability and NaN-free behaviour on zero-passing data;
+the two variants share centerline-at-0 semantics. Null-
+aware EMA seed handles chained EMAs without explicit
+padding. Layout auto-ranges but guarantees centerline
+visibility. Sibling to the TEMA divergence-cross primitive
+(same chained-EMA family). 51 vitest cases. Pure SVG, no
+chart libs.
+
 ## [1.11.1070] - 2026-05-27 -- UI: chart-line-dpo-mid-cross-sig primitive (TODO 11.1052)
 
 Added `<ChartLineDpoMidCrossSig />` -- close-input William
