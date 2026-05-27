@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1034] - 2026-05-27 -- UI: chart-line-psar-divergence-cross primitive (TODO 11.1016)
+
+Added `<ChartLinePsarDivergenceCross />` -- HLC-input Wilder
+Parabolic SAR (trailing stop with acceleration factor)
+divergence detector that flags discrete price-versus-PSAR
+direction disagreement events for trailing-stop reversal
+warning. First divergence primitive built on a trailing-stop
+indicator (PSAR is directional, not an oscillator), so the
+**aligned** regime is the natural state of a healthy trend
+and **divergent** regimes only emerge near a PSAR flip.
+Default `step = 0.02`, `maxStep = 0.20` (Wilder canonical AF),
+`warmupLength = 15` (skips initial trend-detection flip
+transient), `divergenceWindow = 5`. Bit-exact anchors: CONST
+H=L=C=K (any K) -> psar=K pinned -> aligned-bearish, 0
+crosses; LINEAR UP (h=i+1, l=i-1, c=i) -> psar rises with
+price -> aligned-bullish 60/80 samples; LINEAR DOWN (h=-i+1,
+l=-i-1, c=-i) -> psar falls with price -> aligned-bearish.
+Crosses suppressed when prev or cur is `none`. 54 vitest
+cases. Pure SVG, no chart libs.
+
 ## [1.11.1033] - 2026-05-27 -- UI: chart-line-adx-mid-cross-sig primitive (TODO 11.1015)
 
 Added `<ChartLineAdxMidCrossSig />` -- HLC-input Wilder ADX

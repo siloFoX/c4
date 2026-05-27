@@ -725,3 +725,4 @@ export * from './chart-line-rmi-divergence-cross';
 export * from './chart-line-kvo-divergence-cross';
 export * from './chart-line-stc-divergence-cross';
 export * from './chart-line-adx-mid-cross-sig';
+export * from './chart-line-psar-divergence-cross';
