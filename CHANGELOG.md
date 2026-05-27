@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.968] - 2026-05-27 -- UI: chart-line-vfi-zero-cross primitive (TODO 11.950)
+
+Added `<ChartLineVfiZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every Markos Katsanos
+Volume Flow Index zero crossover, and a VFI panel (bottom)
+with auto-fitted range and the zero reference band. VFI
+weights each bar's signed money flow by its volume, filters
+small price moves with a `coef * stdev` cutoff on the
+log-return, caps outlier-volume bars at `maxVolumeCoef *
+vol_avg`, then SMA-smooths the resulting normalised flow,
+turning a raw close-to-close change into a
+volume-confirmed momentum signal. This primitive requires
+volume-aware `{x, close, volume}` input. Bit-exact anchors
+verified by tests: CONST close=K (V const) yields `vfi=0`
+(stdev=0, cutoff=0, but strict-inequality drops every bar
+since log-return is also 0); GEOMETRIC UP `close = K * r^i`
+with `r > 1` yields `vfi = +1` (constant log-return clears
+the zero cutoff every bar, ratio = vol_capped/vol_avg = 1);
+GEOMETRIC DOWN with `r < 1` yields `vfi = -1`. Standard
+pipeline -- `applyLineVfiZeroCrossSma` with CONST `min ===
+max` short-circuit, `applyLineVfiZeroCrossStdev` (population
+stdev, CONST short-circuit), `computeLineVfiZeroCross(series,
+{length, coef, maxVolumeCoef}) -> {vfi, length, coef,
+maxVolumeCoef}` running the full log-return / stdev / volume-
+cap pipeline, `classifyLineVfiZeroCrossRegime` with threshold
+default 0 (null -> none, vfi >= T -> bullish, vfi < T ->
+bearish), `detectLineVfiZeroCrossCrosses` with strict boundary
+behaviour, `runLineVfiZeroCross` (samples carry volume +
+vfi + regime), and `computeLineVfiZeroCrossLayout` returning
+per-cross-marker `(cx, cyOsc, cyPrice, kind)` triples for
+the overlay arrow + osc circle pair. Layout defaults: 720 x
+460 with a ~55% / 45% price / VFI panel split, auto-fit
+`[oscMin, oscMax]` (always includes the threshold) with 10%
+padding, deterministic `.toFixed(2)` SVG paths, ARIA region
++ `role="img"` SVG + sr-only desc, `role="graphics-symbol"`
++ `tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing
+close / volume / VFI / regime / length / coef / maxVolCoef,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting length / coef / max-volume-coef /
+threshold / cross-count / bullish-count / bearish-count, and
+forwardRef wired to the outer `<div>`. 74 vitest cases green
+(incl. K in `{1, 42, 100, 1234}` anchors, GEOMETRIC UP/DOWN
+bit-exact `+/- 1` constants, decline-then-rise /
+rise-then-decline cross detection, custom length=5, zero-close
+edge case, and layout determinism across calls). Pure SVG, no
+canvas / chart libraries.
+
 ## [1.11.967] - 2026-05-27 -- UI: chart-line-qstick-zero-cross primitive (TODO 11.949)
 
 Added `<ChartLineQstickZeroCross />` -- pure-SVG dual-panel

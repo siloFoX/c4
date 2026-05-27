@@ -659,3 +659,4 @@ export * from './chart-line-uo-zero-cross';
 export * from './chart-line-fisher-zero-cross';
 export * from './chart-line-rmi-zero-cross';
 export * from './chart-line-qstick-zero-cross';
+export * from './chart-line-vfi-zero-cross';
