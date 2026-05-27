@@ -619,3 +619,4 @@ export * from './chart-line-keltner-cross-sig';
 export * from './chart-line-donchian-cross-sig';
 export * from './chart-line-keltner-cross-pct';
 export * from './chart-line-mfi-cross-sig';
+export * from './chart-line-williams-r-cross';

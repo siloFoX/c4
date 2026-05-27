@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.928] - 2026-05-27 -- UI: chart-line-williams-r-cross primitive (TODO 11.910)
+
+Added `<ChartLineWilliamsRCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every Williams %R vs EMA-smoothed
+signal cross, and the close-only Williams %R line + signal
+line in the bottom panel on a fixed -100..0 oscillator with
+cross dot markers and -80 / -50 / -20 reference bands. Signal-
+cross variant of the Williams %R family that flags overbought
+/ oversold regime transition trigger events distinct from the
+canonical -80 / -20 line readings. Close-only formula:
+`hi = max(close, length)`, `lo = min(close, length)`,
+`range = hi - lo`, `wr = range > 0 ? ((hi - close) / range) *
+-100 : -50`, `signal = EMA(wr, signalLength)`. Bullish /
+bearish crosses on `wr - signal`. Defaults `length=14`,
+`signalLength=3`. Regime classifier `bullish` (wr > signal) /
+`bearish` / `neutral` / `none`. Bit-exact anchor: CONST K ->
+range=0 -> wr=-50 neutral fallback, signal=-50 via EMA
+short-circuit, regime `neutral`, 0 crosses. LINEAR UP/DOWN
+anchors: wr=0/-100. 57 vitest cases, all pass. ARIA region,
+img-role SVG with sr-only desc, `role="graphics-symbol"` cross
+markers, `data-section` attributes, motion-safe fade-in.
+
 ## [1.11.927] - 2026-05-27 -- UI: chart-line-mfi-cross-sig primitive (TODO 11.909)
 
 Added `<ChartLineMfiCrossSig />` -- pure-SVG dual-panel React/TS
