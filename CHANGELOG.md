@@ -4,6 +4,24 @@
 
 (no entries -- next release window)
 
+## [1.11.893] - 2026-05-27 -- UI: chart-line-vroc-cross-sig primitive (TODO 11.875)
+
+Added `<ChartLineVrocCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the volume series (top panel) and the Volume
+Rate of Change with EMA-smoothed signal line plus crossover
+markers (bottom panel). Separates trigger events from the raw
+VROC line published by 11.869. VROC = (volume[i] - volume[i-
+length]) / volume[i-length] * 100. signal = EMA(VROC,
+signalLength). bullish / bearish crosses fire when (VROC -
+signal) sign changes. Regime classifier `bullish` / `bearish` /
+`neutral` / `none`. Defaults `length = 12`, `signalLength = 9`.
+Bit-exact anchor: CONST volume = V (V > 0) -> VROC = 0 every
+bar -> signal = 0 -> regime neutral / 0 crosses (verified across
+multiple V). CONST V = 0 triggers divide-by-zero guard ->
+VROC = signal = null, regime none. ARIA region + img-role SVG +
+sr-only desc; cross markers role="graphics-symbol" tabIndex={0};
+motion-safe fade-in. 55 vitest cases.
+
 ## [1.11.892] - 2026-05-27 -- UI: chart-line-dema-cross-pct primitive (TODO 11.874)
 
 Added `<ChartLineDemaCrossPct />` -- pure-SVG dual-panel React/TS
