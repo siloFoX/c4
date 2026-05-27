@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.977] - 2026-05-27 -- UI: chart-line-uo-mid-cross primitive (TODO 11.959)
+
+Added `<ChartLineUoMidCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish/bearish
+chevron overlays at every Larry Williams Ultimate Oscillator
+midline-50 crossover, semantically aligned with the family's
+centerline naming (`-mid-cross` rather than `-zero-cross`) while
+sharing the bit-exact UO pipeline with the
+`chart-line-uo-zero-cross` sibling. UO is the weighted blend of
+three buying-pressure / true-range ratios across short, mid,
+and long windows -- the `4 / 2 / 1` weighting emphasises the
+short window's reading while still requiring confirmation from
+the longer windows. Bit-exact anchors verified by tests: CONST
+close=K yields `uo = 50` (each `sum(bp)/sum(tr) = 0/0 = 0.5`
+fallback, blended `100 * 0.5 = 50`); LINEAR UP yields `uo =
+100`; LINEAR DOWN yields `uo = 0`. Standard pipeline --
+`applyLineUoMidCrossPressure` (close-only `bp = max(0, delta)`,
+`tr = |delta|`), `computeLineUoMidCross(series, {short, mid,
+long}) -> {uo, short, mid, long}` with the canonical 4/2/1
+weights and `0 / 0 -> 0.5` fallback,
+`classifyLineUoMidCrossRegime` with threshold default 50 (null
+-> none, uo >= T -> bullish, uo < T -> bearish),
+`detectLineUoMidCrossCrosses` with strict boundary behaviour,
+`runLineUoMidCross`, and `computeLineUoMidCrossLayout`
+returning per-cross-marker `(cx, cyOsc, cyPrice, kind)` triples
+for the overlay arrow + osc circle pair. Layout defaults: 720
+x 460 with a ~55% / 45% price / UO panel split, fixed `[0,
+100]` UO range so the threshold band sits at the midpoint when
+threshold=50, deterministic `.toFixed(2)` SVG paths, ARIA
+region + `role="img"` SVG + sr-only desc,
+`role="graphics-symbol"` + `tabIndex={0}` on each cross marker,
+motion-safe fade-in, controlled / uncontrolled legend, hover
+tooltip showing close / UO / regime / s/m/l periods,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting short / mid / long / threshold /
+cross-count / bullish-count / bearish-count, and forwardRef
+wired to the outer `<div>`. Defaults: short=7, mid=14, long=28
+(Williams 1976 canonical), threshold=50. 71 vitest cases green
+(incl. K in `{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN
+bit-exact 100 / 0 constants, decline-then-rise /
+rise-then-decline cross detection, custom 3 / 5 / 10 periods,
+and layout determinism across calls). Pure SVG, no canvas /
+chart libraries.
+
 ## [1.11.976] - 2026-05-27 -- UI: chart-line-stoch-rsi-oversold-cross primitive (TODO 11.958)
 
 Added `<ChartLineStochRsiOversoldCross />` -- mirror of the
