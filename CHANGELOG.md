@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.965] - 2026-05-27 -- UI: chart-line-fisher-zero-cross primitive (TODO 11.947)
+
+Added `<ChartLineFisherZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every John Ehlers Fisher
+Transform zero crossover, and a Fisher panel (bottom) with
+auto-fitted range and the zero threshold reference band. The
+Fisher Transform takes a recursively smoothed channel position
+`x = clamp(0.33 * raw + 0.67 * x_prev, -0.999, 0.999)` where
+`raw = 2 * (close - lo) / (hi - lo) - 1` from the rolling
+length-window min/max, then applies the inverse hyperbolic
+tangent `0.5 * ln((1 + x) / (1 - x))` plus a half-bar
+feedback, normalising the distribution toward Gaussian so
+extreme momentum reads as numerically separable from the
+neutral baseline rather than saturating against an oscillator
+ceiling. Bit-exact anchors verified by tests: CONST close = K
+gives `fisher = 0` (raw = 0 via the `hi == lo` short-circuit),
+LINEAR UP yields fisher > 0 converging to ~7.6 steady state,
+LINEAR DOWN yields fisher < 0 converging to ~-7.6 across
+length = 10 over a 100-bar window. Standard pipeline --
+`applyLineFisherZeroCrossNormalize(closes, length)` returning
+the smoothed channel position array with the `+/- 0.999` clamp,
+`computeLineFisherZeroCross(series, {length}) -> {x, fisher,
+length}` applying the inverse-tanh + half-bar feedback,
+`classifyLineFisherZeroCrossRegime` with threshold default 0
+(null -> none, fisher >= T -> bullish, fisher < T -> bearish),
+`detectLineFisherZeroCrossCrosses` with strict boundary
+behaviour (equality does not cross), `runLineFisherZeroCross`,
+and `computeLineFisherZeroCrossLayout` returning per-cross-
+marker `(cx, cyOsc, cyPrice, kind)` triples for the overlay
+arrow + osc circle pair. Layout defaults: 720 x 460 with a
+~55% / 45% price / Fisher panel split, auto-fit `[oscMin,
+oscMax]` (always includes the threshold) with 10% padding,
+deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing
+Fisher + length, configurable showBands / showAxis / showGrid
+/ showLegend / showCrosses / showOverlayCrosses /
+showConfigBadge flags, data-* attrs reflecting length /
+threshold / cross-count / bullish-count / bearish-count, and
+forwardRef wired to the outer `<div>`. 73 vitest cases green
+(incl. K in `{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN
+convergence bounds, decline-then-rise / rise-then-decline
+cross detection, custom length=5, and layout determinism
+across calls). Pure SVG, no canvas / chart libraries.
+
 ## [1.11.964] - 2026-05-27 -- UI: chart-line-uo-zero-cross primitive (TODO 11.946)
 
 Added `<ChartLineUoZeroCross />` -- pure-SVG dual-panel React/TS
