@@ -753,3 +753,4 @@ export * from './chart-line-wma-divergence-cross';
 export * from './chart-line-tema-divergence-cross';
 export * from './chart-line-kama-divergence-cross';
 export * from './chart-line-ichimoku-divergence-cross';
+export * from './chart-line-supertrend-divergence-cross';
