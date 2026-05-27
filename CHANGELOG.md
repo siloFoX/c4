@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.960] - 2026-05-27 -- UI: chart-line-momentum-zero-cross primitive (TODO 11.942)
+
+Added `<ChartLineMomentumZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (close minus close lookback turns positive) /
+bearish (turns negative) chevron overlays at every Momentum
+zero-line cross, and the close-only Momentum line (bottom
+panel) on an auto-fitted oscillator with the zero baseline
+reference band. Zero-line cross variant of the Momentum
+family. Simplest form of the momentum family -- no
+percentage scaling, just the raw `close[i] - close[i-length]`
+difference. Bit-exact anchor: CONST `close = K` -> close[i]
+= close[i-length] = K -> mom = 0 every bar, regime `bullish`
+at boundary, 0 crosses, verified across K in {0, 1, 42, 100,
+1234}. LINEAR UP `close = i` -> mom[i] = length constant
+(particularly clean bit-exact anchor compared to ROC because
+there is no percentage scaling), regime `bullish`, 0 crosses.
+LINEAR DOWN `close = -i` -> mom = -length constant, regime
+`bearish`, 0 crosses. Decline + sustained rise -> 1 bullish
+cross. Rise + sustained decline -> 1 bearish cross.
+Defaults `length=10`, `threshold=0`. Oscillator range auto-
+fits (Momentum is unbounded). Regime classifier `bullish` /
+`bearish` / `none`. ARIA region + role=img SVG with sr-only
+desc, `data-section` attributes on every drawn group,
+`role="graphics-symbol"` + `tabIndex=0` on every cross /
+overlay marker, motion-safe fade-in, controlled /
+uncontrolled hidden-series legend. 66 vitest cases covering
+pure helpers (`getLineMomentumZeroCrossFinitePoints`,
+`normalizeLineMomentumZeroCrossLength`,
+`normalizeLineMomentumZeroCrossThreshold`), the Momentum
+compute pipeline (CONST / LINEAR UP / LINEAR DOWN / custom
+length / decline-then-rise / rise-then-decline), the regime
+classifier, the bullish / bearish cross detector, layout
+(auto-fitting unbounded oscillator), and the JSX render
+path. Manifests 1.11.959 -> 1.11.960.
+
 ## [1.11.959] - 2026-05-27 -- UI: chart-line-roc-zero-cross primitive (TODO 11.941)
 
 Added `<ChartLineRocZeroCross />` -- pure-SVG dual-panel
