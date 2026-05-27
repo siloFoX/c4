@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.924] - 2026-05-27 -- UI: chart-line-keltner-cross-sig primitive (TODO 11.906)
+
+Added `<ChartLineKeltnerCrossSig />` -- pure-SVG dual-panel
+React/TS primitive rendering the close + upper / middle / lower
+Keltner Channel (top panel) with bullish / bearish arrow
+overlays at every close vs middle line cross, and a `close -
+middle` deviation oscillator (bottom panel) with cross dot
+markers and a dashed zero baseline. Signal-cross variant of the
+Keltner Channel family that flags adaptive volatility regime
+trigger events distinct from envelope touches. Close-only
+formula: `mid = EMA(close, length)`, `TR = |delta close|`,
+`atr = Wilder(TR, atrLength)`, `upper = mid + mult*atr`,
+`lower = mid - mult*atr`, `diff = close - mid`. Bullish /
+bearish crosses on `diff` vs 0. Defaults `length=20`,
+`atrLength=10`, `mult=2`. Regime classifier `bullish` (close >
+mid) / `bearish` / `neutral` / `none`. Bit-exact anchor:
+CONST K -> mid = upper = lower = K via `min === max` EMA
+precision fix + zero ATR, diff = 0, regime `neutral`, 0
+crosses. LINEAR UP anchor: diff > 0, regime `bullish`. 57
+vitest cases, all pass. ARIA region, img-role SVG with sr-only
+desc, `role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.923] - 2026-05-27 -- UI: chart-line-bb-cross-sig primitive (TODO 11.905)
 
 Added `<ChartLineBbCrossSig />` -- pure-SVG dual-panel React/TS
