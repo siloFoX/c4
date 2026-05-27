@@ -4,6 +4,55 @@
 
 (no entries -- next release window)
 
+## [1.11.974] - 2026-05-27 -- UI: chart-line-tsi-signal-cross primitive (TODO 11.956)
+
+Added `<ChartLineTsiSignalCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every TSI cross of its EMA
+signal line, and a TSI panel (bottom) drawing BOTH the TSI and
+the signal line on a fixed `[-100, 100]` range with the zero
+reference. A signal-line cross fires earlier than a zero-line
+crossover when momentum starts to turn -- a clearer entry cue
+at TSI lows (bullish trigger) and exit cue at TSI highs
+(bearish trigger). Bit-exact anchors verified by tests: CONST
+close=K yields tsi = signal = 0 (boundary, bullish); LINEAR UP
+yields tsi = signal = 100; LINEAR DOWN yields tsi = signal =
+-100. The crossover behaviour (and any actual crosses) lives
+in transients (decline-then-rise, rise-then-decline patterns)
+where TSI overshoots signal during the reversal. Standard
+pipeline -- `applyLineTsiSignalCrossEma(values, length,
+firstValidIdx)` SMA-seeded EMA with CONST short-circuit and
+length=1 identity, `computeLineTsiSignalCross(series, {long,
+short, signal}) -> {tsi, signal, long, short, signalLength}`
+running the double-EMA TSI pipeline then applying a third EMA
+to TSI itself as the signal line (SMA-seeded at the first
+valid TSI index), `classifyLineTsiSignalCrossRegime` (null tsi
+or null signal -> none, tsi >= signal -> bullish, tsi < signal
+-> bearish), `detectLineTsiSignalCrossCrosses` with strict
+boundary behaviour on the `tsi - signal` diff,
+`runLineTsiSignalCross` (samples carry tsi + signal + regime),
+and `computeLineTsiSignalCrossLayout` returning per-cross-
+marker `(cx, cyOsc, cyPrice, kind)` triples for the overlay
+arrow + osc circle pair (osc cyOsc at the TSI level at the
+cross index). Layout defaults: 720 x 460 with a ~55% / 45%
+price / osc panel split, fixed `[-100, 100]` osc range,
+deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend (3 series: price / tsi /
+signal), hover tooltip showing close / TSI / signal / regime /
+long / short / signal, configurable showBands / showAxis /
+showGrid / showLegend / showCrosses / showOverlayCrosses /
+showConfigBadge / showTsi / showSignal flags, data-* attrs
+reflecting long / short / signal / cross-count / bullish-count
+/ bearish-count, and forwardRef wired to the outer `<div>`.
+Defaults: long=25, short=13, signal=7 (Blau canonical). 66
+vitest cases green (incl. K in `{0, 1, 42, 100, 1234}`
+anchors, LINEAR UP/DOWN bit-exact equality at +/-100,
+decline-then-rise / rise-then-decline cross detection, custom
+larger long / short / signal warmup, and layout determinism
+across calls). Pure SVG, no canvas / chart libraries.
+
 ## [1.11.973] - 2026-05-27 -- UI: chart-line-kc-percent-zero-cross primitive (TODO 11.955)
 
 Added `<ChartLineKcPercentZeroCross />` -- pure-SVG dual-panel
