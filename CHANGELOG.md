@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1009] - 2026-05-27 -- UI: chart-line-stc-oversold-cross primitive (TODO 11.991)
+
+Added `<ChartLineStcOversoldCross />` -- close-only Schaff Trend
+Cycle (STC) oversold-threshold crossover primitive that flags
+discrete cycle-oversold trigger events with bias coloring
+derived from the STC slope at the trigger bar. Mirror of
+`chart-line-stc-overbought-cross` (11.990) with default
+threshold flipped from 75 to the canonical oversold level 25.
+Cross markers carry both a kind (`bullish` / `bearish`) and a
+`bias` tag (`up` / `down` / `flat` / `none`), rendered tinted
+so a rising-STC entry reads brighter than a flat-STC one --
+visual filter Doug Schaff recommends for STC oversold
+confirmation. Defaults `fastLength = 23`, `slowLength = 50`,
+`cycleLength = 10`, `factor = 0.5`, `threshold = 25`. Same
+five-stage pipeline as the overbought variant. Bit-exact
+anchors: CONST K -> macd=0, stc=50 (Object.is verified) ->
+bullish (50 >= 25, mirror flip of overbought's bearish at the
+same STC=50 reading); LINEAR UP -> macd=13.5 -> stc=50 ->
+bullish; LINEAR DOWN -> macd=-13.5 -> stc=50 -> bullish. 0
+crosses for all monotonic patterns. Strict inequality on `cur`
+so boundary equality (stc == 25) never double-fires. Layout
+uses fixed oscMin=0 / oscMax=100. 67 vitest cases. Bumped
+1.11.1008 -> 1.11.1009.
+
 ## [1.11.1008] - 2026-05-27 -- UI: chart-line-stc-overbought-cross primitive (TODO 11.990)
 
 Added `<ChartLineStcOverboughtCross />` -- close-only Schaff

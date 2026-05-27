@@ -700,3 +700,4 @@ export * from './chart-line-cmo-cross-sig';
 export * from './chart-line-dpo-cross-sig';
 export * from './chart-line-qstick-cross-sig';
 export * from './chart-line-stc-overbought-cross';
+export * from './chart-line-stc-oversold-cross';
