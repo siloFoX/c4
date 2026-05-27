@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.954] - 2026-05-27 -- UI: chart-line-stoch-rsi-mid-cross primitive (TODO 11.936)
+
+Added `<ChartLineStochRsiMidCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (second-derivative momentum centerline cross up) /
+bearish (cross down) chevron overlays at every Stochastic
+RSI midline cross, and the close-only Stochastic RSI line
+(bottom panel) on a fixed 0-100 oscillator with the 50
+reference band. Stochastic RSI applies the Stochastic
+oscillator to the RSI series, exposing momentum-of-momentum
+turning points earlier than the underlying RSI line.
+Continues the midline-cross family (RSI 50, Stochastic 50,
+CCI 0, MFI 50, now Stochastic RSI 50). Bit-exact anchor:
+CONST `close = K` -> delta = 0 -> RSI = 50 via zero-flow
+fallback. Range of RSI over Stochastic window = 0 -> rawK =
+50 via zero-range neutral fallback. SMA of 50s = 50. stochK
+= 50 sits on threshold but strict-inequality detector never
+fires, regime `bullish` (stochK >= 50), 0 crosses, verified
+across K in {0, 1, 42, 100, 1234}. LINEAR UP -> RSI = 100
+constant -> stochK = 50 (zero-range fallback), regime
+`bullish` at boundary, 0 crosses. LINEAR DOWN -> RSI = 0
+constant -> stochK = 50 (same quirk), regime `bullish` at
+boundary, 0 crosses. The Stochastic-of-constant quirk is
+documented: even extreme RSI values normalize to 50 when RSI
+is constant. Decline (30 bars) + sharp rise (delta=+5) ->
+RSI rises from 0 to high, Stochastic of RSI sweeps through
+50 -> 1 bullish cross. Rise + sharp decline -> 1 bearish
+cross. Defaults `rsiLength=14`, `stochLength=14`,
+`kSmoothing=3`, `threshold=50`. Total warmup = 29 bars.
+Regime classifier `bullish` / `bearish` / `none`. ARIA
+region + role=img SVG with sr-only desc, `data-section`
+attributes on every drawn group, `role="graphics-symbol"` +
+`tabIndex=0` on every cross / overlay marker, motion-safe
+fade-in, controlled / uncontrolled hidden-series legend. 73
+vitest cases covering pure helpers
+(`getLineStochRsiMidCrossFinitePoints`,
+`normalizeLineStochRsiMidCrossLength`,
+`normalizeLineStochRsiMidCrossThreshold`,
+`applyLineStochRsiMidCrossWilder`,
+`applyLineStochRsiMidCrossSma`), the close-only Stochastic
+RSI compute pipeline (CONST / LINEAR UP / LINEAR DOWN /
+decline-then-rise / rise-then-decline), the regime
+classifier, the bullish / bearish cross detector, layout
+(band y placement, path M/L precision, marker placement),
+and the JSX render path. Manifests 1.11.953 -> 1.11.954.
+
 ## [1.11.953] - 2026-05-27 -- UI: chart-line-mfi-mid-cross primitive (TODO 11.935)
 
 Added `<ChartLineMfiMidCross />` -- pure-SVG dual-panel React/
