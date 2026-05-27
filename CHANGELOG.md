@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.937] - 2026-05-27 -- UI: chart-line-volume-osc-cross-sig primitive (TODO 11.919)
+
+Added `<ChartLineVolumeOscCrossSig />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every Volume Oscillator vs EMA-
+smoothed signal cross, and the close-only Volume Oscillator +
+signal line in the bottom panel with cross dot markers and a
+dashed zero baseline. Signal-cross variant of the Volume
+Oscillator family that flags volume momentum trigger events
+distinct from the zero-line crossings published by 11.918.
+Close-only formula: `shortMa = EMA(close, shortLength)`,
+`longMa = EMA(close, longLength)`, `volOsc = longMa > 0 ? ((
+shortMa - longMa) / longMa) * 100 : 0`, `signal = EMA(volOsc,
+signalLength)`. Bullish / bearish crosses on `volOsc - signal`.
+Defaults `shortLength=5`, `longLength=10`, `signalLength=4`.
+Regime classifier `bullish` (volOsc > signal) / `bearish` /
+`neutral` / `none`. Bit-exact anchor: CONST K -> volOsc=0,
+signal=0 via EMA short-circuit, regime `neutral`, 0 crosses.
+LINEAR UP -> volOsc > 0 and signal > 0. 54 vitest cases, all
+pass. ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.936] - 2026-05-27 -- UI: chart-line-volume-osc-cross primitive (TODO 11.918)
 
 Added `<ChartLineVolumeOscCross />` -- pure-SVG dual-panel
