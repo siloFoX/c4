@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1043] - 2026-05-27 -- UI: chart-line-wma-cross-sig primitive (TODO 11.1025)
+
+Added `<ChartLineWmaCrossSig />` -- close-only Weighted
+Moving Average over signal crossover trigger detector that
+flags recent-emphasis trend trigger events with bias
+coloring. WMA cross-sig sits between the
+`chart-line-ema-cross-sig` (EMA recurrence) and
+`chart-line-sma-cross-sig` (uniform average) siblings: its
+WMA centroid lag `(period - 1)/3` (vs SMA's
+`(period - 1)/2`) gives faster reaction without compromising
+the deterministic, bit-exact `+1 / -1` separation on linear
+input. Bias-coloured cross markers (up/down/flat/none from
+WMA slope at trigger bar) match the convention. Default
+`period = 14`, `signalLength = 3`. Bit-exact anchors: CONST
+K (any K) -> wma=K, signal=K, wma===signal, regime bullish
+(>=), 0 triggers; LINEAR UP -> wma=i-13/3, signal=i-16/3,
+wma-signal=+1, regime bullish, 0 triggers; LINEAR DOWN ->
+wma=-i+13/3, signal=-i+16/3, wma-signal=-1, regime bearish,
+0 triggers. 48 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1042] - 2026-05-27 -- UI: chart-line-sma-cross-sig primitive (TODO 11.1024)
 
 Added `<ChartLineSmaCrossSig />` -- close-only Simple Moving
