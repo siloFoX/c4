@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1033] - 2026-05-27 -- UI: chart-line-adx-mid-cross-sig primitive (TODO 11.1015)
+
+Added `<ChartLineAdxMidCrossSig />` -- HLC-input Wilder ADX
+midline (25) over signal line crossover trigger detector that
+flags trend-strength threshold trigger events: bullish when
+the smoothed ADX signal crosses up through 25 (trend
+emerging), bearish when it crosses down through 25 (trend
+dying). Signal-line variant of the ADX midline family,
+mirroring the same mid-cross-sig pattern used by
+`chart-line-stc-mid-cross-sig` and
+`chart-line-kvo-mid-cross-sig`. Bias-coloured cross markers
+(up/down/flat/none from signal slope at trigger bar) match
+the convention used by `chart-line-stc-overbought-cross`.
+Default `length = 14` (Wilder ADX), `kSmoothing = 3`,
+`threshold = 25`. Bit-exact anchors: CONST HLC=K (any K) ->
+adx=0 -> signal=0 -> regime bearish, 0 triggers; LINEAR UP
+(h=i+1, l=i-1, c=i) -> adx=100 -> signal=100 -> regime
+bullish, 0 triggers (saturated from first valid signal so
+no crossing); LINEAR DOWN -> adx=100 -> signal=100 -> regime
+bullish (ADX is direction-agnostic, measures strength only).
+53 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1032] - 2026-05-27 -- UI: chart-line-stc-divergence-cross primitive (TODO 11.1014)
 
 Added `<ChartLineStcDivergenceCross />` -- **bias-coloured**
