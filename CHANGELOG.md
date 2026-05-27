@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.938] - 2026-05-27 -- UI: chart-line-adx-cross-extreme primitive (TODO 11.920)
+
+Added `<ChartLineAdxCrossExtreme />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+(strong trend entry) / bearish (weak trend exit) arrow overlays
+at every ADX extreme threshold cross, and the close-only ADX
+line (bottom panel) on a fixed 0-100 oscillator with 20/50/40
+reference bands. Threshold-cross variant of the ADX family
+that separates trend strength entry / exit events from the
+absolute ADX magnitude. Close-only Wilder ADX with zero-ATR
++ 0/0 DX guards. Dual-threshold cross detector: bullish when
+ADX crosses up above `upperThreshold` (default 40), bearish
+when ADX crosses down below `lowerThreshold` (default 20).
+Default `length=14`. Regime classifier `bullish` (ADX >= upper
+strong) / `bearish` (ADX < lower weak) / `neutral` (moderate)
+/ `none`. Bit-exact anchor: CONST K -> ADX=0, regime
+`bearish` (weak), 0 crosses. LINEAR UP/DOWN -> ADX > 40,
+regime `bullish` (strong, direction-agnostic). 59 vitest
+cases, all pass. ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.937] - 2026-05-27 -- UI: chart-line-volume-osc-cross-sig primitive (TODO 11.919)
 
 Added `<ChartLineVolumeOscCrossSig />` -- pure-SVG dual-panel
