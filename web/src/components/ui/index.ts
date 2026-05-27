@@ -616,3 +616,4 @@ export * from './chart-line-choppiness-cross';
 export * from './chart-line-adx-di-cross';
 export * from './chart-line-bb-cross-sig';
 export * from './chart-line-keltner-cross-sig';
+export * from './chart-line-donchian-cross-sig';
