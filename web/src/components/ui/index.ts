@@ -676,3 +676,4 @@ export * from './chart-line-tsi-oversold-cross';
 export * from './chart-line-schaff-overbought-cross';
 export * from './chart-line-schaff-oversold-cross';
 export * from './chart-line-cmo-mid-cross';
+export * from './chart-line-rmi-mid-cross';
