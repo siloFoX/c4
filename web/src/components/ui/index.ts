@@ -642,3 +642,4 @@ export * from './chart-line-mfi-oversold-cross';
 export * from './chart-line-cci-overbought-cross';
 export * from './chart-line-cci-oversold-cross';
 export * from './chart-line-rsi-mid-cross';
+export * from './chart-line-stoch-mid-cross';

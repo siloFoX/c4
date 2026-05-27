@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.951] - 2026-05-27 -- UI: chart-line-stoch-mid-cross primitive (TODO 11.933)
+
+Added `<ChartLineStochMidCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (%K centerline cross up) / bearish (%K centerline
+cross down) chevron overlays at every Stochastic %K midline
+cross, and the close-only Stochastic %K line (bottom panel)
+on a fixed 0-100 oscillator with the 50 reference band.
+Single-threshold cross variant of the Stochastic family that
+flags discrete %K level 50 midline crossover events distinct
+from the canonical overbought (80) / oversold (20) extreme
+bands. Sister of 11.932 `chart-line-rsi-mid-cross` for the
+Stochastic family. Bit-exact anchor: CONST `close = K` ->
+range = 0 -> rawK = 50 via neutral fallback, SMA-of-50s short
+-circuit holds k at 50, regime `bullish` (k >= 50) at the
+boundary but strict-inequality detector never fires, 0
+crosses, verified across K in {0, 1, 42, 100, 1234}. LINEAR
+UP -> close at window high -> rawK = 100 -> k = 100 constant
+(bullish), 0 crosses. LINEAR DOWN -> close at window low ->
+rawK = 0 -> k = 0 constant (bearish), 0 crosses. Long flat
+phase (k = 50 stable) followed by sustained rise -> 1 bullish
+midline cross. Long flat followed by sustained decline -> 1
+bearish midline cross. Defaults `length=14`, `kSmoothing=3`,
+`threshold=50`. Regime classifier `bullish` / `bearish` /
+`none`. ARIA region + role=img SVG with sr-only desc,
+`data-section` attributes on every drawn group,
+`role="graphics-symbol"` + `tabIndex=0` on every cross /
+overlay marker, motion-safe fade-in, controlled /
+uncontrolled hidden-series legend. 72 vitest cases covering
+pure helpers (`getLineStochMidCrossFinitePoints`,
+`normalizeLineStochMidCrossLength`,
+`normalizeLineStochMidCrossThreshold`,
+`applyLineStochMidCrossSma`), the close-only Stochastic %K
+compute pipeline (CONST / LINEAR UP / LINEAR DOWN / flat-
+then-rise / flat-then-decline), the regime classifier, the
+bullish / bearish cross detector, layout (band y placement,
+path M/L precision, marker placement), and the JSX render
+path. Manifests 1.11.950 -> 1.11.951.
+
 ## [1.11.950] - 2026-05-27 -- UI: chart-line-rsi-mid-cross primitive (TODO 11.932)
 
 Added `<ChartLineRsiMidCross />` -- pure-SVG dual-panel React/
