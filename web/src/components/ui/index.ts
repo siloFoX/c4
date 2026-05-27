@@ -606,3 +606,4 @@ export * from './chart-line-kvo-cross-sig';
 export * from './chart-line-psar-cross-pct';
 export * from './chart-line-supertrend-cross-pct';
 export * from './chart-line-vortex-cross';
+export * from './chart-line-squeeze-cross';

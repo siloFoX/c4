@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.915] - 2026-05-27 -- UI: chart-line-squeeze-cross primitive (TODO 11.897)
+
+Added `<ChartLineSqueezeCross />` -- pure-SVG dual-panel React
+/TS primitive rendering the close (top panel) with bullish /
+bearish arrow overlays at every squeeze release, and the TTM
+Squeeze momentum oscillator (close - SMA) in the bottom panel
+with squeeze-on markers and release dot markers. Marks
+Bollinger-inside-Keltner squeeze release events. Simplified
+close-only TTM Squeeze: stddev (sample) and ATR (Wilder smooth
+of TR=|delta|); squeezeOn = bbMult*stddev <= kcMult*ATR;
+momentum = close - SMA. Release fires when squeezeOn transitions
+true -> false; bullish when momentum > 0, bearish when < 0.
+Regime classifier `on` / `bullish` / `bearish` / `none`.
+Defaults length=20, bbMult=2, kcMult=1.5 (canonical TTM
+Squeeze). Three bit-exact anchors all with 0 crosses: CONST K
+-> stddev = ATR = 0 -> squeezeOn = true forever -> momentum = 0
+-> regime on; LINEAR UP step>0 -> squeezeOn = false from start
+(stddev*2 >> ATR*1.5) -> no transition; LINEAR DOWN step<0 ->
+symmetric. ARIA region + img-role SVG + sr-only desc;
+oscillator + overlay markers carry role="graphics-symbol"
+tabIndex={0}; motion-safe fade-in. 62 vitest cases.
+
 ## [1.11.914] - 2026-05-27 -- UI: chart-line-vortex-cross primitive (TODO 11.896)
 
 Added `<ChartLineVortexCross />` -- pure-SVG dual-panel React/TS
