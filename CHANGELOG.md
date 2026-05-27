@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.926] - 2026-05-27 -- UI: chart-line-keltner-cross-pct primitive (TODO 11.908)
+
+Added `<ChartLineKeltnerCrossPct />` -- pure-SVG dual-panel
+React/TS primitive rendering the close + upper / middle / lower
+Keltner Channel (top panel) with bullish / bearish arrow
+overlays at every close vs middle line cross, and percent-
+normalized `(close - mid) / mid` alongside Keltner half-width
+as percent of mid (bottom panel) with cross dot markers and a
+dashed zero baseline. Percent-change variant of the Keltner
+Channel family that scales every signal to the mid line for
+cross-instrument comparable volatility band magnitude. Close-
+only formula: `mid = EMA(close, length)`, `TR = |delta close|`,
+`atr = Wilder(TR, atrLength)`, `upper = mid + mult*atr`,
+`lower = mid - mult*atr`, `pct = ((close - mid) / mid) * 100`,
+`bandPct = ((mult*atr) / mid) * 100`. Divide-by-zero guard
+returns 0 when `mid <= 0`. Defaults `length=20`, `atrLength=10`,
+`mult=2`. Regime classifier `bullish` (pct > 0) / `bearish` /
+`neutral` / `none`. Bit-exact anchor: CONST K (any) -> mid =
+upper = lower = K, pct = 0, bandPct = 0, regime `neutral`, 0
+crosses. LINEAR UP anchor: pct > 0, regime `bullish`. 58 vitest
+cases, all pass. ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.925] - 2026-05-27 -- UI: chart-line-donchian-cross-sig primitive (TODO 11.907)
 
 Added `<ChartLineDonchianCrossSig />` -- pure-SVG dual-panel
