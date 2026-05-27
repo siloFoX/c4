@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1057] - 2026-05-27 -- UI: chart-line-mfi-mid-cross-sig primitive (TODO 11.1039)
+
+Added `<ChartLineMfiMidCrossSig />` -- HLCV-input Money
+Flow Index centerline over its SMA signal smoothing
+crossover trigger detector that flags volume-weighted
+momentum trend trigger events with bias coloring. MFI is
+the volume-weighted RSI bounded in [0, 100] with canonical
+centerline at 50. Third volume-aware primitive (after
+chart-line-vwap-divergence-cross v1.11.1055 and
+chart-line-obv-mid-cross-sig v1.11.1056), completing the
+volume trio: VWAP captures institutional flow, OBV captures
+cumulative buying / selling pressure, MFI captures the
+momentum derivative of money flow. Pipeline: typical =
+(high+low+close)/3, posMf/negMf split by typical direction
+on |typical * volume| magnitude, sumPos/sumNeg over rolling
+period, MFI = 100 - 100/(1 + sumPos/sumNeg) with three
+zero-guard branches (sumPos=sumNeg=0 -> 50 neutral; sumNeg=0
+-> 100; sumPos=0 -> 0). Default period=14, signalLength=3,
+warmup=16. Bit-exact anchors (HLCV, V=1): CONST band
+[K-1,K+1,K] -> typical=K constant, MFI=50 (neutral fallback),
+signal=50, regime bullish (>=), 0 triggers; LINEAR UP
+[i-1,i+1,i] -> typical=i monotone up, sumNeg=0 -> MFI=100,
+signal=100, regime bullish, 0 triggers; LINEAR DOWN
+[-i-1,-i+1,-i] -> typical=-i monotone down, sumPos=0 ->
+MFI=0, signal=0, regime bullish (==), 0 triggers. Mixed-
+direction test verifies MFI stays in (0, 100). Oscillator
+panel hard-locked to [0, 100] so the 50 centerline always
+renders at midpoint. Centerline uses 4 3 dash pattern for
+colour-blind safety. 48 vitest cases. Pure SVG, no chart
+libs.
+
 ## [1.11.1056] - 2026-05-27 -- UI: chart-line-obv-mid-cross-sig primitive (TODO 11.1038)
 
 Added `<ChartLineObvMidCrossSig />` -- close + volume input
