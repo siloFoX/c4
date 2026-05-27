@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1018] - 2026-05-27 -- UI: chart-line-stoch-divergence-cross primitive (TODO 11.1000)
+
+Added `<ChartLineStochDivergenceCross />` -- close-only
+Stochastic %K divergence detector that flags discrete price-
+versus-Stochastic direction disagreement events for reversal
+warning. Stochastic companion to the RSI / MACD / CMO
+divergence primitives, crossing the 11.1000 queue milestone.
+Same five-state regime model (aligned-bullish/bearish,
+divergent-bullish/bearish, none) with crosses suppressed when
+prev state is `none`. Defaults `length = 14`, `divergenceWindow
+= 5`. Bit-exact anchors: CONST close=K -> k=50 (degenerate
+midline) -> aligned-bearish (0 crosses); LINEAR UP close=i ->
+k=100 saturated -> divergent-bearish (canonical bearish
+divergence on monotonic uptrend, 0 crosses entered from `none`);
+LINEAR DOWN close=-i -> k=0 -> aligned-bearish (0 crosses).
+For 50 bars: noneCount=18, post-warmup regime count=32. Layout
+uses fixed oscMin=0 / oscMax=100 (Stochastic canonical range)
+with midline 50 reference. 58 vitest cases. Bumped 1.11.1017
+-> 1.11.1018.
+
 ## [1.11.1017] - 2026-05-27 -- UI: chart-line-cmo-divergence-cross primitive (TODO 11.999)
 
 Added `<ChartLineCmoDivergenceCross />` -- close-only Chande
