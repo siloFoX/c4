@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.1042] - 2026-05-27 -- UI: chart-line-sma-cross-sig primitive (TODO 11.1024)
+
+Added `<ChartLineSmaCrossSig />` -- close-only Simple Moving
+Average over signal crossover trigger detector that flags
+trend trigger events with bias coloring. SMA cross-sig is the
+lighter-weight sibling (no EMA recurrence) of
+`chart-line-ema-cross-sig`. Bias-coloured cross markers
+(up/down/flat/none from SMA slope at trigger bar) match the
+convention. Default `period = 14`, `signalLength = 3`. Bit-
+exact anchors: CONST K (any K) -> sma=K, signal=K,
+sma===signal, regime bullish (>=), 0 triggers; LINEAR UP ->
+sma=i-6.5, signal=i-7.5, sma-signal=+1, regime bullish, 0
+triggers; LINEAR DOWN -> sma=-i+6.5, signal=-i+7.5,
+sma-signal=-1, regime bearish, 0 triggers. SMA helper uses
+`min === max` short-circuit for CONST bit-exactness. 46
+vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1041] - 2026-05-27 -- UI: chart-line-kama-cross-sig primitive (TODO 11.1023)
 
 Added `<ChartLineKamaCrossSig />` -- close-only Perry Kaufman
