@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1070] - 2026-05-27 -- UI: chart-line-dpo-mid-cross-sig primitive (TODO 11.1052)
+
+Added `<ChartLineDpoMidCrossSig />` -- close-input William
+Blau Detrended Price Oscillator midline-over-signal
+crossover detector flagging detrended centerline trigger
+events with bias coloring from the DPO slope. DPO removes
+long-term trend components by subtracting a backward-
+shifted SMA from the close. Unlike trend-following
+oscillators, DPO does not predict direction -- it
+identifies short-term cycle peaks/troughs by stripping the
+trend bias. Pipeline: shift = floor(period/2) + 1, sma =
+SMA(close, period), dpo[i] = close[i - shift] - sma[i],
+signal = SMA(dpo, signalLength). Bullish: DPO crosses up
+signal. Bearish: DPO crosses down signal. Default
+period=20, signalLength=3, shift=11, warmup=21. Bit-exact
+anchors (close): CONST [K] -> SMA=K, close[i-11]=K, DPO=0
+(exactly the centerline), signal=0, regime bullish (===),
+0 crosses; LINEAR UP -> SMA = i - 9.5, close[i-11] = i -
+11, DPO = -1.5 (constant), signal = same, regime bullish
+(===), 0 crosses; LINEAR DOWN -> mirror, DPO = +1.5,
+regime bullish (===), 0 crosses. The non-zero +/- 1.5
+constant on LINEAR is canonical: DPO doesn't zero out
+slope, only neutralises SMA lag on cyclical components.
+Layout auto-ranges but guarantees centerline visibility.
+Complementary true-detrending-flavoured oscillator
+alongside trend-following, bounded-momentum, and mean-
+reversion mid-cross-sig siblings. 47 vitest cases. Pure
+SVG, no chart libs.
+
 ## [1.11.1069] - 2026-05-27 -- UI: chart-line-williams-mid-cross-sig primitive (TODO 11.1051)
 
 Added `<ChartLineWilliamsMidCrossSig />` -- HLC-input
