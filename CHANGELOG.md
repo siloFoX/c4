@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.950] - 2026-05-27 -- UI: chart-line-rsi-mid-cross primitive (TODO 11.932)
+
+Added `<ChartLineRsiMidCross />` -- pure-SVG dual-panel React/
+TS primitive rendering the close (top panel) with bullish
+(momentum centerline cross up) / bearish (momentum centerline
+cross down) chevron overlays at every RSI midline cross, and
+the close-only Relative Strength Index line (bottom panel) on
+a fixed 0-100 oscillator with the 50 reference band. Single-
+threshold cross variant of the RSI family that flags discrete
+RSI level 50 midline crossover events distinct from the
+canonical overbought (70) / oversold (30) extreme bands. Bit-
+exact anchor: CONST `close = K` -> delta = 0 -> gain = loss =
+0 -> avgGain = avgLoss = 0 -> rsi = 50 via zero-flow neutral
+fallback, rsi sits on the threshold but the strict-inequality
+detector never fires, regime `bullish` (rsi >= 50), 0 crosses,
+verified across K in {0, 1, 42, 100, 1234}. LINEAR UP -> all
+deltas positive -> rsi = 100 constant (regime `bullish`), 0
+crosses (rsi jumps from null to 100). LINEAR DOWN -> all
+deltas negative -> rsi = 0 constant (regime `bearish`), 0
+crosses. Balanced alternation `[10, 11, 10, 11, ...]` (length
+14) -> seed window has 7 gains + 7 losses both equal to 7 ->
+rsi[14] = 50 exactly; Wilder smoothing then oscillates each
+step but stays bounded between 40 and 60. Alternation
+followed by sustained rally -> Wilder pushes rsi strictly
+above 50, firing exactly one bullish midline cross.
+Alternation followed by sustained selloff -> rsi crosses
+down, firing one bearish midline cross. Defaults `length=14`,
+`threshold=50`. Regime classifier `bullish` / `bearish` /
+`none`. ARIA region + role=img SVG with sr-only desc,
+`data-section` attributes on every drawn group,
+`role="graphics-symbol"` + `tabIndex=0` on every cross /
+overlay marker, motion-safe fade-in, controlled /
+uncontrolled hidden-series legend. 73 vitest cases covering
+pure helpers (`getLineRsiMidCrossFinitePoints`,
+`normalizeLineRsiMidCrossLength`,
+`normalizeLineRsiMidCrossThreshold`,
+`applyLineRsiMidCrossWilder`), the close-only RSI compute
+pipeline (CONST / LINEAR UP / LINEAR DOWN / balanced
+alternation / alternation-then-rally / -selloff), the regime
+classifier, the bullish / bearish cross detector, layout
+(band y placement, path M/L precision, marker placement),
+and the JSX render path. Manifests 1.11.949 -> 1.11.950.
+
 ## [1.11.949] - 2026-05-27 -- UI: chart-line-cci-oversold-cross primitive (TODO 11.931)
 
 Added `<ChartLineCciOversoldCross />` -- pure-SVG dual-panel
