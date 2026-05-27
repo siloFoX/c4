@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.897] - 2026-05-27 -- UI: chart-line-mfi-cross-pct primitive (TODO 11.879)
+
+Added `<ChartLineMfiCrossPct />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) and Money Flow Index
+(MFI), EMA-smoothed signal line, plus (MFI - signal) / 100 *
+100 deviation channel (bottom panel). MFI is a volume-weighted
+RSI, so the percent treatment surfaces volume-weighted momentum
+magnitude scaled by the 0..100 MFI range, distinct from sign-
+based MFI-over-signal crossings. MFI = 100 - 100 / (1 + PSum /
+NSum) with PSum/NSum sliding-window sums of pos/neg money flow
+(tp * volume gated by tp direction). Regime classifier `above`
+/ `below` / `at` / `none`. Defaults `length = 14` (canonical
+MFI), `signalLength = 9`. Bit-exact anchors: CONST {K, V} ->
+MFI = 50 every bar -> signal = 50 -> mfiPct = 0 (verified
+across multiple K and V); LINEAR UP -> MFI = 100, signal = 100,
+mfiPct = 0; LINEAR DOWN -> MFI = 0, signal = 0, mfiPct = 0.
+All three anchors hit mfiPct = 0 bit-exact. ARIA region + img-
+role SVG + sr-only desc; motion-safe fade-in. 50 vitest cases.
+
 ## [1.11.896] - 2026-05-27 -- UI: chart-line-rsi-cross-pct primitive (TODO 11.878)
 
 Added `<ChartLineRsiCrossPct />` -- pure-SVG dual-panel React/TS
