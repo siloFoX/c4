@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1025] - 2026-05-27 -- UI: chart-line-adx-divergence-cross primitive (TODO 11.1007)
+
+Added `<ChartLineAdxDivergenceCross />` -- HLC-input Wilder
+Average Directional Index divergence detector that flags
+discrete price-versus-ADX direction disagreement events for
+trend-strength reversal warning. Wilder ADX companion to the
+MACD / RSI / CMO / Stoch / CCI / Awesome / TSI / TRIX
+divergence primitives. First divergence primitive that consumes
+HLC inputs (following the QSTICK / MFI precedent for non-close
+fields). Default `length = 14` (Wilder's canonical ADX window),
+`divergenceWindow = 5`. Bit-exact anchors: CONST HLC=K (any K)
+-> adx=0 -> aligned-bearish, 0 crosses; LINEAR UP (h=i+1,
+l=i-1, c=i) -> adx=100 saturated -> divergent-bearish 48/80
+samples (canonical bearish divergence on the trend-strength
+oscillator); LINEAR DOWN (h=-i+1, l=-i-1, c=-i) -> adx=100
+saturated -> aligned-bearish. Crosses suppressed when prev or
+cur is `none`. SMA-seeded Wilder RMA helper exported as
+`applyLineAdxDivergenceCrossSmaSeededRma` (length-window
+arithmetic mean seed, then alpha=1/length recurrence). 69
+vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1024] - 2026-05-27 -- UI: chart-line-trix-divergence-cross primitive (TODO 11.1006)
 
 Added `<ChartLineTrixDivergenceCross />` -- close-only Hutson
