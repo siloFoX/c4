@@ -586,3 +586,4 @@ export * from './chart-line-hma-cross-pct';
 export * from './chart-line-dema-cross-pct';
 export * from './chart-line-vroc-cross-sig';
 export * from './chart-line-macd-cross-sig';
+export * from './chart-line-stoch-cross-pct';
