@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.991] - 2026-05-27 -- UI: chart-line-qstick-mid-cross primitive (TODO 11.973)
+
+Added `<ChartLineQstickMidCross />` -- Tushar Chande's QStick (SMA
+of close - open) midline (0) cross variant for candle body
+momentum centerline regime transitions with bias coloring.
+Companion to `chart-line-qstick-zero-cross`: shares the same
+QStick pipeline (`SMA(close - open, length)` with CONST
+short-circuit via min == max) and defaults (length = 14, threshold
+= 0); reframes the ARIA / describe text from "baseline regime
+transition" to "centerline regime transitions with bias coloring"
+so it slots into the broader mid-cross family (RSI / Stoch / CCI /
+MFI / Stoch-RSI / Williams %R / UO / CMO / RMI / DPO). Bit-exact
+anchors: CONST open=close=K -> body=qstick=+0 (Object.is
+verified), regime bullish at boundary. CONST body=+B -> qstick=B
+bullish when B > 0, bearish when B < 0. Sign-flipping bodies (-B
+then +B) fire exactly one bullish cross as qstick sweeps from -B
+to +B through zero. 69 passing cases covering finite filtering
+(includes open / close check), length / threshold normalization,
+SMA short-circuit, full QStick pipeline with body channel
+exposure, regime classifier (strict `>=`), cross detector (strict
+`>` / `<`), layout determinism (`.toFixed(2)`, single-M qstick
+path, CONST -> `threshold +/- 1` fallback), ARIA region + role=img
+SVG + sr-only desc claiming "bias coloring" + "centerline regime
+transition", config badge, legend toggle (pointer + Enter /
+Space), hover tooltip (carries open / close / body / qstick),
+controlled `hiddenSeries`, threshold band, axes / grid / legend /
+crosses / overlay visibility flags, `data-*` counters matching
+run output, default `{ length: 14, threshold: 0 }`, and
+`forwardRef` exposing the wrapping div.
+
 ## [1.11.990] - 2026-05-27 -- UI: chart-line-dpo-mid-cross primitive (TODO 11.972)
 
 Added `<ChartLineDpoMidCross />` -- Detrended Price Oscillator
