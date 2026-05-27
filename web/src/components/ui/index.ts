@@ -652,3 +652,4 @@ export * from './chart-line-trix-zero-cross';
 export * from './chart-line-ppo-zero-cross';
 export * from './chart-line-roc-zero-cross';
 export * from './chart-line-momentum-zero-cross';
+export * from './chart-line-awesome-zero-cross';

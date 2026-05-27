@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.961] - 2026-05-27 -- UI: chart-line-awesome-zero-cross primitive (TODO 11.943)
+
+Added `<ChartLineAwesomeZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (fast SMA crosses above slow SMA) / bearish (fast SMA
+crosses below slow SMA) chevron overlays at every Awesome
+Oscillator zero-line cross, and the close-only Awesome
+Oscillator line (bottom panel) on an auto-fitted oscillator
+with the zero baseline reference band. Zero-line cross
+variant of the Awesome Oscillator family that flags the
+discrete AO crossing of the zero baseline. Close-only
+adaptation uses the close as the median price proxy (the
+traditional AO uses `(high + low) / 2`). Bit-exact anchor:
+CONST `close = K` -> fastSma = slowSma = K via the SMA
+`min === max` short-circuit -> ao = 0, regime `bullish` at
+boundary, 0 crosses, verified across K in {0, 1, 42, 100,
+1234}. LINEAR UP `close = i` -> at steady state ao = (i - 2)
+- (i - 16.5) = 14.5 constant (slowLag - fastLag with default
+windows), regime `bullish`, 0 crosses. LINEAR DOWN -> ao =
+-14.5 constant, regime `bearish`, 0 crosses. Decline +
+sustained rise -> 1 bullish cross. Rise + sustained decline
+-> 1 bearish cross. Defaults `fastLength=5`, `slowLength=34`,
+`threshold=0`. Oscillator range auto-fits (AO is unbounded).
+Regime classifier `bullish` / `bearish` / `none`. ARIA
+region + role=img SVG with sr-only desc, `data-section`
+attributes on every drawn group, `role="graphics-symbol"` +
+`tabIndex=0` on every cross / overlay marker, motion-safe
+fade-in, controlled / uncontrolled hidden-series legend. 69
+vitest cases covering pure helpers
+(`getLineAwesomeZeroCrossFinitePoints`,
+`normalizeLineAwesomeZeroCrossLength`,
+`normalizeLineAwesomeZeroCrossThreshold`,
+`applyLineAwesomeZeroCrossSma`), the AO compute pipeline
+(CONST / LINEAR UP / LINEAR DOWN / decline-then-rise /
+rise-then-decline), the regime classifier, the bullish /
+bearish cross detector, layout, and the JSX render path.
+Manifests 1.11.960 -> 1.11.961.
+
 ## [1.11.960] - 2026-05-27 -- UI: chart-line-momentum-zero-cross primitive (TODO 11.942)
 
 Added `<ChartLineMomentumZeroCross />` -- pure-SVG dual-panel
