@@ -765,3 +765,4 @@ export * from './chart-line-dpo-mid-cross-sig';
 export * from './chart-line-trix-mid-cross-sig';
 export * from './chart-line-keltner-divergence-cross';
 export * from './chart-line-bollinger-divergence-cross';
+export * from './chart-line-stoch-cross-divergence';

@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1074] - 2026-05-27 -- UI: chart-line-stoch-cross-divergence primitive (TODO 11.1056)
+
+Added `<ChartLineStochCrossDivergence />` -- HLC-input
+George Lane (1950s) slow Stochastic compound cross-
+divergence detector flagging smoothed momentum crossover
+divergence trigger events. A cross-divergence trigger
+fires only when BOTH (1) %K crosses %D (smoothed-momentum
+crossover), AND (2) the price-vs-%K regime at the cross
+bar is divergent. This compound filter rejects aligned
+crossovers that often represent late-stage trend
+continuation, surfacing higher-quality reversal signals.
+Pipeline: rawK = 100 * (close - LL) / (HH - LL) with
+flat-window guard returning midline 50, smoothK =
+SMA(rawK, smoothK), d = SMA(smoothK, smoothD); 5-state
+regime by price-vs-K direction; bullish/bearish only fire
+on (raw K-over-D cross) AND (regime divergent in the
+matching direction). Default period=14, smoothK=3,
+smoothD=3 (canonical slow stochastic), warmup=18. Bit-
+exact anchors (HLC): CONST -> K=D=50, no cross, regime
+none, 0 crosses; LINEAR UP -> K=D=280/3 ~= 93.33
+(overbought), no cross, regime none, 0 crosses; LINEAR
+DOWN -> mirror K=D=20/3 ~= 6.67, 0 crosses. Layout hard-
+locked to [0, 100] for stable threshold reference
+rendering. Hybrid signal combining cross-sig and
+divergence-cross family conventions -- more selective than
+either alone. The key tests verify the compound filter
+(cross with divergent regime fires; cross with aligned
+regime does NOT). 49 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1073] - 2026-05-27 -- UI: chart-line-bollinger-divergence-cross primitive (TODO 11.1055)
 
 Added `<ChartLineBollingerDivergenceCross />` -- HLC-input
