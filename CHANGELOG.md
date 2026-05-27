@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.941] - 2026-05-27 -- UI: chart-line-stoch-overbought-cross primitive (TODO 11.923)
+
+Added `<ChartLineStochOverboughtCross />` -- pure-SVG dual-
+panel React/TS primitive rendering the close (top panel) with
+bullish (entry) / bearish (exit) arrow overlays at every
+Stochastic %K threshold cross, and the close-only %K line
+(bottom panel) on a fixed 0-100 oscillator with 50 / 80
+reference bands. Single-threshold cross variant of the
+Stochastic family that flags the discrete %K level-80 entry
+and exit events distinct from the canonical %K / %D crossover.
+Close-only Stochastic with range=0 neutral fallback (rawK=50).
+Single-threshold cross detector at 80. Defaults `length=14`,
+`kSmoothing=3`. Regime classifier `bullish` (k >= threshold
+overbought) / `neutral` / `none`. Bit-exact anchor: CONST K
+-> range=0 -> rawK=50 fallback -> %K=50 via SMA short-circuit,
+regime `neutral`, 0 crosses. LINEAR UP -> %K=100, regime
+`bullish`. LINEAR DOWN -> %K=0, regime `neutral`. 60 vitest
+cases, all pass. ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.940] - 2026-05-27 -- UI: chart-line-rsi-oversold-cross primitive (TODO 11.922)
 
 Added `<ChartLineRsiOversoldCross />` -- pure-SVG dual-panel
