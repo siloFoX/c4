@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1029] - 2026-05-27 -- UI: chart-line-schaff-divergence-cross primitive (TODO 11.1011)
+
+Added `<ChartLineSchaffDivergenceCross />` -- close-only Doug
+Schaff Trend Cycle (STC = double-stochastic of MACD with two
+EMA smoothings) divergence detector that flags discrete
+price-versus-STC direction disagreement events for cycle-
+momentum reversal warning. STC companion to the existing
+MACD / RSI / CMO / Stoch / CCI / Awesome / TSI / TRIX / ADX /
+Fisher / DPO / QStick divergence primitives, mirroring the
+canonical STC formula already used by `chart-line-stc-cross-sig`,
+`chart-line-stc-overbought-cross`,
+`chart-line-stc-oversold-cross`, and
+`chart-line-stc-mid-cross-sig`. Default `fastLength = 23`,
+`slowLength = 50`, `cycleLength = 10`, `factor = 0.5`,
+`divergenceWindow = 5`. Bit-exact anchors: CONST K (any K)
+-> stc=50 -> aligned-bearish, 0 crosses; LINEAR UP -> macd=+13.5
+constant -> stochastic degenerate -> stc=50 saturated ->
+divergent-bearish 48/120 samples (canonical neutral cycle read);
+LINEAR DOWN -> macd=-13.5 -> stc=50 -> aligned-bearish. Crosses
+suppressed when prev or cur is `none`. 67 vitest cases. Pure
+SVG, no chart libs.
+
 ## [1.11.1028] - 2026-05-27 -- UI: chart-line-qstick-divergence-cross primitive (TODO 11.1010)
 
 Added `<ChartLineQstickDivergenceCross />` -- OHLC-input
