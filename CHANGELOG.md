@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.993] - 2026-05-27 -- UI: chart-line-choppiness-mid-cross primitive (TODO 11.975)
+
+Added `<ChartLineChoppinessMidCross />` -- Choppiness Index
+midline (50) cross variant for trending versus ranging regime
+baseline transitions. Companion to `chart-line-choppiness-cross`
+which uses the dual Fibonacci 38.2 / 61.8 thresholds; this
+primitive offers the single-threshold midline contract instead.
+Same close-only CI pipeline (true range over `length` window
+divided by close min/max range, normalised by log10(length))
+with the explicit zero-flow fallback `ci = 50`. Defaults `length
+= 14`, `threshold = 50`. Regime classifier inverts the standard
+"bullish above" convention to honor the Choppiness Index
+semantics where LOW CI = strong trending = `bullish` and HIGH
+CI (>= 50) = ranging = `bearish`. Bit-exact anchors: CONST
+close=K -> ci=50 (regime bearish at boundary, fully ranging
+side); LINEAR UP -> ci=0 at the seed bar (bit-exact +0;
+Object.is verified) and ~2.808 thereafter (both well below 50,
+bullish trending side); LINEAR DOWN symmetric; saw-tooth ->
+ci=100 (canonical "fully ranging" ceiling). Cross detector:
+bullish (trending start) on cross DOWN through 50, bearish
+(ranging start) on cross UP through 50 -- directional inversion
+honoring the indicator's semantics. 65 passing cases covering
+finite filtering, length floor (>=2) and threshold range
+([0, 100]), full CI pipeline including zero-flow fallback and
+saw-tooth ceiling, regime classifier with the inverted
+convention, cross detector with strict-boundary inversion,
+layout determinism (`.toFixed(2)`, single-M ci path, thresholdY
+exactly at panel midpoint for threshold=50), ARIA region +
+role=img SVG + sr-only desc claiming "trending versus ranging" +
+"regime baseline transition", config badge, legend toggle
+(pointer + Enter / Space), hover tooltip, controlled
+`hiddenSeries`, threshold band, axes / grid / legend / crosses
+/ overlay visibility flags, `data-*` counters matching run
+output, default `{ length: 14, threshold: 50 }`, and
+`forwardRef` exposing the wrapping div.
+
 ## [1.11.992] - 2026-05-27 -- UI: chart-line-stc-mid-cross primitive (TODO 11.974)
 
 Added `<ChartLineStcMidCross />` -- Doug Schaff's Schaff Trend
