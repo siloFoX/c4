@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.967] - 2026-05-27 -- UI: chart-line-qstick-zero-cross primitive (TODO 11.949)
+
+Added `<ChartLineQstickZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every Tushar Chande
+QStick zero crossover, and a QStick panel (bottom) with
+auto-fitted range and the zero reference band. QStick is
+the simple moving average of the candle body (`close -
+open`) over a fixed window: positive means bullish bodies
+dominate, negative means bearish bodies dominate. Zero
+crossovers mark the baseline transition from one body-
+momentum regime to the other -- a sharper signal than a
+single candle close because the SMA filters short-term body
+noise. This is the first primitive in the chart-line-*
+family to require OHLC-style input -- specifically
+`{x, open, close}` -- because the indicator depends on
+intra-bar body sign rather than close-to-close change.
+Bit-exact anchors verified by tests: CONST `open == close ==
+K` yields `qstick = 0` (boundary, bullish); body = +B
+constant yields `qstick = +B`; body = -B constant yields
+`qstick = -B`; sign-flipping bodies fire exactly the cross
+direction expected (bearish-then-bullish -> bullish cross,
+reverse -> bearish cross). Standard pipeline --
+`getLineQstickZeroCrossFinitePoints` drops any point whose
+x / open / close is non-finite, body = close - open per
+bar, `applyLineQstickZeroCrossSma(values, length)` with
+CONST `min === max` short-circuit and length=1 identity,
+`computeLineQstickZeroCross(series, {length}) -> {body,
+qstick, length}`, `classifyLineQstickZeroCrossRegime` with
+threshold default 0 (null -> none, qstick >= T -> bullish,
+qstick < T -> bearish),
+`detectLineQstickZeroCrossCrosses` with strict boundary
+behaviour (equality does not cross),
+`runLineQstickZeroCross` (samples carry open / close / body
+/ qstick / regime), and `computeLineQstickZeroCrossLayout`
+returning per-cross-marker `(cx, cyOsc, cyPrice, kind)`
+triples for the overlay arrow + osc circle pair. Layout
+defaults: 720 x 460 with a ~55% / 45% price / QStick panel
+split, auto-fit `[oscMin, oscMax]` (always includes the
+threshold) with 10% padding, deterministic `.toFixed(2)`
+SVG paths, ARIA region + `role="img"` SVG + sr-only desc,
+`role="graphics-symbol"` + `tabIndex={0}` on each cross
+marker, motion-safe fade-in, controlled / uncontrolled
+legend, hover tooltip showing open / close / body / QStick
+/ regime / length, configurable showBands / showAxis /
+showGrid / showLegend / showCrosses / showOverlayCrosses /
+showConfigBadge flags, data-* attrs reflecting length /
+threshold / cross-count / bullish-count / bearish-count,
+and forwardRef wired to the outer `<div>`. 71 vitest cases
+green (incl. K in `{0, 1, 42, 100, 1234}` anchors, CONST
+body anchors, sign-flipping cross detection, custom
+length=5, and layout determinism across calls). Pure SVG,
+no canvas / chart libraries.
+
 ## [1.11.966] - 2026-05-27 -- UI: chart-line-rmi-zero-cross primitive (TODO 11.948)
 
 Added `<ChartLineRmiZeroCross />` -- pure-SVG dual-panel
