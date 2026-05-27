@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.922] - 2026-05-27 -- UI: chart-line-adx-di-cross primitive (TODO 11.904)
+
+Added `<ChartLineAdxDiCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish /
+bearish arrow overlays at every Wilder +DI vs -DI cross, and
+the +DI / -DI lines (bottom panel) on a fixed 0-100 oscillator
+with cross dot markers and a dashed 50 reference line. DI-cross
+variant of the ADX family that flags directional movement
+regime shift events distinct from the base ADX trend strength
+reading. Close-only formula: `TR = |delta close|`, `plusDM =
+max(delta, 0)`, `minusDM = max(-delta, 0)`, Wilder smooth of
+each, then `+DI = 100*plusDM_s/ATR`, `-DI = 100*minusDM_s/ATR`
+with zero-ATR short-circuit. Default `length=14`. Regime
+classifier `bullish` (+DI > -DI) / `bearish` (+DI < -DI) /
+`neutral` / `none`. Bit-exact anchors: CONST K -> +DI=-DI=0
+(neutral); LINEAR UP -> +DI=100, -DI=0 (bullish); LINEAR DOWN
+-> +DI=0, -DI=100 (bearish). 58 vitest cases, all pass. ARIA
+region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.921] - 2026-05-27 -- UI: chart-line-choppiness-cross primitive (TODO 11.903)
 
 Added `<ChartLineChoppinessCross />` -- pure-SVG dual-panel
