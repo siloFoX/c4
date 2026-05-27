@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.901] - 2026-05-27 -- UI: chart-line-trix-cross-sig primitive (TODO 11.883)
+
+Added `<ChartLineTrixCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and TRIX (triple-smoothed
+EMA one-period rate of change) over its EMA-smoothed signal line
+in the bottom panel with cross dot markers. Trigger-focused TRIX
+variant distinct from the base TRIX line. TRIX = 100 * (ema3[i]
+- ema3[i-1]) / ema3[i-1] where ema3 = EMA(EMA(EMA(close, length),
+length), length). signal = EMA(TRIX, signalLength). Bullish /
+bearish crosses fire when (TRIX - signal) sign changes. Regime
+classifier `bullish` / `bearish` / `neutral` / `none`. Defaults
+`length = 15` (canonical TRIX), `signalLength = 9`. Bit-exact
+anchor: CONST close = K (K > 0) -> every EMA collapses to K ->
+TRIX = 100 * (K - K) / K = 0 every bar -> signal = 0 -> regime
+neutral, 0 crosses (verified K = 1..1234, warmup = 3 * length -
+2). CONST K = 0 triggers divide-by-zero guard -> TRIX = null,
+regime none. ARIA region + img-role SVG + sr-only desc;
+oscillator + overlay markers carry role="graphics-symbol"
+tabIndex={0}; motion-safe fade-in. 56 vitest cases.
+
 ## [1.11.900] - 2026-05-27 -- UI: chart-line-adx-cross-pct primitive (TODO 11.882)
 
 Added `<ChartLineAdxCrossPct />` -- pure-SVG dual-panel React/TS
