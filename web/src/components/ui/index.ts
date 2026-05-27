@@ -757,3 +757,4 @@ export * from './chart-line-supertrend-divergence-cross';
 export * from './chart-line-williams-divergence-cross';
 export * from './chart-line-atr-divergence-cross';
 export * from './chart-line-cci-mid-cross-sig';
+export * from './chart-line-rsi-mid-cross-sig';
