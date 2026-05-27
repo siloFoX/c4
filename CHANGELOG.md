@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1036] - 2026-05-27 -- UI: chart-line-macd-zero-cross-sig primitive (TODO 11.1018)
+
+Added `<ChartLineMacdZeroCrossSig />` -- close-only Gerald
+Appel MACD zero-line over signal line crossover trigger
+detector that flags centerline confirmation events with bias
+coloring: bullish when the smoothed MACD signal crosses up
+through zero (centerline confirmation up), bearish when it
+crosses down through zero (centerline confirmation down).
+Zero-line variant of the MACD family using the same mid-cross-
+sig pattern as `chart-line-adx-mid-cross-sig` /
+`chart-line-stc-mid-cross-sig`. Bias-coloured cross markers
+(up/down/flat/none from signal slope at trigger bar) match
+the `chart-line-stc-overbought-cross` convention. Default
+`fastLength = 12`, `slowLength = 26`, `signalLength = 9`
+(Appel canonical), `threshold = 0`. Bit-exact anchors: CONST
+K (any K) -> macd=0 -> signal=0 -> regime bullish, 0 triggers;
+LINEAR UP -> macd=+7 -> signal=+7 -> regime bullish, 0
+triggers; LINEAR DOWN -> macd=-7 -> signal=-7 -> regime
+bearish, 0 triggers. SMA-seeded EMA helper preserves the
+steady-state algebra exactly at the seed bar. 51 vitest cases.
+Pure SVG, no chart libs.
+
 ## [1.11.1035] - 2026-05-27 -- UI: chart-line-stoch-rsi-divergence-cross primitive (TODO 11.1017)
 
 Added `<ChartLineStochRsiDivergenceCross />` -- close-only
