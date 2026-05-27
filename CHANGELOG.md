@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1027] - 2026-05-27 -- UI: chart-line-dpo-divergence-cross primitive (TODO 11.1009)
+
+Added `<ChartLineDpoDivergenceCross />` -- close-only Detrended
+Price Oscillator (DPO = close[i - shift] - SMA[i] with shift =
+floor(length / 2) + 1) divergence detector that flags discrete
+price-versus-DPO direction disagreement events for detrended
+momentum reversal warning. DPO companion to the MACD / RSI /
+CMO / Stoch / CCI / Awesome / TSI / TRIX / ADX / Fisher
+divergence primitives, mirroring the canonical DPO formula
+already used by `chart-line-dpo-cross-sig` /
+`chart-line-dpo-overbought-cross` /
+`chart-line-dpo-oversold-cross`. Default `length = 20`,
+`divergenceWindow = 5`. Bit-exact anchors: CONST K (any K) ->
+dpo=0 -> aligned-bearish, 0 crosses; LINEAR UP -> dpo=-1.5
+constant (the structural centred-SMA bias) -> divergent-bearish
+56/80 samples; LINEAR DOWN -> dpo=+1.5 constant ->
+aligned-bearish. Crosses suppressed when prev or cur is `none`.
+Symmetric +/- oscillator range derived from the observed dpo
+span. 66 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1026] - 2026-05-27 -- UI: chart-line-fisher-divergence-cross primitive (TODO 11.1008)
 
 Added `<ChartLineFisherDivergenceCross />` -- close-only Ehlers
