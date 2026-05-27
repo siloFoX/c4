@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.998] - 2026-05-27 -- UI: chart-line-trix-oversold-cross primitive (TODO 11.980)
+
+Added `<ChartLineTrixOversoldCross />` -- TRIX oversold (-0.1)
+cross variant for triple-smoothed momentum oversold trigger
+events. Mirror of `chart-line-trix-overbought-cross` (11.979):
+shares the same close-only triple-EMA pipeline (with the ema3=0
+zero-divide guard returning bit-exact +0), threshold flipped from
++0.1 to -0.1. Joins `chart-line-trix-zero-cross` (11.941) to
+round out the canonical TRIX threshold layer. Defaults
+`length = 15`, `threshold = -0.1`. Bit-exact anchors: CONST
+close=K -> trix=+0 (Object.is verified) -> regime bullish
+(0 >= -0.1, opposite of the overbought variant where 0 < 0.1
+gave bearish). LINEAR UP -> trix positive throughout (all
+bullish, 0 crosses). LINEAR DOWN -> trix well below -0.1 (all
+bearish, 0 crosses). CONST K full-run counters under defaults,
+60 bars: noneCount=43, bullishCount=17, bearishCount=0. Layout
+auto-fit expands DOWN to include threshold + 10% padding when
+trix collapses to 0 (CONST -> oscMin -0.11, oscMax 0.01) --
+exact mirror of the overbought variant's UP-expansion. TRIX
+tooltip uses 4-decimal precision. 63 passing cases covering
+finite filtering, length / threshold normalization, EMA seed +
+LINEAR steady-state, full TRIX pipeline including the
+zero-divide guard, regime classifier (strict `>=`), cross
+detector (strict `>` / `<`), layout determinism (`.toFixed(2)`,
+single-M trix path, padded osc fit with downward-expanded
+threshold), ARIA region + role=img SVG + sr-only desc claiming
+"oversold trigger", config badge, legend toggle (pointer + Enter
+/ Space), hover tooltip, controlled `hiddenSeries`, threshold
+band, axes / grid / legend / crosses / overlay visibility flags,
+`data-*` counters matching run output, default `{ length: 15,
+threshold: -0.1 }`, and `forwardRef` exposing the wrapping div.
+
 ## [1.11.997] - 2026-05-27 -- UI: chart-line-trix-overbought-cross primitive (TODO 11.979)
 
 Added `<ChartLineTrixOverboughtCross />` -- TRIX overbought (0.1)
