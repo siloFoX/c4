@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.909] - 2026-05-27 -- UI: chart-line-roc-cross-sig primitive (TODO 11.891)
+
+Added `<ChartLineRocCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and Rate of Change (ROC)
+over its EMA-smoothed signal line in the bottom panel with cross
+dot markers. Trigger-focused ROC variant marking momentum
+trigger events distinct from base ROC level. ROC = (close[i] -
+close[i-length]) / close[i-length] * 100. signal = EMA(ROC,
+signalLength). Bullish / bearish crosses fire when (ROC -
+signal) sign changes. Regime classifier `bullish` / `bearish` /
+`neutral` / `none`. Defaults length=14 (canonical ROC),
+signalLength=9. Bit-exact anchor: CONST K > 0 -> close[i] -
+close[i-length] = 0 -> ROC = 0 every bar -> signal = 0 -> regime
+neutral, 0 crosses (verified K = 1..1234). CONST K = 0 triggers
+divide-by-zero guard -> ROC = null, regime none. ARIA region +
+img-role SVG + sr-only desc; oscillator + overlay markers carry
+role="graphics-symbol" tabIndex={0}; motion-safe fade-in. 56
+vitest cases.
+
 ## [1.11.908] - 2026-05-27 -- UI: chart-line-zlema-cross-pct primitive (TODO 11.890)
 
 Added `<ChartLineZlemaCrossPct />` -- pure-SVG dual-panel
