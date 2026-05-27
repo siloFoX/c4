@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.916] - 2026-05-27 -- UI: chart-line-supertrend-cross-sig primitive (TODO 11.898)
+
+Added `<ChartLineSupertrendCrossSig />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every Supertrend / signal cross,
+and the Supertrend trailing band over its EMA-smoothed signal
+line (bottom panel) with cross dot markers. Signal-cross
+variant of the Supertrend family that separates the smoothed
+trend trigger events from the discrete Supertrend flip line
+published by 11.859 chart-line-supertrend-cross. Wilder ATR +
+sticky band trend flip yields `Supertrend`; `signal = EMA(ST,
+signalLength)`; bullish / bearish crosses are detected on
+`ST - signal`. Defaults `length=10`, `factor=3`,
+`signalLength=9`. Regime classifier `bullish` / `bearish` /
+`neutral` / `none`. Bit-exact anchor: CONST close = K > 0 ->
+ST = K, signal = K via `min === max` precision fix, regime
+`neutral`, 0 crosses. 55 vitest cases, all pass. ARIA region,
+img-role SVG with sr-only desc, `role="graphics-symbol"` cross
+markers, `data-section` attributes, motion-safe fade-in.
+
 ## [1.11.915] - 2026-05-27 -- UI: chart-line-squeeze-cross primitive (TODO 11.897)
 
 Added `<ChartLineSqueezeCross />` -- pure-SVG dual-panel React
