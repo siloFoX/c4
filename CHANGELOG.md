@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.933] - 2026-05-27 -- UI: chart-line-elder-bear-cross primitive (TODO 11.915)
+
+Added `<ChartLineElderBearCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every Elder Bear Power zero
+crossover, and the close-only Bear Power line (bottom panel)
+with cross dot markers and a dashed zero baseline. Zero-cross
+variant of the Elder Ray family that flags seller strength
+regime transition events distinct from the absolute Bear Power
+magnitude. Mirror of 11.914 `chart-line-elder-bull-cross`
+using rolling low instead of rolling high. Close-only formula:
+`lowProxy = min(close, lowProxyLength)`, `ema = EMA(close,
+length)`, `bear = lowProxy - ema`. Bullish / bearish crosses
+on `bear` vs 0. Defaults `length=13`, `lowProxyLength=2`.
+Regime classifier `bullish` (bear > 0 weak bears) / `bearish`
+(bear < 0 strong bears) / `neutral` / `none`. Bit-exact anchor:
+CONST K -> lowProxy = K, EMA = K -> bear = 0, regime `neutral`,
+0 crosses. LINEAR DOWN -> bear<0. 54 vitest cases, all pass.
+ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.932] - 2026-05-27 -- UI: chart-line-elder-bull-cross primitive (TODO 11.914)
 
 Added `<ChartLineElderBullCross />` -- pure-SVG dual-panel
