@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.978] - 2026-05-27 -- UI: chart-line-uo-overbought-cross primitive (TODO 11.960)
+
+Added `<ChartLineUoOverboughtCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (= entry) / bearish (= exit) chevron overlays at every
+Ultimate Oscillator crossing of the canonical 70 overbought
+line. Shares the bit-exact UO pipeline with the
+`chart-line-uo-mid-cross` and `chart-line-uo-zero-cross`
+siblings; the only difference is the default threshold (70).
+Bit-exact anchors verified by tests: CONST close=K yields
+`uo = 50` (regime bearish since 50 < 70), LINEAR UP yields
+`uo = 100` (regime bullish), LINEAR DOWN yields `uo = 0`
+(regime bearish). Cross events fire during transients:
+decline-then-rise pushes uo from 0 through 70 going up
+(bullish entry); rise-then-decline pulls uo from 100 through
+70 going down (bearish exit). Standard pipeline --
+`applyLineUoOverboughtCrossPressure` (close-only `bp = max(0,
+delta)`, `tr = |delta|`), `computeLineUoOverboughtCross(series,
+{short, mid, long}) -> {uo, short, mid, long}` with the
+canonical 4/2/1 weights and `0 / 0 -> 0.5` fallback,
+`classifyLineUoOverboughtCrossRegime` with threshold default
+70 (null -> none, uo >= 70 -> bullish, uo < 70 -> bearish),
+`detectLineUoOverboughtCrossCrosses` with strict boundary
+behaviour, `runLineUoOverboughtCross`, and
+`computeLineUoOverboughtCrossLayout` returning per-cross-
+marker `(cx, cyOsc, cyPrice, kind)` triples for the overlay
+arrow + osc circle pair. Layout defaults: 720 x 460 with a
+~55% / 45% price / UO panel split, fixed `[0, 100]` UO range
+with the threshold band at the 70-line (above panel midpoint),
+deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing close
+/ UO / regime / entries / exits counters / s-m-l-T parameters,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting short / mid / long / threshold /
+cross-count / bullish-count / bearish-count, and forwardRef
+wired to the outer `<div>`. Defaults: short=7, mid=14, long=28
+(Williams 1976 canonical), threshold=70. 71 vitest cases green
+(incl. K in `{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN
+bit-exact 100 / 0 constants, decline-then-rise bullish entry,
+rise-then-decline bearish exit, custom 3 / 5 / 10 periods, and
+layout determinism across calls). Pure SVG, no canvas / chart
+libraries.
+
 ## [1.11.977] - 2026-05-27 -- UI: chart-line-uo-mid-cross primitive (TODO 11.959)
 
 Added `<ChartLineUoMidCross />` -- pure-SVG dual-panel React/TS
