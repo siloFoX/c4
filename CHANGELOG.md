@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1008] - 2026-05-27 -- UI: chart-line-stc-overbought-cross primitive (TODO 11.990)
+
+Added `<ChartLineStcOverboughtCross />` -- close-only Schaff
+Trend Cycle (STC) overbought-threshold crossover primitive that
+flags discrete cycle-overbought trigger events with bias
+coloring derived from the STC slope at the trigger bar.
+Companion to `chart-line-stc-mid-cross` (11.974) but with the
+default threshold flipped from 50 to the canonical overbought
+level 75. Cross markers carry both a kind (`bullish` / `bearish`)
+and a `bias` (`up` / `down` / `flat` / `none`) tag, and the
+component renders them tinted by bias so an entry on rising STC
+reads brighter than one on a flat STC -- the canonical visual
+filter Doug Schaff recommends for STC overbought confirmation.
+Defaults `fastLength = 23`, `slowLength = 50`, `cycleLength =
+10`, `factor = 0.5` (EMA alpha -- 0.5 keeps EMA bit-exact on
+constant inputs), `threshold = 75`. Five-stage pipeline:
+macd = SMA(close,fast) - SMA(close,slow) -> stochastic(macd) ->
+EMA -> stochastic -> EMA = STC. Bit-exact anchors: CONST K ->
+macd=0, k1=50, d1=50, k2=50, stc=50 (Object.is verified) ->
+bearish (0 crosses); LINEAR UP -> macd=13.5 -> cycle collapses
+through stochastic to stc=50 -> bearish (0 crosses); LINEAR
+DOWN -> macd=-13.5 -> stc=50 -> bearish (0 crosses). Strict
+inequality on `cur` so boundary equality (stc == 75) never
+double-fires. Layout uses fixed oscMin=0 / oscMax=100 (STC
+canonical range). 69 vitest cases. Bumped 1.11.1007 -> 1.11.1008.
+
 ## [1.11.1007] - 2026-05-27 -- UI: chart-line-qstick-cross-sig primitive (TODO 11.989)
 
 Added `<ChartLineQstickCrossSig />` -- OHLC-input QStick (SMA of
