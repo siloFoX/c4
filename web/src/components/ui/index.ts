@@ -697,3 +697,4 @@ export * from './chart-line-stoch-rsi-mid-cross-sig';
 export * from './chart-line-macd-divergence-cross';
 export * from './chart-line-rsi-divergence-cross';
 export * from './chart-line-cmo-cross-sig';
+export * from './chart-line-dpo-cross-sig';
