@@ -657,3 +657,4 @@ export * from './chart-line-cmo-zero-cross';
 export * from './chart-line-dpo-zero-cross';
 export * from './chart-line-uo-zero-cross';
 export * from './chart-line-fisher-zero-cross';
+export * from './chart-line-rmi-zero-cross';
