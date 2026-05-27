@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1046] - 2026-05-27 -- UI: chart-line-vortex-mid-cross primitive (TODO 11.1028)
+
+Added `<ChartLineVortexMidCross />` -- canonical Vortex
+Indicator trade signal primitive. HLC-input dual-panel chart
+that renders the close in the top panel and both VI+ (cyan)
+and VI- (pink) lines in the bottom panel, marking VI+ vs
+VI- direct crossover trigger events as trend reversal
+direction changes. Unlike the SMA-smoothed siblings
+chart-line-vortex-pos-cross (v1.11.1044, VI+ vs SMA(VI+))
+and chart-line-vortex-neg-cross (v1.11.1045, VI- vs
+SMA(VI-)), the mid-cross primitive compares VI+ to VI-
+directly with no smoothing layer, so warmup is just period =
+14 (not period + signalLength - 1 = 16). Bias-coloured cross
+markers (up/down/flat/none from VI+ slope at trigger bar)
+match the convention. Default period = 14. Bit-exact anchors
+(HLC): CONST band [K-1, K+1] -> VI+ = VI- = 1, regime
+bullish (>=), 0 triggers; LINEAR UP [i-1, i+1] -> VI+ = 1.5,
+VI- = 0.5, VI+ - VI- = +1, regime bullish, 0 triggers;
+LINEAR DOWN [-i-1, -i+1] -> VI+ = 0.5, VI- = 1.5, VI+ - VI-
+= -1, regime BEARISH (the first genuinely bearish
+steady-state anchor in the Vortex trio), 0 triggers. Both
+VI+ and VI- share a single rolling sumTr divisor so the
+lines stay numerically coherent under FP drift. Zero-TR
+rolling window short-circuits to null. 46 vitest cases.
+Pure SVG, no chart libs.
+
 ## [1.11.1045] - 2026-05-27 -- UI: chart-line-vortex-neg-cross primitive (TODO 11.1027)
 
 Added `<ChartLineVortexNegCross />` -- HLC-input Vortex
