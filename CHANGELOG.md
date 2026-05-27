@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.927] - 2026-05-27 -- UI: chart-line-mfi-cross-sig primitive (TODO 11.909)
+
+Added `<ChartLineMfiCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish /
+bearish arrow overlays at every Money Flow Index vs EMA-
+smoothed signal cross, and the MFI line + signal line in the
+bottom panel on a fixed 0-100 oscillator with cross dot markers
++ 20/50/80 reference bands. Signal-cross variant of the MFI
+family that flags volume-weighted momentum trigger events
+distinct from the canonical MFI overbought / oversold readings.
+Close-only formula: `delta = delta close`, `posFlow = close *
+delta if delta > 0`, `negFlow = close * -delta if delta < 0`,
+`posSum + negSum = 0 -> mfi = 50` (neutral fallback), else
+`mfi = 100 - 100/(1 + posSum/negSum)`. `signal = EMA(mfi,
+signalLength)`. Bullish / bearish crosses on `mfi - signal`.
+Defaults `length=14`, `signalLength=9`. Regime classifier
+`bullish` (mfi > signal) / `bearish` / `neutral` / `none`. Bit-
+exact anchor: CONST K -> mfi = signal = 50 via neutral fallback
++ EMA short-circuit, regime `neutral`, 0 crosses. LINEAR UP/
+DOWN -> mfi = 100/0. 54 vitest cases, all pass. ARIA region,
+img-role SVG with sr-only desc, `role="graphics-symbol"` cross
+markers, `data-section` attributes, motion-safe fade-in.
+
 ## [1.11.926] - 2026-05-27 -- UI: chart-line-keltner-cross-pct primitive (TODO 11.908)
 
 Added `<ChartLineKeltnerCrossPct />` -- pure-SVG dual-panel
