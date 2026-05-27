@@ -681,3 +681,4 @@ export * from './chart-line-fisher-overbought-cross';
 export * from './chart-line-fisher-oversold-cross';
 export * from './chart-line-rmi-overbought-cross';
 export * from './chart-line-rmi-oversold-cross';
+export * from './chart-line-dpo-mid-cross';
