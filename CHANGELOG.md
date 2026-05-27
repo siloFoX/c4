@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.985] - 2026-05-27 -- UI: chart-line-rmi-mid-cross primitive (TODO 11.967)
+
+Added `<ChartLineRmiMidCross />` -- Relative Momentum Index
+midline (50) cross variant with momentum bias coloring. Reuses
+the canonical RSI-with-lookback Wilder pipeline shared with
+`chart-line-rmi-zero-cross`: lookback-step momentum delta ->
+Wilder-smoothed gain / loss (SMA-seeded at `lookback + length -
+1`) -> `100 - 100 / (1 + avgGain / avgLoss)` with explicit
+neutral / extreme fallbacks (both-zero -> 50, no-loss -> 100,
+no-gain -> 0). Defaults `length = 14`, `lookback = 5`,
+`threshold = 50`. Bit-exact anchors: CONST close=K -> rmi=50
+(regime bullish at boundary), LINEAR UP -> rmi=100, LINEAR DOWN
+-> rmi=0, custom `{ length: 5, lookback: 2 }` -> warmup boundary
+at bar 6 with rmi=100 thereafter. Reframes the ARIA / describe
+text from "baseline regime transition" to "centerline regime
+transition with momentum bias coloring for trend confirmation"
+so it slots into the broader mid-cross family (RSI / Stoch / CCI
+/ MFI / Stoch-RSI / Williams %R / UO / CMO). 72 passing cases
+covering finite filtering, length / threshold normalization,
+Wilder seed semantics (CONST + null + insufficient + seedIdx),
+the full RMI pipeline, regime + cross detector (strict `>` /
+`<`), layout determinism (`.toFixed(2)`, single-M rmi path,
+thresholdY at panel midpoint), ARIA region + role=img SVG + sr-
+only desc claiming "momentum bias coloring" + "trend
+confirmation", config badge, legend toggle (pointer + Enter /
+Space), hover tooltip, controlled `hiddenSeries`, threshold
+band, axes / grid / legend / crosses / overlay visibility
+flags, `data-*` counters matching run output, default
+`{ length: 14, lookback: 5, threshold: 50 }`, and `forwardRef`
+exposing the wrapping div.
+
 ## [1.11.984] - 2026-05-27 -- UI: chart-line-cmo-mid-cross primitive (TODO 11.966)
 
 Added `<ChartLineCmoMidCross />` -- Chande Momentum Oscillator
