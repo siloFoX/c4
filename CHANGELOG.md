@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.911] - 2026-05-27 -- UI: chart-line-kvo-cross-sig primitive (TODO 11.893)
+
+Added `<ChartLineKvoCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and Klinger Volume
+Oscillator (KVO) over its EMA-smoothed signal line in the bottom
+panel with cross dot markers. Explicit cross-sig family naming
+companion to 11.886 chart-line-kvo-cross; both publish identical
+KVO over signal crossings but 11.893 follows the cross-sig
+family naming convention. Simplified single-series: volForce =
+volume * sign(Delta close); KVO = EMA(volForce, fast) -
+EMA(volForce, slow); signal = EMA(KVO, signalLength). Regime
+classifier `bullish` / `bearish` / `neutral` / `none`. Defaults
+fast=34, slow=55, signal=13 (canonical KVO). Three bit-exact
+anchors all yielding KVO = signal = 0 and 0 crosses: CONST {K,
+V}, LINEAR UP step>0 with V>0, LINEAR DOWN step<0 with V>0. ARIA
+region + img-role SVG + sr-only desc; oscillator + overlay
+markers carry role="graphics-symbol" tabIndex={0}; motion-safe
+fade-in. 56 vitest cases.
+
 ## [1.11.910] - 2026-05-27 -- UI: chart-line-roc-cross-pct primitive (TODO 11.892)
 
 Added `<ChartLineRocCrossPct />` -- pure-SVG dual-panel React/TS
