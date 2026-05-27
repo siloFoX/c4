@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.1076] - 2026-05-27 -- UI: chart-line-hma-mid-cross-sig primitive (TODO 11.1058)
+
+Added `<ChartLineHmaMidCrossSig />` -- close-input Alan
+Hull (2005) Hull Moving Average midline-over-signal
+crossover detector flagging fast smoothed centerline
+trigger events with bias coloring from the HMA slope. HMA
+is engineered to virtually eliminate lag: `2 * WMA(close,
+period/2) - WMA(close, period)` projects the trend forward
+by the WMA's centroid lag, then an outer WMA over
+`round(sqrt(period))` bars smooths the projection. Pipeline:
+half = floor(period/2), sqrtPeriod = round(sqrt(period)),
+wmaHalf = WMA(close, half), wmaFull = WMA(close, period),
+raw = 2*wmaHalf - wmaFull, hma = WMA(raw, sqrtPeriod),
+signal = SMA(hma, signalLength). Bullish: HMA crosses up
+signal. Bearish: HMA crosses down signal. Default
+period=14, signalLength=3, warmup=18 (with derived
+half=7, sqrtPeriod=4). Bit-exact anchors (close): CONST
+[K] -> all channels = K, signal = K, regime bullish
+(===), 0 crosses; LINEAR UP -> wmaHalf = i - 2, wmaFull
+= i - 13/3, raw = i + 1/3, hma = i - 2/3 (canonical near-
+zero-lag Hull property: just 2/3 bar lag vs SMA/EMA 6.5
+or WMA 4.33), signal = i - 5/3, hma - signal = +1
+(constant 1-bar SMA lag), regime bullish, 0 crosses;
+LINEAR DOWN -> mirror, regime bearish, 0 crosses. Sibling
+to chart-line-hma-divergence-cross v1.11.1052 (same HMA
+pipeline, different signal). 46 vitest cases. Pure SVG,
+no chart libs.
+
 ## [1.11.1075] - 2026-05-27 -- UI: chart-line-adx-pos-neg-divergence primitive (TODO 11.1057)
 
 Added `<ChartLineAdxPosNegDivergence />` -- HLC-input

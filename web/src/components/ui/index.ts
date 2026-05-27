@@ -767,3 +767,4 @@ export * from './chart-line-keltner-divergence-cross';
 export * from './chart-line-bollinger-divergence-cross';
 export * from './chart-line-stoch-cross-divergence';
 export * from './chart-line-adx-pos-neg-divergence';
+export * from './chart-line-hma-mid-cross-sig';
