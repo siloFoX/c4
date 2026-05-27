@@ -698,3 +698,4 @@ export * from './chart-line-macd-divergence-cross';
 export * from './chart-line-rsi-divergence-cross';
 export * from './chart-line-cmo-cross-sig';
 export * from './chart-line-dpo-cross-sig';
+export * from './chart-line-qstick-cross-sig';

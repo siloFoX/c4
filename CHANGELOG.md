@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1007] - 2026-05-27 -- UI: chart-line-qstick-cross-sig primitive (TODO 11.989)
+
+Added `<ChartLineQstickCrossSig />` -- OHLC-input QStick (SMA of
+close - open candle body) signal-line crossover primitive that
+flags discrete bullish (QStick crosses up through the smoothed
+signal line) / bearish (QStick crosses down through the signal
+line) smoothed-candle-body-momentum trigger events. Companion to
+the existing QStick mid-cross / zero-cross family but using the
+QStick's own SMA-smoothed signal line as the dynamic threshold
+rather than a fixed level -- the canonical pattern Tushar
+Chande uses to suppress raw-QStick whipsaws while preserving
+candle-body-momentum responsiveness. Data interface is `{ x,
+open, close }` because the body = close - open is the
+underlying measurement (unlike the close-only members of the
+family). Defaults `length = 8` (Chande's recommended QStick
+window), `kSmoothing = 3` (signal smoothing). Bit-exact anchors:
+CONST open=close=K -> body=0 -> qstick=0, signal=0 (Object.is
+verified +0) -> bullish at boundary (0 crosses); body=+1 (open=
+i-1, close=i) -> qstick=1, signal=1 -> bullish (0 crosses);
+body=-1 (open=i+1, close=i) -> qstick=-1, signal=-1 -> bullish
+(0 crosses, boundary inclusive at saturated bear extreme).
+Strict inequality on `cur` so boundary equality (qstick ==
+signal) never double-fires. Layout uses symmetric +/-1.1*span
+around zero combining both QStick and signal extrema, with
+[-1, 1] fallback on degenerate. Three-series legend (price,
+QStick, signal). 61 vitest cases. Bumped 1.11.1006 -> 1.11.1007.
+
 ## [1.11.1006] - 2026-05-27 -- UI: chart-line-dpo-cross-sig primitive (TODO 11.988)
 
 Added `<ChartLineDpoCrossSig />` -- close-only Detrended Price
