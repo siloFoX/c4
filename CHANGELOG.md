@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.953] - 2026-05-27 -- UI: chart-line-mfi-mid-cross primitive (TODO 11.935)
+
+Added `<ChartLineMfiMidCross />` -- pure-SVG dual-panel React/
+TS primitive rendering the close (top panel) with bullish
+(volume-weighted momentum centerline cross up) / bearish
+(volume-weighted momentum centerline cross down) chevron
+overlays at every MFI midline cross, and the close-only Money
+Flow Index line (bottom panel) on a fixed 0-100 oscillator
+with the 50 reference band. Single-threshold cross variant of
+the MFI family that flags discrete MFI level 50 midline
+crossover events distinct from the canonical overbought (80) /
+oversold (20) extreme bands. Continues the midline-cross
+family (RSI 50, Stochastic 50, CCI 0, now MFI 50). Close-only
+adaptation: `|delta close|` acts both as the money-flow
+magnitude (price * volume proxy) and the directional cue;
+posFlow / negFlow accumulate over the rolling length window
+and mfi = 100 - 100 / (1 + posFlow / negFlow) with a zero-flow
+neutral fallback returning 50. Bit-exact anchor: CONST `close
+= K` -> delta = 0 -> posFlow = negFlow = 0 -> mfi = 50 via
+zero-flow neutral fallback, sits on threshold but strict-
+inequality detector never fires, regime `bullish` (mfi >= 50),
+0 crosses, verified across K in {0, 1, 42, 100, 1234}. LINEAR
+UP -> all deltas positive -> mfi = 100 (bullish), 0 crosses.
+LINEAR DOWN -> all deltas negative -> mfi = 0 (bearish), 0
+crosses. Balanced alternation -> posFlow = negFlow -> mfi = 50
+(bullish at boundary), 0 crosses. Alternation + big upward
+jump -> 1 bullish midline cross. Alternation + big downward
+jump -> 1 bearish midline cross. Defaults `length=14`,
+`threshold=50`. Regime classifier `bullish` / `bearish` /
+`none`. ARIA region + role=img SVG with sr-only desc,
+`data-section` attributes on every drawn group, `role=
+"graphics-symbol"` + `tabIndex=0` on every cross / overlay
+marker, motion-safe fade-in, controlled / uncontrolled hidden-
+series legend. 69 vitest cases covering pure helpers
+(`getLineMfiMidCrossFinitePoints`,
+`normalizeLineMfiMidCrossLength`,
+`normalizeLineMfiMidCrossThreshold`), the close-only MFI
+compute pipeline (CONST / LINEAR UP / LINEAR DOWN / balanced
+alternation / alternation-then-up-jump / alternation-then-
+down-jump), the regime classifier, the bullish / bearish cross
+detector, layout (band y placement, path M/L precision, marker
+placement), and the JSX render path. Manifests 1.11.952 ->
+1.11.953.
+
 ## [1.11.952] - 2026-05-27 -- UI: chart-line-cci-mid-cross primitive (TODO 11.934)
 
 Added `<ChartLineCciMidCross />` -- pure-SVG dual-panel React/
