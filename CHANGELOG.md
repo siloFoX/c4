@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.964] - 2026-05-27 -- UI: chart-line-uo-zero-cross primitive (TODO 11.946)
+
+Added `<ChartLineUoZeroCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish/bearish
+chevron overlays at every Ultimate Oscillator midline-50 crossover,
+and a UO panel (bottom) with a fixed `[0, 100]` range and the
+midline reference band. UO blends three buying-pressure / true-range
+ratios across short / mid / long windows (default 7 / 14 / 28) using
+the weighted formula `100 * (4*avg_short + 2*avg_mid + avg_long) /
+7`, smoothing multi-timeframe momentum into a single bounded line so
+the midline (default 50) splits the chart into bullish vs. bearish
+regimes. Bit-exact anchors verified by tests: `close = K` (CONST)
+yields `uo = 50` (via the `0 / 0 -> 0.5` ratio fallback applied per
+window), `close = i` (LINEAR UP) yields `uo = 100`, `close = -i`
+(LINEAR DOWN) yields `uo = 0` across `length = 28`. Standard pipeline
+-- `applyLineUoZeroCrossPressure` produces close-only `bp = max(0,
+delta)` and `tr = |delta|` series, `computeLineUoZeroCross(series,
+{short, mid, long}) -> {uo, short, mid, long}` blends the three
+ratios with the canonical weights, `classifyLineUoZeroCrossRegime`
+with threshold default 50 (null -> none, uo >= T -> bullish, uo < T
+-> bearish), `detectLineUoZeroCrossCrosses` with strict boundary
+behaviour (equality does not cross), `runLineUoZeroCross`, and
+`computeLineUoZeroCrossLayout` returning per-cross-marker `(cx,
+cyOsc, cyPrice, kind)` triples for the overlay arrow + osc circle
+pair. Layout defaults: 720 x 460 with a ~55% / 45% price / UO panel
+split, fixed `[0, 100]` UO range so the threshold band sits at the
+midpoint, deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing UO + s/m/l
+period summary, configurable showBands / showAxis / showGrid /
+showLegend / showCrosses / showOverlayCrosses / showConfigBadge
+flags, data-* attrs reflecting short / mid / long / threshold /
+cross-count / bullish-count / bearish-count, and forwardRef wired
+to the outer `<div>`. 71 vitest cases green (incl. K in
+`{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN constants,
+decline-then-rise / rise-then-decline cross detection, custom
+3 / 5 / 10 periods, and layout determinism across calls). Pure
+SVG, no canvas / chart libraries.
+
 ## [1.11.963] - 2026-05-27 -- UI: chart-line-dpo-zero-cross primitive (TODO 11.945)
 
 Added `<ChartLineDpoZeroCross />` -- pure-SVG dual-panel React/TS
