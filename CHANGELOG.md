@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.921] - 2026-05-27 -- UI: chart-line-choppiness-cross primitive (TODO 11.903)
+
+Added `<ChartLineChoppinessCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+(trending) / bearish (ranging) arrow overlays at every
+Choppiness Index threshold cross, and a close-only Choppiness
+Index line (bottom panel) on a fixed 0-100 oscillator with
+38.2 / 50 / 61.8 reference bands. Threshold-cross variant that
+separates trending vs ranging market regime transitions from
+the base Choppiness Index line readings. Close-only formula:
+`TR = |delta close|`, `sumTR = sum(TR, n)`, `range = max(
+close, n) - min(close, n)`, `ci = range > 0 ? 100 * log10(
+sumTR / range) / log10(n) : 50`. Bullish trigger: CI crosses
+below `trendThreshold` (default 38.2). Bearish trigger: CI
+crosses above `chopThreshold` (default 61.8). Default
+`length=14`. Regime classifier `bullish` (CI < trend) /
+`bearish` (CI > chop) / `neutral` / `none`. Bit-exact anchor:
+CONST K -> sumTR=0, range=0 -> neutral fallback CI=50, regime
+`neutral`, 0 crosses. LINEAR UP anchor: CI=0, regime `bullish`.
+59 vitest cases, all pass. ARIA region, img-role SVG with sr-
+only desc, `role="graphics-symbol"` cross markers,
+`data-section` attributes, motion-safe fade-in.
+
 ## [1.11.920] - 2026-05-27 -- UI: chart-line-elder-ray-cross primitive (TODO 11.902)
 
 Added `<ChartLineElderRayCross />` -- pure-SVG dual-panel React
