@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.958] - 2026-05-27 -- UI: chart-line-ppo-zero-cross primitive (TODO 11.940)
+
+Added `<ChartLinePpoZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (fast EMA crosses above slow EMA) / bearish (fast
+EMA crosses below slow EMA) chevron overlays at every PPO
+zero-line cross, and the close-only Percentage Price
+Oscillator line (bottom panel) on an auto-fitted oscillator
+with the zero baseline reference band. Zero-line cross
+variant of the PPO family that flags the discrete PPO
+crossing of the zero baseline. PPO is the percentage
+version of MACD: `(fastEma - slowEma) / |slowEma| * 100`,
+scale-invariant for cross-instrument comparison. Bit-exact
+anchor: CONST `close = K` -> fastEma = slowEma = K ->
+numerator = 0 -> ppo = 0 (even when K = 0 the slowEma = 0
+guard returns 0), regime `bullish` (ppo >= 0), 0 crosses,
+verified across K in {0, 1, 42, 100, 1234}. LINEAR UP ->
+ppo positive (bullish, decreasing toward 0 as |slowEma|
+grows), 0 crosses. LINEAR DOWN -> ppo negative (bearish),
+0 crosses. Decline + sustained rise -> 1 bullish cross.
+Rise + sustained decline -> 1 bearish cross. Defaults
+`fastLength=12`, `slowLength=26`, `threshold=0`. Oscillator
+range auto-fits (PPO is unbounded). Regime classifier
+`bullish` / `bearish` / `none`. ARIA region + role=img SVG
+with sr-only desc, `data-section` attributes on every
+drawn group, `role="graphics-symbol"` + `tabIndex=0` on
+every cross / overlay marker, motion-safe fade-in,
+controlled / uncontrolled hidden-series legend. 69 vitest
+cases covering pure helpers
+(`getLinePpoZeroCrossFinitePoints`,
+`normalizeLinePpoZeroCrossLength`,
+`normalizeLinePpoZeroCrossThreshold`,
+`applyLinePpoZeroCrossEma`), the PPO compute pipeline
+(CONST / LINEAR UP / LINEAR DOWN / decline-then-rise /
+rise-then-decline), the regime classifier, the bullish /
+bearish cross detector, layout, and the JSX render path.
+Manifests 1.11.957 -> 1.11.958.
+
 ## [1.11.957] - 2026-05-27 -- UI: chart-line-trix-zero-cross primitive (TODO 11.939)
 
 Added `<ChartLineTrixZeroCross />` -- pure-SVG dual-panel
