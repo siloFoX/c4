@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1005] - 2026-05-27 -- UI: chart-line-cmo-cross-sig primitive (TODO 11.987)
+
+Added `<ChartLineCmoCrossSig />` -- close-only Chande Momentum
+Oscillator (CMO) signal-line crossover primitive that flags
+discrete bullish (CMO crosses up through the smoothed signal
+line) / bearish (CMO crosses down through the signal line)
+trigger events. Companion to the existing CMO mid-cross /
+overbought / oversold family but using the CMO's own SMA-
+smoothed signal line as the dynamic threshold rather than a
+fixed level -- the canonical pattern analysts use to suppress
+raw-CMO whipsaws while preserving responsiveness to genuine
+momentum shifts. Defaults `length = 14` (Chande's recommended
+window), `kSmoothing = 3`. Bit-exact anchors: CONST close=K ->
+deltas=0 -> cmo=0 (degenerate, gainSum+lossSum=0), signal=0
+(Object.is verified +0) -> regime bullish (cmo>=signal at
+boundary, 0 crosses); LINEAR UP close=i -> cmo=100, signal=100
+-> bullish (0 crosses); LINEAR DOWN close=-i -> cmo=-100,
+signal=-100 -> bullish (0 crosses, CMO sits on its own SMA at
+the saturated bear extreme). Strict inequality on `cur` (`cur
+> signal` for bullish, `cur < signal` for bearish) so boundary
+equality never double-fires. Layout uses fixed oscMin=-100 /
+oscMax=100 (CMO canonical symmetric range) with zero reference.
+63 vitest cases. Bumped 1.11.1004 -> 1.11.1005.
+
 ## [1.11.1004] - 2026-05-27 -- UI: chart-line-rsi-divergence-cross primitive (TODO 11.986)
 
 Added `<ChartLineRsiDivergenceCross />` -- close-only Wilder RSI
