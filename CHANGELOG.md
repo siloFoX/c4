@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.892] - 2026-05-27 -- UI: chart-line-dema-cross-pct primitive (TODO 11.874)
+
+Added `<ChartLineDemaCrossPct />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with Double Exponential Moving
+Average (top panel) and the close - DEMA deviation scaled to
+close as a percent (bottom panel). The percent normalisation
+makes the lag-corrected DEMA momentum comparable across
+instruments at different price magnitudes. DEMA = 2*EMA(close,
+length) - EMA(EMA(close, length), length). Regime classifier
+`above` / `below` / `at` / `none`. Defaults `length = 14`. Bit-
+exact anchor: CONST close = K (K > 0) -> both EMAs collapse to K
+-> DEMA = 2K - K = K -> demaPct = 0 / K * 100 = 0 (verified
+across multiple K and length tuples, warmup = 2 * length - 2 due
+to chained EMA). CONST K = 0 triggers divide-by-zero guard ->
+demaPct = null. ARIA region + img-role SVG + sr-only desc;
+motion-safe fade-in. 51 vitest cases.
+
 ## [1.11.891] - 2026-05-27 -- UI: chart-line-hma-cross-pct primitive (TODO 11.873)
 
 Added `<ChartLineHmaCrossPct />` -- pure-SVG dual-panel React/TS
