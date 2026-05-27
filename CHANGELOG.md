@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1037] - 2026-05-27 -- UI: chart-line-hma-cross-sig primitive (TODO 11.1019)
+
+Added `<ChartLineHmaCrossSig />` -- close-only Alan Hull
+Moving Average over signal crossover trigger detector that
+flags fast smoothed trend trigger events with bias coloring:
+bullish when HMA crosses up through its SMA signal line,
+bearish when HMA crosses down through its SMA signal line.
+HMA cross-sig companion to the existing chart-line-hma /
+chart-line-hma-pct / chart-line-hma-cross-pct family.
+Bias-coloured cross markers match the chart-line-macd-zero-
+cross-sig / chart-line-stc-divergence-cross convention.
+Default `period = 16` (Hull's recommended HMA window),
+`signalLength = 3` (signal SMA window). Bit-exact anchors:
+CONST K (any K) -> hma=K, signal=K, hma===signal, regime
+bullish (>=), 0 triggers; LINEAR UP -> hma=i-2/3, signal=
+i-5/3, hma-signal=+1, regime bullish, 0 triggers; LINEAR
+DOWN -> hma=-i+2/3, signal=-i+5/3, hma-signal=-1, regime
+bearish, 0 triggers. WMA / SMA / HMA helpers locally
+exported. 50 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1036] - 2026-05-27 -- UI: chart-line-macd-zero-cross-sig primitive (TODO 11.1018)
 
 Added `<ChartLineMacdZeroCrossSig />` -- close-only Gerald
