@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.896] - 2026-05-27 -- UI: chart-line-rsi-cross-pct primitive (TODO 11.878)
+
+Added `<ChartLineRsiCrossPct />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) and Wilder RSI, EMA-
+smoothed signal line, plus the (RSI - signal) / 100 * 100
+deviation channel (bottom panel). The percent treatment surfaces
+the relative momentum strength scaled by the 0..100 RSI range,
+distinct from the sign-based RSI-over-signal crossings emitted
+by 11.871 chart-line-rsi-cross-sig. RSI = Wilder formula with
+midpoint=50 / saturated=100 / floor=0 edge cases. signal =
+EMA(RSI, signalLength). Regime classifier `above` / `below` /
+`at` / `none`. Defaults `length = 14` (canonical Wilder),
+`signalLength = 9`. Bit-exact anchors: CONST close = K -> RSI =
+50 every bar -> signal = 50 -> rsiPct = 0 (verified across K =
+0..1234); LINEAR UP -> RSI = 100, signal = 100, rsiPct = 0;
+LINEAR DOWN -> RSI = 0, signal = 0, rsiPct = 0. All three
+anchors hit rsiPct = 0 bit-exact. ARIA region + img-role SVG +
+sr-only desc; motion-safe fade-in. 51 vitest cases.
+
 ## [1.11.895] - 2026-05-27 -- UI: chart-line-stoch-cross-pct primitive (TODO 11.877)
 
 Added `<ChartLineStochCrossPct />` -- pure-SVG dual-panel React/TS
