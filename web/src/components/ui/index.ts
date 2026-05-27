@@ -752,3 +752,4 @@ export * from './chart-line-mfi-mid-cross-sig';
 export * from './chart-line-wma-divergence-cross';
 export * from './chart-line-tema-divergence-cross';
 export * from './chart-line-kama-divergence-cross';
+export * from './chart-line-ichimoku-divergence-cross';
