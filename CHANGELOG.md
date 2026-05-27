@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1039] - 2026-05-27 -- UI: chart-line-tema-cross-sig primitive (TODO 11.1021)
+
+Added `<ChartLineTemaCrossSig />` -- close-only Patrick Mulloy
+Triple Exponential Moving Average (TEMA = 3*EMA1 - 3*EMA2 +
+EMA3) over signal crossover trigger detector that flags
+responsive trend trigger events with bias coloring. TEMA
+cross-sig companion to the existing
+`chart-line-ema-cross-sig` / `chart-line-hma-cross-sig`
+family. TEMA's zero-lag construction means it tracks LINEAR
+UP / DOWN close exactly (`tema = i` / `-i`), giving a more
+responsive trend trigger than EMA. Bias-coloured cross
+markers (up/down/flat/none from TEMA slope at trigger bar)
+match the convention. Default `period = 14`, `signalLength
+= 3`. Bit-exact anchors: CONST K (any K) -> tema=K, signal=K,
+tema===signal, regime bullish (>=), 0 triggers; LINEAR UP ->
+tema=i (zero lag!), signal=i-1, tema-signal=+1, regime
+bullish, 0 triggers; LINEAR DOWN -> tema=-i, signal=-i+1,
+tema-signal=-1, regime bearish, 0 triggers. TEMA helper
+locally exported. 49 vitest cases (includes Mulloy zero-lag
+identity check). Pure SVG, no chart libs.
+
 ## [1.11.1038] - 2026-05-27 -- UI: chart-line-ema-cross-sig primitive (TODO 11.1020)
 
 Added `<ChartLineEmaCrossSig />` -- close-only Exponential
