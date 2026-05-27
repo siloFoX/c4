@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1000] - 2026-05-27 -- UI: chart-line-awesome-oversold-cross primitive (TODO 11.982)
+
+Added `<ChartLineAwesomeOversoldCross />` -- Bill Williams' Awesome
+Oscillator (5-over-34 SMA difference) oversold cross variant for
+momentum slump entry trigger events at a configurable negative lower
+band. Mirror of `chart-line-awesome-overbought-cross` (11.981) with
+the default threshold flipped from `+0.5` to `-0.5` -- the canonical
+"alligator awake" inverse level analysts tune to match the
+volatility scale of the underlying close series. Defaults
+`fastLength = 5`, `slowLength = 34`, `threshold = -0.5`. Bit-exact
+anchors: CONST close=K -> ao=+0 (Object.is verified) -> regime
+bullish (0 >= -0.5, opposite of the overbought variant where 0
+< 0.5 read bearish); LINEAR UP close=i -> ao=14.5 -> regime bullish,
+0 crosses; LINEAR DOWN close=-i -> ao=-14.5 -> regime bearish (in
+oversold zone), 0 crosses. Strict inequality on `cur` (`cur > T`
+for bullish, `cur < T` for bearish) so boundary equality (ao ==
+-0.5) never double-fires. Layout auto-fits oscMin / oscMax to
+include the threshold band with 10% padding -- on CONST K=50 the
+panel collapses to oscMin=-0.55 / oscMax=0.05 (mirror of the
+overbought variant's UP-expansion). 64 vitest cases. Bumped
+1.11.999 -> 1.11.1000.
+
 ## [1.11.999] - 2026-05-27 -- UI: chart-line-awesome-overbought-cross primitive (TODO 11.981)
 
 Added `<ChartLineAwesomeOverboughtCross />` -- Bill Williams'
