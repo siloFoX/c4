@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.948] - 2026-05-27 -- UI: chart-line-cci-overbought-cross primitive (TODO 11.930)
+
+Added `<ChartLineCciOverboughtCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (entry into overbought) / bearish (exit from
+overbought) chevron overlays at every CCI threshold cross, and
+the close-only Commodity Channel Index line (bottom panel) on
+an auto-expanding +/- 300 oscillator with threshold (+100) and
+0 reference bands. Single-threshold cross variant of the CCI
+family that flags discrete CCI level +100 entry / exit events
+distinct from the dual-band +/- 100 / +/- 200 crossover of
+11.925 `chart-line-cci-extreme-cross`. Bit-exact anchor: CONST
+`close = K` -> sma = K -> all deviations = 0 -> mean
+deviation = 0 -> 0/0 guard returns cci = 0, 0 < 100, regime
+`neutral`, 0 crosses, verified across K in {0, 1, 42, 100,
+1234}. LINEAR UP `close = i` (length 20) -> cci = 126.667
+constant once warm, 126.667 > 100, regime `overbought`, 0
+crosses (cci jumps from null to 126.667 in one bar). LINEAR
+DOWN -> cci = -126.667, -126.667 < 100, regime `neutral`, 0
+crosses. Single positive spike with length 14 -> cci = 466.67
+which crosses the +100 band, firing exactly 1 bullish entry.
+Defaults `length=20`, `threshold=+100`. Regime classifier
+`overbought` / `neutral` / `none`. ARIA region + role=img SVG
+with sr-only desc, `data-section` attributes on every drawn
+group, `role="graphics-symbol"` + `tabIndex=0` on every cross
+/ overlay marker, motion-safe fade-in, controlled /
+uncontrolled hidden-series legend. 72 vitest cases covering
+pure helpers (`getLineCciOverboughtCrossFinitePoints`,
+`normalizeLineCciOverboughtCrossLength`,
+`normalizeLineCciOverboughtCrossThreshold`,
+`applyLineCciOverboughtCrossSma`), the close-only CCI compute
+pipeline (CONST / LINEAR UP / LINEAR DOWN / spike), the regime
+classifier, the bullish / bearish cross detector, layout (band
+y ordering, path M/L precision, oscillator range expansion,
+marker placement), and the JSX render path (ARIA, data-*
+attrs, legend keyboard toggles, hover tooltip, band / cross /
+overlay visibility flags). Manifests 1.11.947 -> 1.11.948.
+
 ## [1.11.947] - 2026-05-27 -- UI: chart-line-mfi-oversold-cross primitive (TODO 11.929)
 
 Added `<ChartLineMfiOversoldCross />` -- pure-SVG dual-panel
