@@ -4,6 +4,60 @@
 
 (no entries -- next release window)
 
+## [1.11.969] - 2026-05-27 -- UI: chart-line-schaff-zero-cross primitive (TODO 11.951)
+
+Added `<ChartLineSchaffZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every Doug Schaff Trend
+Cycle midline-50 crossover, and an STC panel (bottom) with a
+fixed `[0, 100]` range and the midline reference band. STC
+applies two passes of `stochastic + 0.5-smoothing` on top of
+the MACD line, producing a fast, bounded cycle oscillator
+whose midline splits bullish-trend from bearish-trend halves
+-- a sharper trigger than MACD's own zero line because the
+double smoothing rejects high-frequency noise. Bit-exact
+anchors verified by tests: CONST close=K yields `stc = 50`
+via the seed-50 fallback (MACD = 0, stochastic range = 0,
+holds the seed); LINEAR UP and LINEAR DOWN both also yield
+`stc = 50` because both EMAs hit their steady-state lag
+exactly, leaving MACD constant -- so the stochastic sees
+zero range and falls back to the seed. The directional
+information lives in transients (decline-then-rise,
+rise-then-decline patterns) where MACD passes through zero
+and the double-stochastic captures the cycle. Standard
+pipeline -- `applyLineSchaffZeroCrossEma(values, length)`
+SMA-seeded EMA with CONST short-circuit and length=1
+identity, `computeLineSchaffZeroCross(series, {cycle, fast,
+slow}) -> {macd, k1, d1, k2, stc, cycle, fast, slow}` running
+the full two-pass stochastic + smoothing pipeline with the
+50 seed for both `k_prev` and `d_prev`,
+`classifyLineSchaffZeroCrossRegime` with threshold default
+50 (null -> none, stc >= T -> bullish, stc < T -> bearish),
+`detectLineSchaffZeroCrossCrosses` with strict boundary
+behaviour (equality does not cross),
+`runLineSchaffZeroCross` (samples carry close / stc /
+regime), and `computeLineSchaffZeroCrossLayout` returning
+per-cross-marker `(cx, cyOsc, cyPrice, kind)` triples for
+the overlay arrow + osc circle pair. Layout defaults: 720 x
+460 with a ~55% / 45% price / STC panel split, fixed
+`[0, 100]` STC range so the threshold band sits at the
+midpoint, deterministic `.toFixed(2)` SVG paths, ARIA region
++ `role="img"` SVG + sr-only desc, `role="graphics-symbol"`
++ `tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing
+close / STC / regime / cycle / fast / slow / threshold,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting cycle / fast / slow / threshold /
+cross-count / bullish-count / bearish-count, and forwardRef
+wired to the outer `<div>`. Defaults: cycle=10, fast=23,
+slow=50 (Schaff canonical), threshold=50. 69 vitest cases
+green (incl. K in `{0, 1, 42, 100, 1234}` anchors,
+LINEAR UP/DOWN bit-exact, MACD steady-state verification,
+custom larger cycle / fast / slow warmup, decline-then-rise
+transient generation, and layout determinism across calls).
+Pure SVG, no canvas / chart libraries.
+
 ## [1.11.968] - 2026-05-27 -- UI: chart-line-vfi-zero-cross primitive (TODO 11.950)
 
 Added `<ChartLineVfiZeroCross />` -- pure-SVG dual-panel
