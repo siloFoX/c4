@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1024] - 2026-05-27 -- UI: chart-line-trix-divergence-cross primitive (TODO 11.1006)
+
+Added `<ChartLineTrixDivergenceCross />` -- close-only Hutson
+TRIX (percentage rate of change of triple-smoothed EMA)
+divergence detector that flags discrete price-versus-TRIX
+direction disagreement events for triple-smoothed momentum
+reversal warning. Hutson TRIX companion to the MACD / RSI /
+CMO / Stoch / CCI / Awesome / TSI divergence primitives.
+Default `length = 15` (canonical Hutson TRIX window),
+`divergenceWindow = 5`. Bit-exact anchors: CONST K (any K) ->
+trix=0 -> aligned-bearish, 0 crosses; LINEAR UP -> trix=100/(i-22)
+positive decay -> divergent-bearish 32/80 samples (canonical
+bearish divergence on the triple-smoothed oscillator); LINEAR
+DOWN -> trix=100/(i-22) same positive magnitude ->
+aligned-bearish. Crosses suppressed when prev or cur is
+`none`. SMA-seeded EMA helper exported as
+`applyLineTrixDivergenceCrossSmaSeededEma`. Symmetric +/-
+oscillator range derived from the observed trix span. 70
+vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1023] - 2026-05-27 -- UI: chart-line-tsi-divergence-cross primitive (TODO 11.1005)
 
 Added `<ChartLineTsiDivergenceCross />` -- close-only True
