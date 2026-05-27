@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.990] - 2026-05-27 -- UI: chart-line-dpo-mid-cross primitive (TODO 11.972)
+
+Added `<ChartLineDpoMidCross />` -- Detrended Price Oscillator
+midline (0) cross variant for detrended momentum centerline regime
+transitions with bias coloring. Companion to
+`chart-line-dpo-zero-cross`: shares the same DPO pipeline
+(`close[i - shift] - SMA(close, length)` with
+`shift = floor(length/2) + 1`) and defaults (length = 20, threshold
+= 0); reframes the ARIA / describe text from "baseline regime
+transition" to "centerline regime transitions with bias coloring"
+so it slots into the broader mid-cross family (RSI / Stoch / CCI /
+MFI / Stoch-RSI / Williams %R / UO / CMO / RMI). Bit-exact anchors:
+CONST close=K -> dpo=+0 (Object.is verified), regime bullish at
+boundary. LINEAR UP -> dpo=-1.5 constant (classic look-back
+inversion: shifted close further back than SMA centroid, so an
+upward trend yields a NEGATIVE DPO -> all bearish). LINEAR DOWN ->
+dpo=+1.5 constant (inversion in reverse -> all bullish). 70 passing
+cases covering finite filtering, length / threshold normalization,
+SMA short-circuit, full DPO pipeline including shift exposure,
+regime classifier (strict `>=`), cross detector (strict `>` /
+`<`), layout determinism (`.toFixed(2)`, single-M dpo path,
+CONST -> `threshold +/- 1` fallback), ARIA region + role=img
+SVG + sr-only desc claiming "bias coloring" + "centerline regime
+transition", config badge, legend toggle (pointer + Enter /
+Space), hover tooltip, controlled `hiddenSeries`, threshold band,
+axes / grid / legend / crosses / overlay visibility flags,
+`data-*` counters matching run output (data-length, data-shift,
+data-threshold), default `{ length: 20, threshold: 0 }`, and
+`forwardRef` exposing the wrapping div. Rise-then-decline
+trajectories produce a documented BULLISH cross via the look-back
+inversion (rise -> bearish dpo, decline -> bullish dpo).
+
 ## [1.11.989] - 2026-05-27 -- UI: chart-line-rmi-oversold-cross primitive (TODO 11.971)
 
 Added `<ChartLineRmiOversoldCross />` -- Relative Momentum Index
