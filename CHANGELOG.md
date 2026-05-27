@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.970] - 2026-05-27 -- UI: chart-line-tsi-zero-cross primitive (TODO 11.952)
+
+Added `<ChartLineTsiZeroCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish/bearish
+chevron overlays at every William Blau True Strength Index zero
+crossover, and a TSI panel (bottom) with a fixed `[-100, 100]`
+range and the zero reference band. TSI applies two passes of EMA
+smoothing to the raw momentum (`close - close_prev`) and its
+absolute value, then divides the doubly-smoothed signed momentum
+by the doubly-smoothed absolute momentum, scaling to [-100, 100].
+Zero crossovers mark double-smoothed momentum baseline regime
+transitions -- a sharper trigger than a single-EMA momentum
+because the double smoothing rejects noise without losing
+direction. Bit-exact anchors verified by tests: CONST close=K
+yields `tsi = 0` (mom = abs_mom = 0, double-EMAs are 0, the
+divide-by-zero fallback resolves to 0); LINEAR UP yields
+`tsi = 100` (mom = +1, abs_mom = 1, both EMAs converge to +1 / 1
+exactly, giving 100); LINEAR DOWN yields `tsi = -100`. Standard
+pipeline -- `applyLineTsiZeroCrossEma(values, length,
+firstValidIdx)` SMA-seeded EMA with CONST short-circuit and
+length=1 identity, `computeLineTsiZeroCross(series, {long, short})
+-> {tsi, long, short}` running the full double-EMA pipeline with
+0/0 fallback, `classifyLineTsiZeroCrossRegime` with threshold
+default 0 (null -> none, tsi >= T -> bullish, tsi < T -> bearish),
+`detectLineTsiZeroCrossCrosses` with strict boundary behaviour,
+`runLineTsiZeroCross`, and `computeLineTsiZeroCrossLayout`
+returning per-cross-marker `(cx, cyOsc, cyPrice, kind)` triples
+for the overlay arrow + osc circle pair. Layout defaults: 720 x
+460 with a ~55% / 45% price / TSI panel split, fixed `[-100, 100]`
+TSI range so the threshold band sits at the midpoint when
+threshold=0, deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing close /
+TSI / regime / long / short, configurable showBands / showAxis /
+showGrid / showLegend / showCrosses / showOverlayCrosses /
+showConfigBadge flags, data-* attrs reflecting long / short /
+threshold / cross-count / bullish-count / bearish-count, and
+forwardRef wired to the outer `<div>`. Defaults: long=25,
+short=13 (Blau canonical), threshold=0. 71 vitest cases green
+(incl. K in `{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN
+bit-exact +/-100 constants, decline-then-rise / rise-then-decline
+cross detection, custom larger long / short warmup, and layout
+determinism across calls). Pure SVG, no canvas / chart libraries.
+
 ## [1.11.969] - 2026-05-27 -- UI: chart-line-schaff-zero-cross primitive (TODO 11.951)
 
 Added `<ChartLineSchaffZeroCross />` -- pure-SVG dual-panel
