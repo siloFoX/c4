@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1003] - 2026-05-27 -- UI: chart-line-macd-divergence-cross primitive (TODO 11.985)
+
+Added `<ChartLineMacdDivergenceCross />` -- close-only MACD-style
+divergence detector that flags discrete price-versus-MACD
+direction disagreement events for reversal warning. Unlike the
+existing MACD zero-cross / midline / signal family, the
+divergence primitive compares the slope of close and MACD over
+a configurable look-back window: when price and MACD move
+in agreement (both up or both down) the regime is `aligned`;
+when they disagree the regime is `divergent` and a discrete
+cross fires on every transition into a divergent kind. Five
+regime values (`aligned-bullish`, `aligned-bearish`,
+`divergent-bullish`, `divergent-bearish`, `none`) with the
+canonical reversal-warning semantics: divergent-bullish = price
+down + MACD up = potential bottom; divergent-bearish = price
+up + MACD down = potential top. Defaults `fastLength = 12`,
+`slowLength = 26`, `divergenceWindow = 5`. Uses SMA smoothing
+rather than EMA so the MACD line is bit-exact on monotonic
+patterns: CONST close=K -> macd=0 -> aligned-bearish (0 crosses);
+LINEAR UP close=i -> macd=7 -> divergent-bearish (price still
+rising while MACD has flattened -- waning momentum, 0 crosses
+because divergent state is entered from `none` precursor);
+LINEAR DOWN close=-i -> macd=-7 -> aligned-bearish (0 crosses).
+Crosses are suppressed when prev state is `none` so warmup
+transitions never spuriously fire. Layout uses symmetric
+±1.1*span around the zero line so the centerline is meaningful
+regardless of trend bias. 68 vitest cases. Bumped 1.11.1002 ->
+1.11.1003.
+
 ## [1.11.1002] - 2026-05-27 -- UI: chart-line-stoch-rsi-mid-cross-sig primitive (TODO 11.984)
 
 Added `<ChartLineStochRsiMidCrossSig />` -- close-only Stochastic
