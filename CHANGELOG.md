@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.959] - 2026-05-27 -- UI: chart-line-roc-zero-cross primitive (TODO 11.941)
+
+Added `<ChartLineRocZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (momentum baseline cross up) / bearish (cross down)
+chevron overlays at every ROC zero-line cross, and the
+close-only Rate of Change line (bottom panel) on an auto-
+fitted oscillator with the zero baseline reference band.
+Zero-line cross variant of the ROC family that flags the
+discrete ROC crossing of the zero baseline. ROC = `(close[i]
+- close[i-length]) / |close[i-length]| * 100`. Bit-exact
+anchor: CONST `close = K` -> close[i] = close[i-length] = K
+-> numerator = 0 -> roc = 0 (even when K = 0 the
+close[i-length] = 0 guard returns 0 instead of NaN), regime
+`bullish` (roc >= 0), 0 crosses, verified across K in {0, 1,
+42, 100, 1234}. LINEAR UP close=i+100 -> roc[12] = 12,
+positive but decreasing toward 0 as i grows. LINEAR DOWN
+close=200-i -> roc[12] = -6, negative with magnitude
+shrinking. Decline + sustained rise -> 1 bullish cross.
+Rise + sustained decline -> 1 bearish cross. Defaults
+`length=12`, `threshold=0`. Oscillator range auto-fits (ROC
+is unbounded). Regime classifier `bullish` / `bearish` /
+`none`. ARIA region + role=img SVG with sr-only desc,
+`data-section` attributes on every drawn group, `role=
+"graphics-symbol"` + `tabIndex=0` on every cross / overlay
+marker, motion-safe fade-in, controlled / uncontrolled
+hidden-series legend. 66 vitest cases covering pure helpers
+(`getLineRocZeroCrossFinitePoints`,
+`normalizeLineRocZeroCrossLength`,
+`normalizeLineRocZeroCrossThreshold`), the ROC compute
+pipeline (CONST / LINEAR UP / LINEAR DOWN with division
+guard / decline-then-rise / rise-then-decline), the regime
+classifier, the bullish / bearish cross detector, layout,
+and the JSX render path. Manifests 1.11.958 -> 1.11.959.
+
 ## [1.11.958] - 2026-05-27 -- UI: chart-line-ppo-zero-cross primitive (TODO 11.940)
 
 Added `<ChartLinePpoZeroCross />` -- pure-SVG dual-panel

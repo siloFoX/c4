@@ -650,3 +650,4 @@ export * from './chart-line-williams-r-mid-cross';
 export * from './chart-line-macd-zero-cross';
 export * from './chart-line-trix-zero-cross';
 export * from './chart-line-ppo-zero-cross';
+export * from './chart-line-roc-zero-cross';
