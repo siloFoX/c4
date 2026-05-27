@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.898] - 2026-05-27 -- UI: chart-line-atr-cross-pct primitive (TODO 11.880)
+
+Added `<ChartLineAtrCrossPct />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) and simplified single-
+series Average True Range (ATR) with EMA-smoothed signal plus
+(ATR - signal) / close * 100 deviation channel (bottom panel)
+scaled to price magnitude for cross-instrument comparable
+volatility momentum. TR = abs(close[i] - close[i-1]) (close-
+only simplified). ATR = Wilder smooth of TR, length. signal =
+EMA(ATR, signalLength). Regime classifier `above` / `below` /
+`at` / `none`. Defaults `length = 14` (canonical), `signalLength
+= 9`. Bit-exact anchors: CONST close = K > 0 -> TR = 0 every
+bar -> ATR = 0 -> signal = 0 -> atrPct = 0 (verified K = 1..
+1234, K = 0 triggers divide-by-zero guard -> null); LINEAR UP
+step=1 -> TR = 1 -> ATR = 1 -> signal = 1 -> atrPct = 0; LINEAR
+DOWN step=-1 -> TR = 1 -> ATR = 1 -> signal = 1 -> atrPct = 0.
+All three positive anchors hit atrPct = 0 bit-exact. ARIA
+region + img-role SVG + sr-only desc; motion-safe fade-in. 52
+vitest cases.
+
 ## [1.11.897] - 2026-05-27 -- UI: chart-line-mfi-cross-pct primitive (TODO 11.879)
 
 Added `<ChartLineMfiCrossPct />` -- pure-SVG dual-panel React/TS
