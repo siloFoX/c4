@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.972] - 2026-05-27 -- UI: chart-line-bb-percent-zero-cross primitive (TODO 11.954)
+
+Added `<ChartLineBbPercentZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every John Bollinger %B
+0.5-midline crossover, and a %B panel (bottom) with auto-
+fitted range (always containing `[0, 1]` plus padding) and
+the midline reference band. Bollinger %B normalises the
+close to its position within fixed-multiple Bollinger Bands
+centered on the rolling SMA: 0.5 = middle band, 1 = upper,
+0 = lower, > 1 or < 0 = close has exited the bands. Midline
+(0.5) crossovers mark position-within-bands centerline
+regime transition events -- the moment the close moves from
+below to above (or vice versa) the rolling mean. Bit-exact
+anchors verified by tests: CONST close=K yields `pctB = 0.5`
+(stdev=0, upper=lower=middle=K, so the `range = 0` fallback
+returns 0.5); LINEAR UP yields the analytical steady-state
+constant `0.5 + ((N-1)/2) / (2*mult*stdev)` where `stdev =
+sqrt((N^2-1)/12)`; LINEAR DOWN yields the symmetric value
+< 0.5. Standard pipeline -- `applyLineBbPercentZeroCrossBands
+(values, length, mult)` returning `{middle, stdev, upper,
+lower}` with CONST `min === max` short-circuit on the SMA
+window and population stdev, `computeLineBbPercentZeroCross
+(series, {length, mult}) -> {middle, upper, lower, percentb,
+length, mult}` with `range = 0` fallback to 0.5,
+`classifyLineBbPercentZeroCrossRegime` with threshold default
+0.5 (null -> none, pctB >= T -> bullish, pctB < T -> bearish),
+`detectLineBbPercentZeroCrossCrosses` with strict boundary
+behaviour (equality does not cross),
+`runLineBbPercentZeroCross`, and
+`computeLineBbPercentZeroCrossLayout` returning per-cross-
+marker `(cx, cyOsc, cyPrice, kind)` triples for the overlay
+arrow + osc circle pair. Layout defaults: 720 x 460 with a
+~55% / 45% price / %B panel split, auto-fit `[oscMin, oscMax]`
+always containing `[0, 1]` and the threshold with 5% padding,
+deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing close
+/ %B / regime / length / mult, configurable showBands /
+showAxis / showGrid / showLegend / showCrosses /
+showOverlayCrosses / showConfigBadge flags, data-* attrs
+reflecting length / mult / threshold / cross-count /
+bullish-count / bearish-count, and forwardRef wired to the
+outer `<div>`. Defaults: length=20, mult=2 (Bollinger
+canonical), threshold=0.5. 74 vitest cases green (incl. K in
+`{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN analytical
+steady-state constants, decline-then-rise / rise-then-decline
+cross detection, custom length / mult warmup, and layout
+determinism across calls). Pure SVG, no canvas / chart
+libraries.
+
 ## [1.11.971] - 2026-05-27 -- UI: chart-line-coppock-zero-cross primitive (TODO 11.953)
 
 Added `<ChartLineCoppockZeroCross />` -- pure-SVG dual-panel
