@@ -638,3 +638,4 @@ export * from './chart-line-cci-extreme-cross';
 export * from './chart-line-adx-strength-cross';
 export * from './chart-line-williams-r-cross-sig';
 export * from './chart-line-mfi-overbought-cross';
+export * from './chart-line-mfi-oversold-cross';
