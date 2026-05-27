@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.913] - 2026-05-27 -- UI: chart-line-supertrend-cross-pct primitive (TODO 11.895)
+
+Added `<ChartLineSupertrendCrossPct />` -- pure-SVG dual-panel
+React/TS primitive overlaying close with Supertrend trailing
+band (top panel) and the close - Supertrend deviation scaled to
+close as a percent (bottom panel) for cross-instrument
+comparable adaptive volatility trend regime. Simplified close-
+only Supertrend: TR = abs(close[i] - close[i-1]); ATR = Wilder
+smooth; upperBand = close + factor * ATR; lowerBand = close -
+factor * ATR; Supertrend tracks the active band with trend flip
+stickiness on close crossing. Regime classifier `above` /
+`below` / `at` / `none`. Defaults length=10, factor=3
+(canonical). Bit-exact anchor: CONST close = K (K > 0) -> TR =
+0 -> ATR = 0 -> upperBand = lowerBand = K -> Supertrend = K
+-> close - Supertrend = 0 -> stPct = 0 (verified K = 1..1234
+and length = 5..21). CONST K = 0 triggers divide-by-zero guard
+-> stPct = null. Companion to 11.859 chart-line-supertrend-
+cross (discrete flip events); this primitive surfaces
+continuous percent magnitude of close-vs-Supertrend distance.
+ARIA region + img-role SVG + sr-only desc; motion-safe fade-in.
+54 vitest cases.
+
 ## [1.11.912] - 2026-05-27 -- UI: chart-line-psar-cross-pct primitive (TODO 11.894)
 
 Added `<ChartLinePsarCrossPct />` -- pure-SVG dual-panel React/TS
