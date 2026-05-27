@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1065] - 2026-05-27 -- UI: chart-line-cci-mid-cross-sig primitive (TODO 11.1047)
+
+Added `<ChartLineCciMidCrossSig />` -- HLC-input Donald
+Lambert (1980) Commodity Channel Index centerline-over-
+signal crossover detector flagging centerline trend
+trigger events with bias coloring from the CCI slope at
+the trigger bar. CCI is the canonical mean-reversion
+oscillator: typical price deviation from rolling SMA,
+scaled by 0.015 * mean absolute deviation. The 0.015
+scaling makes `+/- 100` the conventional overbought /
+oversold boundaries and `0` the natural centerline.
+Pipeline: typical = (H+L+C)/3, smaTp = SMA(typical,
+period), meanDev = sum(|typical[j] - smaTp[i]|) / period
+over the window, cci = (typical - smaTp) / (0.015 *
+meanDev), signal = SMA(cci, signalLength). Bullish: CCI
+crosses up signal. Bearish: CCI crosses down signal. Zero-
+guard returns CCI=0 on meanDev=0 (CONST input). Default
+period=14, signalLength=3, warmup=15. Bit-exact anchors
+(HLC): CONST band [K-1,K+1] -> typical=K, meanDev=0,
+CCI=signal=0, regime bullish (===), 0 crosses; LINEAR UP
+-> typical=i, smaTp=i-6.5, dev=6.5, meanDev=3.5, CCI =
+6.5/(0.015*3.5) = 2600/21 ~= 123.81, signal=CCI, regime
+bullish (===), 0 crosses; LINEAR DOWN -> mirror, CCI =
+-2600/21 ~= -123.81, regime bullish (===), 0 crosses. CCI
+is not hard-bounded -- layout auto-ranges but clamps to
+keep the centerline (0) in view. Complementary to the
+SMA/EMA/Bollinger/Keltner/Donchian mid-cross-sig
+primitives -- mean-reversion-flavoured oscillator distinct
+from the trend-flavoured price-against-itself siblings. 48
+vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1064] - 2026-05-27 -- UI: chart-line-atr-divergence-cross primitive (TODO 11.1046)
 
 Added `<ChartLineAtrDivergenceCross />` -- HLC-input
