@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1023] - 2026-05-27 -- UI: chart-line-tsi-divergence-cross primitive (TODO 11.1005)
+
+Added `<ChartLineTsiDivergenceCross />` -- close-only True
+Strength Index (TSI = 100 * EMA(EMA(delta, r), s) /
+EMA(EMA(|delta|, r), s)) divergence detector that flags
+discrete price-versus-TSI direction disagreement events for
+double-smoothed momentum reversal warning. Blau TSI companion
+to the MACD / RSI / CMO / Stoch / CCI / Awesome divergence
+primitives. Defaults `lengthR = 25`, `lengthS = 13` (canonical
+Blau smoothing windows), `divergenceWindow = 5`. Bit-exact
+anchors: CONST K (any K) -> tsi=0 -> aligned-bearish, 0
+crosses; LINEAR UP -> tsi=+100 saturated -> divergent-bearish
+38/80 samples (canonical bearish divergence); LINEAR DOWN ->
+tsi=-100 saturated -> aligned-bearish. Crosses suppressed when
+prev or cur is `none`. SMA-seeded EMA helper exported as
+`applyLineTsiDivergenceCrossSmaSeededEma` (length-window
+arithmetic mean seed, then alpha=2/(L+1) recurrence; null gap
+aborts further output). 70 vitest cases. Pure SVG, no chart
+libs.
+
 ## [1.11.1022] - 2026-05-27 -- UI: chart-line-awesome-divergence-cross primitive (TODO 11.1004)
 
 Added `<ChartLineAwesomeDivergenceCross />` -- close-only
