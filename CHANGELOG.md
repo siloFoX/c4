@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1011] - 2026-05-27 -- UI: chart-line-dpo-overbought-cross primitive (TODO 11.993)
+
+Added `<ChartLineDpoOverboughtCross />` -- close-only Detrended
+Price Oscillator (DPO) overbought-threshold (default +1)
+crossover primitive that flags detrended-momentum overbought
+trigger events at a configurable positive upper band.
+Companion to `chart-line-dpo-mid-cross` (11.972, threshold=0)
+and `chart-line-dpo-cross-sig` (11.988, signal-line) -- this
+one uses a fixed positive threshold rather than zero or a
+smoothed signal line, exposing the canonical "DPO above 1 unit
+of detrended distance" entry trigger. Defaults `length = 20`,
+`threshold = 1`, `shift = floor(length / 2) + 1 = 11` (derived).
+Bit-exact anchors: CONST close=K -> dpo=0 (Object.is verified
++0) -> bearish (0 < 1, 0 crosses); LINEAR UP close=i -> dpo=
+-1.5 -> bearish (0 crosses); LINEAR DOWN close=-i -> dpo=1.5
+-> bullish (1.5 >= 1, 0 crosses -- DPO look-back inversion
+makes LINEAR DOWN read as overbought because the look-back
+close, higher than current close, sits above the centered SMA).
+Strict inequality on `cur` so boundary equality (dpo == 1)
+never double-fires. Layout auto-fits oscMin / oscMax with 10%
+padding and expands to include the threshold band when DPO
+values collapse to one side. 59 vitest cases. Bumped 1.11.1010
+-> 1.11.1011.
+
 ## [1.11.1010] - 2026-05-27 -- UI: chart-line-stc-mid-cross-sig primitive (TODO 11.992)
 
 Added `<ChartLineStcMidCrossSig />` -- close-only Schaff Trend
