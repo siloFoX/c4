@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1055] - 2026-05-27 -- UI: chart-line-vwap-divergence-cross primitive (TODO 11.1037)
+
+Added `<ChartLineVwapDivergenceCross />` -- HLCV-input
+rolling Volume Weighted Average Price divergence detector
+that flags price-vs-VWAP direction disagreement events as
+institutional flow reversal warnings with bias coloring.
+First chart-line-*-divergence-cross primitive that
+incorporates volume -- complementary to the close-only
+SMA/EMA/HMA divergence-cross siblings rather than
+redundant. VWAP captures the institutional-flow proxy: a
+stock that diverges from its SMA but not VWAP suggests
+retail action without institutional confirmation; a stock
+that diverges from VWAP but not SMA suggests volume-driven
+mean reversion. Pipeline: typical[i] = (high+low+close)/3,
+vwap[i] = sum(typical*volume) / sum(volume) over rolling
+window. With constant volume V=1, VWAP reduces to SMA(
+typical). Default period=14, warmup=13. Bit-exact anchors
+(HLCV input, V=1): CONST [K-1, K+1, K] -> typical=K,
+VWAP=K, both flat, regime none, 0 triggers; LINEAR UP
+[i-1, i+1, i] -> typical=i, VWAP=i-6.5, both up ->
+aligned-bullish, 0 triggers; LINEAR DOWN [-i-1, -i+1, -i]
+-> typical=-i, VWAP=-i+6.5, both down -> aligned-bearish,
+0 triggers. Varying-volume test verifies heavier recent
+volume pulls VWAP toward newer prices. Zero-volume window
+guard returns null. 47 vitest cases. Pure SVG, no chart
+libs.
+
 ## [1.11.1054] - 2026-05-27 -- UI: chart-line-sma-divergence-cross primitive (TODO 11.1036)
 
 Added `<ChartLineSmaDivergenceCross />` -- close-only Simple

@@ -746,3 +746,4 @@ export * from './chart-line-donchian-mid-cross-sig';
 export * from './chart-line-hma-divergence-cross';
 export * from './chart-line-ema-divergence-cross';
 export * from './chart-line-sma-divergence-cross';
+export * from './chart-line-vwap-divergence-cross';
