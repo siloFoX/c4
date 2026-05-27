@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.1004] - 2026-05-27 -- UI: chart-line-rsi-divergence-cross primitive (TODO 11.986)
+
+Added `<ChartLineRsiDivergenceCross />` -- close-only Wilder RSI
+divergence detector that flags discrete price-versus-RSI
+direction disagreement events for reversal warning. RSI
+counterpart to `chart-line-macd-divergence-cross` (11.985):
+compares the slope of close and Wilder RSI over a configurable
+look-back window so aligned regimes (both up / both down)
+contrast cleanly against divergent regimes (price up + RSI down,
+or vice versa). Five regime values (`aligned-bullish`,
+`aligned-bearish`, `divergent-bullish`, `divergent-bearish`,
+`none`) with the canonical reversal-warning semantics:
+divergent-bullish = price down + RSI up = potential bottom;
+divergent-bearish = price up + RSI down = potential top.
+Defaults `length = 14`, `divergenceWindow = 5`. Bit-exact
+anchors: CONST close=K -> deltas=0 -> RSI degenerate=50 ->
+aligned-bearish (0 crosses); LINEAR UP close=i -> RSI=100
+constant -> divergent-bearish (price still rising while RSI
+has saturated at 100 -- waning relative-strength momentum, 0
+crosses because divergent state is entered from `none`); LINEAR
+DOWN close=-i -> RSI=0 constant -> aligned-bearish (0 crosses).
+For 60 bars: noneCount=19, post-warmup regime count=41 (i=19..59
+when both rsi[i] and rsi[i-5] are valid). Crosses suppressed
+when prev state is `none` so warmup transitions never spuriously
+fire. Layout uses fixed oscMin=0 / oscMax=100 (RSI canonical
+range) with midline 50 reference. 67 vitest cases. Bumped
+1.11.1003 -> 1.11.1004.
+
 ## [1.11.1003] - 2026-05-27 -- UI: chart-line-macd-divergence-cross primitive (TODO 11.985)
 
 Added `<ChartLineMacdDivergenceCross />` -- close-only MACD-style
