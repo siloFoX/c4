@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.1022] - 2026-05-27 -- UI: chart-line-awesome-divergence-cross primitive (TODO 11.1004)
+
+Added `<ChartLineAwesomeDivergenceCross />` -- close-only
+Awesome Oscillator (AO, 5-vs-34 SMA difference) divergence
+detector that flags discrete price-versus-AO direction
+disagreement events for momentum reversal warning. AO companion
+to the MACD / RSI / CMO / Stochastic / CCI divergence
+primitives. Defaults `fastLength = 5`, `slowLength = 34`
+(canonical AO SMA windows), `divergenceWindow = 5`. Bit-exact
+anchors: CONST close=K -> ao=0 -> aligned-bearish (0 crosses);
+LINEAR UP close=i -> ao=14.5 constant -> divergent-bearish
+(canonical bearish divergence); LINEAR DOWN close=-i -> ao=
+-14.5 -> aligned-bearish (0 crosses). For 60 bars: noneCount=
+38, post-warmup regime count=22. Layout uses symmetric +/-1.1*
+span around zero with [-1, 1] fallback. 57 vitest cases.
+Bumped 1.11.1021 -> 1.11.1022.
+
 ## [1.11.1021] - 2026-05-27 -- UI: chart-line-mfi-divergence-cross primitive (TODO 11.1003)
 
 Added `<ChartLineMfiDivergenceCross />` -- HLCV Money Flow
