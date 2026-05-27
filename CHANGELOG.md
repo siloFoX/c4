@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.952] - 2026-05-27 -- UI: chart-line-cci-mid-cross primitive (TODO 11.934)
+
+Added `<ChartLineCciMidCross />` -- pure-SVG dual-panel React/
+TS primitive rendering the close (top panel) with bullish
+(momentum centerline cross up) / bearish (momentum centerline
+cross down) chevron overlays at every CCI zero-line cross, and
+the close-only Commodity Channel Index line (bottom panel) on
+an auto-expanding +/- 300 oscillator with the zero-line
+reference band. Single-threshold cross variant of the CCI
+family that flags discrete CCI zero-line crossover events
+distinct from the +/- 100 overbought / oversold extreme bands.
+Completes the midline-cross family (RSI 50, Stochastic 50,
+CCI 0). Bit-exact anchor: CONST `close = K` -> sma = K, md = 0
+-> 0/0 guard returns cci = 0, sits on threshold but strict-
+inequality detector never fires, regime `bullish` (cci >= 0),
+0 crosses, verified across K in {0, 1, 42, 100, 1234}. LINEAR
+UP (length 20) -> cci = 126.667 (bullish), 0 crosses. LINEAR
+DOWN -> cci = -126.667 (bearish), 0 crosses. Decline followed
+by sharp rise -> 1 bullish midline cross. Rise followed by
+sharp decline -> 1 bearish midline cross. Custom thresholds:
+unlike RSI / Stochastic midline (bounded 0-100), the CCI
+midline accepts any finite value (positive, negative, or
+zero) since CCI is unbounded. Defaults `length=20`,
+`threshold=0`. Regime classifier `bullish` / `bearish` /
+`none`. ARIA region + role=img SVG with sr-only desc, `data-
+section` attributes on every drawn group, `role="graphics-
+symbol"` + `tabIndex=0` on every cross / overlay marker,
+motion-safe fade-in, controlled / uncontrolled hidden-series
+legend. 76 vitest cases covering pure helpers
+(`getLineCciMidCrossFinitePoints`,
+`normalizeLineCciMidCrossLength`,
+`normalizeLineCciMidCrossThreshold`,
+`applyLineCciMidCrossSma`), the close-only CCI compute
+pipeline (CONST / LINEAR UP / LINEAR DOWN / decline-then-rise
+/ rise-then-decline), the regime classifier (with custom
+thresholds), the bullish / bearish cross detector (including
+custom positive / negative thresholds), layout (zero-line y
+placement, path M/L precision, oscillator range expansion,
+marker placement), and the JSX render path. Manifests
+1.11.951 -> 1.11.952.
+
 ## [1.11.951] - 2026-05-27 -- UI: chart-line-stoch-mid-cross primitive (TODO 11.933)
 
 Added `<ChartLineStochMidCross />` -- pure-SVG dual-panel
