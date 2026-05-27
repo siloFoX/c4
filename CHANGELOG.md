@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.891] - 2026-05-27 -- UI: chart-line-hma-cross-pct primitive (TODO 11.873)
+
+Added `<ChartLineHmaCrossPct />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with Hull Moving Average (top
+panel) and the close - HMA deviation scaled to close as a percent
+(bottom panel). Different from chart-line-hma-pct (11.860) which
+divides by HMA, this primitive divides by close, making the
+magnitude comparable across instruments at different price
+levels. HMA = WMA(2*WMA(close, length/2) - WMA(close, length),
+sqrt(length)). Regime classifier `above` / `below` / `at` /
+`none`. Defaults `length = 9` (canonical Hull). Bit-exact anchor:
+CONST close = K (K > 0) -> every WMA collapses to K -> HMA = K
+-> hmaPct = 0 / K * 100 = 0 (verified across multiple K and
+length tuples). CONST K = 0 triggers divide-by-zero guard ->
+hmaPct = null. ARIA region + img-role SVG + sr-only desc;
+motion-safe fade-in. 51 vitest cases.
+
 ## [1.11.890] - 2026-05-26 -- UI: chart-line-tema-cross-pct primitive (TODO 11.872)
 
 Added `<ChartLineTemaCrossPct />` -- pure-SVG dual-panel React/TS
