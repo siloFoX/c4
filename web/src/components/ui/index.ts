@@ -740,3 +740,4 @@ export * from './chart-line-vortex-neg-cross';
 export * from './chart-line-vortex-mid-cross';
 export * from './chart-line-adx-trend-cross';
 export * from './chart-line-atr-breakout-cross';
+export * from './chart-line-bollinger-mid-cross-sig';

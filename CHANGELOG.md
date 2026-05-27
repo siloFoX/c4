@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.1049] - 2026-05-27 -- UI: chart-line-bollinger-mid-cross-sig primitive (TODO 11.1031)
+
+Added `<ChartLineBollingerMidCrossSig />` -- close-only
+Bollinger Band middle line (SMA(close, 20)) over its SMA
+signal smoothing crossover trigger detector that flags
+centerline trend trigger events with bias coloring.
+Bollinger-tuned sibling of chart-line-sma-cross-sig
+(v1.11.1042) -- same pipeline but with period=20 (canonical
+Bollinger lookback, vs SMA's 14) so the centerline matches
+Bollinger's standard configuration. Bias-coloured cross
+markers (up/down/flat/none from middle slope at trigger
+bar) match the convention. Default period=20, signalLength=
+3, warmup=21. Bit-exact anchors: CONST K -> middle=K,
+signal=K, regime bullish (>=), 0 triggers; LINEAR UP ->
+middle=i-9.5 (Bollinger centerline lag), signal=i-10.5,
+middle-signal=+1, regime bullish, 0 triggers; LINEAR DOWN
+-> middle=-i+9.5, signal=-i+10.5, middle-signal=-1, regime
+bearish, 0 triggers. The clean +1/-1 separation matches
+every chart-line-*-cross-sig sibling -- a direct
+consequence of the centroid-lag arithmetic collapsing to
+-(signalLength-1)/2 = -1. 47 vitest cases. Pure SVG, no
+chart libs.
+
 ## [1.11.1048] - 2026-05-27 -- UI: chart-line-atr-breakout-cross primitive (TODO 11.1030)
 
 Added `<ChartLineAtrBreakoutCross />` -- pure-SVG
