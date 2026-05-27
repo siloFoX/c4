@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1017] - 2026-05-27 -- UI: chart-line-cmo-divergence-cross primitive (TODO 11.999)
+
+Added `<ChartLineCmoDivergenceCross />` -- close-only Chande
+Momentum Oscillator (CMO) divergence detector that flags
+discrete price-versus-CMO direction disagreement events for
+reversal warning. CMO companion to the RSI / MACD divergence
+primitives: same five-state regime model
+(aligned-bullish/bearish, divergent-bullish/bearish, none)
+with crosses suppressed when prev state is `none`. Defaults
+`length = 14`, `divergenceWindow = 5`. Bit-exact anchors: CONST
+close=K -> cmo=0 (degenerate fallback) -> aligned-bearish (0
+crosses); LINEAR UP close=i -> cmo=100 saturated ->
+divergent-bearish (price rising, CMO flat at saturation --
+canonical bearish divergence, 0 crosses because divergent
+state entered from `none`); LINEAR DOWN close=-i -> cmo=-100
+-> aligned-bearish (0 crosses). For 50 bars: noneCount=19,
+post-warmup regime count=31. Layout uses fixed oscMin=-100 /
+oscMax=100 (CMO canonical symmetric range). 62 vitest cases.
+Bumped 1.11.1016 -> 1.11.1017.
+
 ## [1.11.1016] - 2026-05-27 -- UI: chart-line-kvo-mid-cross-sig primitive (TODO 11.998)
 
 Added `<ChartLineKvoMidCrossSig />` -- HLCV-input Klinger Volume
