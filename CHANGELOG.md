@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.962] - 2026-05-27 -- UI: chart-line-cmo-zero-cross primitive (TODO 11.944)
+
+Added `<ChartLineCmoZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (momentum baseline cross up) / bearish (cross down)
+chevron overlays at every Chande Momentum Oscillator zero-
+line cross, and the close-only CMO line (bottom panel) on a
+fixed -100 to 100 oscillator with the zero baseline reference
+band. Zero-line cross variant of the CMO family. CMO is
+similar to RSI but uses a difference-over-sum formulation
+that produces a bounded `[-100, +100]` range with zero as
+the natural baseline (vs RSI's 50 midline). Bit-exact
+anchor: CONST `close = K` -> delta = 0 -> sumGain = sumLoss
+= 0 -> cmo = 0 via 0/0 short-circuit, regime `bullish` (cmo
+>= 0), 0 crosses, verified across K in {0, 1, 42, 100,
+1234}. LINEAR UP -> all deltas positive -> cmo = 100
+constant (regime `bullish`), 0 crosses. LINEAR DOWN -> all
+deltas negative -> cmo = -100 constant (regime `bearish`),
+0 crosses. Balanced alternation -> sumGain = sumLoss -> cmo
+= 0 (bullish at boundary), 0 crosses. Decline + sustained
+rise -> 1 bullish cross. Rise + sustained decline -> 1
+bearish cross. Defaults `length=14`, `threshold=0`.
+Oscillator range fixed at -100..+100 (CMO is bounded).
+Regime classifier `bullish` / `bearish` / `none`. ARIA
+region + role=img SVG with sr-only desc, `data-section`
+attributes on every drawn group, `role="graphics-symbol"` +
+`tabIndex=0` on every cross / overlay marker, motion-safe
+fade-in, controlled / uncontrolled hidden-series legend. 66
+vitest cases covering pure helpers
+(`getLineCmoZeroCrossFinitePoints`,
+`normalizeLineCmoZeroCrossLength`,
+`normalizeLineCmoZeroCrossThreshold`), the CMO compute
+pipeline (CONST / LINEAR UP / LINEAR DOWN / balanced
+alternation / decline-then-rise / rise-then-decline), the
+regime classifier, the bullish / bearish cross detector,
+layout, and the JSX render path. Manifests 1.11.961 ->
+1.11.962.
+
 ## [1.11.961] - 2026-05-27 -- UI: chart-line-awesome-zero-cross primitive (TODO 11.943)
 
 Added `<ChartLineAwesomeZeroCross />` -- pure-SVG dual-panel
