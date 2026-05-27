@@ -685,3 +685,4 @@ export * from './chart-line-dpo-mid-cross';
 export * from './chart-line-qstick-mid-cross';
 export * from './chart-line-stc-mid-cross';
 export * from './chart-line-choppiness-mid-cross';
+export * from './chart-line-cmo-overbought-cross';

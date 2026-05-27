@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.994] - 2026-05-27 -- UI: chart-line-cmo-overbought-cross primitive (TODO 11.976)
+
+Added `<ChartLineCmoOverboughtCross />` -- Chande Momentum
+Oscillator overbought (50) cross variant. Joins
+`chart-line-cmo-zero-cross` (11.946) and `chart-line-cmo-mid-cross`
+(11.966) -- same close-only CMO pipeline (delta -> gain / loss ->
+windowed sums -> `100 * (sumGain - sumLoss) / (sumGain + sumLoss)`
+with bit-exact +0 fallback when both sums are zero), only the
+default threshold flips from 0 to +50. Defaults `length = 14`,
+`threshold = 50`. Bit-exact anchors: CONST close=K -> cmo=+0
+(Object.is verified) -> regime bearish (0 < 50, opposite of the
+mid-cross variant where 0 sat on the 0 threshold and read bullish).
+LINEAR UP -> cmo=100 (bullish, 0 crosses). LINEAR DOWN -> cmo=-100
+(bearish, 0 crosses). Balanced alternation -> cmo=0 (bearish at
+this threshold). Decline-then-rise yields a confirmed bullish
+overbought-entry cross. CONST K full-run counters under defaults,
+30 bars: noneCount=14, bullishCount=0, bearishCount=16. 66 passing
+cases covering finite filtering, length / threshold normalization
+(threshold range [-100, 100]), the full CMO pipeline, regime
+classifier (strict `>=`), cross detector (strict `>` / `<`),
+layout determinism (`.toFixed(2)`, single-M cmo path, thresholdY
+sits above midpoint at threshold=50 in [-100, 100] panel), ARIA
+region + role=img SVG + sr-only desc claiming "overbought trigger
+entry / exit", config badge, legend toggle (pointer + Enter /
+Space), hover tooltip, controlled `hiddenSeries`, threshold band,
+axes / grid / legend / crosses / overlay visibility flags,
+`data-*` counters matching run output, default `{ length: 14,
+threshold: 50 }`, and `forwardRef` exposing the wrapping div.
+
 ## [1.11.993] - 2026-05-27 -- UI: chart-line-choppiness-mid-cross primitive (TODO 11.975)
 
 Added `<ChartLineChoppinessMidCross />` -- Choppiness Index
