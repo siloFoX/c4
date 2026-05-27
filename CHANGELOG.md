@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.904] - 2026-05-27 -- UI: chart-line-kvo-cross primitive (TODO 11.886)
+
+Added `<ChartLineKvoCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and Klinger Volume
+Oscillator (KVO) over its EMA-smoothed signal line in the bottom
+panel with cross dot markers. Trigger-focused KVO variant
+marking volume force trend regime shifts. Simplified single-
+series: volForce = volume * sign(Δclose); KVO = EMA(volForce,
+fast) - EMA(volForce, slow); signal = EMA(KVO, signalLength).
+Bullish / bearish crosses fire when (KVO - signal) sign changes.
+Regime classifier `bullish` / `bearish` / `neutral` / `none`.
+Defaults `fast = 34`, `slow = 55`, `signal = 13` (canonical
+KVO). Three bit-exact anchors all yielding KVO = signal = 0 and
+0 crosses: CONST {K, V} -> trend = 0 -> volForce = 0 -> KVO =
+0; LINEAR UP step>0 with V>0 -> volForce = V constant -> emaFast
+= emaSlow = V -> KVO = 0; LINEAR DOWN step<0 with V>0 ->
+volForce = -V constant -> emaFast = emaSlow = -V -> KVO = 0.
+ARIA region + img-role SVG + sr-only desc; oscillator + overlay
+markers carry role="graphics-symbol" tabIndex={0}; motion-safe
+fade-in. 56 vitest cases.
+
 ## [1.11.903] - 2026-05-27 -- UI: chart-line-obv-cross-sig primitive (TODO 11.885)
 
 Added `<ChartLineObvCrossSig />` -- pure-SVG dual-panel React/TS
