@@ -635,3 +635,4 @@ export * from './chart-line-rsi-oversold-cross';
 export * from './chart-line-stoch-overbought-cross';
 export * from './chart-line-stoch-oversold-cross';
 export * from './chart-line-cci-extreme-cross';
+export * from './chart-line-adx-strength-cross';
