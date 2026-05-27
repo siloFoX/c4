@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1069] - 2026-05-27 -- UI: chart-line-williams-mid-cross-sig primitive (TODO 11.1051)
+
+Added `<ChartLineWilliamsMidCrossSig />` -- HLC-input
+Larry Williams (1973) Williams Percent Range midline-over-
+signal crossover detector flagging centerline momentum
+trigger events with bias coloring from the Williams %R
+slope at the trigger bar. Williams %R is the canonical
+bounded momentum oscillator: locates the close within the
+rolling [HH, LL] high-low range as a negative percentage.
+`> -20` is overbought, `< -80` is oversold, `-50` is the
+natural momentum centerline. Pipeline: hh = max(high,
+period), ll = min(low, period), pctR = -100 * (hh - close)
+/ (hh - ll) with flat-window guard returning -50 on hh ===
+ll, signal = SMA(pctR, signalLength). Bullish: %R crosses
+up signal. Bearish: %R crosses down signal. Default
+period=14, signalLength=3, warmup=15. Bit-exact anchors
+(HLC): CONST band [K-1, K+1, K] -> %R = -50 (exactly the
+midline), signal = -50, regime bullish (===), 0 crosses;
+LINEAR UP -> %R = -20/3 ~= -6.67 (overbought), signal =
+same, regime bullish (===), 0 crosses; LINEAR DOWN -> %R =
+-280/3 ~= -93.33 (oversold), signal = same, regime
+bullish (===), 0 crosses. The CONST anchor lands exactly
+on the midline -- elegant visual confirmation that
+centerline rendering is correct. Layout hard-locked to
+[-100, 0] for stable threshold reference rendering.
+Complementary to RSI mid-cross-sig: both bounded momentum
+oscillators differing in scale and centerline. 48 vitest
+cases. Pure SVG, no chart libs.
+
 ## [1.11.1068] - 2026-05-27 -- UI: chart-line-supertrend-mid-cross-sig primitive (TODO 11.1050)
 
 Added `<ChartLineSupertrendMidCrossSig />` -- HLC-input
