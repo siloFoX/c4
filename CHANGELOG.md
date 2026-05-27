@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1044] - 2026-05-27 -- UI: chart-line-vortex-pos-cross primitive (TODO 11.1026)
+
+Added `<ChartLineVortexPosCross />` -- HLC-input Vortex
+Indicator positive line (VI+) over its SMA signal smoothing
+crossover trigger detector that flags uptrend confirmation
+events with bias coloring. VI+ is computed from the
+canonical Botes / Siepman (2010) recipe: VM+[i] = |high[i] -
+low[i-1]|, TR[i] = max(range, |high-prevClose|,
+|low-prevClose|), VI+[i] = sum(VM+, period) / sum(TR,
+period). The dual-line VI+ / VI- view lives in
+chart-line-vortex-divergence-cross; this primitive watches
+VI+ vs its own SMA signal so the trigger cadence stays
+single-line. Bias-coloured cross markers (up/down/flat/none
+from VI+ slope at trigger bar) match the convention.
+Default period = 14, signalLength = 3. Bit-exact anchors
+(HLC): CONST band [K-1, K+1] -> VI+ = 1, signal = 1, regime
+bullish (>=), 0 triggers; LINEAR UP [i-1, i+1] -> VI+ = 1.5,
+signal = 1.5, 0 triggers; LINEAR DOWN [-i-1, -i+1] -> VI+ =
+0.5, signal = 0.5, 0 triggers. Zero-TR rolling window is
+short-circuited to null to guard against degenerate inputs.
+47 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1043] - 2026-05-27 -- UI: chart-line-wma-cross-sig primitive (TODO 11.1025)
 
 Added `<ChartLineWmaCrossSig />` -- close-only Weighted

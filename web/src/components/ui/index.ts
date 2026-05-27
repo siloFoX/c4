@@ -735,3 +735,4 @@ export * from './chart-line-dema-cross-sig';
 export * from './chart-line-kama-cross-sig';
 export * from './chart-line-sma-cross-sig';
 export * from './chart-line-wma-cross-sig';
+export * from './chart-line-vortex-pos-cross';
