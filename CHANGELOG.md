@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.1048] - 2026-05-27 -- UI: chart-line-atr-breakout-cross primitive (TODO 11.1030)
+
+Added `<ChartLineAtrBreakoutCross />` -- pure-SVG
+dual-panel HLC-input Average True Range volatility
+expansion breakout primitive. ATR crossing the
+derived breakout threshold (baseline * multiplier where
+baseline = SMA(ATR, baselineLength)) flags volatility
+expansion / compression events with bias coloring from
+the ATR slope at the trigger bar. 3-zone regime classifier
+(compressed / neutral / expanded) follows the
+chart-line-adx-trend-cross convention -- both are
+non-directional indicators (volatility, trend-strength).
+ATR uses simple SMA (not original Wilder running smoothing)
+so steady-state CONST input gives exact integer ATR with
+no convergence transient -- matches the trader-friendly
+modern variant in pyalgotrade / tulip / ta-lib's
+ATR_SMA mode. Default period=14, baselineLength=20,
+multiplier=1.5, warmup=33. Bit-exact anchors (HLC):
+CONST band [K-1,K+1] -> TR=ATR=baseline=2, threshold=3,
+regime neutral (boundary settles into ATR===baseline ->
+neutral band, not expanded), 0 triggers; WIDE CONST band
+[K-2,K+2] -> TR=ATR=baseline=4, threshold=6 (validates
+threshold === baseline * multiplier invariant at 2x ATR
+magnitude), neutral, 0 triggers; LINEAR UP/DOWN -> TR=2
+since the bands shift in lockstep with close (per-bar
+range stays constant), neutral, 0 triggers. Detect
+function tested with synthetic (atr, threshold) arrays
+for bullish/bearish/null/no-double-fire scenarios.
+Baseline and threshold lines use distinct dash patterns
+(4 3 baseline, 6 3 threshold) for colour-blind safety.
+52 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1047] - 2026-05-27 -- UI: chart-line-adx-trend-cross primitive (TODO 11.1029)
 
 Added `<ChartLineAdxTrendCross />` -- pure-SVG dual-panel
