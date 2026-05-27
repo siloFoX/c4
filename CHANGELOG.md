@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.1058] - 2026-05-27 -- UI: chart-line-wma-divergence-cross primitive (TODO 11.1040)
+
+Added `<ChartLineWmaDivergenceCross />` -- close-only
+Weighted Moving Average divergence detector that flags
+price-vs-WMA direction disagreement events as recent-
+emphasis trend reversal warnings with bias coloring. Linearly-
+weighted sibling of chart-line-sma-divergence-cross
+(uniform-weight), chart-line-ema-divergence-cross
+(exponential-weight), and chart-line-hma-divergence-cross
+(Hull composite). All four share the same 5-state regime
+model and transition-into-divergent detection but WMA's
+(period-1)/3 centroid lag is the fastest non-Hull variant
+-- roughly two-thirds the SMA/EMA lag, surfacing
+divergence patterns earlier at the cost of higher false-
+positive rate. Default period=14, warmup=13. Bit-exact
+anchors (close-only): CONST K -> WMA=K, both flat, regime
+none, 0 triggers; LINEAR UP close=i -> WMA=i-13/3 (textbook
+WMA centroid lag from triangular-weight normalisation),
+both up -> aligned-bullish, 0 triggers; LINEAR DOWN
+close=-i -> WMA=-i+13/3, both down -> aligned-bearish, 0
+triggers. Cross detection fires only on transition INTO a
+divergent state. 49 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1057] - 2026-05-27 -- UI: chart-line-mfi-mid-cross-sig primitive (TODO 11.1039)
 
 Added `<ChartLineMfiMidCrossSig />` -- HLCV-input Money
