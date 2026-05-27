@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.1075] - 2026-05-27 -- UI: chart-line-adx-pos-neg-divergence primitive (TODO 11.1057)
+
+Added `<ChartLineAdxPosNegDivergence />` -- HLC-input
+J. Welles Wilder Jr (1978) ADX +DI vs -DI divergence
+detector flagging trend strength divergence trigger
+events. Unlike the price-vs-indicator divergence-cross
+family, this primitive compares the two directional
+indicators against each other: +DI direction (bullish
+trend strength) vs -DI direction (bearish trend strength).
+Pipeline: upMove = high[i] - high[i-1], downMove = low[i-1]
+- low[i], +DM = upMove (if upMove > downMove && upMove
+> 0) else 0, -DM = mirror, TR = max(range, |H-prevC|,
+|L-prevC|), smPlus/smMinus/smTr = SMA over period, plusDI
+= 100 * smPlus / smTr with zero-guard, minusDI = similar.
+5-state regime by +DI/-DI direction: divergent-bullish
+(+DI up + -DI down) = canonical bull confirmation,
+divergent-bearish (+DI down + -DI up) = canonical bear
+confirmation. Crosses fire on transition INTO divergent
+state. Default period=14, warmup=14. Uses SMA-based
+smoothing (matching adx-* family). Bit-exact anchors
+(HLC): CONST [K-1,K+1,K] -> upMove=downMove=0, +DM=-DM=0,
++DI=-DI=0, both flat, regime none, 0 crosses; LINEAR UP
+-> upMove=+1, downMove=-1, +DM=1, -DM=0, smTr=2, +DI=50
+(constant), -DI=0 (constant), both flat, regime none, 0
+crosses; LINEAR DOWN -> mirror, +DI=0, -DI=50, regime
+none, 0 crosses. Panel hard-locked to [0, 100]. Distinct
+signal niche: watches internal balance between bullish
+and bearish strength rather than price-vs-indicator
+divergence. 47 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1074] - 2026-05-27 -- UI: chart-line-stoch-cross-divergence primitive (TODO 11.1056)
 
 Added `<ChartLineStochCrossDivergence />` -- HLC-input
