@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.940] - 2026-05-27 -- UI: chart-line-rsi-oversold-cross primitive (TODO 11.922)
+
+Added `<ChartLineRsiOversoldCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+(exit upward) / bearish (entry downward) arrow overlays at
+every RSI oversold threshold cross, and the close-only RSI
+line (bottom panel) on a fixed 0-100 oscillator with 30 / 50
+reference bands. Single-threshold cross variant of the RSI
+family that flags the discrete level-30 entry and exit events
+distinct from RSI regime classification. Mirror of 11.921
+using the oversold level instead of the overbought level.
+Close-only Wilder RSI with 0/0 neutral fallback (rsi=50) and
+zero-loss short-circuit (rsi=100). Single-threshold cross
+detector at 30. Default `length=14`. Regime classifier
+`bearish` (RSI < threshold oversold) / `neutral` (above
+threshold) / `none`. Bit-exact anchor: CONST K -> RSI=50,
+regime `neutral`, 0 crosses. LINEAR DOWN -> RSI=0, regime
+`bearish`. LINEAR UP -> RSI=100, regime `neutral`. 59 vitest
+cases, all pass. ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.939] - 2026-05-27 -- UI: chart-line-rsi-overbought-cross primitive (TODO 11.921)
 
 Added `<ChartLineRsiOverboughtCross />` -- pure-SVG dual-panel
