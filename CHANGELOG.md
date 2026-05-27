@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.919] - 2026-05-27 -- UI: chart-line-aroon-cross primitive (TODO 11.901)
+
+Added `<ChartLineAroonCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish /
+bearish arrow overlays at every Aroon Up vs Aroon Down cross,
+and the Aroon Up / Aroon Down lines (bottom panel) on a fixed
+0-100 oscillator with cross dot markers + 30/50/70 reference
+bands. Crossover variant of the Aroon family that flags trend
+regime transition events at the high or low extremes of the
+Aroon range. `aroonUp = ((n - barsSinceHigh) / n) * 100`,
+`aroonDown = ((n - barsSinceLow) / n) * 100` with tie-break
+favoring the newest bar. Bullish / bearish crosses on `up -
+down`. Default `length=14`. Regime classifier `bullish` /
+`bearish` / `neutral` / `none`. Bit-exact anchors: CONST K ->
+up=down=100 (tie-break newest), regime `neutral`, 0 crosses;
+LINEAR UP -> up=100, down=0, regime `bullish`; LINEAR DOWN ->
+up=0, down=100, regime `bearish`. 57 vitest cases, all pass.
+ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.918] - 2026-05-27 -- UI: chart-line-stoch-cross-sig primitive (TODO 11.900)
 
 Added `<ChartLineStochCrossSig />` -- pure-SVG dual-panel React
