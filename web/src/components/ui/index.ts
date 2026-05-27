@@ -732,3 +732,4 @@ export * from './chart-line-hma-cross-sig';
 export * from './chart-line-ema-cross-sig';
 export * from './chart-line-tema-cross-sig';
 export * from './chart-line-dema-cross-sig';
+export * from './chart-line-kama-cross-sig';
