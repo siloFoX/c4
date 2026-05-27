@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.1062] - 2026-05-27 -- UI: chart-line-supertrend-divergence-cross primitive (TODO 11.1044)
+
+Added `<ChartLineSupertrendDivergenceCross />` -- HLC-input
+Supertrend trailing-stop volatility envelope divergence
+detector that flags price-vs-supertrend direction
+disagreement events as trend-stop reversal warnings with
+bias coloring. Supertrend is Olivier Seban's 2007
+trailing-stop volatility envelope: ATR-based bands that
+"ratchet" -- only move in the direction of the trend and
+flip when close breaches the active band. Among
+divergence-cross primitives, supertrend is uniquely
+stair-step rather than smooth: flat for many bars, then
+sharp snap on trend flip. Pipeline: HL2 = (high+low)/2,
+Wilder ATR (SMA-init then `(prevAtr*(period-1)+tr)/period`),
+upperBand = HL2 + multiplier*ATR, lowerBand = HL2 -
+multiplier*ATR, ratcheting finalUpper/finalLower, trend
+flip when close breaches active band. Default period=10,
+multiplier=3, warmup=10. Initial direction from sign(
+close[period] - close[period-1]) keeps the LINEAR anchors
+flip-free. Bit-exact anchors (HLC): CONST band [K-1,K+1] ->
+ATR=2, bands K+/-6, init delta=0 -> uptrend, supertrend=K-6
+flat (never flips since close stays between bands), regime
+none, 0 triggers; LINEAR UP -> ATR=2, init delta=+1 ->
+uptrend, supertrend=lowerBand=i-6 rising at +1/bar, regime
+aligned-bullish, 0 triggers; LINEAR DOWN -> ATR=2, init
+delta=-1 -> downtrend, supertrend=upperBand=-i+6 falling at
+-1/bar, regime aligned-bearish, 0 triggers. ATR uses
+Wilder-style smoothing (different from
+chart-line-atr-breakout-cross which uses SMA) to match the
+canonical Seban supertrend formulation. 46 vitest cases.
+Pure SVG, no chart libs.
+
 ## [1.11.1061] - 2026-05-27 -- UI: chart-line-ichimoku-divergence-cross primitive (TODO 11.1043)
 
 Added `<ChartLineIchimokuDivergenceCross />` -- HLC-input
