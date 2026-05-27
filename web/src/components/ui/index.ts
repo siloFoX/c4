@@ -688,3 +688,4 @@ export * from './chart-line-choppiness-mid-cross';
 export * from './chart-line-cmo-overbought-cross';
 export * from './chart-line-cmo-oversold-cross';
 export * from './chart-line-fisher-mid-cross';
+export * from './chart-line-trix-overbought-cross';

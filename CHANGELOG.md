@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.997] - 2026-05-27 -- UI: chart-line-trix-overbought-cross primitive (TODO 11.979)
+
+Added `<ChartLineTrixOverboughtCross />` -- TRIX overbought (0.1)
+cross variant for triple-smoothed momentum overbought trigger
+events. Companion to `chart-line-trix-zero-cross` (11.941):
+shares the same close-only triple-EMA pipeline (with the
+ema3=0 zero-divide guard returning bit-exact +0), only the
+default threshold flips from 0 to +0.1 -- the canonical
+pre-noise level analysts use to distinguish bullish-trend onset
+from baseline drift. Defaults `length = 15`, `threshold = 0.1`.
+Bit-exact anchors: CONST close=K -> trix=+0 (Object.is verified)
+-> regime bearish (0 < 0.1, opposite of the zero-cross variant
+where 0 sat on threshold and read bullish). LINEAR UP -> trix
+stays well above 0.1 over a 100-bar window (all bullish, 0
+crosses). LINEAR DOWN -> trix negative (all bearish, 0 crosses).
+CONST K full-run counters under defaults, 60 bars: noneCount=43
+(ema3 valid at 42, trix at 43), bullishCount=0, bearishCount=17.
+Layout auto-fit expands UP to include threshold + 10% padding
+when trix collapses to 0 (CONST -> oscMin -0.01, oscMax 0.11).
+TRIX tooltip uses 4-decimal precision. 63 passing cases covering
+finite filtering, length / threshold normalization, EMA seed +
+LINEAR steady-state, full TRIX pipeline including the
+zero-divide guard, regime classifier (strict `>=`), cross
+detector (strict `>` / `<`), layout determinism (`.toFixed(2)`,
+single-M trix path, padded osc fit with threshold inclusion),
+ARIA region + role=img SVG + sr-only desc claiming "overbought
+trigger", config badge, legend toggle (pointer + Enter /
+Space), hover tooltip, controlled `hiddenSeries`, threshold
+band, axes / grid / legend / crosses / overlay visibility
+flags, `data-*` counters matching run output, default
+`{ length: 15, threshold: 0.1 }`, and `forwardRef` exposing the
+wrapping div.
+
 ## [1.11.996] - 2026-05-27 -- UI: chart-line-fisher-mid-cross primitive (TODO 11.978)
 
 Added `<ChartLineFisherMidCross />` -- John Ehlers' Fisher
