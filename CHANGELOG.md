@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.984] - 2026-05-27 -- UI: chart-line-cmo-mid-cross primitive (TODO 11.966)
+
+Added `<ChartLineCmoMidCross />` -- Chande Momentum Oscillator
+midline (0) cross variant. Reuses the canonical CMO pipeline
+shared with `chart-line-cmo-zero-cross`: delta -> gain / loss ->
+windowed sumGain + sumLoss -> 100 * (sumGain - sumLoss) /
+(sumGain + sumLoss), with a 0 / 0 short-circuit to bit-exact +0
+(never -0; verified via `Object.is`) when neither side moved.
+Defaults `length = 14`, `threshold = 0`. Bit-exact anchors: CONST
+close=K -> cmo=0 (regime bullish at boundary), LINEAR UP ->
+cmo=100, LINEAR DOWN -> cmo=-100, balanced alternation -> cmo=0.
+Renames the framing from "zero-line momentum baseline" to
+"centerline trend confirmation" in the ARIA describe text to
+match the broader mid-cross family (RSI / Stoch / CCI / MFI /
+Stoch-RSI / Williams %R / UO). 66 passing cases covering finite
+filtering, length / threshold normalization (in -100..100), the
+full CMO pipeline, regime + cross detector (strict `>` / `<`),
+layout determinism (`.toFixed(2)`, single-M cmo path), ARIA
+region + role=img SVG + sr-only desc with the "trend
+confirmation" claim, config badge, legend toggle (pointer + Enter
+/ Space), hover tooltip, controlled `hiddenSeries`, threshold
+band (sits between oscTop and oscBottom), axes / grid / legend /
+crosses / overlay visibility flags, `data-*` counters matching
+run output, default `{ length: 14, threshold: 0 }`, and
+`forwardRef` exposing the wrapping div.
+
 ## [1.11.983] - 2026-05-27 -- UI: chart-line-schaff-oversold-cross primitive (TODO 11.965)
 
 Added `<ChartLineSchaffOversoldCross />` -- Schaff Trend Cycle
