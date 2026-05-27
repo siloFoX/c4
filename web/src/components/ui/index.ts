@@ -610,3 +610,4 @@ export * from './chart-line-squeeze-cross';
 export * from './chart-line-supertrend-cross-sig';
 export * from './chart-line-macd-hist-cross';
 export * from './chart-line-stoch-cross-sig';
+export * from './chart-line-aroon-cross';
