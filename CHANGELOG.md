@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.931] - 2026-05-27 -- UI: chart-line-balance-power-cross primitive (TODO 11.913)
+
+Added `<ChartLineBalancePowerCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every Balance of Power zero
+crossover, and the smoothed BoP oscillator (bottom panel) with
+cross dot markers and a dashed zero baseline. Zero-cross
+variant of the BoP family that flags buyer / seller dominance
+regime change events distinct from the absolute BoP magnitude.
+Close-only formula: `delta = close - close[i-1]`, `range =
+max(close, barLength) - min(close, barLength)`, `raw = range >
+0 ? delta / range : 0`, `bop = SMA(raw, smoothLength)`.
+Bullish / bearish crosses on `bop` vs 0. Defaults `barLength=
+5`, `smoothLength=3`. Regime classifier `bullish` (bop > 0) /
+`bearish` / `neutral` / `none`. Bit-exact anchor: CONST K ->
+delta=0, range=0 -> raw=0 fallback, bop=0 via SMA short-circuit,
+regime `neutral`, 0 crosses. LINEAR UP/DOWN -> bop=+/-0.25. 58
+vitest cases, all pass. ARIA region, img-role SVG with sr-only
+desc, `role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.930] - 2026-05-27 -- UI: chart-line-atr-channel-cross primitive (TODO 11.912)
 
 Added `<ChartLineAtrChannelCross />` -- pure-SVG dual-panel
