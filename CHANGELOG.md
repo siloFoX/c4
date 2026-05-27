@@ -4,6 +4,41 @@
 
 (no entries -- next release window)
 
+## [1.11.999] - 2026-05-27 -- UI: chart-line-awesome-overbought-cross primitive (TODO 11.981)
+
+Added `<ChartLineAwesomeOverboughtCross />` -- Bill Williams'
+Awesome Oscillator (5-over-34 SMA difference) overbought cross
+variant for momentum surge entry trigger events at a configurable
+positive upper band. Companion to `chart-line-awesome-zero-cross`
+(11.940): shares the same close-only AO pipeline (fast SMA - slow
+SMA with the SMA min === max short-circuit), only the default
+threshold flips from 0 to +0.5 -- the canonical "alligator awake"
+level analysts tune to match the volatility scale of the
+underlying close series. Defaults `fastLength = 5`, `slowLength
+= 34`, `threshold = 0.5`. Bit-exact anchors: CONST close=K ->
+ao=+0 (Object.is verified) -> regime bearish (0 < 0.5, opposite
+of the zero-cross variant where 0 sat on threshold 0 and read
+bullish). LINEAR UP -> ao=14.5 constant (steady-state SMA lag),
+well above threshold, all bullish, 0 crosses. LINEAR DOWN ->
+ao=-14.5 constant, all bearish, 0 crosses. CONST K full-run
+counters under defaults, 50 bars: noneCount=33 (max(fast, slow)-1
+warmup), bullishCount=0, bearishCount=17. Layout auto-fit expands
+UP to include threshold + 10% padding when ao collapses to 0
+(CONST -> oscMin -0.05, oscMax 0.55). 64 passing cases covering
+finite filtering, length / threshold normalization, SMA short-
+circuit, full AO pipeline, regime classifier (strict `>=`),
+cross detector (strict `>` / `<`), layout determinism
+(`.toFixed(2)`, single-M ao path, padded osc fit with threshold
+inclusion), ARIA region + role=img SVG + sr-only desc claiming
+"momentum surge entry" + "configurable upper band", config
+badge, legend toggle (pointer + Enter / Space), hover tooltip
+with 3-decimal AO precision, controlled `hiddenSeries`,
+threshold band, axes / grid / legend / crosses / overlay
+visibility flags, `data-*` counters matching run output (with
+data-fast-length and data-slow-length), default `{ fastLength:
+5, slowLength: 34, threshold: 0.5 }`, and `forwardRef` exposing
+the wrapping div.
+
 ## [1.11.998] - 2026-05-27 -- UI: chart-line-trix-oversold-cross primitive (TODO 11.980)
 
 Added `<ChartLineTrixOversoldCross />` -- TRIX oversold (-0.1)
