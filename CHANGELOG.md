@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1073] - 2026-05-27 -- UI: chart-line-bollinger-divergence-cross primitive (TODO 11.1055)
+
+Added `<ChartLineBollingerDivergenceCross />` -- HLC-input
+John Bollinger (1980s) Bollinger Band volatility envelope
+divergence detector that flags price-vs-band direction
+disagreement events as volatility-reversal warnings with
+bias coloring from the Bollinger midline slope. The
+Bollinger Bands surround an SMA midline with bands at +/-
+numStdev * stdev. Pipeline: midline = SMA(close, period),
+variance = sum((close[j] - midline[i])^2) / period (pop),
+stdev = sqrt(variance), upperBand = midline + numStdev *
+stdev, lowerBand = midline - numStdev * stdev. 5-state
+regime: divergent-bullish (priceDown + midlineUp),
+divergent-bearish (priceUp + midlineDown). Crosses fire on
+transition INTO a divergent state. Uses population stdev
+(divide by N) matching Bollinger's original; min===max
+short-circuit avoids NaN drift on CONST. Default
+period=20, numStdev=2, warmup=20. Bit-exact anchors (HLC):
+CONST band [K-1, K+1, K] -> midline=K, stdev=0, bands=K,
+regime none, 0 crosses; LINEAR UP -> midline = i - 9.5,
+stdev = sqrt(133)/2 ~= 5.766, bands = i - 9.5 +/- sqrt
+(133), regime aligned-bullish, 0 crosses; LINEAR DOWN ->
+mirror, regime aligned-bearish, 0 crosses. The constant
+stdev = sqrt(133)/2 on LINEAR is canonical (dispersion of
+consecutive integers around centroid). Sibling to Keltner
+divergence-cross: same shape, different volatility
+(stdev vs ATR) and midline (SMA vs EMA). 46 vitest cases.
+Pure SVG, no chart libs.
+
 ## [1.11.1072] - 2026-05-27 -- UI: chart-line-keltner-divergence-cross primitive (TODO 11.1054)
 
 Added `<ChartLineKeltnerDivergenceCross />` -- HLC-input
