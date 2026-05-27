@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1045] - 2026-05-27 -- UI: chart-line-vortex-neg-cross primitive (TODO 11.1027)
+
+Added `<ChartLineVortexNegCross />` -- HLC-input Vortex
+Indicator negative line (VI-) over its SMA signal smoothing
+crossover trigger detector that flags downtrend confirmation
+events with bias coloring. Mirror of chart-line-vortex-pos-
+cross (v1.11.1044): same Botes / Siepman (2010) pipeline
+but with VM-[i] = |low[i] - high[i-1]| as the rolling-sum
+numerator, so VI- tracks the downward pressure side of the
+indicator instead of the upward. The dual-line VI+ / VI-
+view lives in chart-line-vortex-divergence-cross; this
+primitive watches VI- vs its own SMA signal so the trigger
+cadence stays single-line. Cross kind labels match the
+chart-line-*-cross-sig family convention (bullish = line
+crossing up through signal); the documentation spells out
+the downtrend semantics (VI- rising through signal =
+downtrend mounting / downtrend confirmation up; VI- falling
+through signal = downtrend releasing / lost). Bias-coloured
+cross markers (up/down/flat/none from VI- slope at trigger
+bar). Default period = 14, signalLength = 3. Bit-exact
+anchors (HLC, mirror of VI+ values): CONST band [K-1, K+1]
+-> VI- = 1, signal = 1, regime bullish (>=), 0 triggers;
+LINEAR UP [i-1, i+1] -> VI- = 0.5, signal = 0.5, 0
+triggers; LINEAR DOWN [-i-1, -i+1] -> VI- = 1.5, signal =
+1.5, 0 triggers. Zero-TR rolling window short-circuits to
+null. 48 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1044] - 2026-05-27 -- UI: chart-line-vortex-pos-cross primitive (TODO 11.1026)
 
 Added `<ChartLineVortexPosCross />` -- HLC-input Vortex
