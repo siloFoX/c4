@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1019] - 2026-05-27 -- UI: chart-line-cci-divergence-cross primitive (TODO 11.1001)
+
+Added `<ChartLineCciDivergenceCross />` -- close-only Commodity
+Channel Index (CCI) divergence detector that flags discrete
+price-versus-CCI direction disagreement events for reversal
+warning. CCI companion to the RSI / MACD / CMO / Stochastic
+divergence primitives. Same five-state regime model with
+crosses suppressed when prev state is `none`. Defaults `length
+= 20` (canonical CCI window), `divergenceWindow = 5`. CCI is
+computed as (close - SMA) / (0.015 * meanDev) with 0 fallback
+when meanDev is 0. Bit-exact anchors: CONST close=K -> sma=K,
+meanDev=0 -> cci=0 (degenerate) -> aligned-bearish (0 crosses);
+LINEAR UP close=i -> sma=i-9.5, meanDev=5 -> cci=126.6...
+constant -> divergent-bearish (price still rising while CCI
+plateaus, canonical bearish divergence; cci[i] === cci[i-5]
+bit-for-bit at steady state, so cciUp=false strict, 0 crosses);
+LINEAR DOWN close=-i -> cci=-126.6... -> aligned-bearish (0
+crosses). For 50 bars: noneCount=24, post-warmup regime
+count=26. Layout uses symmetric +/-1.1*span around zero with
+[-1, 1] fallback. 60 vitest cases. Bumped 1.11.1018 ->
+1.11.1019.
+
 ## [1.11.1018] - 2026-05-27 -- UI: chart-line-stoch-divergence-cross primitive (TODO 11.1000)
 
 Added `<ChartLineStochDivergenceCross />` -- close-only
