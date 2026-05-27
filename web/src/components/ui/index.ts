@@ -673,3 +673,4 @@ export * from './chart-line-uo-overbought-cross';
 export * from './chart-line-uo-oversold-cross';
 export * from './chart-line-tsi-overbought-cross';
 export * from './chart-line-tsi-oversold-cross';
+export * from './chart-line-schaff-overbought-cross';
