@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1056] - 2026-05-27 -- UI: chart-line-obv-mid-cross-sig primitive (TODO 11.1038)
+
+Added `<ChartLineObvMidCrossSig />` -- close + volume input
+On Balance Volume centerline over its SMA signal smoothing
+crossover trigger detector that flags accumulation
+distribution trend trigger events with bias coloring.
+Cumulative-volume sibling of the close-only MA cross-sig
+primitives: OBV is the canonical Joseph Granville
+cumulative-volume momentum indicator. obv[0]=0, obv[i]=
+obv[i-1] + sign(close[i] - close[i-1]) * volume[i]. Default
+signalLength=14, warmup=13. Bit-exact anchors: CONST K,
+vol=1 -> close flat, OBV=0, signal=0, regime bullish (>=),
+0 triggers; LINEAR UP, vol=1 -> OBV=i, signal=i-6.5, OBV-
+signal=+6.5 (SMA centroid lag), regime bullish, 0 triggers;
+LINEAR DOWN, vol=1 -> OBV=-i, signal=-i+6.5, OBV-signal=
+-6.5, regime bearish, 0 triggers. Varying-volume synthetic
+test verifies per-bar volume is accumulated with the
+correct sign. Layout handles unbounded OBV range
+independently from the bounded close range. Negative
+volume filtered at input. 48 vitest cases. Pure SVG, no
+chart libs.
+
 ## [1.11.1055] - 2026-05-27 -- UI: chart-line-vwap-divergence-cross primitive (TODO 11.1037)
 
 Added `<ChartLineVwapDivergenceCross />` -- HLCV-input
