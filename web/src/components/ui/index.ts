@@ -627,3 +627,4 @@ export * from './chart-line-elder-bull-cross';
 export * from './chart-line-elder-bear-cross';
 export * from './chart-line-vwap-cross-sig';
 export * from './chart-line-vwap-cross-pct';
+export * from './chart-line-volume-osc-cross';
