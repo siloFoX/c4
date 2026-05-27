@@ -4,6 +4,54 @@
 
 (no entries -- next release window)
 
+## [1.11.966] - 2026-05-27 -- UI: chart-line-rmi-zero-cross primitive (TODO 11.948)
+
+Added `<ChartLineRmiZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every Roger Altman
+Relative Momentum Index midline-50 crossover, and a RMI panel
+(bottom) with a fixed `[0, 100]` range and the midline
+reference band. RMI is RSI with a `lookback` period: instead
+of comparing the current close to the previous close, it
+compares to the close `lookback` bars ago and Wilder-smooths
+the resulting up/down moves over a `length` window, turning
+RSI into a momentum-aware oscillator that reads positive only
+when sustained price gains over the lookback dominate. Bit-
+exact anchors verified by tests: CONST close = K yields `rmi
+= 50` via the both-zero neutral fallback (gain = loss = 0
+across all i, so avg_gain = avg_loss = 0); LINEAR UP yields
+`rmi = 100` (mom = +lookback constant, avg_loss == 0 with
+avg_gain > 0); LINEAR DOWN yields `rmi = 0` (mom = -lookback,
+avg_gain = 0). Standard pipeline -- gain/loss computed from
+`close[i] - close[i - lookback]`,
+`applyLineRmiZeroCrossWilder(values, length, firstValidIdx)`
+SMA-seeds at `firstValidIdx + length - 1` then recursively
+applies `(prev * (length - 1) + cur) / length`,
+`computeLineRmiZeroCross(series, {length, lookback}) -> {rmi,
+length, lookback}`, `classifyLineRmiZeroCrossRegime` with
+threshold default 50 (null -> none, rmi >= T -> bullish, rmi
+< T -> bearish), `detectLineRmiZeroCrossCrosses` with strict
+boundary behaviour (equality does not cross),
+`runLineRmiZeroCross`, and `computeLineRmiZeroCrossLayout`
+returning per-cross-marker `(cx, cyOsc, cyPrice, kind)`
+triples for the overlay arrow + osc circle pair. Layout
+defaults: 720 x 460 with a ~55% / 45% price / RMI panel
+split, fixed `[0, 100]` RMI range so the threshold band sits
+at the midpoint, deterministic `.toFixed(2)` SVG paths, ARIA
+region + `role="img"` SVG + sr-only desc,
+`role="graphics-symbol"` + `tabIndex={0}` on each cross
+marker, motion-safe fade-in, controlled / uncontrolled
+legend, hover tooltip showing RMI + length + lookback,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting length / lookback / threshold /
+cross-count / bullish-count / bearish-count, and forwardRef
+wired to the outer `<div>`. 72 vitest cases green (incl. K in
+`{0, 1, 42, 100, 1234}` anchors, LINEAR UP/DOWN bit-exact
+constants, decline-then-rise / rise-then-decline cross
+detection, custom length=5 lookback=2, and layout determinism
+across calls). Pure SVG, no canvas / chart libraries.
+
 ## [1.11.965] - 2026-05-27 -- UI: chart-line-fisher-zero-cross primitive (TODO 11.947)
 
 Added `<ChartLineFisherZeroCross />` -- pure-SVG dual-panel
