@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.955] - 2026-05-27 -- UI: chart-line-williams-r-mid-cross primitive (TODO 11.937)
+
+Added `<ChartLineWilliamsRMidCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (inverted oscillator centerline cross up) / bearish
+(cross down) chevron overlays at every Williams %R midline
+cross, and the close-only Williams %R line (bottom panel) on
+a fixed -100 to 0 oscillator with the -50 reference band.
+Single-threshold cross variant of the Williams %R family that
+flags the discrete %R level -50 midline crossover distinct
+from the canonical overbought (-20) / oversold (-80) extreme
+bands. Continues the midline-cross family (RSI 50, Stochastic
+50, CCI 0, MFI 50, Stochastic RSI 50, now Williams %R -50).
+Bit-exact anchor: CONST `close = K` -> range = 0 -> wr = -50
+via neutral fallback, sits on threshold but strict-inequality
+detector never fires, regime `bullish` (wr >= -50), 0
+crosses, verified across K in {0, 1, 42, 100, 1234}. LINEAR
+UP -> close at window high -> wr = 0 (bullish), 0 crosses.
+LINEAR DOWN -> close at window low -> wr = -100 (bearish), 0
+crosses. Decline (14 bars) + sharp recovery -> wr rises
+strictly above -50 -> 1 bullish midline cross. Rise + sharp
+decline -> 1 bearish cross. Defaults `length=14`,
+`threshold=-50`. Regime classifier `bullish` / `bearish` /
+`none`. ARIA region + role=img SVG with sr-only desc,
+`data-section` attributes on every drawn group, `role=
+"graphics-symbol"` + `tabIndex=0` on every cross / overlay
+marker, motion-safe fade-in, controlled / uncontrolled
+hidden-series legend. 67 vitest cases covering pure helpers
+(`getLineWilliamsRMidCrossFinitePoints`,
+`normalizeLineWilliamsRMidCrossLength`,
+`normalizeLineWilliamsRMidCrossThreshold`), the close-only
+Williams %R compute pipeline (CONST / LINEAR UP / LINEAR
+DOWN / decline-then-recovery / rise-then-decline), the regime
+classifier, the bullish / bearish cross detector, layout
+(threshold y placement, path M/L precision, marker
+placement), and the JSX render path. Manifests 1.11.954 ->
+1.11.955.
+
 ## [1.11.954] - 2026-05-27 -- UI: chart-line-stoch-rsi-mid-cross primitive (TODO 11.936)
 
 Added `<ChartLineStochRsiMidCross />` -- pure-SVG dual-panel
