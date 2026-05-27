@@ -594,3 +594,4 @@ export * from './chart-line-atr-cross-sig';
 export * from './chart-line-adx-cross-pct';
 export * from './chart-line-trix-cross-sig';
 export * from './chart-line-cci-cross-sig';
+export * from './chart-line-obv-cross-sig';
