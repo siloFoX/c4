@@ -710,3 +710,4 @@ export * from './chart-line-stc-cross-sig';
 export * from './chart-line-kvo-mid-cross-sig';
 export * from './chart-line-cmo-divergence-cross';
 export * from './chart-line-stoch-divergence-cross';
+export * from './chart-line-cci-divergence-cross';
