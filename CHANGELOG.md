@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.996] - 2026-05-27 -- UI: chart-line-fisher-mid-cross primitive (TODO 11.978)
+
+Added `<ChartLineFisherMidCross />` -- John Ehlers' Fisher
+Transform midline (0) cross variant for Gaussian-normalised
+momentum centerline regime transitions with bias coloring.
+Companion to `chart-line-fisher-zero-cross` (11.947): shares the
+same Fisher pipeline (rolling min/max -> `[-1, 1]` channel +
+0.33/0.67 smoother with `[-0.999, 0.999]` clamp -> half-EMA on
+inverse-tanh) and defaults (length = 10, threshold = 0);
+reframes the ARIA / describe text to slot into the broader
+mid-cross family (RSI / Stoch / CCI / MFI / Stoch-RSI / Williams
+%R / UO / CMO / RMI / DPO / QStick / STC / Choppiness).
+Together with `chart-line-fisher-overbought-cross` (11.968) and
+`chart-line-fisher-oversold-cross` (11.969) this rounds out the
+canonical Fisher threshold layer (overbought + oversold + zero /
+midline). Bit-exact anchors: CONST close=K -> fisher=+0
+(Object.is verified), regime bullish at boundary. LINEAR UP ->
+fisher converges to ~7.6 (all bullish, 0 crosses). LINEAR DOWN
+-> fisher converges to ~-7.6 (all bearish, 0 crosses). 71
+passing cases covering finite filtering, length / threshold
+normalization, normalise + clamp pipeline, full Fisher pipeline
+with both x and fisher channel exposure, regime classifier
+(strict `>=`), cross detector (strict `>` / `<`), layout
+determinism (`.toFixed(2)`, single-M fisher path, CONST ->
+`threshold +/- 1` fallback), ARIA region + role=img SVG + sr-only
+desc claiming "bias coloring" + "centerline regime transition",
+config badge, legend toggle (pointer + Enter / Space), hover
+tooltip, controlled `hiddenSeries`, threshold band, axes / grid /
+legend / crosses / overlay visibility flags, `data-*` counters
+matching run output, default `{ length: 10, threshold: 0 }`, and
+`forwardRef` exposing the wrapping div.
+
 ## [1.11.995] - 2026-05-27 -- UI: chart-line-cmo-oversold-cross primitive (TODO 11.977)
 
 Added `<ChartLineCmoOversoldCross />` -- Chande Momentum
