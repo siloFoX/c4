@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.918] - 2026-05-27 -- UI: chart-line-stoch-cross-sig primitive (TODO 11.900)
+
+Added `<ChartLineStochCrossSig />` -- pure-SVG dual-panel React
+/TS primitive rendering the close (top panel) with bullish /
+bearish arrow overlays at every Stochastic %K vs signal cross,
+and a close-only Stochastic %K alongside its EMA-smoothed
+signal line in the bottom panel with cross dot markers. Signal-
+cross variant of the Stochastic family that separates the EMA-
+trigger events from the canonical %K over %D crossings
+published by the base Stochastic primitives. `rawK = ((close -
+lowestClose) / (highestClose - lowestClose)) * 100` with the
+range = 0 neutral fallback at 50; `k = SMA(rawK, kSmoothing)`;
+`signal = EMA(k, signalLength)`. Defaults `length=14`,
+`kSmoothing=3`, `signalLength=3`. Regime classifier `bullish` /
+`bearish` / `neutral` / `none`. Bit-exact anchor: CONST K ->
+%K = 50, signal = 50 via the `min === max` precision fix,
+regime `neutral`, 0 crosses. 56 vitest cases, all pass. ARIA
+region, img-role SVG with sr-only desc, `role="graphics-symbol"`
+cross markers, `data-section` attributes, motion-safe fade-in.
+
 ## [1.11.917] - 2026-05-27 -- UI: chart-line-macd-hist-cross primitive (TODO 11.899)
 
 Added `<ChartLineMacdHistCross />` -- pure-SVG dual-panel React
