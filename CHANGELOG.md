@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.957] - 2026-05-27 -- UI: chart-line-trix-zero-cross primitive (TODO 11.939)
+
+Added `<ChartLineTrixZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (triple-smoothed momentum baseline cross up) /
+bearish (cross down) chevron overlays at every TRIX zero-
+line cross, and the close-only TRIX line (bottom panel) on
+an auto-fitted oscillator with the zero baseline reference
+band. Zero-line cross variant of the TRIX family that flags
+the discrete TRIX crossing of the zero baseline. TRIX
+applies three successive EMA smoothings (ema1, ema2, ema3)
+and then takes the percent-of-change of ema3, exposing
+momentum turning points filtered through three layers of
+noise reduction. Bit-exact anchor: CONST `close = K` ->
+ema1 = ema2 = ema3 = K -> `ema3[i] - ema3[i-1] = 0` -> trix
+= 0 (even when K = 0 the ema3 = 0 guard returns 0 rather
+than NaN), regime `bullish` (trix >= 0), 0 crosses,
+verified across K in {0, 1, 42, 100, 1234}. LINEAR UP ->
+trix is positive (close rising), 0 crosses. LINEAR DOWN ->
+trix is negative (close falling), 0 crosses. Decline + rise
+-> 1 bullish zero-line cross. Rise + decline -> 1 bearish
+cross. Defaults `length=15`, `threshold=0`. Total warmup =
+3 * length - 2 = 43 bars. Regime classifier `bullish` /
+`bearish` / `none`. ARIA region + role=img SVG with sr-only
+desc, `data-section` attributes on every drawn group,
+`role="graphics-symbol"` + `tabIndex=0` on every cross /
+overlay marker, motion-safe fade-in, controlled /
+uncontrolled hidden-series legend. 72 vitest cases covering
+pure helpers (`getLineTrixZeroCrossFinitePoints`,
+`normalizeLineTrixZeroCrossLength`,
+`normalizeLineTrixZeroCrossThreshold`,
+`applyLineTrixZeroCrossEma`), the TRIX compute pipeline
+(CONST / LINEAR UP / LINEAR DOWN / decline-then-rise /
+rise-then-decline), the regime classifier (with custom
+positive / negative thresholds), the bullish / bearish
+cross detector, layout (threshold y placement, oscillator
+range auto-fit, path M/L precision, marker placement), and
+the JSX render path. Manifests 1.11.956 -> 1.11.957.
+
 ## [1.11.956] - 2026-05-27 -- UI: chart-line-macd-zero-cross primitive (TODO 11.938)
 
 Added `<ChartLineMacdZeroCross />` -- pure-SVG dual-panel
