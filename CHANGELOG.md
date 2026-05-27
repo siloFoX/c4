@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.989] - 2026-05-27 -- UI: chart-line-rmi-oversold-cross primitive (TODO 11.971)
+
+Added `<ChartLineRmiOversoldCross />` -- Relative Momentum Index
+oversold (30) cross variant. Mirror of
+`chart-line-rmi-overbought-cross` (11.970): shares the RSI-with-
+lookback Wilder pipeline (length=14, lookback=5), opposite
+threshold semantics (30 vs 70). Bit-exact anchors: CONST close=K
+-> rmi=50 -> regime bullish (50 >= 30, opposite of the overbought
+variant where 50 < 70 gave bearish). LINEAR UP -> rmi=100 all
+bullish, 0 crosses (rmi jumps from null to 100, prev-null guard).
+LINEAR DOWN -> rmi=0 all bearish (0 < 30), 0 crosses. CONST K
+full-run counters under defaults, 40 bars: noneCount=18,
+bullishCount=22, bearishCount=0. thresholdY at 30 sits BELOW
+panel midpoint -- exact mirror of the overbought variant where
+threshold=70 sat above. 71 passing cases covering finite
+filtering, length / threshold normalization, Wilder smoother
+edge cases, the full RMI pipeline with neutral / extreme
+fallbacks, regime classifier (strict `>=`), cross detector
+(strict `>` / `<`), layout determinism (`.toFixed(2)`,
+single-M rmi path, thresholdY below midpoint at threshold=30),
+ARIA region + role=img SVG + sr-only desc claiming "oversold
+trigger events", config badge, legend toggle (pointer + Enter /
+Space), hover tooltip, controlled `hiddenSeries`, threshold
+band, axes / grid / legend / crosses / overlay visibility flags,
+`data-*` counters matching run output, default `{ length: 14,
+lookback: 5, threshold: 30 }`, and `forwardRef` exposing the
+wrapping div.
+
 ## [1.11.988] - 2026-05-27 -- UI: chart-line-rmi-overbought-cross primitive (TODO 11.970)
 
 Added `<ChartLineRmiOverboughtCross />` -- Relative Momentum
