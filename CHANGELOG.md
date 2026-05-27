@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.943] - 2026-05-27 -- UI: chart-line-cci-extreme-cross primitive (TODO 11.925)
+
+Added `<ChartLineCciExtremeCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish chevron overlays at every CCI extreme band cross, and
+the close-only Commodity Channel Index line (bottom panel) on a
++/- 300 auto-expanding oscillator with five reference bands at
++/- 100 (mild) and +/- 200 (extreme) plus the 0 midline. Dual-
+band cross variant of the CCI family that flags discrete level
+entry / exit events on the same panel and reports `bullishMild`
++ `bullishExtreme` simultaneously when CCI jumps through both
+positive bands in one bar (and symmetrically for bearish). Bit-
+exact anchor: CONST `close = K` produces cci = 0 from the 0/0
+mean-deviation guard, regime `neutral`, 0 crosses, verified
+across K in {0, 1, 42, 100, 1234}. LINEAR UP / DOWN ramps with
+length 20 give cci = +/- 126.667 indefinitely, regime `bullish`
+/ `bearish` (not extreme). A single positive spike at the end of
+an otherwise constant window of length n gives cci = n / 0.03;
+with the canonical length 14 that's 466.67, which crosses both
+the +100 and +200 bands in one bar and yields exactly two cross
+events (`bullishMild` then `bullishExtreme`). Defaults
+`length=20`, `upperMild=+100`, `lowerMild=-100`,
+`upperExtreme=+200`, `lowerExtreme=-200`. Regime classifier
+`bullishExtreme` / `bullish` / `neutral` / `bearish` /
+`bearishExtreme` / `none`. ARIA region + role=img SVG with
+sr-only desc, `data-section` attributes on every drawn group,
+`role="graphics-symbol"` + `tabIndex=0` on every cross /
+overlay marker for keyboard navigation, motion-safe fade-in,
+controlled / uncontrolled hidden-series legend. 85 vitest cases
+covering pure helpers (`getLineCciExtremeCrossFinitePoints`,
+`normalizeLineCciExtremeCrossLength`,
+`normalizeLineCciExtremeCrossPositive`,
+`normalizeLineCciExtremeCrossNegative`,
+`applyLineCciExtremeCrossSma`), the CCI compute pipeline, the
+mild + extreme cross detector, layout (band y-ordering, path
+M/L precision, marker placement, range expansion), and the JSX
+render path (ARIA, data-* attrs, legend keyboard toggles, hover
+tooltip, band / cross / overlay visibility flags). Manifests
+1.11.942 -> 1.11.943.
+
 ## [1.11.942] - 2026-05-27 -- UI: chart-line-stoch-oversold-cross primitive (TODO 11.924)
 
 Added `<ChartLineStochOversoldCross />` -- pure-SVG dual-panel
