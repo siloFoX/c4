@@ -625,3 +625,4 @@ export * from './chart-line-atr-channel-cross';
 export * from './chart-line-balance-power-cross';
 export * from './chart-line-elder-bull-cross';
 export * from './chart-line-elder-bear-cross';
+export * from './chart-line-vwap-cross-sig';
