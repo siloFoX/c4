@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1059] - 2026-05-27 -- UI: chart-line-tema-divergence-cross primitive (TODO 11.1041)
+
+Added `<ChartLineTemaDivergenceCross />` -- close-only
+Triple Exponential Moving Average divergence detector that
+flags price-vs-TEMA direction disagreement events as
+responsive trend reversal warnings with bias coloring. Fifth
+member of the MA divergence-cross family (after SMA, EMA,
+HMA, WMA): TEMA is Patrick Mulloy's 1994 zero-lag triple
+EMA composite, `3 * EMA1 - 3 * EMA2 + EMA3`. The
+triple-stacked combination cancels EMA centroid lag exactly
+on linear input -- TEMA = close, so the divergence detector
+surfaces only genuine direction disagreements from
+sub-linear patterns. Default period=14, warmup=3*(period-1)
+=39 (3x the SMA/EMA warmup). Bit-exact anchors (close-only):
+CONST K -> ema1=ema2=ema3=K, TEMA=3K-3K+K=K, both flat,
+regime none, 0 triggers; LINEAR UP close=i -> ema1=i-6.5,
+ema2=i-13, ema3=i-19.5, TEMA=3(i-6.5)-3(i-13)+(i-19.5)=i
+(zero lag), both up -> aligned-bullish, 0 triggers; LINEAR
+DOWN close=-i -> mirror, TEMA=-i, both down ->
+aligned-bearish, 0 triggers. Cross detection fires only on
+transition INTO a divergent state. Trade-off vs siblings:
+TEMA is the most sensitive variant -- zero lag on linear
+input but amplified single-bar volatility on noisy data,
+surfacing more divergence triggers than SMA/EMA/WMA/HMA.
+49 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1058] - 2026-05-27 -- UI: chart-line-wma-divergence-cross primitive (TODO 11.1040)
 
 Added `<ChartLineWmaDivergenceCross />` -- close-only
