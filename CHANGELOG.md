@@ -4,6 +4,53 @@
 
 (no entries -- next release window)
 
+## [1.11.945] - 2026-05-27 -- UI: chart-line-williams-r-cross-sig primitive (TODO 11.927)
+
+Added `<ChartLineWilliamsRCrossSig />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (cross up through signal) / bearish (cross down
+through signal) chevron overlays at every Williams %R-over-
+signal cross, and the close-only Williams %R line plus an SMA
+signal line (bottom panel) on a fixed -100 to 0 oscillator
+with three reference bands at -20 (overbought), -50 (mid), and
+-80 (oversold). Cross detector emits `bullish` / `bearish`
+kinds and additionally tags each cross with a `zone`
+(`overbought` / `oversold` / `neutral`) computed from the %R
+value at the cross bar, so consumers can filter for
+"bullish-in-oversold-zone" reversal triggers and "bearish-in-
+overbought-zone" reversal triggers without re-walking the
+samples. Close-only %R uses the canonical
+`(highest - close) / range * -100` formula with a `range = 0
+-> -50` neutral fallback. Bit-exact anchor: CONST `close = K`
+-> range = 0 -> wr = -50, SMA-of-50s short-circuit holds
+signal at -50, wr === signal so the strict-inequality
+detector never fires, regime `neutral`, 0 crosses, verified
+across K in {0, 1, 42, 100, 1234}. LINEAR UP `close = i`
+(length 14) -> close sits at window high so `(highest -
+close) = 0` -> wr = 0 constant, signal = 0, regime
+`overbought`, 0 crosses. LINEAR DOWN mirrors to wr = -100,
+signal = -100, regime `oversold`, 0 crosses. Recovery sweep
+from a long decline -> wr surges through signal upward in
+the oversold zone, generating at least one bullish-oversold
+cross. Defaults `length=14`, `signalLength=3`,
+`overboughtThreshold=-20`, `oversoldThreshold=-80`. Regime
+classifier `overbought` / `neutral` / `oversold` / `none`.
+ARIA region + role=img SVG with sr-only desc, `data-section`
+attributes on every drawn group, `role="graphics-symbol"` +
+`tabIndex=0` + `data-zone` on every cross / overlay marker,
+motion-safe fade-in, controlled / uncontrolled hidden-series
+legend with 3 toggles (price / %R / signal). 70 vitest cases
+covering pure helpers
+(`getLineWilliamsRCrossSigFinitePoints`,
+`normalizeLineWilliamsRCrossSigLength`,
+`normalizeLineWilliamsRCrossSigThreshold`,
+`applyLineWilliamsRCrossSigSma`), the close-only %R compute
+pipeline, the zone-tagged cross detector, layout (band y
+ordering, path M/L precision, marker placement), and the JSX
+render path (ARIA, data-* attrs, legend keyboard toggles,
+hover tooltip, band / cross / overlay visibility flags).
+Manifests 1.11.944 -> 1.11.945.
+
 ## [1.11.944] - 2026-05-27 -- UI: chart-line-adx-strength-cross primitive (TODO 11.926)
 
 Added `<ChartLineAdxStrengthCross />` -- pure-SVG dual-panel
