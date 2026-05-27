@@ -1,0 +1,1180 @@
+import {
+  forwardRef,
+  useId,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+  type SVGProps,
+} from 'react';
+
+/**
+ * ChartLineRsiOverboughtCross -- pure-SVG dual-panel chart with
+ * the close in the top panel and the close-only Relative
+ * Strength Index line in the bottom panel, marking bullish
+ * (RSI crosses up into overbought) / bearish (RSI crosses down
+ * out of overbought) trigger events at the single canonical
+ * overbought threshold. Single-threshold cross variant of the
+ * RSI family that flags the discrete level-70 entry and exit
+ * events distinct from regime classification.
+ *
+ *   delta[i]   = close[i] - close[i-1]
+ *   gain[i]    = max(delta, 0)
+ *   loss[i]    = max(-delta, 0)
+ *   avgGain[i] = Wilder smoothing of gain over length
+ *   avgLoss[i] = Wilder smoothing of loss over length
+ *   rsi[i]     = avgGain + avgLoss == 0
+ *                  ? 50  (neutral fallback)
+ *                  : avgLoss == 0
+ *                    ? 100
+ *                    : 100 - 100 / (1 + avgGain / avgLoss)
+ *   bullish   : prev <= threshold && cur > threshold  (entry)
+ *   bearish   : prev >= threshold && cur < threshold  (exit)
+ *
+ * Defaults: `length = 14` (canonical RSI window), `threshold
+ * = 70`. Regime classifier `bullish` (RSI >= threshold,
+ * overbought), `neutral` (RSI < threshold), `none` (RSI null).
+ *
+ * Bit-exact anchor:
+ *
+ * - **CONST close = K**: every delta = 0 -> gain = loss = 0
+ *   -> avgGain = avgLoss = 0 -> RSI uses the neutral fallback
+ *   50. 50 < 70, so regime is `neutral` and the threshold is
+ *   never crossed (RSI stays at 50). cross count = 0. Verified
+ *   across K = 0..1234.
+ */
+
+export interface ChartLineRsiOverboughtCrossPoint {
+  x: number;
+  close: number;
+}
+
+export type ChartLineRsiOverboughtCrossRegime =
+  | 'bullish'
+  | 'neutral'
+  | 'none';
+
+export type ChartLineRsiOverboughtCrossSeriesId = 'price' | 'rsi';
+
+export type ChartLineRsiOverboughtCrossCrossKind = 'bullish' | 'bearish';
+
+export interface ChartLineRsiOverboughtCrossCross {
+  index: number;
+  x: number;
+  kind: ChartLineRsiOverboughtCrossCrossKind;
+}
+
+export interface ChartLineRsiOverboughtCrossSample {
+  index: number;
+  x: number;
+  close: number;
+  rsi: number | null;
+  regime: ChartLineRsiOverboughtCrossRegime;
+}
+
+export interface ChartLineRsiOverboughtCrossRun {
+  series: ChartLineRsiOverboughtCrossPoint[];
+  length: number;
+  threshold: number;
+  rsiValues: Array<number | null>;
+  samples: ChartLineRsiOverboughtCrossSample[];
+  crosses: ChartLineRsiOverboughtCrossCross[];
+  bullishCount: number;
+  neutralCount: number;
+  noneCount: number;
+  entryCount: number;
+  exitCount: number;
+  ok: boolean;
+}
+
+export interface ChartLineRsiOverboughtCrossDot {
+  index: number;
+  x: number;
+  cx: number;
+  cy: number;
+  close: number;
+}
+
+export interface ChartLineRsiOverboughtCrossLayout {
+  ok: boolean;
+  width: number;
+  height: number;
+  padding: number;
+  panelGap: number;
+  priceTop: number;
+  priceBottom: number;
+  oscTop: number;
+  oscBottom: number;
+  innerLeft: number;
+  innerRight: number;
+  pricePath: string;
+  priceDots: ChartLineRsiOverboughtCrossDot[];
+  rsiPath: string;
+  priceMin: number;
+  priceMax: number;
+  oscMin: number;
+  oscMax: number;
+  midY: number;
+  thresholdY: number;
+  crossMarkers: Array<{
+    index: number;
+    x: number;
+    cx: number;
+    cyPrice: number;
+    cyOsc: number;
+    kind: ChartLineRsiOverboughtCrossCrossKind;
+  }>;
+  run: ChartLineRsiOverboughtCrossRun;
+}
+
+export interface ChartLineRsiOverboughtCrossProps
+  extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
+  data: ChartLineRsiOverboughtCrossPoint[];
+  length?: number;
+  threshold?: number;
+  width?: number;
+  height?: number;
+  padding?: number;
+  panelGap?: number;
+  tickCount?: number;
+  strokeWidth?: number;
+  dotRadius?: number;
+  priceColor?: string;
+  rsiColor?: string;
+  bullishColor?: string;
+  bearishColor?: string;
+  axisColor?: string;
+  gridColor?: string;
+  midColor?: string;
+  showAxis?: boolean;
+  showGrid?: boolean;
+  showDots?: boolean;
+  showRsi?: boolean;
+  showCrosses?: boolean;
+  showOverlayCrosses?: boolean;
+  showTooltip?: boolean;
+  showConfigBadge?: boolean;
+  showLegend?: boolean;
+  showBands?: boolean;
+  animate?: boolean;
+  hiddenSeries?: ChartLineRsiOverboughtCrossSeriesId[];
+  defaultHiddenSeries?: ChartLineRsiOverboughtCrossSeriesId[];
+  onSeriesToggle?: (detail: {
+    seriesId: ChartLineRsiOverboughtCrossSeriesId;
+    hidden: boolean;
+  }) => void;
+  formatPrice?: (value: number) => string;
+  formatOsc?: (value: number) => string;
+  formatX?: (x: number) => string;
+  ariaLabel?: string;
+  ariaDescription?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_WIDTH = 720;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_HEIGHT = 460;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PADDING = 44;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PANEL_GAP = 12;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_TICK_COUNT = 5;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_STROKE_WIDTH = 2;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_DOT_RADIUS = 3;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_LENGTH = 14;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_THRESHOLD = 70;
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PRICE_COLOR = '#2563eb';
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_RSI_COLOR = '#7c3aed';
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_BULLISH_COLOR = '#16a34a';
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_BEARISH_COLOR = '#dc2626';
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_AXIS_COLOR = '#94a3b8';
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_GRID_COLOR = '#e2e8f0';
+export const DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_MID_COLOR = '#cbd5e1';
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const posZero = (value: number): number => (value === 0 ? 0 : value);
+
+/** Keep only points with finite x / close. */
+export function getLineRsiOverboughtCrossFinitePoints(
+  data: readonly ChartLineRsiOverboughtCrossPoint[] | null | undefined,
+): ChartLineRsiOverboughtCrossPoint[] {
+  if (!Array.isArray(data)) return [];
+  const out: ChartLineRsiOverboughtCrossPoint[] = [];
+  for (const point of data) {
+    if (!point) continue;
+    if (isFiniteNumber(point.x) && isFiniteNumber(point.close)) {
+      out.push({ x: point.x, close: point.close });
+    }
+  }
+  return out;
+}
+
+/** Coerce a positive integer length (>= 1). */
+export function normalizeLineRsiOverboughtCrossLength(
+  length: unknown,
+  fallback: number,
+): number {
+  if (isFiniteNumber(length) && length >= 1) return Math.floor(length);
+  return fallback;
+}
+
+/** Coerce a finite threshold in [0, 100]. */
+export function normalizeLineRsiOverboughtCrossThreshold(
+  value: unknown,
+  fallback: number,
+): number {
+  if (isFiniteNumber(value) && value >= 0 && value <= 100) return value;
+  return fallback;
+}
+
+/** Wilder smoothing with CONST short-circuit. */
+export function applyLineRsiOverboughtCrossWilder(
+  values: readonly number[],
+  length: number,
+): Array<number | null> {
+  const out: Array<number | null> = new Array(values.length).fill(null);
+  if (length < 1 || values.length === 0) return out;
+  if (values.length < length) return out;
+  let sum = 0;
+  for (let i = 0; i < length; i += 1) sum += values[i]!;
+  const seed = posZero(sum / length);
+  out[length - 1] = seed;
+  let prev = seed;
+  for (let i = length; i < values.length; i += 1) {
+    const v = values[i]!;
+    const next =
+      v === prev ? v : posZero((prev * (length - 1) + v) / length);
+    out[i] = next;
+    prev = next;
+  }
+  return out;
+}
+
+export interface LineRsiOverboughtCrossChannels {
+  rsi: Array<number | null>;
+}
+
+export function computeLineRsiOverboughtCross(
+  series: readonly ChartLineRsiOverboughtCrossPoint[] | null | undefined,
+  options: { length?: number } = {},
+): LineRsiOverboughtCrossChannels {
+  const cleaned = getLineRsiOverboughtCrossFinitePoints(series);
+  if (cleaned.length === 0) {
+    return { rsi: [] };
+  }
+  const length = normalizeLineRsiOverboughtCrossLength(
+    options.length,
+    DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_LENGTH,
+  );
+
+  const closes = cleaned.map((p) => p.close);
+  const gain: number[] = new Array(closes.length).fill(0);
+  const loss: number[] = new Array(closes.length).fill(0);
+  for (let i = 1; i < closes.length; i += 1) {
+    const delta = closes[i]! - closes[i - 1]!;
+    if (delta > 0) gain[i] = delta;
+    else if (delta < 0) loss[i] = -delta;
+  }
+  const gainIdx1 = applyLineRsiOverboughtCrossWilder(gain.slice(1), length);
+  const lossIdx1 = applyLineRsiOverboughtCrossWilder(loss.slice(1), length);
+  const avgGain: Array<number | null> = new Array(closes.length).fill(null);
+  const avgLoss: Array<number | null> = new Array(closes.length).fill(null);
+  for (let i = 0; i < gainIdx1.length; i += 1) {
+    avgGain[i + 1] = gainIdx1[i] ?? null;
+    avgLoss[i + 1] = lossIdx1[i] ?? null;
+  }
+
+  const rsi: Array<number | null> = new Array(closes.length).fill(null);
+  for (let i = 0; i < closes.length; i += 1) {
+    const g = avgGain[i];
+    const l = avgLoss[i];
+    if (g == null || l == null) continue;
+    if (g + l <= 0) {
+      rsi[i] = 50;
+    } else if (l <= 0) {
+      rsi[i] = 100;
+    } else {
+      rsi[i] = posZero(100 - 100 / (1 + g / l));
+    }
+  }
+  return { rsi };
+}
+
+export function classifyLineRsiOverboughtCrossRegime(
+  rsi: number | null,
+  threshold: number,
+): ChartLineRsiOverboughtCrossRegime {
+  if (rsi == null) return 'none';
+  if (rsi >= threshold) return 'bullish';
+  return 'neutral';
+}
+
+export function detectLineRsiOverboughtCrossCrosses(
+  series: readonly ChartLineRsiOverboughtCrossPoint[],
+  rsi: readonly (number | null)[],
+  threshold: number,
+): ChartLineRsiOverboughtCrossCross[] {
+  const out: ChartLineRsiOverboughtCrossCross[] = [];
+  for (let i = 1; i < series.length; i += 1) {
+    const prev = rsi[i - 1];
+    const cur = rsi[i];
+    if (prev == null || cur == null) continue;
+    if (prev <= threshold && cur > threshold) {
+      out.push({ index: i, x: series[i]!.x, kind: 'bullish' });
+    } else if (prev >= threshold && cur < threshold) {
+      out.push({ index: i, x: series[i]!.x, kind: 'bearish' });
+    }
+  }
+  return out;
+}
+
+export function runLineRsiOverboughtCross(
+  data: ChartLineRsiOverboughtCrossPoint[],
+  options: { length?: number; threshold?: number } = {},
+): ChartLineRsiOverboughtCrossRun {
+  const cleaned = getLineRsiOverboughtCrossFinitePoints(data);
+  const series = [...cleaned].sort((a, b) => a.x - b.x);
+  const length = normalizeLineRsiOverboughtCrossLength(
+    options.length,
+    DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_LENGTH,
+  );
+  const threshold = normalizeLineRsiOverboughtCrossThreshold(
+    options.threshold,
+    DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_THRESHOLD,
+  );
+
+  const channels = computeLineRsiOverboughtCross(series, { length });
+
+  const samples: ChartLineRsiOverboughtCrossSample[] = series.map((p, i) => {
+    const r = channels.rsi[i] ?? null;
+    return {
+      index: i,
+      x: p.x,
+      close: p.close,
+      rsi: r,
+      regime: classifyLineRsiOverboughtCrossRegime(r, threshold),
+    };
+  });
+
+  const crosses = detectLineRsiOverboughtCrossCrosses(
+    series,
+    channels.rsi,
+    threshold,
+  );
+
+  let bullishCount = 0;
+  let neutralCount = 0;
+  let noneCount = 0;
+  for (const s of samples) {
+    if (s.regime === 'bullish') bullishCount += 1;
+    else if (s.regime === 'neutral') neutralCount += 1;
+    else noneCount += 1;
+  }
+  let entryCount = 0;
+  let exitCount = 0;
+  for (const c of crosses) {
+    if (c.kind === 'bullish') entryCount += 1;
+    else exitCount += 1;
+  }
+
+  const ok = series.length > length;
+
+  return {
+    series,
+    length,
+    threshold,
+    rsiValues: channels.rsi,
+    samples,
+    crosses,
+    bullishCount,
+    neutralCount,
+    noneCount,
+    entryCount,
+    exitCount,
+    ok,
+  };
+}
+
+export interface ComputeLineRsiOverboughtCrossLayoutOptions {
+  data: ChartLineRsiOverboughtCrossPoint[];
+  length?: number;
+  threshold?: number;
+  width?: number;
+  height?: number;
+  padding?: number;
+  panelGap?: number;
+}
+
+export function computeLineRsiOverboughtCrossLayout(
+  opts: ComputeLineRsiOverboughtCrossLayoutOptions,
+): ChartLineRsiOverboughtCrossLayout {
+  const width = opts.width ?? DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_WIDTH;
+  const height = opts.height ?? DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_HEIGHT;
+  const padding =
+    opts.padding ?? DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PADDING;
+  const panelGap =
+    opts.panelGap ?? DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PANEL_GAP;
+  const threshold = normalizeLineRsiOverboughtCrossThreshold(
+    opts.threshold,
+    DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_THRESHOLD,
+  );
+
+  const run = runLineRsiOverboughtCross(opts.data, {
+    length: opts.length ?? undefined,
+    threshold,
+  });
+
+  const innerLeft = padding;
+  const innerRight = width - padding;
+  const usable = height - padding * 2 - panelGap;
+  const priceTop = padding;
+  const priceBottom = padding + usable * 0.55;
+  const oscTop = priceBottom + panelGap;
+  const oscBottom = priceBottom + panelGap + usable * 0.45;
+
+  const oscMin = 0;
+  const oscMax = 100;
+  const syOscBase = (y: number): number =>
+    oscBottom - ((y - oscMin) / (oscMax - oscMin)) * (oscBottom - oscTop);
+  const midY = syOscBase(50);
+  const thresholdY = syOscBase(threshold);
+
+  if (run.series.length === 0) {
+    return {
+      ok: false,
+      width,
+      height,
+      padding,
+      panelGap,
+      priceTop,
+      priceBottom,
+      oscTop,
+      oscBottom,
+      innerLeft,
+      innerRight,
+      pricePath: '',
+      priceDots: [],
+      rsiPath: '',
+      priceMin: 0,
+      priceMax: 0,
+      oscMin,
+      oscMax,
+      midY,
+      thresholdY,
+      crossMarkers: [],
+      run,
+    };
+  }
+
+  let priceMin = Infinity;
+  let priceMax = -Infinity;
+  for (const s of run.samples) {
+    if (s.close < priceMin) priceMin = s.close;
+    if (s.close > priceMax) priceMax = s.close;
+  }
+  if (!Number.isFinite(priceMin) || !Number.isFinite(priceMax)) {
+    priceMin = 0;
+    priceMax = 1;
+  }
+  if (priceMin === priceMax) {
+    priceMin -= 1;
+    priceMax += 1;
+  }
+
+  const xMin = run.series[0]?.x ?? 0;
+  const xMax = run.series[run.series.length - 1]?.x ?? xMin + 1;
+  const xRange = xMax === xMin ? 1 : xMax - xMin;
+
+  const sx = (x: number): number =>
+    innerLeft + ((x - xMin) / xRange) * (innerRight - innerLeft);
+  const syPrice = (y: number): number =>
+    priceBottom -
+    ((y - priceMin) / (priceMax - priceMin)) * (priceBottom - priceTop);
+
+  let pricePath = '';
+  const priceDots: ChartLineRsiOverboughtCrossDot[] = [];
+  for (let i = 0; i < run.samples.length; i += 1) {
+    const s = run.samples[i];
+    if (!s) continue;
+    const cx = sx(s.x);
+    const cy = syPrice(s.close);
+    pricePath += `${i === 0 ? 'M' : 'L'} ${cx.toFixed(2)} ${cy.toFixed(2)} `;
+    priceDots.push({
+      index: s.index,
+      x: s.x,
+      cx,
+      cy,
+      close: s.close,
+    });
+  }
+
+  let rsiPath = '';
+  let first = true;
+  for (const s of run.samples) {
+    if (s.rsi == null) {
+      first = true;
+      continue;
+    }
+    const cx = sx(s.x);
+    const cy = syOscBase(s.rsi);
+    rsiPath += `${first ? 'M' : 'L'} ${cx.toFixed(2)} ${cy.toFixed(2)} `;
+    first = false;
+  }
+  rsiPath = rsiPath.trim();
+
+  const crossMarkers = run.crosses.map((c) => {
+    const samp = run.samples[c.index];
+    const cx = sx(c.x);
+    const cyPrice = samp ? syPrice(samp.close) : priceBottom;
+    const cyOsc = syOscBase(run.rsiValues[c.index] ?? 50);
+    return {
+      index: c.index,
+      x: c.x,
+      cx,
+      cyPrice,
+      cyOsc,
+      kind: c.kind,
+    };
+  });
+
+  return {
+    ok: true,
+    width,
+    height,
+    padding,
+    panelGap,
+    priceTop,
+    priceBottom,
+    oscTop,
+    oscBottom,
+    innerLeft,
+    innerRight,
+    pricePath: pricePath.trim(),
+    priceDots,
+    rsiPath,
+    priceMin,
+    priceMax,
+    oscMin,
+    oscMax,
+    midY,
+    thresholdY,
+    crossMarkers,
+    run,
+  };
+}
+
+export function describeLineRsiOverboughtCrossChart(
+  data: ChartLineRsiOverboughtCrossPoint[],
+  options: { length?: number; threshold?: number } = {},
+): string {
+  const cleaned = getLineRsiOverboughtCrossFinitePoints(data);
+  if (cleaned.length === 0) return 'No data';
+  const length = normalizeLineRsiOverboughtCrossLength(
+    options.length,
+    DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_LENGTH,
+  );
+  const threshold = normalizeLineRsiOverboughtCrossThreshold(
+    options.threshold,
+    DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_THRESHOLD,
+  );
+  return (
+    `RSI Overbought Cross chart over ${cleaned.length} bars ` +
+    `(length ${length}, threshold ${threshold}). Top panel ` +
+    `renders the close with bullish (entry) / bearish (exit) ` +
+    `arrow overlays at every RSI threshold cross; bottom panel ` +
+    `renders the close-only RSI line on a fixed 0-100 ` +
+    `oscillator with the threshold and 50 reference bands and ` +
+    `marks RSI level ${threshold} trigger entry / exit events.`
+  );
+}
+
+const formatNumber = (value: number, digits = 2): string => {
+  if (!Number.isFinite(value)) return '--';
+  return value.toFixed(digits);
+};
+
+const defaultPriceFormatter = (value: number): string =>
+  formatNumber(value, 2);
+const defaultOscFormatter = (value: number): string => formatNumber(value, 2);
+const defaultXFormatter = (x: number): string => formatNumber(x, 0);
+
+export const ChartLineRsiOverboughtCross = forwardRef<
+  HTMLDivElement,
+  ChartLineRsiOverboughtCrossProps
+>(function ChartLineRsiOverboughtCross(props, ref): ReactNode {
+  const {
+    data,
+    length = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_LENGTH,
+    threshold = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_THRESHOLD,
+    width = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_WIDTH,
+    height = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_HEIGHT,
+    padding = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PADDING,
+    panelGap = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PANEL_GAP,
+    tickCount = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_TICK_COUNT,
+    strokeWidth = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_STROKE_WIDTH,
+    dotRadius = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_DOT_RADIUS,
+    priceColor = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_PRICE_COLOR,
+    rsiColor = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_RSI_COLOR,
+    bullishColor = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_BULLISH_COLOR,
+    bearishColor = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_BEARISH_COLOR,
+    axisColor = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_AXIS_COLOR,
+    gridColor = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_GRID_COLOR,
+    midColor = DEFAULT_CHART_LINE_RSI_OVERBOUGHT_CROSS_MID_COLOR,
+    showAxis = true,
+    showGrid = true,
+    showDots = false,
+    showRsi = true,
+    showCrosses = true,
+    showOverlayCrosses = true,
+    showTooltip = true,
+    showConfigBadge = true,
+    showLegend = true,
+    showBands = true,
+    animate = true,
+    hiddenSeries,
+    defaultHiddenSeries,
+    onSeriesToggle,
+    formatPrice = defaultPriceFormatter,
+    formatOsc = defaultOscFormatter,
+    formatX = defaultXFormatter,
+    ariaLabel,
+    ariaDescription,
+    className,
+    style,
+    ...rest
+  } = props;
+
+  const reactId = useId();
+  const titleId = `${reactId}-title`;
+  const descId = `${reactId}-desc`;
+
+  const cleaned = useMemo(
+    () => getLineRsiOverboughtCrossFinitePoints(data),
+    [data],
+  );
+
+  const layout = useMemo(
+    () =>
+      computeLineRsiOverboughtCrossLayout({
+        data: cleaned,
+        length,
+        threshold,
+        width,
+        height,
+        padding,
+        panelGap,
+      }),
+    [cleaned, length, threshold, width, height, padding, panelGap],
+  );
+
+  const isControlled = Array.isArray(hiddenSeries);
+  const [uncontrolledHidden, setUncontrolledHidden] = useState<
+    ChartLineRsiOverboughtCrossSeriesId[]
+  >(defaultHiddenSeries ?? []);
+  const hiddenList = isControlled
+    ? (hiddenSeries ?? [])
+    : uncontrolledHidden;
+  const hidden = new Set(hiddenList);
+
+  const handleLegendClick = (
+    seriesId: ChartLineRsiOverboughtCrossSeriesId,
+  ) => {
+    const isHidden = hidden.has(seriesId);
+    const next = isHidden
+      ? hiddenList.filter((s) => s !== seriesId)
+      : [...hiddenList, seriesId];
+    if (!isControlled) setUncontrolledHidden(next);
+    onSeriesToggle?.({ seriesId, hidden: !isHidden });
+  };
+
+  const handleLegendKey = (
+    e: KeyboardEvent<HTMLButtonElement>,
+    seriesId: ChartLineRsiOverboughtCrossSeriesId,
+  ): void => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleLegendClick(seriesId);
+    }
+  };
+
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  if (cleaned.length === 0) {
+    return (
+      <div
+        ref={ref}
+        className={className}
+        style={style}
+        data-section="chart-line-rsi-overbought-cross-empty"
+      >
+        No data
+      </div>
+    );
+  }
+
+  const desc =
+    ariaDescription ??
+    describeLineRsiOverboughtCrossChart(cleaned, { length, threshold });
+
+  const showPrice = !hidden.has('price');
+  const showRsiLine = !hidden.has('rsi') && showRsi;
+
+  const tickPriceValues: number[] = [];
+  for (let i = 0; i <= tickCount; i += 1) {
+    tickPriceValues.push(
+      layout.priceMin +
+        ((layout.priceMax - layout.priceMin) * i) / tickCount,
+    );
+  }
+  const tickOscValues: number[] = [0, 50, threshold, 100];
+
+  const tooltipSample =
+    hoverIndex == null ? null : layout.run.samples[hoverIndex];
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={style}
+      role="region"
+      aria-label={ariaLabel ?? 'RSI Overbought Cross chart'}
+      aria-describedby={descId}
+      data-section="chart-line-rsi-overbought-cross"
+      data-length={length}
+      data-threshold={threshold}
+      data-total-points={cleaned.length}
+      data-bullish-count={layout.run.bullishCount}
+      data-neutral-count={layout.run.neutralCount}
+      data-entry-count={layout.run.entryCount}
+      data-exit-count={layout.run.exitCount}
+      data-cross-count={layout.run.crosses.length}
+    >
+      <span
+        id={titleId}
+        className="sr-only"
+        data-section="chart-line-rsi-overbought-cross-title"
+      >
+        {ariaLabel ?? 'RSI Overbought Cross chart'}
+      </span>
+      <span
+        id={descId}
+        className="sr-only"
+        data-section="chart-line-rsi-overbought-cross-aria-desc"
+      >
+        {desc}
+      </span>
+      <svg
+        role="img"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
+        tabIndex={0}
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        className={animate ? 'motion-safe:animate-fade-in' : undefined}
+        data-section="chart-line-rsi-overbought-cross-svg"
+        {...rest}
+      >
+        {showGrid ? (
+          <g data-section="chart-line-rsi-overbought-cross-grid">
+            {tickPriceValues.map((v, i) => {
+              const y =
+                layout.priceBottom -
+                ((v - layout.priceMin) /
+                  (layout.priceMax - layout.priceMin)) *
+                  (layout.priceBottom - layout.priceTop);
+              return (
+                <line
+                  key={`grid-price-${i}`}
+                  x1={layout.innerLeft}
+                  y1={y}
+                  x2={layout.innerRight}
+                  y2={y}
+                  stroke={gridColor}
+                  strokeDasharray="3 3"
+                  data-section="chart-line-rsi-overbought-cross-grid-line-price"
+                />
+              );
+            })}
+            {tickOscValues.map((v, i) => {
+              const y =
+                layout.oscBottom -
+                ((v - layout.oscMin) /
+                  (layout.oscMax - layout.oscMin)) *
+                  (layout.oscBottom - layout.oscTop);
+              return (
+                <line
+                  key={`grid-osc-${i}`}
+                  x1={layout.innerLeft}
+                  y1={y}
+                  x2={layout.innerRight}
+                  y2={y}
+                  stroke={gridColor}
+                  strokeDasharray="3 3"
+                  data-section="chart-line-rsi-overbought-cross-grid-line-osc"
+                />
+              );
+            })}
+          </g>
+        ) : null}
+
+        {showBands ? (
+          <g data-section="chart-line-rsi-overbought-cross-bands">
+            <line
+              x1={layout.innerLeft}
+              y1={layout.thresholdY}
+              x2={layout.innerRight}
+              y2={layout.thresholdY}
+              stroke={midColor}
+              strokeDasharray="4 4"
+              data-section="chart-line-rsi-overbought-cross-band-threshold"
+            />
+            <line
+              x1={layout.innerLeft}
+              y1={layout.midY}
+              x2={layout.innerRight}
+              y2={layout.midY}
+              stroke={midColor}
+              strokeDasharray="2 4"
+              data-section="chart-line-rsi-overbought-cross-band-mid"
+            />
+          </g>
+        ) : null}
+
+        {showAxis ? (
+          <g data-section="chart-line-rsi-overbought-cross-axes">
+            <line
+              x1={layout.innerLeft}
+              y1={layout.priceTop}
+              x2={layout.innerLeft}
+              y2={layout.priceBottom}
+              stroke={axisColor}
+            />
+            <line
+              x1={layout.innerLeft}
+              y1={layout.priceBottom}
+              x2={layout.innerRight}
+              y2={layout.priceBottom}
+              stroke={axisColor}
+            />
+            <line
+              x1={layout.innerLeft}
+              y1={layout.oscTop}
+              x2={layout.innerLeft}
+              y2={layout.oscBottom}
+              stroke={axisColor}
+            />
+            <line
+              x1={layout.innerLeft}
+              y1={layout.oscBottom}
+              x2={layout.innerRight}
+              y2={layout.oscBottom}
+              stroke={axisColor}
+            />
+            {tickPriceValues.map((v, i) => {
+              const y =
+                layout.priceBottom -
+                ((v - layout.priceMin) /
+                  (layout.priceMax - layout.priceMin)) *
+                  (layout.priceBottom - layout.priceTop);
+              return (
+                <text
+                  key={`tick-price-${i}`}
+                  x={layout.innerLeft - 6}
+                  y={y + 3}
+                  fontSize={10}
+                  fill={axisColor}
+                  textAnchor="end"
+                  data-section="chart-line-rsi-overbought-cross-tick-price"
+                >
+                  {formatPrice(v)}
+                </text>
+              );
+            })}
+            {tickOscValues.map((v, i) => {
+              const y =
+                layout.oscBottom -
+                ((v - layout.oscMin) /
+                  (layout.oscMax - layout.oscMin)) *
+                  (layout.oscBottom - layout.oscTop);
+              return (
+                <text
+                  key={`tick-osc-${i}`}
+                  x={layout.innerLeft - 6}
+                  y={y + 3}
+                  fontSize={10}
+                  fill={axisColor}
+                  textAnchor="end"
+                  data-section="chart-line-rsi-overbought-cross-tick-osc"
+                >
+                  {formatOsc(v)}
+                </text>
+              );
+            })}
+          </g>
+        ) : null}
+
+        {showPrice ? (
+          <path
+            d={layout.pricePath}
+            stroke={priceColor}
+            strokeWidth={strokeWidth}
+            fill="none"
+            data-section="chart-line-rsi-overbought-cross-price-path"
+          />
+        ) : null}
+
+        {showDots && showPrice ? (
+          <g data-section="chart-line-rsi-overbought-cross-price-dots">
+            {layout.priceDots.map((d) => (
+              <circle
+                key={`price-dot-${d.index}`}
+                cx={d.cx}
+                cy={d.cy}
+                r={dotRadius}
+                fill={priceColor}
+                data-section="chart-line-rsi-overbought-cross-price-dot"
+              />
+            ))}
+          </g>
+        ) : null}
+
+        {showRsiLine ? (
+          <path
+            d={layout.rsiPath}
+            stroke={rsiColor}
+            strokeWidth={strokeWidth}
+            fill="none"
+            data-section="chart-line-rsi-overbought-cross-rsi-path"
+          />
+        ) : null}
+
+        {showCrosses ? (
+          <g
+            data-section="chart-line-rsi-overbought-cross-crosses"
+            role="group"
+            aria-label="cross markers"
+          >
+            {layout.crossMarkers.map((m) => (
+              <circle
+                key={`cross-osc-${m.index}`}
+                cx={m.cx}
+                cy={m.cyOsc}
+                r={4}
+                fill={m.kind === 'bullish' ? bullishColor : bearishColor}
+                role="graphics-symbol"
+                tabIndex={0}
+                aria-label={`${m.kind} cross at ${formatX(m.x)}`}
+                data-section={`chart-line-rsi-overbought-cross-cross-${m.kind}`}
+              />
+            ))}
+          </g>
+        ) : null}
+
+        {showOverlayCrosses ? (
+          <g
+            data-section="chart-line-rsi-overbought-cross-overlay-crosses"
+            role="group"
+            aria-label="overlay cross markers"
+          >
+            {layout.crossMarkers.map((m) => (
+              <polygon
+                key={`cross-overlay-${m.index}`}
+                points={
+                  m.kind === 'bullish'
+                    ? `${m.cx},${m.cyPrice + 8} ${m.cx - 5},${m.cyPrice + 16} ${m.cx + 5},${m.cyPrice + 16}`
+                    : `${m.cx},${m.cyPrice - 8} ${m.cx - 5},${m.cyPrice - 16} ${m.cx + 5},${m.cyPrice - 16}`
+                }
+                fill={m.kind === 'bullish' ? bullishColor : bearishColor}
+                role="graphics-symbol"
+                tabIndex={0}
+                aria-label={`${m.kind} overlay at ${formatX(m.x)}`}
+                data-section={`chart-line-rsi-overbought-cross-overlay-${m.kind}`}
+              />
+            ))}
+          </g>
+        ) : null}
+
+        {showTooltip ? (
+          <g data-section="chart-line-rsi-overbought-cross-hover-targets">
+            {layout.priceDots.map((d, idx) => (
+              <rect
+                key={`hover-${d.index}`}
+                x={d.cx - 5}
+                y={layout.priceTop}
+                width={10}
+                height={layout.oscBottom - layout.priceTop}
+                fill="transparent"
+                onMouseEnter={() => setHoverIndex(idx)}
+                onMouseLeave={() => setHoverIndex(null)}
+                onFocus={() => setHoverIndex(idx)}
+                onBlur={() => setHoverIndex(null)}
+                tabIndex={0}
+                data-section="chart-line-rsi-overbought-cross-hover"
+              />
+            ))}
+            {tooltipSample ? (
+              <g
+                transform={`translate(${layout.priceDots[hoverIndex ?? 0]?.cx ?? 0}, ${layout.priceTop + 8})`}
+                data-section="chart-line-rsi-overbought-cross-tooltip"
+              >
+                <rect
+                  x={4}
+                  y={0}
+                  width={216}
+                  height={118}
+                  rx={4}
+                  fill="rgba(15, 23, 42, 0.92)"
+                />
+                <text
+                  x={12}
+                  y={16}
+                  fill="#f8fafc"
+                  fontSize={11}
+                  data-section="chart-line-rsi-overbought-cross-tooltip-x"
+                >
+                  x {formatX(tooltipSample.x)}
+                </text>
+                <text
+                  x={12}
+                  y={30}
+                  fill="#f8fafc"
+                  fontSize={11}
+                  data-section="chart-line-rsi-overbought-cross-tooltip-close"
+                >
+                  close {formatPrice(tooltipSample.close)}
+                </text>
+                <text
+                  x={12}
+                  y={44}
+                  fill="#f8fafc"
+                  fontSize={11}
+                  data-section="chart-line-rsi-overbought-cross-tooltip-rsi"
+                >
+                  rsi{' '}
+                  {tooltipSample.rsi == null
+                    ? '--'
+                    : formatOsc(tooltipSample.rsi)}
+                </text>
+                <text
+                  x={12}
+                  y={58}
+                  fill="#f8fafc"
+                  fontSize={11}
+                  data-section="chart-line-rsi-overbought-cross-tooltip-regime"
+                >
+                  regime {tooltipSample.regime}
+                </text>
+                <text
+                  x={12}
+                  y={72}
+                  fill="#f8fafc"
+                  fontSize={11}
+                  data-section="chart-line-rsi-overbought-cross-tooltip-counts"
+                >
+                  overbought {layout.run.bullishCount} | normal{' '}
+                  {layout.run.neutralCount}
+                </text>
+                <text
+                  x={12}
+                  y={86}
+                  fill="#f8fafc"
+                  fontSize={11}
+                  data-section="chart-line-rsi-overbought-cross-tooltip-entries"
+                >
+                  entries {layout.run.entryCount} | exits{' '}
+                  {layout.run.exitCount}
+                </text>
+                <text
+                  x={12}
+                  y={100}
+                  fill="#f8fafc"
+                  fontSize={11}
+                  data-section="chart-line-rsi-overbought-cross-tooltip-crosses"
+                >
+                  crosses {layout.run.crosses.length}
+                </text>
+              </g>
+            ) : null}
+          </g>
+        ) : null}
+      </svg>
+
+      {showConfigBadge ? (
+        <div
+          data-section="chart-line-rsi-overbought-cross-badge"
+          style={{
+            display: 'inline-block',
+            padding: '2px 6px',
+            fontSize: 10,
+            border: `1px solid ${axisColor}`,
+            borderRadius: 4,
+            marginTop: 4,
+          }}
+        >
+          length {length} | threshold {threshold} | crosses{' '}
+          {layout.run.crosses.length}
+        </div>
+      ) : null}
+
+      {showLegend ? (
+        <div
+          role="group"
+          aria-label="Series legend"
+          data-section="chart-line-rsi-overbought-cross-legend"
+          style={{
+            display: 'flex',
+            gap: 12,
+            marginTop: 4,
+            flexWrap: 'wrap',
+          }}
+        >
+          {(
+            [
+              { id: 'price' as const, color: priceColor, label: 'close' },
+              { id: 'rsi' as const, color: rsiColor, label: 'RSI' },
+            ] satisfies Array<{
+              id: ChartLineRsiOverboughtCrossSeriesId;
+              color: string;
+              label: string;
+            }>
+          ).map(({ id, color, label }) => (
+            <button
+              key={id}
+              type="button"
+              data-series-id={id}
+              aria-pressed={!hidden.has(id)}
+              onClick={() => handleLegendClick(id)}
+              onKeyDown={(e) => handleLegendKey(e, id)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 6px',
+                fontSize: 11,
+                opacity: hidden.has(id) ? 0.4 : 1,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 10,
+                  height: 10,
+                  background: color,
+                  borderRadius: 2,
+                }}
+              />
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
+ChartLineRsiOverboughtCross.displayName = 'ChartLineRsiOverboughtCross';
