@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.983] - 2026-05-27 -- UI: chart-line-schaff-oversold-cross primitive (TODO 11.965)
+
+Added `<ChartLineSchaffOversoldCross />` -- Schaff Trend Cycle
+crossover variant tracking the canonical 25 oversold line. Mirror
+of `chart-line-schaff-overbought-cross` (11.964): identical STC
+pipeline, opposite threshold semantics. Bit-exact anchors verified
+by tests: CONST close=K yields `stc = 50` (regime bullish since
+50 >= 25 -- opposite of the overbought variant where 50 < 75 gives
+bearish). LINEAR UP / DOWN ramps land within 1e-10 of 50 thanks to
+the MACD-steady-state collapse in both stochastic stages. 68
+passing cases covering finite-points filtering, length /
+threshold normalization, EMA seed semantics, the full STC pipeline
+(macd / k1 / d1 / k2 / stc channels), regime classifier (strict
+`>= threshold`), cross detector (strict `>` and `<` boundary,
+bullish + bearish + sweep + null skip), layout determinism
+(`.toFixed(2)` 2-decimal precision, single-M stc path), ARIA
+region + role=img SVG + sr-only desc, config badge, legend toggle
+(pointer + Enter / Space), hover tooltip, controlled
+`hiddenSeries`, threshold band (below midpoint), axes / grid /
+legend / crosses / overlay visibility flags, `data-*` counters
+matching run output, default `{ cycle: 10, fast: 23, slow: 50,
+threshold: 25 }`, and `forwardRef` exposing the wrapping div.
+
 ## [1.11.982] - 2026-05-27 -- UI: chart-line-schaff-overbought-cross primitive (TODO 11.964)
 
 Added `<ChartLineSchaffOverboughtCross />` -- Schaff Trend
