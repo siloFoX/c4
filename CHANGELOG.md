@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.963] - 2026-05-27 -- UI: chart-line-dpo-zero-cross primitive (TODO 11.945)
+
+Added `<ChartLineDpoZeroCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish/bearish
+chevron overlays at every Detrended Price Oscillator zero crossover,
+and a DPO panel (bottom) that auto-fits its range around the
+observed `[min, max]` plus a 10% pad while still showing the zero
+threshold line. DPO subtracts the centered SMA (displaced back by
+`shift = floor(length/2) + 1` bars) from the close, removing the
+trend component so the oscillator hovers near zero and crossings
+mark detrended momentum regime transitions. Look-back inversion is
+explicitly documented in tests: `close=i` (LINEAR UP) yields DPO =
+-1.5 (bearish) because the shifted close lags below the trend
+centroid, and `close=-i` yields DPO = +1.5 (bullish) -- this is the
+canonical bit-exact anchor across `length=20`. CONST close anchors
+DPO to exact 0. Standard pipeline -- `applyLineDpoZeroCrossSma` with
+CONST `min === max` short-circuit, `computeLineDpoZeroCross(series,
+{length}) -> {dpo, shift}`, `classifyLineDpoZeroCrossRegime` with
+threshold default 0 (null -> none, dpo >= T -> bullish, dpo < T ->
+bearish), `detectLineDpoZeroCrossCrosses` with strict boundary
+behaviour (equality does not cross), `runLineDpoZeroCross`, and
+`computeLineDpoZeroCrossLayout` returning per-cross-marker
+`(cx, cyOsc, cyPrice, kind)` triples for the overlay arrow + osc
+circle pair. Layout defaults: 760 x 360 with a ~58% / 42% price /
+DPO panel split, deterministic `.toFixed(2)` SVG paths, ARIA region
++ `role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing DPO + shift
+value, configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags, data-*
+attrs reflecting length / shift / threshold / cross-count /
+bullish-count / bearish-count, and forwardRef wired to the outer
+`<div>`. 68 vitest cases green (incl. K in `{0, 1, 42, 100, 1234}`
+anchors, LINEAR UP/DOWN inversion, rise-then-decline cross
+detection, `shift` formula across `length in {10, 14, 20}`, layout
+determinism across calls). Pure SVG, no canvas / chart libraries.
+
 ## [1.11.962] - 2026-05-27 -- UI: chart-line-cmo-zero-cross primitive (TODO 11.944)
 
 Added `<ChartLineCmoZeroCross />` -- pure-SVG dual-panel
