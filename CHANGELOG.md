@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.1072] - 2026-05-27 -- UI: chart-line-keltner-divergence-cross primitive (TODO 11.1054)
+
+Added `<ChartLineKeltnerDivergenceCross />` -- HLC-input
+Chester Keltner (1960) volatility envelope divergence
+detector that flags price-vs-channel direction
+disagreement events as volatility-reversal warnings with
+bias coloring from the Keltner midline slope. The Keltner
+Channel brackets price with an EMA-centered band of width
+multiplier * ATR. The midline is the EMA centerline of the
+envelope; this primitive compares its slope against price
+direction. Pipeline: ATR = SMA(TR, period), midline =
+EMA(close, period) SMA-seeded, upperBand = midline +
+multiplier * ATR, lowerBand = midline - multiplier * ATR.
+5-state regime: divergent-bullish (priceDown + midlineUp)
+suggests selling pressure but channel still trending up;
+divergent-bearish (priceUp + midlineDown) suggests rally
+but channel trending down. Crosses fire on transition INTO
+a divergent state. Default period=20, multiplier=2 (Linda
+Bradford Raschke modern tuning; Keltner's original 1960
+was period=10, multiplier=1). Warmup=20. Uses SMA-based
+ATR (matching atr-* siblings) for bit-exact testability.
+Bit-exact anchors (HLC): CONST band [K-1, K+1, K] -> ATR=2,
+midline=K constant, bands=K +/- 4, both price/midline
+flat, regime none, 0 crosses; LINEAR UP -> midline = i -
+9.5 (slope +1 with (period-1)/2 centroid offset), upper =
+i - 5.5, lower = i - 13.5, regime aligned-bullish, 0
+crosses; LINEAR DOWN -> mirror, midline = -i + 9.5, regime
+aligned-bearish, 0 crosses. EMA + ATR envelope variant
+alongside pure-MA, momentum-oscillator, volume-weighted,
+multi-timeframe-composite, ratcheting-stop, bounded-
+momentum, and volatility-magnitude divergence-cross
+siblings. 48 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1071] - 2026-05-27 -- UI: chart-line-trix-mid-cross-sig primitive (TODO 11.1053)
 
 Added `<ChartLineTrixMidCrossSig />` -- close-input Jack
