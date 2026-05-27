@@ -714,3 +714,4 @@ export * from './chart-line-cci-divergence-cross';
 export * from './chart-line-obv-divergence-cross';
 export * from './chart-line-mfi-divergence-cross';
 export * from './chart-line-awesome-divergence-cross';
+export * from './chart-line-tsi-divergence-cross';
