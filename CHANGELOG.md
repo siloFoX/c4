@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.899] - 2026-05-27 -- UI: chart-line-atr-cross-sig primitive (TODO 11.881)
+
+Added `<ChartLineAtrCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and simplified single-
+series Average True Range (ATR) over its EMA signal line in the
+bottom panel with cross dot markers. Trigger-focused companion
+to 11.880 chart-line-atr-cross-pct (close-scaled deviation
+magnitude). TR = abs(close[i] - close[i-1]) (close-only
+simplified). ATR = Wilder smooth of TR, length. signal =
+EMA(ATR, signalLength). Bullish / bearish crosses fire when (ATR
+- signal) sign changes. Regime classifier `bullish` / `bearish`
+/ `neutral` / `none`. Defaults `length = 14`, `signalLength =
+9`. Bit-exact anchors: CONST close = K (any K) -> TR = 0 every
+bar -> ATR = 0 -> signal = 0 -> regime neutral, 0 crosses; LINEAR
+UP step=1 -> TR = 1 -> ATR = 1, signal = 1, regime neutral, 0
+crosses; LINEAR DOWN step=-1 -> TR = 1 -> ATR = 1, signal = 1,
+regime neutral, 0 crosses. All three anchors verified across
+multiple K and start values. ARIA region + img-role SVG + sr-
+only desc; oscillator + overlay markers carry role="graphics-
+symbol" tabIndex={0}; motion-safe fade-in. 57 vitest cases.
+
 ## [1.11.898] - 2026-05-27 -- UI: chart-line-atr-cross-pct primitive (TODO 11.880)
 
 Added `<ChartLineAtrCrossPct />` -- pure-SVG dual-panel React/TS

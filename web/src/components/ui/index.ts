@@ -590,3 +590,4 @@ export * from './chart-line-stoch-cross-pct';
 export * from './chart-line-rsi-cross-pct';
 export * from './chart-line-mfi-cross-pct';
 export * from './chart-line-atr-cross-pct';
+export * from './chart-line-atr-cross-sig';
