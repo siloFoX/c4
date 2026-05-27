@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.907] - 2026-05-27 -- UI: chart-line-ehlers-fisher-cross primitive (TODO 11.889)
+
+Added `<ChartLineEhlersFisherCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every cross trigger, and Ehlers
+Fisher Transform over its EMA-smoothed signal line in the bottom
+panel with cross dot markers. Trigger-focused cross-sig variant
+paired with 11.887 chart-line-fisher-cross-pct magnitude
+channel; completes the Fisher family with the canonical price-
+panel arrow overlays. Canonical Ehlers Fisher with 0.66/0.67/0.5
+mixing: norm = (close - lowest) / (highest - lowest) (0.5 when
+range degenerate); xRaw = 0.66*2*(norm-0.5) + 0.67*x[-1]; x =
+clamp(xRaw, +/-0.999); fisher = 0.5*ln((1+x)/(1-x)) +
+0.5*fisher[-1]. signal = EMA(fisher, signalLength). Regime
+classifier `bullish` / `bearish` / `neutral` / `none`. Defaults
+length=10 (canonical), signalLength=9. Bit-exact anchor: CONST
+close = K -> norm = 0.5 -> x = 0 every bar -> fisher = 0 ->
+signal = 0 -> regime neutral, 0 crosses (verified K = 0..1234).
+ARIA region + img-role SVG + sr-only desc; oscillator + overlay
+markers carry role="graphics-symbol" tabIndex={0}; motion-safe
+fade-in. 54 vitest cases.
+
 ## [1.11.906] - 2026-05-27 -- UI: chart-line-stoch-rsi-cross-sig primitive (TODO 11.888)
 
 Added `<ChartLineStochRsiCrossSig />` -- pure-SVG dual-panel
