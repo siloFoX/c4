@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.944] - 2026-05-27 -- UI: chart-line-adx-strength-cross primitive (TODO 11.926)
+
+Added `<ChartLineAdxStrengthCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with mild /
+strong entry and exit chevron overlays at every ADX threshold
+cross, and the close-only Average Directional Index line
+(bottom panel) on a fixed 0-100 oscillator with two reference
+bands at 25 (mild) and 50 (strong). Dual-band cross detector
+fires `mildEnter` + `strongEnter` simultaneously when ADX
+jumps both thresholds in one bar (symmetric for `strongExit` +
+`mildExit`). Close-only ADX pipeline uses |delta close| as
+TR proxy, Wilder smoothing on TR / +DM / -DM, then DX = 100 *
+|+DI - -DI| / (+DI + -DI) and ADX = Wilder(DX). Bit-exact
+anchor: CONST `close = K` -> delta = 0 -> tr = 0 -> 0/0 guards
+return +DI = -DI = DX = adx = 0, regime `weak`, 0 crosses,
+verified across K in {0, 1, 42, 100, 1234}. LINEAR UP / DOWN
+with length 14 -> adx converges to 100 (regime `veryStrong`,
++/- trend) at index 27 onward with 0 crosses (adx jumps from
+null to 100 in one bar). Alternating `[10, 11, 10, 11, ...]`
+-> +DI and -DI balance to 50/50 so DX -> 0 and adx stays well
+below the mild threshold (`weak`). Defaults `length=14`,
+`mildThreshold=25`, `strongThreshold=50`. Regime classifier
+`veryStrong` / `strong` / `weak` / `none`. ARIA region +
+role=img SVG with sr-only desc, `data-section` attributes on
+every drawn group, `role="graphics-symbol"` + `tabIndex=0`
+on every cross / overlay marker for keyboard navigation,
+motion-safe fade-in, controlled / uncontrolled hidden-series
+legend. 73 vitest cases covering pure helpers
+(`getLineAdxStrengthCrossFinitePoints`,
+`normalizeLineAdxStrengthCrossLength`,
+`normalizeLineAdxStrengthCrossThreshold`,
+`applyLineAdxStrengthCrossWilder`), the close-only ADX compute
+pipeline, the mild + strong cross detector, layout (band y
+ordering and path M/L precision), and the JSX render path
+(ARIA, data-* attrs, legend keyboard toggles, hover tooltip,
+band / cross / overlay visibility flags). Manifests 1.11.943
+-> 1.11.944.
+
 ## [1.11.943] - 2026-05-27 -- UI: chart-line-cci-extreme-cross primitive (TODO 11.925)
 
 Added `<ChartLineCciExtremeCross />` -- pure-SVG dual-panel
