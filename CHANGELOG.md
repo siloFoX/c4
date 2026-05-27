@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1012] - 2026-05-27 -- UI: chart-line-dpo-oversold-cross primitive (TODO 11.994)
+
+Added `<ChartLineDpoOversoldCross />` -- close-only Detrended
+Price Oscillator (DPO) oversold-threshold (default -1)
+crossover primitive that flags detrended-momentum oversold
+trigger events at a configurable negative lower band. Mirror
+of `chart-line-dpo-overbought-cross` (11.993) with default
+threshold flipped from +1 to -1. Defaults `length = 20`,
+`threshold = -1`, `shift = floor(length / 2) + 1 = 11` derived.
+Bit-exact anchors: CONST close=K -> dpo=0 -> bullish (0 >= -1,
+mirror flip of overbought's bearish at the same reading);
+LINEAR UP close=i -> dpo=-1.5 -> bearish (in oversold zone,
+look-back close 1.5 units below centered SMA on a monotonic
+uptrend); LINEAR DOWN close=-i -> dpo=1.5 -> bullish. 0
+crosses for all monotonic patterns. Strict inequality on `cur`
+so boundary equality (dpo == -1) never double-fires. Layout
+auto-fits with 10% padding and expands DOWN to include the
+threshold band on degenerate. 58 vitest cases. Bumped
+1.11.1011 -> 1.11.1012.
+
 ## [1.11.1011] - 2026-05-27 -- UI: chart-line-dpo-overbought-cross primitive (TODO 11.993)
 
 Added `<ChartLineDpoOverboughtCross />` -- close-only Detrended
