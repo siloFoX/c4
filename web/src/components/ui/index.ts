@@ -630,3 +630,4 @@ export * from './chart-line-vwap-cross-pct';
 export * from './chart-line-volume-osc-cross';
 export * from './chart-line-volume-osc-cross-sig';
 export * from './chart-line-adx-cross-extreme';
+export * from './chart-line-rsi-overbought-cross';
