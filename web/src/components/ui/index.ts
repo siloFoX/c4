@@ -763,3 +763,4 @@ export * from './chart-line-supertrend-mid-cross-sig';
 export * from './chart-line-williams-mid-cross-sig';
 export * from './chart-line-dpo-mid-cross-sig';
 export * from './chart-line-trix-mid-cross-sig';
+export * from './chart-line-keltner-divergence-cross';
