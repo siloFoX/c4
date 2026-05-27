@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1051] - 2026-05-27 -- UI: chart-line-donchian-mid-cross-sig primitive (TODO 11.1033)
+
+Added `<ChartLineDonchianMidCrossSig />` -- HLC-input
+Donchian Channel middle line (midpoint of rolling
+high/low range) over its SMA signal smoothing crossover
+trigger detector that flags centerline range trend trigger
+events with bias coloring. Range-midpoint sibling of
+chart-line-bollinger-mid-cross-sig (v1.11.1049, SMA
+centerline) and chart-line-keltner-mid-cross-sig
+(v1.11.1050, EMA centerline): all three share the same
+period=20 lookback and the same (period-1)/2 = 9.5
+centroid-lag identity on linear input, but Donchian tracks
+the range midpoint rather than a moving average of close --
+sensitive to extreme highs/lows in the window that other
+centerlines smooth away. Bias-coloured cross markers
+(up/down/flat/none from middle slope at trigger bar) match
+the convention. Default period=20, signalLength=3,
+warmup=21. Bit-exact anchors (HLC): CONST band [K-1,K+1] ->
+upper=K+1, lower=K-1, middle=K, signal=K, regime bullish
+(>=), 0 triggers; LINEAR UP [i-1,i+1] -> upper=i+1,
+lower=i-20, middle=i-9.5, signal=i-10.5, middle-signal=+1,
+regime bullish, 0 triggers; LINEAR DOWN [-i-1,-i+1] ->
+upper=-i+20, lower=-i-1, middle=-i+9.5, signal=-i+10.5,
+middle-signal=-1, regime bearish, 0 triggers. The clean
++1/-1 separation is a consequence of the centroid
+arithmetic: for monotone input, max-high and min-low are
+symmetric around the window center, so their midpoint
+equals the SMA exactly. Upper/lower values exposed on the
+run object for composing primitives. 52 vitest cases. Pure
+SVG, no chart libs.
+
 ## [1.11.1050] - 2026-05-27 -- UI: chart-line-keltner-mid-cross-sig primitive (TODO 11.1032)
 
 Added `<ChartLineKeltnerMidCrossSig />` -- close-only

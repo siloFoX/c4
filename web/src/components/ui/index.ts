@@ -742,3 +742,4 @@ export * from './chart-line-adx-trend-cross';
 export * from './chart-line-atr-breakout-cross';
 export * from './chart-line-bollinger-mid-cross-sig';
 export * from './chart-line-keltner-mid-cross-sig';
+export * from './chart-line-donchian-mid-cross-sig';
