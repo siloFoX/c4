@@ -599,3 +599,4 @@ export * from './chart-line-kvo-cross';
 export * from './chart-line-fisher-cross-pct';
 export * from './chart-line-stoch-rsi-cross-sig';
 export * from './chart-line-ehlers-fisher-cross';
+export * from './chart-line-zlema-cross-pct';
