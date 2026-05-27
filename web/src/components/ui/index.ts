@@ -719,3 +719,4 @@ export * from './chart-line-trix-divergence-cross';
 export * from './chart-line-adx-divergence-cross';
 export * from './chart-line-fisher-divergence-cross';
 export * from './chart-line-dpo-divergence-cross';
+export * from './chart-line-qstick-divergence-cross';

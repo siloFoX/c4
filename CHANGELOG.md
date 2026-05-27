@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1028] - 2026-05-27 -- UI: chart-line-qstick-divergence-cross primitive (TODO 11.1010)
+
+Added `<ChartLineQstickDivergenceCross />` -- OHLC-input
+Tushar Chande QStick (SMA of close minus open) divergence
+detector that flags discrete price-versus-QStick direction
+disagreement events for candle-body momentum reversal warning.
+QStick companion to the MACD / RSI / CMO / Stoch / CCI /
+Awesome / TSI / TRIX / ADX / Fisher / DPO divergence
+primitives, mirroring the canonical QStick formula already
+used by `chart-line-qstick-cross-sig`,
+`chart-line-qstick-overbought-cross`, and
+`chart-line-qstick-oversold-cross`. Default `length = 14`,
+`divergenceWindow = 5`. Bit-exact anchors: CONST OHLC=K (any
+K) -> qstick=0 -> aligned-bearish, 0 crosses; LINEAR UP
+(open=i-0.5, close=i+0.5) -> qstick=+1 saturated ->
+divergent-bearish 62/80 samples (canonical bearish
+divergence); LINEAR DOWN (open=-i+0.5, close=-i-0.5) ->
+qstick=-1 saturated -> aligned-bearish. Crosses suppressed
+when prev or cur is `none`. Symmetric +/- oscillator range
+derived from the observed qstick span. 61 vitest cases. Pure
+SVG, no chart libs.
+
 ## [1.11.1027] - 2026-05-27 -- UI: chart-line-dpo-divergence-cross primitive (TODO 11.1009)
 
 Added `<ChartLineDpoDivergenceCross />` -- close-only Detrended
