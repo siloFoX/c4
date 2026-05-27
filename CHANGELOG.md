@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1063] - 2026-05-27 -- UI: chart-line-williams-divergence-cross primitive (TODO 11.1045)
+
+Added `<ChartLineWilliamsDivergenceCross />` -- HLC-input
+Williams Percent R bounded momentum oscillator divergence
+detector that flags price-vs-%R direction disagreement
+events as momentum reversal warnings with bias coloring.
+Williams %R (Larry Williams 1973) locates the current
+close within the recent high-to-low range, scaled to
+[-100, 0]. Counter to RSI/Stochastic convention, -100 is
+oversold and 0 is overbought. Pipeline: HH = max(high,
+period), LL = min(low, period), %R = (HH - close) / (HH -
+LL) * -100. Default period=14, warmup=13. Bit-exact
+anchors (HLC): CONST band [K-1,K+1] -> HH=K+1, LL=K-1,
+%R=-50 (mid-range), regime none (flat), 0 triggers; LINEAR
+UP -> HH=i+1, LL=i-period, %R=-100/(period+1) constant
+near-overbought, regime none (price up but %R flat), 0
+triggers; LINEAR DOWN -> HH=-i+period, LL=-i-1, %R=-100*
+period/(period+1) constant near-oversold, regime none, 0
+triggers. The flat-%R-on-LINEAR-input property is the
+textbook Williams behaviour: in steady trends %R pins at
+its boundary, divergence appears only when momentum
+decays. Oscillator panel hard-locked to [-100, 0] with
+overbought (-20) and oversold (-80) thresholds rendered as
+dashed reference lines. Zero-range HH==LL guard returns
+null. 48 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1062] - 2026-05-27 -- UI: chart-line-supertrend-divergence-cross primitive (TODO 11.1044)
 
 Added `<ChartLineSupertrendDivergenceCross />` -- HLC-input
