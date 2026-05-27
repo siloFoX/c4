@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1001] - 2026-05-27 -- UI: chart-line-stoch-mid-cross-sig primitive (TODO 11.983)
+
+Added `<ChartLineStochMidCrossSig />` -- close-only Stochastic
+signal-line midline-50 crossover primitive that flags discrete
+bull / bear regime transitions when the smoothed K (SMA of raw
+%K) crosses the canonical neutral midline. Companion to the
+existing AO / TRIX / Fisher / CMO / RMI mid-cross family but for
+Stochastic momentum: smooths raw %K through a configurable
+SMA window so the trigger fires only after the slow-K signal
+itself crosses 50, suppressing the raw-K whipsaws that plague
+the unfiltered variant. Defaults `length = 14`, `kSmoothing =
+3`, `threshold = 50`. Bit-exact anchors: CONST close=K -> rawK=50
+(degenerate hh==ll midline default), sigK=50 (Object.is verified)
+-> regime bullish (sigK >= 50, 0 crosses); LINEAR UP close=i ->
+rawK=100, sigK=100 -> regime bullish (0 crosses); LINEAR DOWN
+close=-i -> rawK=0, sigK=0 -> regime bearish (0 crosses).
+Strict inequality on `cur` (`cur > T` for bullish, `cur < T` for
+bearish) so boundary equality (sigK == 50) never double-fires.
+Layout uses fixed oscMin=0 / oscMax=100 (Stochastic canonical
+range, no auto-fit). 64 vitest cases. Bumped 1.11.1000 -> 1.11.1001.
+
 ## [1.11.1000] - 2026-05-27 -- UI: chart-line-awesome-oversold-cross primitive (TODO 11.982)
 
 Added `<ChartLineAwesomeOversoldCross />` -- Bill Williams' Awesome
