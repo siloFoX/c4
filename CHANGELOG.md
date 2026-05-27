@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.902] - 2026-05-27 -- UI: chart-line-cci-cross-sig primitive (TODO 11.884)
+
+Added `<ChartLineCciCrossSig />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every cross trigger, and Commodity Channel
+Index (CCI) over its EMA-smoothed signal line in the bottom panel
+with cross dot markers. Trigger-focused CCI variant separating
+momentum trigger events from the base CCI level. CCI = (TP -
+SMA) / (0.015 * meanDev) with TP = close (single-series). signal
+= EMA(CCI, signalLength). Bullish / bearish crosses fire when
+(CCI - signal) sign changes. Regime classifier `bullish` /
+`bearish` / `neutral` / `none`. Defaults `length = 20` (canonical
+CCI), `signalLength = 9`. Bit-exact anchor: CONST close = K (any
+K) -> TP = SMA = K -> numerator = 0, meanDev = 0 -> CCI = 0 every
+bar -> signal = 0 -> regime neutral, 0 crosses (verified K =
+0..1234). ARIA region + img-role SVG + sr-only desc; oscillator
++ overlay markers carry role="graphics-symbol" tabIndex={0};
+motion-safe fade-in. 55 vitest cases.
+
 ## [1.11.901] - 2026-05-27 -- UI: chart-line-trix-cross-sig primitive (TODO 11.883)
 
 Added `<ChartLineTrixCrossSig />` -- pure-SVG dual-panel React/TS
