@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.925] - 2026-05-27 -- UI: chart-line-donchian-cross-sig primitive (TODO 11.907)
+
+Added `<ChartLineDonchianCrossSig />` -- pure-SVG dual-panel
+React/TS primitive rendering the close + upper / middle /
+lower Donchian Channel (top panel) with bullish / bearish
+arrow overlays at every close vs middle line cross, and a
+`close - middle` deviation oscillator (bottom panel) with
+cross dot markers and a dashed zero baseline. Signal-cross
+variant of the Donchian Channel family that flags high / low
+range regime transition triggers distinct from envelope
+breakouts. Close-only formula: `upper = max(close, length)`,
+`lower = min(close, length)`, `mid = (upper + lower) / 2`,
+`diff = close - mid`. Bullish / bearish crosses on `diff` vs
+0. Default `length=20`. Regime classifier `bullish` (close >
+mid) / `bearish` / `neutral` / `none`. Bit-exact anchor:
+CONST K -> upper = lower = mid = K, diff = 0, regime
+`neutral`, 0 crosses. LINEAR UP anchor: diff = 9.5 exactly
+(half the 20-bar window width), regime `bullish`. 54 vitest
+cases, all pass. ARIA region, img-role SVG with sr-only
+desc, `role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.924] - 2026-05-27 -- UI: chart-line-keltner-cross-sig primitive (TODO 11.906)
 
 Added `<ChartLineKeltnerCrossSig />` -- pure-SVG dual-panel
