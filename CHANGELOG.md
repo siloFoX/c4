@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1030] - 2026-05-27 -- UI: chart-line-rmi-divergence-cross primitive (TODO 11.1012)
+
+Added `<ChartLineRmiDivergenceCross />` -- close-only Roger
+Altman Relative Momentum Index (RSI computed over a multi-bar
+momentum lookback) divergence detector that flags discrete
+price-versus-RMI direction disagreement events for RSI-with-
+lookback reversal warning. RMI companion to the MACD / RSI /
+CMO / Stoch / CCI / Awesome / TSI / TRIX / ADX / Fisher / DPO
+/ QStick / STC divergence primitives. Default `length = 14`,
+`momentumLength = 4`, `divergenceWindow = 5`. When
+`momentumLength = 1` reduces to standard Wilder RSI. Bit-exact
+anchors: CONST K (any K) -> rmi=50 -> aligned-bearish, 0
+crosses; LINEAR UP -> rmi=100 saturated -> divergent-bearish
+38/60 samples (canonical bearish divergence); LINEAR DOWN ->
+rmi=0 saturated -> aligned-bearish. Crosses suppressed when
+prev or cur is `none`. SMA-seeded Wilder RMA helper exported
+as `applyLineRmiDivergenceCrossSmaSeededRma`. 67 vitest cases.
+Pure SVG, no chart libs.
+
 ## [1.11.1029] - 2026-05-27 -- UI: chart-line-schaff-divergence-cross primitive (TODO 11.1011)
 
 Added `<ChartLineSchaffDivergenceCross />` -- close-only Doug
