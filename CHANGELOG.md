@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.929] - 2026-05-27 -- UI: chart-line-accumulation-cross primitive (TODO 11.911)
+
+Added `<ChartLineAccumulationCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every Accumulation / Distribution
+Line vs EMA-smoothed signal cross, and the close-only A/D Line
++ signal line in the bottom panel with cross dot markers and a
+dashed zero baseline. Signal-cross variant of the A/D Line
+family that flags accumulation versus distribution regime
+change trigger events distinct from the cumulative A/D Line
+trend. Close-only formula: `hi = max(close, barLength)`,
+`lo = min(close, barLength)`, `mfm = range > 0 ? (2*close -
+lo - hi) / range : 0`, `mfv = mfm * close`, `ad[i] = ad[i-1]
++ mfv`. `signal = EMA(ad, signalLength)`. Bullish / bearish
+crosses on `ad - signal`. Defaults `barLength=2`,
+`signalLength=9`. Regime classifier `bullish` (ad > signal) /
+`bearish` / `neutral` / `none`. Bit-exact anchor: CONST K ->
+range=0 -> mfm=0 -> mfv=0 -> ad=0 cumulatively, signal=0 via
+EMA short-circuit, regime `neutral`, 0 crosses. 54 vitest
+cases, all pass. ARIA region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.928] - 2026-05-27 -- UI: chart-line-williams-r-cross primitive (TODO 11.910)
 
 Added `<ChartLineWilliamsRCross />` -- pure-SVG dual-panel
