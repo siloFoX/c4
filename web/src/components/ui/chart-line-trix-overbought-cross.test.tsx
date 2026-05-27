@@ -1,0 +1,627 @@
+import { describe, expect, it } from 'vitest';
+import { render, fireEvent } from '@testing-library/react';
+import {
+  ChartLineTrixOverboughtCross,
+  DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_HEIGHT,
+  DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_LENGTH,
+  DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_PADDING,
+  DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_PANEL_GAP,
+  DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_THRESHOLD,
+  DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_WIDTH,
+  applyLineTrixOverboughtCrossEma,
+  classifyLineTrixOverboughtCrossRegime,
+  computeLineTrixOverboughtCross,
+  computeLineTrixOverboughtCrossLayout,
+  describeLineTrixOverboughtCrossChart,
+  detectLineTrixOverboughtCrossCrosses,
+  getLineTrixOverboughtCrossFinitePoints,
+  normalizeLineTrixOverboughtCrossLength,
+  normalizeLineTrixOverboughtCrossThreshold,
+  runLineTrixOverboughtCross,
+  type ChartLineTrixOverboughtCrossPoint,
+} from './chart-line-trix-overbought-cross';
+
+const mk = (closes: number[]): ChartLineTrixOverboughtCrossPoint[] =>
+  closes.map((c, i) => ({ x: i, close: c }));
+
+describe('getLineTrixOverboughtCrossFinitePoints', () => {
+  it('keeps only finite points', () => {
+    const points = [
+      { x: 0, close: 10 },
+      { x: 1, close: NaN },
+      { x: 2, close: 11 },
+      { x: Infinity, close: 12 },
+      { x: 3, close: -Infinity },
+      { x: 4, close: 13 },
+    ];
+    expect(getLineTrixOverboughtCrossFinitePoints(points)).toEqual([
+      { x: 0, close: 10 },
+      { x: 2, close: 11 },
+      { x: 4, close: 13 },
+    ]);
+  });
+
+  it('returns [] for null / undefined / non-array', () => {
+    expect(getLineTrixOverboughtCrossFinitePoints(null)).toEqual([]);
+    expect(getLineTrixOverboughtCrossFinitePoints(undefined)).toEqual([]);
+    expect(
+      getLineTrixOverboughtCrossFinitePoints(
+        'oops' as unknown as ChartLineTrixOverboughtCrossPoint[],
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('normalizeLineTrixOverboughtCrossLength', () => {
+  it('keeps finite integers >= 1', () => {
+    expect(normalizeLineTrixOverboughtCrossLength(15, 15)).toBe(15);
+    expect(normalizeLineTrixOverboughtCrossLength(1, 15)).toBe(1);
+  });
+
+  it('floors fractional values', () => {
+    expect(normalizeLineTrixOverboughtCrossLength(7.9, 15)).toBe(7);
+  });
+
+  it('falls back on invalid input', () => {
+    expect(normalizeLineTrixOverboughtCrossLength(0, 15)).toBe(15);
+    expect(normalizeLineTrixOverboughtCrossLength(-1, 15)).toBe(15);
+    expect(normalizeLineTrixOverboughtCrossLength(NaN, 15)).toBe(15);
+  });
+});
+
+describe('normalizeLineTrixOverboughtCrossThreshold', () => {
+  it('accepts any finite value', () => {
+    expect(normalizeLineTrixOverboughtCrossThreshold(0.1, 0.1)).toBe(0.1);
+    expect(normalizeLineTrixOverboughtCrossThreshold(0, 0.1)).toBe(0);
+    expect(normalizeLineTrixOverboughtCrossThreshold(-0.1, 0.1)).toBe(-0.1);
+  });
+
+  it('rejects non-finite', () => {
+    expect(normalizeLineTrixOverboughtCrossThreshold(NaN, 0.1)).toBe(0.1);
+    expect(normalizeLineTrixOverboughtCrossThreshold(Infinity, 0.1)).toBe(
+      0.1,
+    );
+  });
+});
+
+describe('applyLineTrixOverboughtCrossEma', () => {
+  it('CONST values -> EMA = value via SMA seed + CONST short-circuit', () => {
+    const out = applyLineTrixOverboughtCrossEma(new Array(20).fill(5), 10);
+    for (let i = 0; i < 9; i += 1) expect(out[i]).toBeNull();
+    for (let i = 9; i < 20; i += 1) expect(out[i]).toBe(5);
+  });
+
+  it('LINEAR ramp produces steady linear EMA after seed', () => {
+    const values = Array.from({ length: 50 }, (_, i) => i);
+    const out = applyLineTrixOverboughtCrossEma(values, 15);
+    expect(out[49]).toBeGreaterThan(35);
+    expect(out[49]).toBeLessThan(48);
+  });
+});
+
+describe('computeLineTrixOverboughtCross - CONST K bit-exact anchor', () => {
+  it.each([0, 1, 42, 100, 1234])(
+    'CONST close K=%d -> trix = 0 from index 43 onward',
+    (K) => {
+      const data = mk(new Array(60).fill(K));
+      const { trix } = computeLineTrixOverboughtCross(data, { length: 15 });
+      for (let i = 43; i < 60; i += 1) {
+        expect(trix[i]).toBe(0);
+        expect(Object.is(trix[i], -0)).toBe(false);
+      }
+    },
+  );
+});
+
+describe('computeLineTrixOverboughtCross - LINEAR ramps', () => {
+  it('LINEAR UP -> trix is positive', () => {
+    const data = mk(Array.from({ length: 100 }, (_, i) => i + 100));
+    const { trix } = computeLineTrixOverboughtCross(data, { length: 15 });
+    const last = trix[99];
+    expect(last).not.toBeNull();
+    expect(last).toBeGreaterThan(0);
+  });
+
+  it('LINEAR DOWN -> trix is negative', () => {
+    const data = mk(Array.from({ length: 100 }, (_, i) => 200 - i));
+    const { trix } = computeLineTrixOverboughtCross(data, { length: 15 });
+    const last = trix[99];
+    expect(last).not.toBeNull();
+    expect(last).toBeLessThan(0);
+  });
+});
+
+describe('classifyLineTrixOverboughtCrossRegime', () => {
+  it('null -> none', () => {
+    expect(classifyLineTrixOverboughtCrossRegime(null, 0.1)).toBe('none');
+  });
+
+  it('trix at threshold boundary -> bullish', () => {
+    expect(classifyLineTrixOverboughtCrossRegime(0.1, 0.1)).toBe('bullish');
+    expect(classifyLineTrixOverboughtCrossRegime(0.5, 0.1)).toBe('bullish');
+  });
+
+  it('trix < threshold -> bearish (includes 0)', () => {
+    expect(classifyLineTrixOverboughtCrossRegime(0.099, 0.1)).toBe('bearish');
+    expect(classifyLineTrixOverboughtCrossRegime(0, 0.1)).toBe('bearish');
+    expect(classifyLineTrixOverboughtCrossRegime(-0.5, 0.1)).toBe('bearish');
+  });
+});
+
+describe('detectLineTrixOverboughtCrossCrosses', () => {
+  it('fires bullish when trix crosses up through 0.1', () => {
+    const series = mk([1, 2, 3, 4, 5]);
+    const trix = [-0.1, 0, 0.05, 0.2, 0.3];
+    const crosses = detectLineTrixOverboughtCrossCrosses(series, trix, 0.1);
+    expect(crosses).toEqual([{ index: 3, x: 3, kind: 'bullish' }]);
+  });
+
+  it('fires bearish when trix crosses down through 0.1', () => {
+    const series = mk([1, 2, 3, 4, 5]);
+    const trix = [0.3, 0.2, 0.15, 0.05, 0];
+    const crosses = detectLineTrixOverboughtCrossCrosses(series, trix, 0.1);
+    expect(crosses).toEqual([{ index: 3, x: 3, kind: 'bearish' }]);
+  });
+
+  it('emits bullish then bearish on a sweep through the threshold', () => {
+    const series = mk([1, 2, 3, 4]);
+    const trix = [0, 0.3, 0.2, 0];
+    const crosses = detectLineTrixOverboughtCrossCrosses(series, trix, 0.1);
+    expect(crosses).toHaveLength(2);
+    expect(crosses[0]!.kind).toBe('bullish');
+    expect(crosses[1]!.kind).toBe('bearish');
+  });
+
+  it('skips when prev or cur is null', () => {
+    const series = mk([1, 2, 3]);
+    expect(
+      detectLineTrixOverboughtCrossCrosses(series, [null, 0, 0.3], 0.1),
+    ).toEqual([{ index: 2, x: 2, kind: 'bullish' }]);
+    expect(
+      detectLineTrixOverboughtCrossCrosses(series, [0, null, 0.3], 0.1),
+    ).toEqual([]);
+  });
+
+  it('boundary equality not crossed (strict cur > T)', () => {
+    const series = mk([1, 2]);
+    expect(
+      detectLineTrixOverboughtCrossCrosses(series, [0, 0.1], 0.1),
+    ).toEqual([]);
+  });
+
+  it('no cross when trix stays on one side', () => {
+    const series = mk([1, 2, 3, 4]);
+    expect(
+      detectLineTrixOverboughtCrossCrosses(series, [0, 0.02, 0.05, 0.08], 0.1),
+    ).toEqual([]);
+  });
+});
+
+describe('runLineTrixOverboughtCross', () => {
+  it('CONST K -> 0 crosses, all bearish (trix=0 < 0.1)', () => {
+    const data = mk(new Array(60).fill(50));
+    const run = runLineTrixOverboughtCross(data, { length: 15 });
+    expect(run.ok).toBe(true);
+    expect(run.crosses).toHaveLength(0);
+    // ema3 valid from index 42, trix from 43.
+    expect(run.noneCount).toBe(43);
+    expect(run.bullishCount).toBe(0);
+    expect(run.bearishCount).toBe(17);
+    expect(run.length).toBe(15);
+    expect(run.threshold).toBe(0.1);
+  });
+
+  it('LINEAR UP -> trix stays well above 0.1 once it converges, 0 crosses', () => {
+    const data = mk(Array.from({ length: 100 }, (_, i) => i + 100));
+    const run = runLineTrixOverboughtCross(data, { length: 15 });
+    // LINEAR UP gives trix > 0 throughout, decaying toward 0 but well above
+    // 0.1 across this window. Detector sees only above-threshold samples.
+    expect(run.crosses).toHaveLength(0);
+    expect(run.bullishCount).toBeGreaterThan(0);
+    expect(run.bearishCount).toBe(0);
+  });
+
+  it('LINEAR DOWN -> all bearish after warmup, 0 crosses', () => {
+    const data = mk(Array.from({ length: 100 }, (_, i) => 200 - i));
+    const run = runLineTrixOverboughtCross(data, { length: 15 });
+    expect(run.crosses).toHaveLength(0);
+    expect(run.bearishCount).toBeGreaterThan(0);
+    expect(run.bullishCount).toBe(0);
+  });
+
+  it('threshold normalization clamps non-finite', () => {
+    const data = mk(new Array(60).fill(50));
+    const run = runLineTrixOverboughtCross(data, {
+      length: 15,
+      threshold: NaN,
+    });
+    expect(run.threshold).toBe(0.1);
+  });
+
+  it('respects custom threshold', () => {
+    const data = mk(new Array(60).fill(50));
+    expect(
+      runLineTrixOverboughtCross(data, { length: 15, threshold: 0.2 })
+        .threshold,
+    ).toBe(0.2);
+    expect(
+      runLineTrixOverboughtCross(data, { length: 15, threshold: -0.1 })
+        .threshold,
+    ).toBe(-0.1);
+  });
+
+  it('empty / insufficient data -> ok=false', () => {
+    expect(runLineTrixOverboughtCross([], { length: 15 }).ok).toBe(false);
+    expect(
+      runLineTrixOverboughtCross(mk([1, 2, 3]), { length: 15 }).ok,
+    ).toBe(false);
+  });
+
+  it('sorts by x', () => {
+    const data: ChartLineTrixOverboughtCrossPoint[] = [
+      { x: 3, close: 30 },
+      { x: 1, close: 10 },
+      { x: 2, close: 20 },
+    ];
+    const run = runLineTrixOverboughtCross(data, { length: 1 });
+    expect(run.series.map((p) => p.x)).toEqual([1, 2, 3]);
+  });
+
+  it('samples carry index / x / close / trix / regime', () => {
+    const data = mk(new Array(60).fill(50));
+    const run = runLineTrixOverboughtCross(data, { length: 15 });
+    expect(run.samples).toHaveLength(60);
+    for (let i = 0; i < 43; i += 1) {
+      expect(run.samples[i]!.trix).toBeNull();
+      expect(run.samples[i]!.regime).toBe('none');
+    }
+    for (let i = 43; i < 60; i += 1) {
+      expect(run.samples[i]!.trix).toBe(0);
+      expect(run.samples[i]!.regime).toBe('bearish');
+    }
+  });
+});
+
+describe('computeLineTrixOverboughtCrossLayout', () => {
+  it('default layout dimensions match defaults', () => {
+    const data = mk(new Array(60).fill(50));
+    const layout = computeLineTrixOverboughtCrossLayout({ data });
+    expect(layout.width).toBe(DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_WIDTH);
+    expect(layout.height).toBe(
+      DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_HEIGHT,
+    );
+    expect(layout.padding).toBe(
+      DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_PADDING,
+    );
+    expect(layout.panelGap).toBe(
+      DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_PANEL_GAP,
+    );
+  });
+
+  it('CONST trix=0 -> oscMin expands down, oscMax = threshold + pad', () => {
+    const data = mk(new Array(60).fill(50));
+    const layout = computeLineTrixOverboughtCrossLayout({ data });
+    // trix=0 everywhere, threshold=0.1: oscMax expands up to threshold,
+    // range = 0.1 -> 10% padding both sides.
+    expect(layout.oscMin).toBeCloseTo(-0.01, 6);
+    expect(layout.oscMax).toBeCloseTo(0.11, 6);
+  });
+
+  it('threshold band sits inside osc panel', () => {
+    const data = mk(new Array(60).fill(50));
+    const layout = computeLineTrixOverboughtCrossLayout({ data });
+    expect(layout.thresholdY).toBeGreaterThan(layout.oscTop);
+    expect(layout.thresholdY).toBeLessThan(layout.oscBottom);
+  });
+
+  it('empty data -> ok=false', () => {
+    const layout = computeLineTrixOverboughtCrossLayout({ data: [] });
+    expect(layout.ok).toBe(false);
+    expect(layout.pricePath).toBe('');
+    expect(layout.trixPath).toBe('');
+    expect(layout.crossMarkers).toEqual([]);
+  });
+
+  it('path uses M then L commands with 2-decimal precision', () => {
+    const data = mk(Array.from({ length: 60 }, (_, i) => i + 100));
+    const layout = computeLineTrixOverboughtCrossLayout({ data });
+    expect(layout.pricePath.startsWith('M ')).toBe(true);
+    expect(layout.pricePath).toMatch(/^M [\d.]+ [\d.]+( L [\d.]+ [\d.]+)+$/);
+  });
+
+  it('trix path skips null gaps with new M commands', () => {
+    const data = mk(Array.from({ length: 60 }, (_, i) => i + 100));
+    const layout = computeLineTrixOverboughtCrossLayout({ data });
+    expect(layout.trixPath.startsWith('M ')).toBe(true);
+    const mCount = (layout.trixPath.match(/M /g) ?? []).length;
+    expect(mCount).toBe(1);
+  });
+
+  it('handles single-value price', () => {
+    const data = mk(new Array(60).fill(7));
+    const layout = computeLineTrixOverboughtCrossLayout({ data });
+    expect(layout.priceMin).toBe(6);
+    expect(layout.priceMax).toBe(8);
+  });
+});
+
+describe('describeLineTrixOverboughtCrossChart', () => {
+  it('"No data" when empty', () => {
+    expect(describeLineTrixOverboughtCrossChart([])).toBe('No data');
+  });
+
+  it('describes bar count + parameters + overbought framing', () => {
+    const data = mk(new Array(60).fill(50));
+    const desc = describeLineTrixOverboughtCrossChart(data);
+    expect(desc).toContain('TRIX Overbought Cross chart');
+    expect(desc).toContain('60 bars');
+    expect(desc).toContain('length 15');
+    expect(desc).toContain('threshold 0.1');
+    expect(desc).toContain('overbought trigger');
+  });
+});
+
+describe('ChartLineTrixOverboughtCross rendering', () => {
+  it('renders region + role=img SVG + sr-only desc', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container, getByRole } = render(
+      <ChartLineTrixOverboughtCross data={data} />,
+    );
+    const region = getByRole('region');
+    expect(region.getAttribute('aria-label')).toBe(
+      'TRIX Overbought Cross chart',
+    );
+    const svg = container.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('role')).toBe('img');
+    const desc = container.querySelector(
+      '[data-section="chart-line-trix-overbought-cross-aria-desc"]',
+    );
+    expect(desc?.textContent).toContain('TRIX Overbought Cross chart');
+  });
+
+  it('renders config badge', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    const badge = container.querySelector(
+      '[data-section="chart-line-trix-overbought-cross-badge"]',
+    );
+    expect(badge?.textContent).toContain('length 15');
+    expect(badge?.textContent).toContain('threshold 0.1');
+  });
+
+  it('renders legend toggles for price + trix', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    const buttons = container.querySelectorAll('[data-series-id]');
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].getAttribute('data-series-id')).toBe('price');
+    expect(buttons[1].getAttribute('data-series-id')).toBe('trix');
+  });
+
+  it('toggles series visibility via legend click', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    const btn = container.querySelector('[data-series-id="trix"]');
+    expect(btn?.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(btn!);
+    expect(btn?.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(btn!);
+    expect(btn?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('respects controlled hiddenSeries', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container, rerender } = render(
+      <ChartLineTrixOverboughtCross data={data} hiddenSeries={['trix']} />,
+    );
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-trix-path"]',
+      ),
+    ).toBeNull();
+    rerender(
+      <ChartLineTrixOverboughtCross data={data} hiddenSeries={[]} />,
+    );
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-trix-path"]',
+      ),
+    ).not.toBeNull();
+  });
+
+  it('fires onSeriesToggle on click', () => {
+    const data = mk(new Array(60).fill(10));
+    const events: Array<{ seriesId: string; hidden: boolean }> = [];
+    const { container } = render(
+      <ChartLineTrixOverboughtCross
+        data={data}
+        onSeriesToggle={(e) => events.push(e)}
+      />,
+    );
+    fireEvent.click(container.querySelector('[data-series-id="trix"]')!);
+    expect(events).toEqual([{ seriesId: 'trix', hidden: true }]);
+  });
+
+  it('keyboard Enter / Space toggles legend', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    const btn = container.querySelector(
+      '[data-series-id="trix"]',
+    ) as HTMLButtonElement;
+    fireEvent.keyDown(btn, { key: 'Enter' });
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.keyDown(btn, { key: ' ' });
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('empty data -> "No data" empty section', () => {
+    const { container } = render(<ChartLineTrixOverboughtCross data={[]} />);
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-empty"]',
+      ),
+    ).not.toBeNull();
+  });
+
+  it('animate=false omits motion-safe class', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(
+      <ChartLineTrixOverboughtCross data={data} animate={false} />,
+    );
+    const svg = container.querySelector('svg');
+    expect(svg?.getAttribute('class')).toBeNull();
+  });
+
+  it('animate=true (default) applies motion-safe fade-in class', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    const svg = container.querySelector('svg');
+    expect(svg?.getAttribute('class')).toBe('motion-safe:animate-fade-in');
+  });
+
+  it('hover sets tooltip target', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    const hovers = container.querySelectorAll(
+      '[data-section="chart-line-trix-overbought-cross-hover"]',
+    );
+    expect(hovers.length).toBeGreaterThan(0);
+    fireEvent.mouseEnter(hovers[0]!);
+    const tooltip = container.querySelector(
+      '[data-section="chart-line-trix-overbought-cross-tooltip"]',
+    );
+    expect(tooltip).not.toBeNull();
+    fireEvent.mouseLeave(hovers[0]!);
+  });
+
+  it('renders threshold band by default', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-band-threshold"]',
+      ),
+    ).not.toBeNull();
+  });
+
+  it('showBands=false hides band group', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(
+      <ChartLineTrixOverboughtCross data={data} showBands={false} />,
+    );
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-bands"]',
+      ),
+    ).toBeNull();
+  });
+
+  it('showAxis=false / showGrid=false / showLegend=false', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(
+      <ChartLineTrixOverboughtCross
+        data={data}
+        showAxis={false}
+        showGrid={false}
+        showLegend={false}
+        showConfigBadge={false}
+      />,
+    );
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-axes"]',
+      ),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-grid"]',
+      ),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-legend"]',
+      ),
+    ).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-badge"]',
+      ),
+    ).toBeNull();
+  });
+
+  it('showCrosses=false hides cross markers group', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(
+      <ChartLineTrixOverboughtCross data={data} showCrosses={false} />,
+    );
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-crosses"]',
+      ),
+    ).toBeNull();
+  });
+
+  it('showOverlayCrosses=false hides overlay arrows group', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(
+      <ChartLineTrixOverboughtCross
+        data={data}
+        showOverlayCrosses={false}
+      />,
+    );
+    expect(
+      container.querySelector(
+        '[data-section="chart-line-trix-overbought-cross-overlay-crosses"]',
+      ),
+    ).toBeNull();
+  });
+
+  it('data-* attrs reflect run counters', () => {
+    const data = mk(new Array(60).fill(10));
+    const { container } = render(<ChartLineTrixOverboughtCross data={data} />);
+    const region = container.querySelector(
+      '[data-section="chart-line-trix-overbought-cross"]',
+    );
+    expect(region?.getAttribute('data-length')).toBe('15');
+    expect(region?.getAttribute('data-threshold')).toBe('0.1');
+    expect(region?.getAttribute('data-cross-count')).toBe('0');
+    expect(region?.getAttribute('data-bearish-count')).toBe('17');
+    expect(region?.getAttribute('data-bullish-count')).toBe('0');
+  });
+
+  it('defaults: length=15, threshold=0.1', () => {
+    expect(DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_LENGTH).toBe(15);
+    expect(DEFAULT_CHART_LINE_TRIX_OVERBOUGHT_CROSS_THRESHOLD).toBe(0.1);
+  });
+
+  it('forwardRef returns the wrapping div', () => {
+    const data = mk(new Array(60).fill(10));
+    const ref = { current: null as HTMLDivElement | null };
+    render(<ChartLineTrixOverboughtCross data={data} ref={ref} />);
+    expect(ref.current).toBeInstanceOf(HTMLDivElement);
+    expect(ref.current?.getAttribute('data-section')).toBe(
+      'chart-line-trix-overbought-cross',
+    );
+  });
+
+  it('layout is deterministic across calls for default CONST 60 bars', () => {
+    const data = mk(new Array(60).fill(10));
+    const a = computeLineTrixOverboughtCrossLayout({ data });
+    const b = computeLineTrixOverboughtCrossLayout({ data });
+    expect(a.pricePath).toBe(b.pricePath);
+    expect(a.trixPath).toBe(b.trixPath);
+    expect(a.thresholdY).toBe(b.thresholdY);
+    expect(a.run.crosses).toEqual(b.run.crosses);
+  });
+
+  it('layout deterministic across calls for LINEAR UP pattern', () => {
+    const data = mk(Array.from({ length: 80 }, (_, i) => i + 100));
+    const a = computeLineTrixOverboughtCrossLayout({ data });
+    const b = computeLineTrixOverboughtCrossLayout({ data });
+    expect(a.pricePath).toBe(b.pricePath);
+    expect(a.trixPath).toBe(b.trixPath);
+    expect(a.run.trixValues).toEqual(b.run.trixValues);
+    expect(a.run.crosses).toEqual(b.run.crosses);
+  });
+});
