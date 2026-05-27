@@ -591,3 +591,4 @@ export * from './chart-line-rsi-cross-pct';
 export * from './chart-line-mfi-cross-pct';
 export * from './chart-line-atr-cross-pct';
 export * from './chart-line-atr-cross-sig';
+export * from './chart-line-adx-cross-pct';
