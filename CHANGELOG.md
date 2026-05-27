@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.1066] - 2026-05-27 -- UI: chart-line-rsi-mid-cross-sig primitive (TODO 11.1048)
+
+Added `<ChartLineRsiMidCrossSig />` -- close-input J.
+Welles Wilder Jr (1978) Relative Strength Index midline-
+over-signal crossover detector flagging momentum
+centerline trend trigger events with bias coloring from
+the RSI slope at the trigger bar. RSI is the canonical
+bounded momentum oscillator: Wilder-smoothed ratio of
+average gain over average loss, normalised into [0, 100].
+`> 70` is overbought, `< 30` is oversold, `50` is the
+natural momentum centerline. Pipeline: gain[i] =
+max(close[i]-close[i-1], 0), loss[i] = max(close[i-1]-
+close[i], 0), avgGain = Wilder smoothed average with SMA
+seed at i = period, rsi = 100 * avgGain / (avgGain +
+avgLoss) with neutral-zone guard returning 50 on
+0/0, signal = SMA(rsi, signalLength). Bullish: RSI crosses
+up signal. Bearish: RSI crosses down signal. Default
+period=14, signalLength=3, warmup=16. Bit-exact anchors
+(close): CONST [K] -> gain=loss=0, RSI=50 (neutral
+fallback), signal=50, regime bullish (===), 0 crosses;
+LINEAR UP close=i -> gain=1, loss=0, RSI=100, signal=100,
+regime bullish (===), 0 crosses; LINEAR DOWN close=-i ->
+gain=0, loss=1, RSI=0, signal=0, regime bullish (===), 0
+crosses. Layout hard-locked to [0,100] for stable
+threshold reference rendering. Complementary to CCI mid-
+cross-sig sibling -- RSI offers bounded momentum
+oscillator, CCI offers unbounded mean-reversion
+oscillator; both share the cross-sig family pattern. 51
+vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1065] - 2026-05-27 -- UI: chart-line-cci-mid-cross-sig primitive (TODO 11.1047)
 
 Added `<ChartLineCciMidCrossSig />` -- HLC-input Donald
