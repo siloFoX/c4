@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.934] - 2026-05-27 -- UI: chart-line-vwap-cross-sig primitive (TODO 11.916)
+
+Added `<ChartLineVwapCrossSig />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with bullish
+/ bearish arrow overlays at every rolling VWAP vs signal cross,
+and the close-only rolling Volume Weighted Average Price + EMA-
+smoothed signal in the bottom panel with cross dot markers.
+Signal-cross variant of the VWAP family that flags volume-
+weighted session bias trigger events distinct from a static
+session VWAP anchor. Close-only formula: `vwap = sum(close^2,
+length) / sum(close, length)` (close acts as both typical
+price and volume proxy), `signal = EMA(vwap, signalLength)`.
+Bullish / bearish crosses on `vwap - signal`. Defaults
+`length=20`, `signalLength=9`. Regime classifier `bullish`
+(vwap > signal) / `bearish` / `neutral` / `none`. Bit-exact
+anchor: CONST K > 0 -> vwap = (K^2*n)/(K*n) = K via the
+`min === max` short-circuit, signal = K via EMA short-circuit,
+regime `neutral`, 0 crosses. CONST K = 0 -> divide-by-zero
+guard returns null (regime `none`). LINEAR UP -> vwap > signal,
+regime `bullish`. 52 vitest cases, all pass. ARIA region, img-
+role SVG with sr-only desc, `role="graphics-symbol"` cross
+markers, `data-section` attributes, motion-safe fade-in.
+
 ## [1.11.933] - 2026-05-27 -- UI: chart-line-elder-bear-cross primitive (TODO 11.915)
 
 Added `<ChartLineElderBearCross />` -- pure-SVG dual-panel
