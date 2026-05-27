@@ -703,3 +703,4 @@ export * from './chart-line-stc-overbought-cross';
 export * from './chart-line-stc-oversold-cross';
 export * from './chart-line-stc-mid-cross-sig';
 export * from './chart-line-dpo-overbought-cross';
+export * from './chart-line-dpo-oversold-cross';
