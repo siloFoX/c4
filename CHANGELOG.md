@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.935] - 2026-05-27 -- UI: chart-line-vwap-cross-pct primitive (TODO 11.917)
+
+Added `<ChartLineVwapCrossPct />` -- pure-SVG dual-panel React
+/TS primitive rendering the close + rolling VWAP line (top
+panel) with bullish / bearish arrow overlays at every close vs
+VWAP cross, and the percent-normalized `(close - vwap) / vwap`
+deviation oscillator (bottom panel) with cross dot markers and
+a dashed zero baseline. Percent-change variant of the VWAP
+family that scales every signal to the VWAP for cross-
+instrument comparable volume-weighted bias magnitude. Close-
+only formula: `vwap = sum(close^2) / sum(close)` (close acts as
+both typical price and volume proxy), `pct = vwap > 0 ? ((
+close - vwap) / vwap) * 100 : 0`. Bullish / bearish crosses on
+`pct` vs 0. Default `length=20`. Regime classifier `bullish`
+(pct > 0) / `bearish` / `neutral` / `none`. Bit-exact anchor:
+CONST K > 0 -> vwap = K, pct = 0, regime `neutral`, 0 crosses.
+CONST K = 0 -> divide-by-zero guard returns pct = 0. LINEAR UP
+-> pct > 0, regime `bullish`. 54 vitest cases, all pass. ARIA
+region, img-role SVG with sr-only desc,
+`role="graphics-symbol"` cross markers, `data-section`
+attributes, motion-safe fade-in.
+
 ## [1.11.934] - 2026-05-27 -- UI: chart-line-vwap-cross-sig primitive (TODO 11.916)
 
 Added `<ChartLineVwapCrossSig />` -- pure-SVG dual-panel
