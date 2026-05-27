@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1060] - 2026-05-27 -- UI: chart-line-kama-divergence-cross primitive (TODO 11.1042)
+
+Added `<ChartLineKamaDivergenceCross />` -- close-only
+Kaufman Adaptive Moving Average divergence detector that
+flags price-vs-KAMA direction disagreement events as
+volatility-adaptive trend reversal warnings with bias
+coloring. Sixth and final member of the MA divergence-cross
+family (SMA, EMA, HMA, WMA, TEMA, KAMA). KAMA is Perry
+Kaufman's 1995 adaptive-smoothing MA: smoothing constant
+adapts each bar based on the efficiency ratio (signal/noise
+over the lookback window), giving fast smoothing in trends
+((2/3)^2 = 4/9) and slow smoothing in ranges ((2/31)^2 ~=
+0.004). This is the only adaptive variant in the family --
+the others use fixed weighting schemes. Default period=10,
+fastLength=2, slowLength=30, warmup=9. Bit-exact anchors
+(close-only): CONST K -> ER=0 (zero-volat guard), sc=
+slowSc^2, KAMA=K (no change), both flat, regime none, 0
+triggers; LINEAR UP -> ER=1, sc=fastSc^2=4/9, steady-state
+lag=1.25, asymptote KAMA=i-1.25 (verified at series tail
+within 1e-9), monotone rising, regime aligned-bullish, 0
+triggers; LINEAR DOWN -> mirror, asymptote KAMA=-i+1.25,
+monotone falling, aligned-bearish, 0 triggers. KAMA
+recurrence is asymptotic not bit-exact at the seed, but
+regime classification is correct from i>=period regardless
+of convergence state because KAMA is monotone in the input
+direction. 48 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1059] - 2026-05-27 -- UI: chart-line-tema-divergence-cross primitive (TODO 11.1041)
 
 Added `<ChartLineTemaDivergenceCross />` -- close-only

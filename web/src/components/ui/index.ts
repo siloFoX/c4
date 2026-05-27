@@ -751,3 +751,4 @@ export * from './chart-line-obv-mid-cross-sig';
 export * from './chart-line-mfi-mid-cross-sig';
 export * from './chart-line-wma-divergence-cross';
 export * from './chart-line-tema-divergence-cross';
+export * from './chart-line-kama-divergence-cross';
