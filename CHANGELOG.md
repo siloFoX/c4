@@ -4,6 +4,64 @@
 
 (no entries -- next release window)
 
+## [1.11.975] - 2026-05-27 -- UI: chart-line-stoch-rsi-overbought-cross primitive (TODO 11.957)
+
+Added `<ChartLineStochRsiOverboughtCross />` -- pure-SVG dual-
+panel React/TS primitive rendering the close (top panel) with
+bullish (entry) / bearish (exit) chevron overlays at every
+Stochastic RSI %K crossing of the canonical 80 overbought
+threshold, and a %K panel (bottom) with a fixed `[0, 100]`
+range and the overbought reference band drawn at the 80
+level. Stochastic RSI applies a stochastic normalisation to
+the RSI itself, producing a more sensitive `[0, 100]`
+oscillator whose threshold-80 crossover marks the K-level
+trigger entry (cross up = entering overbought territory) and
+exit (cross down = leaving) events. Bit-exact anchors verified
+by tests: CONST close=K, LINEAR UP, and LINEAR DOWN all yield
+`stochK = 50` (locked at seed) because RSI is constant after
+warmup (50 for CONST, 100 for UP, 0 for DOWN) and the
+stochastic of a constant RSI window holds the seed -- which
+sits below the 80 threshold, so the regime is `bearish` on
+every valid bar. Cross events live in transients (decline-
+then-rise pushes RSI quickly enough that the stochastic window
+catches a sharp climb, firing stochK above 80 -> bullish
+entry; a follow-on decline drops stochK back below 80 ->
+bearish exit). Standard pipeline --
+`applyLineStochRsiOverboughtCrossWilder(values, length,
+firstValidIdx)` SMA-seeded Wilder smoothing,
+`computeLineStochRsiOverboughtCross(series, {rsiLength,
+stochLength}) -> {rsi, stochK, rsiLength, stochLength}`
+running the full RSI + stochastic-of-RSI pipeline with the
+50 seed for the constant-window fallback,
+`classifyLineStochRsiOverboughtCrossRegime` with threshold
+default 80 (null -> none, stochK >= 80 -> bullish, stochK <
+80 -> bearish), `detectLineStochRsiOverboughtCrossCrosses`
+with strict boundary behaviour,
+`runLineStochRsiOverboughtCross`, and
+`computeLineStochRsiOverboughtCrossLayout` returning per-
+cross-marker `(cx, cyOsc, cyPrice, kind)` triples for the
+overlay arrow + osc circle pair. Layout defaults: 720 x 460
+with a ~55% / 45% price / %K panel split, fixed `[0, 100]`
+%K range with the threshold drawn at the 80 line (closer to
+oscTop than midpoint), deterministic `.toFixed(2)` SVG
+paths, ARIA region + `role="img"` SVG + sr-only desc,
+`role="graphics-symbol"` + `tabIndex={0}` on each cross
+marker, motion-safe fade-in, controlled / uncontrolled
+legend, hover tooltip showing close / RSI / %K / regime /
+entries / exits counters / rsi-stoch-T parameters,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting rsi-length / stoch-length / threshold
+/ cross-count / bullish-count / bearish-count, and forwardRef
+wired to the outer `<div>`. Defaults: rsiLength=14,
+stochLength=14 (Chande-Kroll canonical), threshold=80. 70
+vitest cases green (incl. K in `{0, 1, 42, 100, 1234}`
+anchors, LINEAR UP/DOWN RSI saturation with stochK locked,
+decline-then-rise bullish entry, decline-rise-decline
+bullish entry + bearish exit, custom larger lengths warmup,
+and layout determinism across calls). Pure SVG, no canvas /
+chart libraries.
+
 ## [1.11.974] - 2026-05-27 -- UI: chart-line-tsi-signal-cross primitive (TODO 11.956)
 
 Added `<ChartLineTsiSignalCross />` -- pure-SVG dual-panel
