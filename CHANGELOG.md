@@ -4,6 +4,19 @@
 
 (no entries -- next release window)
 
+## [1.11.1014] - 2026-05-27 -- UI: chart-line-qstick-oversold-cross primitive (TODO 11.996)
+
+Added `<ChartLineQstickOversoldCross />` -- OHLC-input QStick
+oversold-threshold (default -0.5) crossover primitive. Mirror
+of `chart-line-qstick-overbought-cross` (11.995) with default
+threshold flipped from +0.5 to -0.5. Bit-exact anchors: CONST
+open=close=K -> qstick=0 -> bullish (0 >= -0.5, mirror flip);
+body=+1 -> qstick=1 -> bullish; body=-1 -> qstick=-1 -> bearish
+(in oversold). 0 crosses for all constant patterns. Layout
+auto-fits with 10% padding and expands DOWN to include the
+threshold band on degenerate. 57 vitest cases. Bumped
+1.11.1013 -> 1.11.1014.
+
 ## [1.11.1013] - 2026-05-27 -- UI: chart-line-qstick-overbought-cross primitive (TODO 11.995)
 
 Added `<ChartLineQstickOverboughtCross />` -- OHLC-input QStick

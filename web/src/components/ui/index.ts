@@ -705,3 +705,4 @@ export * from './chart-line-stc-mid-cross-sig';
 export * from './chart-line-dpo-overbought-cross';
 export * from './chart-line-dpo-oversold-cross';
 export * from './chart-line-qstick-overbought-cross';
+export * from './chart-line-qstick-oversold-cross';
