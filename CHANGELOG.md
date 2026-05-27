@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1053] - 2026-05-27 -- UI: chart-line-ema-divergence-cross primitive (TODO 11.1035)
+
+Added `<ChartLineEmaDivergenceCross />` -- close-only
+SMA-seeded EMA divergence detector that flags price-vs-EMA
+direction disagreement events as trend reversal warnings
+with bias coloring. SMA-seeded-EMA sibling of
+chart-line-hma-divergence-cross (v1.11.1052): same 5-state
+divergence regime model (aligned-bullish/aligned-bearish/
+divergent-bullish/divergent-bearish/none) and
+transition-into-divergent detection, but with a plain
+EMA centerline instead of HMA's composite construction.
+Warmup is period-1=13 (vs HMA's 16), shorter because EMA
+has no outer-window smoothing. Bit-exact anchors
+(close-only): CONST K -> EMA=K, both flat, regime none, 0
+triggers; LINEAR UP close=i -> EMA=i-6.5 (SMA centroid
+lag from SMA-seeded initialization), both up ->
+aligned-bullish, 0 triggers; LINEAR DOWN close=-i ->
+EMA=-i+6.5, both down -> aligned-bearish, 0 triggers.
+Cross detection fires only on transition INTO a divergent
+state, preventing double-fire on consecutive bars in the
+same regime. 50 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1052] - 2026-05-27 -- UI: chart-line-hma-divergence-cross primitive (TODO 11.1034)
 
 Added `<ChartLineHmaDivergenceCross />` -- close-only Hull
