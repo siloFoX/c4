@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.1002] - 2026-05-27 -- UI: chart-line-stoch-rsi-mid-cross-sig primitive (TODO 11.984)
+
+Added `<ChartLineStochRsiMidCrossSig />` -- close-only Stochastic
+RSI signal-line midline-50 crossover primitive that flags
+discrete bull / bear regime transitions when the smoothed
+stochRSI (SMA of stochastic-of-Wilder-RSI) crosses the canonical
+neutral midline. Companion to `chart-line-stoch-mid-cross-sig`
+(11.983) but layered on Wilder RSI rather than raw close: the
+double smoothing (Wilder RSI -> stochastic -> SMA) suppresses
+the raw-stochRSI whipsaws that plague the unfiltered variant
+while preserving responsiveness to genuine momentum shifts.
+Defaults `length = 14` (used for both the RSI period and the
+rolling stochastic window), `kSmoothing = 3`, `threshold = 50`.
+Bit-exact anchors: CONST close=K -> deltas=0 -> RSI degenerate=50
+-> stochRsi degenerate=50 -> sigK=50 (Object.is verified) ->
+regime bullish (0 crosses); LINEAR UP close=i -> RSI=100,
+stochRsi=50 (deg), sigK=50 (0 crosses); LINEAR DOWN close=-i ->
+RSI=0, stochRsi=50 (deg), sigK=50 (0 crosses). Strict inequality
+on `cur` (`cur > T` for bullish, `cur < T` for bearish) so
+boundary equality (sigK == 50) never double-fires. Layout uses
+fixed oscMin=0 / oscMax=100 (StochRSI canonical range). 70
+vitest cases. Bumped 1.11.1001 -> 1.11.1002.
+
 ## [1.11.1001] - 2026-05-27 -- UI: chart-line-stoch-mid-cross-sig primitive (TODO 11.983)
 
 Added `<ChartLineStochMidCrossSig />` -- close-only Stochastic

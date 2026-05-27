@@ -693,3 +693,4 @@ export * from './chart-line-trix-oversold-cross';
 export * from './chart-line-awesome-overbought-cross';
 export * from './chart-line-awesome-oversold-cross';
 export * from './chart-line-stoch-mid-cross-sig';
+export * from './chart-line-stoch-rsi-mid-cross-sig';
