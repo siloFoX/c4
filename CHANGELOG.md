@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.979] - 2026-05-27 -- UI: chart-line-uo-oversold-cross primitive (TODO 11.961)
+
+Added `<ChartLineUoOversoldCross />` -- mirror of the
+overbought-cross primitive with the threshold flipped to the
+canonical 30 oversold line. Bullish (= exit, crossing UP
+through 30 = leaving oversold) and bearish (= entry, crossing
+DOWN through 30 = entering oversold). Bit-exact anchors
+verified by tests: CONST close=K yields `uo = 50` (regime
+bullish, 50 >= 30 -- opposite side from the overbought
+variant), LINEAR UP yields `uo = 100` (bullish), LINEAR DOWN
+yields `uo = 0` (bearish since 0 < 30). Cross events fire
+during transients: decline-then-rise pushes uo from 0
+through 30 going up (bullish exit); rise-then-decline pulls
+uo from 100 through 30 going down (bearish entry). Standard
+pipeline -- `applyLineUoOversoldCrossPressure` (close-only
+`bp = max(0, delta)`, `tr = |delta|`),
+`computeLineUoOversoldCross(series, {short, mid, long}) ->
+{uo, short, mid, long}` with the canonical 4/2/1 weights and
+`0 / 0 -> 0.5` fallback, `classifyLineUoOversoldCrossRegime`
+with threshold default 30 (null -> none, uo >= 30 -> bullish,
+uo < 30 -> bearish), `detectLineUoOversoldCrossCrosses` with
+strict boundary behaviour, `runLineUoOversoldCross`, and
+`computeLineUoOversoldCrossLayout` returning per-cross-marker
+`(cx, cyOsc, cyPrice, kind)` triples for the overlay arrow +
+osc circle pair. Layout defaults: 720 x 460 with a ~55% / 45%
+price / UO panel split, fixed `[0, 100]` UO range with the
+threshold band at the 30-line (below panel midpoint),
+deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing close
+/ UO / regime / exits / entries counters / s-m-l-T
+parameters, configurable showBands / showAxis / showGrid /
+showLegend / showCrosses / showOverlayCrosses /
+showConfigBadge flags, data-* attrs reflecting short / mid /
+long / threshold / cross-count / bullish-count /
+bearish-count, and forwardRef wired to the outer `<div>`.
+Defaults: short=7, mid=14, long=28 (Williams 1976 canonical),
+threshold=30. 71 vitest cases green (incl. K in `{0, 1, 42,
+100, 1234}` anchors, LINEAR UP/DOWN bit-exact 100 / 0
+constants, decline-then-rise bullish exit, rise-then-decline
+bearish entry, custom 3 / 5 / 10 periods, and layout
+determinism across calls). Pure SVG, no canvas / chart
+libraries.
+
 ## [1.11.978] - 2026-05-27 -- UI: chart-line-uo-overbought-cross primitive (TODO 11.960)
 
 Added `<ChartLineUoOverboughtCross />` -- pure-SVG dual-panel
