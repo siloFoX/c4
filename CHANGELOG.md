@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1068] - 2026-05-27 -- UI: chart-line-supertrend-mid-cross-sig primitive (TODO 11.1050)
+
+Added `<ChartLineSupertrendMidCrossSig />` -- HLC-input
+Olivier Seban's Supertrend trailing-stop line (active
+trend-aware centerline of price) over signal crossover
+detector flagging trend stop centerline trigger events
+with bias coloring from the supertrend slope at the
+trigger bar. Pipeline: ATR = SMA(TR, period), upperBand =
+HL2 + multiplier * ATR, lowerBand = HL2 - multiplier *
+ATR, finalUpper / finalLower ratchet against previous
+close, supertrend follows finalLower in uptrend or
+finalUpper in downtrend, signal = SMA(supertrend,
+signalLength). Bullish: supertrend crosses up signal.
+Bearish: supertrend crosses down signal. Initial trend
+seeded via sign(close[period] - close[period-1]) to keep
+LINEAR anchors flip-free. Uses SMA-based ATR (matching the
+atr-breakout-cross and atr-divergence-cross siblings)
+rather than Wilder smoothing. Default period=10,
+multiplier=3, signalLength=3, warmup=12. Bit-exact anchors
+(HLC): CONST band [K-1, K+1, K] -> supertrend = K - 6,
+signal = K - 6, regime bullish (===), 0 crosses; LINEAR UP
+-> supertrend = i - 6 (slope +1), signal = i - 7, +1
+offset, regime bullish, 0 crosses; LINEAR DOWN ->
+supertrend = -i + 6, signal = -i + 7, -1 offset, regime
+bearish, 0 crosses. Volatility-aware ratcheting trailing
+stop complementing the simple-MA, Donchian-composite, and
+pure-momentum mid-cross-sig siblings. 47 vitest cases.
+Pure SVG, no chart libs.
+
 ## [1.11.1067] - 2026-05-27 -- UI: chart-line-ichimoku-mid-cross-sig primitive (TODO 11.1049)
 
 Added `<ChartLineIchimokuMidCrossSig />` -- HL-input
