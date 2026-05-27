@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1021] - 2026-05-27 -- UI: chart-line-mfi-divergence-cross primitive (TODO 11.1003)
+
+Added `<ChartLineMfiDivergenceCross />` -- HLCV Money Flow
+Index (MFI) divergence detector that flags discrete price-
+versus-MFI direction disagreement events for volume-weighted
+reversal warning. MFI is the volume-weighted RSI -- its
+divergences carry more weight than pure-price RSI divergences
+because the underlying momentum signal accounts for both
+direction and volume. Defaults `length = 14` (canonical MFI
+window), `divergenceWindow = 5`. MFI uses three degenerate
+fallbacks: 50 (neutral, both sums 0), 100 (only positive flow),
+0 (only negative flow). Bit-exact anchors: CONST H=L=C=K, V=
+const -> typical=K -> mfi=50 (neutral) -> aligned-bearish (0
+crosses); LINEAR UP -> only positive flow -> mfi=100 saturated
+-> divergent-bearish (canonical bearish divergence); LINEAR
+DOWN -> only negative flow -> mfi=0 saturated -> aligned-
+bearish (0 crosses). For 50 bars: noneCount=19, post-warmup
+regime count=31. Layout uses fixed oscMin=0 / oscMax=100 with
+midline 50. 59 vitest cases. Bumped 1.11.1020 -> 1.11.1021.
+
 ## [1.11.1020] - 2026-05-27 -- UI: chart-line-obv-divergence-cross primitive (TODO 11.1002)
 
 Added `<ChartLineObvDivergenceCross />` -- close+volume On
