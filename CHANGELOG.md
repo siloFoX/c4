@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1016] - 2026-05-27 -- UI: chart-line-kvo-mid-cross-sig primitive (TODO 11.998)
+
+Added `<ChartLineKvoMidCrossSig />` -- HLCV-input Klinger Volume
+Oscillator (KVO) signal-line midline-0 crossover primitive that
+flags volume-momentum centerline trigger events. First
+volume-aware primitive in the chart-line family: requires HLCV
+({ x, high, low, close, volume }) data instead of the close-
+only / OHLC interfaces. KVO computes a typical-price-direction-
+weighted volume force (`vf = sign(typical[i] - typical[i-1]) *
+volume`), takes SMA-difference fast vs slow, then smooths with
+a final SMA signal line. Defaults `fastLength = 34`, `slowLength
+= 55`, `kSmoothing = 13`, `threshold = 0`. Bit-exact anchors:
+CONST H=L=C=K, V=const -> direction=0 -> vf=0 -> kvo=signal=0
+(Object.is +0) -> bullish at boundary (0 crosses); LINEAR UP /
+DOWN -> direction=+/-1, vf=+/-V -> kvo=0 (fast=slow=V) ->
+signal=0 -> bullish (0 crosses). Strict inequality on `cur` so
+boundary equality never double-fires. Layout uses symmetric
++/-1.1*span around the zero line with [-1, 1] fallback on
+degenerate. 58 vitest cases. Bumped 1.11.1015 -> 1.11.1016.
+
 ## [1.11.1015] - 2026-05-27 -- UI: chart-line-stc-cross-sig primitive (TODO 11.997)
 
 Added `<ChartLineStcCrossSig />` -- close-only Schaff Trend
