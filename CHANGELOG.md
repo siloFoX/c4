@@ -4,6 +4,56 @@
 
 (no entries -- next release window)
 
+## [1.11.947] - 2026-05-27 -- UI: chart-line-mfi-oversold-cross primitive (TODO 11.929)
+
+Added `<ChartLineMfiOversoldCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (exit upward from oversold) / bearish (entry downward
+into oversold) chevron overlays at every MFI threshold cross,
+and the close-only Money Flow Index line (bottom panel) on a
+fixed 0-100 oscillator with threshold (20) and 50 reference
+bands. Single-threshold cross variant of the MFI family that
+flags discrete MFI level-20 entry / exit events distinct from
+the canonical MFI / signal crossover. Mirror of 11.928 using
+the oversold level (20) instead of the overbought level (80);
+regime semantics and arrow direction are inverted (bullish
+arrow points up out of oversold, bearish arrow points down
+into oversold). Close-only adaptation: with no high / low /
+volume available, `|delta close|` acts both as the money-flow
+magnitude (price * volume proxy) and the directional cue;
+posFlow / negFlow accumulate over the rolling length window
+and mfi = 100 - 100 / (1 + posFlow / negFlow) with a zero-
+flow neutral fallback returning 50. Bit-exact anchor: CONST
+`close = K` -> delta = 0 -> posFlow = negFlow = 0 -> mfi = 50
+via zero-flow neutral fallback, 50 > 20, regime `neutral`, 0
+crosses, verified across K in {0, 1, 42, 100, 1234}. LINEAR
+UP -> all deltas positive -> mfi = 100 constant, 100 > 20,
+regime `neutral`, 0 crosses. LINEAR DOWN -> all deltas
+negative -> mfi = 0 constant, regime `oversold` (0 <= 20), 0
+crosses. Balanced `[10, 11, 10, 11, ...]` alternation ->
+posFlow = negFlow -> mfi = 50, regime `neutral`, 0 crosses.
+Alternation followed by a single big downward jump (-90) ->
+the rolling window picks up the jump and mfi crashes below
+20 (bearish entry), then climbs back to 50 once the jump
+exits the window (bullish exit) -> at least 2 crosses
+observed in the run. Defaults `length=14`, `threshold=20`.
+Regime classifier `oversold` / `neutral` / `none`. ARIA
+region + role=img SVG with sr-only desc, `data-section`
+attributes on every drawn group, `role="graphics-symbol"` +
+`tabIndex=0` on every cross / overlay marker, motion-safe
+fade-in, controlled / uncontrolled hidden-series legend. 67
+vitest cases covering pure helpers
+(`getLineMfiOversoldCrossFinitePoints`,
+`normalizeLineMfiOversoldCrossLength`,
+`normalizeLineMfiOversoldCrossThreshold`), the close-only
+MFI compute pipeline (CONST / LINEAR / balanced alternation
+/ jump-after-alternation), the regime classifier, the
+bullish / bearish cross detector, layout (band y ordering,
+path M/L precision, marker placement), and the JSX render
+path (ARIA, data-* attrs, legend keyboard toggles, hover
+tooltip, band / cross / overlay visibility flags). Manifests
+1.11.946 -> 1.11.947.
+
 ## [1.11.946] - 2026-05-27 -- UI: chart-line-mfi-overbought-cross primitive (TODO 11.928)
 
 Added `<ChartLineMfiOverboughtCross />` -- pure-SVG dual-panel
