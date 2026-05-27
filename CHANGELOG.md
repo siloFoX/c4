@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.914] - 2026-05-27 -- UI: chart-line-vortex-cross primitive (TODO 11.896)
+
+Added `<ChartLineVortexCross />` -- pure-SVG dual-panel React/TS
+primitive rendering the close (top panel) with bullish / bearish
+arrow overlays at every VI+/VI- crossover, and the Vortex
+Indicator (VI+ over VI-) in the bottom panel with cross dot
+markers and a 0.5 midline reference. Marks directional movement
+regime changes. Simplified close-only Vortex with sum-of-window
+normalisation: VI+ = sum(VMp) / sum(TR), VI- = sum(VMn) /
+sum(TR) where VMp/VMn split close-to-close deltas by sign and
+TR = |delta|. When sum(TR) = 0 the bands fall back to 0.5
+(neutral midpoint). Regime classifier `bullish` (VI+ > VI-) /
+`bearish` (VI+ < VI-) / `neutral` (VI+ === VI-) / `none`.
+Defaults length=14 (canonical Vortex). Three regime anchors all
+with 0 crosses: CONST K -> VI+ = VI- = 0.5 (no movement) ->
+neutral; LINEAR UP step>0 -> VI+ = 1, VI- = 0 -> bullish (no
+transition); LINEAR DOWN step<0 -> VI+ = 0, VI- = 1 -> bearish.
+ARIA region + img-role SVG + sr-only desc; oscillator + overlay
+markers carry role="graphics-symbol" tabIndex={0}; motion-safe
+fade-in. 57 vitest cases.
+
 ## [1.11.913] - 2026-05-27 -- UI: chart-line-supertrend-cross-pct primitive (TODO 11.895)
 
 Added `<ChartLineSupertrendCrossPct />` -- pure-SVG dual-panel
