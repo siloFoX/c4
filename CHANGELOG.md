@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1006] - 2026-05-27 -- UI: chart-line-dpo-cross-sig primitive (TODO 11.988)
+
+Added `<ChartLineDpoCrossSig />` -- close-only Detrended Price
+Oscillator (DPO) signal-line crossover primitive that flags
+discrete bullish (DPO crosses up through the smoothed signal
+line) / bearish (DPO crosses down through the signal line)
+smoothed-detrended-momentum trigger events. Companion to the
+existing DPO mid-cross / zero-cross family but using the DPO's
+own SMA-smoothed signal line as the dynamic threshold rather
+than a fixed level -- the canonical pattern analysts use to
+suppress raw-DPO whipsaws while preserving the detrended-
+momentum responsiveness. Defaults `length = 20` (DPO standard
+window), `kSmoothing = 9` (signal smoothing inherited from MACD
+lineage), `shift = floor(length / 2) + 1 = 11` (derived).
+Bit-exact anchors: CONST close=K -> close[i-shift]=K, sma=K ->
+dpo=0, signal=0 (Object.is verified +0) -> bullish at boundary
+(0 crosses); LINEAR UP close=i -> dpo=-1.5, signal=-1.5 ->
+bullish (0 crosses, negative DPO reflects "look-back close 1.5
+units below centered SMA"); LINEAR DOWN close=-i -> dpo=1.5,
+signal=1.5 -> bullish (0 crosses, symmetric inverse). Strict
+inequality on `cur` so boundary equality (dpo == signal) never
+double-fires. Layout uses symmetric +/-1.1*span around the zero
+line combining both DPO and signal extrema, with [-1, 1]
+fallback on degenerate. 62 vitest cases. Bumped 1.11.1005 ->
+1.11.1006.
+
 ## [1.11.1005] - 2026-05-27 -- UI: chart-line-cmo-cross-sig primitive (TODO 11.987)
 
 Added `<ChartLineCmoCrossSig />` -- close-only Chande Momentum
