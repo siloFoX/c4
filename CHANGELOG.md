@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1067] - 2026-05-27 -- UI: chart-line-ichimoku-mid-cross-sig primitive (TODO 11.1049)
+
+Added `<ChartLineIchimokuMidCrossSig />` -- HL-input
+Goichi Hosoda (1969) Ichimoku Kinko Hyo kumo midline-over-
+signal crossover detector flagging cloud centerline trend
+trigger events with bias coloring from the kumo midline
+slope at the trigger bar. The kumo midline is the
+geometric centre of the cloud bounded by senkouA = avg
+(tenkan, kijun) and senkouB = avg(HH, LL) over the 52-bar
+window. Pipeline: tenkan = (HH(high, 9) + LL(low, 9))/2,
+kijun = (HH(high, 26) + LL(low, 26))/2, senkouA = (tenkan
++ kijun)/2, senkouB = (HH(high, 52) + LL(low, 52))/2,
+kumoMid = (senkouA + senkouB)/2, signal = SMA(kumoMid,
+signalLength). Bullish: kumoMid crosses up signal.
+Bearish: kumoMid crosses down signal. Default tenkan=9,
+kijun=26, senkouB=52, signalLength=3, warmup=53. Uses
+current-bar reads (no 26-bar forward displacement) so the
+current cloud direction can be compared directly with the
+signal -- same convention as the sibling
+chart-line-ichimoku-divergence-cross v1.11.1061. Bit-exact
+anchors (HL): CONST band [K-1, K+1] -> kumoMid=signal=K,
+regime bullish (===), 0 crosses; LINEAR UP -> kumoMid = i
+- 16.875, signal = i - 17.875 (1-bar SMA lag), kumoMid
+above signal by +1, regime bullish, 0 crosses; LINEAR DOWN
+-> mirror, kumoMid below signal by -1, regime bearish, 0
+crosses. Complementary to single-MA mid-cross-sig
+siblings -- Ichimoku adds a multi-timeframe Donchian
+composite. 45 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1066] - 2026-05-27 -- UI: chart-line-rsi-mid-cross-sig primitive (TODO 11.1048)
 
 Added `<ChartLineRsiMidCrossSig />` -- close-input J.
