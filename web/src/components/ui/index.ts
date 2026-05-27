@@ -671,3 +671,4 @@ export * from './chart-line-stoch-rsi-oversold-cross';
 export * from './chart-line-uo-mid-cross';
 export * from './chart-line-uo-overbought-cross';
 export * from './chart-line-uo-oversold-cross';
+export * from './chart-line-tsi-overbought-cross';

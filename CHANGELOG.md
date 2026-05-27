@@ -4,6 +4,49 @@
 
 (no entries -- next release window)
 
+## [1.11.980] - 2026-05-27 -- UI: chart-line-tsi-overbought-cross primitive (TODO 11.962)
+
+Added `<ChartLineTsiOverboughtCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (= entry) / bearish (= exit) chevron overlays at every
+TSI crossing of the canonical +25 overbought line. Shares the
+bit-exact TSI pipeline with the `chart-line-tsi-zero-cross`
+sibling; the only difference is the default threshold (25).
+Bit-exact anchors verified by tests: CONST close=K yields
+`tsi = 0` (regime bearish, 0 < 25 -- opposite side from
+zero-cross where 0 sat on boundary); LINEAR UP yields
+`tsi = 100` (bullish, 100 >= 25); LINEAR DOWN yields
+`tsi = -100` (bearish). Cross events fire during transients:
+decline-then-rise pushes tsi from -100 through 25 going up
+(bullish entry); rise-then-decline pulls tsi from 100 through
+25 going down (bearish exit). Standard pipeline --
+`applyLineTsiOverboughtCrossEma`, `computeLineTsiOverboughtCross`
+running the double-EMA TSI with 0/0 fallback,
+`classifyLineTsiOverboughtCrossRegime` with threshold default
+25, `detectLineTsiOverboughtCrossCrosses` with strict boundary
+behaviour, `runLineTsiOverboughtCross`, and
+`computeLineTsiOverboughtCrossLayout` returning per-cross-
+marker `(cx, cyOsc, cyPrice, kind)` triples. Layout defaults:
+720 x 460 with a ~55% / 45% price / TSI panel split, fixed
+`[-100, 100]` TSI range with the threshold band at the +25
+line (above midpoint), deterministic `.toFixed(2)` SVG paths,
+ARIA region + `role="img"` SVG + sr-only desc,
+`role="graphics-symbol"` + `tabIndex={0}` on each cross
+marker, motion-safe fade-in, controlled / uncontrolled
+legend, hover tooltip showing close / TSI / regime / entries
+/ exits counters / long-short-T parameters, configurable
+showBands / showAxis / showGrid / showLegend / showCrosses /
+showOverlayCrosses / showConfigBadge flags, data-* attrs
+reflecting long / short / threshold / cross-count /
+bullish-count / bearish-count, and forwardRef wired to the
+outer `<div>`. Defaults: long=25, short=13 (Blau canonical),
+threshold=25. 71 vitest cases green (incl. K in `{0, 1, 42,
+100, 1234}` anchors, LINEAR UP/DOWN bit-exact +/-100
+constants, decline-then-rise bullish entry, rise-then-decline
+bearish exit, custom larger long/short warmup, and layout
+determinism across calls). Pure SVG, no canvas / chart
+libraries.
+
 ## [1.11.979] - 2026-05-27 -- UI: chart-line-uo-oversold-cross primitive (TODO 11.961)
 
 Added `<ChartLineUoOversoldCross />` -- mirror of the
