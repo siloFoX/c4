@@ -668,3 +668,4 @@ export * from './chart-line-kc-percent-zero-cross';
 export * from './chart-line-tsi-signal-cross';
 export * from './chart-line-stoch-rsi-overbought-cross';
 export * from './chart-line-stoch-rsi-oversold-cross';
+export * from './chart-line-uo-mid-cross';
