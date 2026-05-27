@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1054] - 2026-05-27 -- UI: chart-line-sma-divergence-cross primitive (TODO 11.1036)
+
+Added `<ChartLineSmaDivergenceCross />` -- close-only Simple
+Moving Average divergence detector that flags price-vs-SMA
+direction disagreement events as trend reversal warnings
+with bias coloring. Uniform-weight sibling of
+chart-line-ema-divergence-cross (v1.11.1053, EMA-based) and
+chart-line-hma-divergence-cross (v1.11.1052, HMA-based) --
+all three share the same 5-state divergence regime model
+and transition-into-divergent detection, but SMA uses a
+plain uniform-weight rolling average instead of EMA's
+exponential decay or HMA's composite construction. The
+slowest-reacting centerline of the trio, so it surfaces
+only the most persistent divergence patterns. Default
+period=14, warmup=13. Bit-exact anchors (close-only): CONST
+K -> SMA=K, both flat, regime none, 0 triggers; LINEAR UP
+close=i -> SMA=i-6.5 (textbook centroid lag from uniform-
+weight centered window), both up -> aligned-bullish, 0
+triggers; LINEAR DOWN close=-i -> SMA=-i+6.5, both down ->
+aligned-bearish, 0 triggers. SMA helper uses min===max
+short-circuit for CONST bit-exactness. Cross detection
+fires only on transition INTO a divergent state. 49 vitest
+cases. Pure SVG, no chart libs.
+
 ## [1.11.1053] - 2026-05-27 -- UI: chart-line-ema-divergence-cross primitive (TODO 11.1035)
 
 Added `<ChartLineEmaDivergenceCross />` -- close-only
