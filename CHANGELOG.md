@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.987] - 2026-05-27 -- UI: chart-line-fisher-oversold-cross primitive (TODO 11.969)
+
+Added `<ChartLineFisherOversoldCross />` -- John Ehlers' Fisher
+Transform crossover variant tracking the canonical -2.5 oversold
+line. Mirror of `chart-line-fisher-overbought-cross` (11.968):
+identical Ehlers pipeline (rolling min/max -> normalised channel
+`[-1, 1]` -> 0.33/0.67 recursive smoother with `[-0.999, 0.999]`
+clamp -> `0.5 * ln((1 + x) / (1 - x)) + 0.5 * prev` half-EMA),
+opposite threshold semantics. Defaults `length = 10`, `threshold
+= -2.5`. Bit-exact anchors: CONST close=K -> fisher=0 -> regime
+bullish (0 >= -2.5, opposite of the overbought variant where 0 <
+2.5 gave bearish). LINEAR UP -> fisher converges to ~7.6 well
+above the threshold (0 crosses). LINEAR DOWN -> fisher converges
+to ~-7.6 and emits exactly one bearish cross when it pushes down
+through -2.5. Bit-exact +0 enforced via Object.is on every
+cleared sample. Layout auto-fit expands DOWN to include the
+threshold + 10% padding when fisher collapses to a single value
+(CONST -> oscMin -2.75, oscMax 0.25 -- mirror of the overbought
+variant which expanded UP). 71 passing cases covering finite
+filtering, length floor, threshold finite-only, the normalise +
+clamp + smoother + Fisher chain, regime classifier (strict `>=`),
+cross detector (strict `>` / `<`), layout determinism
+(`.toFixed(2)`, single-M fisher path, padded osc fit with
+downward-expanded threshold), ARIA region + role=img SVG + sr-
+only desc claiming "oversold trigger events", config badge,
+legend toggle (pointer + Enter / Space), hover tooltip,
+controlled `hiddenSeries`, threshold band, axes / grid / legend /
+crosses / overlay visibility flags, `data-*` counters matching
+run output, default `{ length: 10, threshold: -2.5 }`, and
+`forwardRef` exposing the wrapping div.
+
 ## [1.11.986] - 2026-05-27 -- UI: chart-line-fisher-overbought-cross primitive (TODO 11.968)
 
 Added `<ChartLineFisherOverboughtCross />` -- John Ehlers' Fisher
