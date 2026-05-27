@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.1015] - 2026-05-27 -- UI: chart-line-stc-cross-sig primitive (TODO 11.997)
+
+Added `<ChartLineStcCrossSig />` -- close-only Schaff Trend
+Cycle (STC) over its own signal-line crossover primitive that
+flags smoothed cycle entry / exit triggers. Signal-line
+companion to the STC family: instead of crossing a fixed
+threshold, this fires on STC vs its own SMA-smoothed signal
+line. Defaults `fastLength = 23`, `slowLength = 50`,
+`cycleLength = 10`, `factor = 0.5`, `kSmoothing = 3`. Bit-exact
+anchors: CONST close=K -> stc=signal=50 -> bullish at boundary
+(0 crosses); LINEAR UP/DOWN -> cycle collapses through
+stochastic pipeline to stc=signal=50 -> bullish (0 crosses).
+Strict inequality on `cur` so boundary equality never double-
+fires. Layout uses fixed oscMin=0 / oscMax=100 with midline 50.
+59 vitest cases. Bumped 1.11.1014 -> 1.11.1015.
+
 ## [1.11.1014] - 2026-05-27 -- UI: chart-line-qstick-oversold-cross primitive (TODO 11.996)
 
 Added `<ChartLineQstickOversoldCross />` -- OHLC-input QStick
