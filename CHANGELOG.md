@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1031] - 2026-05-27 -- UI: chart-line-kvo-divergence-cross primitive (TODO 11.1013)
+
+Added `<ChartLineKvoDivergenceCross />` -- HLCV-input Stephen
+Klinger Volume Oscillator (KVO = fastSMA - slowSMA of signed
+volume force, where vf = sign(delta typical) * volume)
+divergence detector that flags discrete price-versus-KVO
+direction disagreement events for volume-momentum reversal
+warning. KVO companion to the existing MACD / RSI / CMO /
+Stoch / CCI / Awesome / TSI / TRIX / ADX / Fisher / DPO /
+QStick / STC / RMI divergence primitives, mirroring the
+canonical KVO formula already used by
+`chart-line-kvo-mid-cross-sig`. Default `fastLength = 34`,
+`slowLength = 55`, `divergenceWindow = 5`. Bit-exact anchors:
+CONST HLC=K (any K) -> kvo=0 -> aligned-bearish, 0 crosses;
+LINEAR UP -> vf=+V constant -> fastSMA=slowSMA -> kvo=0 ->
+divergent-bearish 60/120 samples; LINEAR DOWN -> vf=-V ->
+kvo=0 -> aligned-bearish. Crosses suppressed when prev or cur
+is `none`. 64 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1030] - 2026-05-27 -- UI: chart-line-rmi-divergence-cross primitive (TODO 11.1012)
 
 Added `<ChartLineRmiDivergenceCross />` -- close-only Roger
