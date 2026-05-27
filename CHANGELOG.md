@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.912] - 2026-05-27 -- UI: chart-line-psar-cross-pct primitive (TODO 11.894)
+
+Added `<ChartLinePsarCrossPct />` -- pure-SVG dual-panel React/TS
+primitive overlaying the close with Parabolic SAR (top panel)
+and the close - PSAR deviation scaled to close as a percent
+(bottom panel) for cross-instrument comparable parabolic trend
+strength. PSAR uses canonical Wilder afStep=0.02, afMax=0.2 with
+direction reversal on close crossing, EP tracking, AF
+acceleration. Regime classifier `above` / `below` / `at` /
+`none`. Bit-exact anchor: CONST close = K (K > 0) -> SAR
+initialises at K, EP = K -> newSAR = K + AF * (K - K) = K, no
+reversal triggers -> close - SAR = 0 -> psarPct = 0 (verified K
+= 1..1234). CONST K = 0 triggers divide-by-zero guard ->
+psarPct = null. Companion to 11.858 chart-line-psar-cross which
+publishes discrete trend-flip events; this primitive surfaces
+the continuous percent magnitude of close-vs-PSAR distance.
+ARIA region + img-role SVG + sr-only desc; motion-safe fade-in.
+52 vitest cases.
+
 ## [1.11.911] - 2026-05-27 -- UI: chart-line-kvo-cross-sig primitive (TODO 11.893)
 
 Added `<ChartLineKvoCrossSig />` -- pure-SVG dual-panel React/TS
