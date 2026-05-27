@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.992] - 2026-05-27 -- UI: chart-line-stc-mid-cross primitive (TODO 11.974)
+
+Added `<ChartLineStcMidCross />` -- Doug Schaff's Schaff Trend
+Cycle midline (50) cross variant for double-smoothed MACD cycle
+centerline regime transitions with bias coloring. Companion to
+`chart-line-schaff-zero-cross` (TODO 11.951): shares the same STC
+pipeline (MACD via SMA-seeded EMAs, then a stochastic + 0.5-EMA
+smoothing pair applied twice, with seed = 50 on both halves) and
+defaults (cycle = 10, fast = 23, slow = 50, threshold = 50);
+reframes the ARIA / describe text to slot into the broader
+mid-cross family (RSI / Stoch / CCI / MFI / Stoch-RSI / Williams
+%R / UO / CMO / RMI / DPO / QStick). Bit-exact anchors: CONST
+close=K -> stc=50 (regime bullish at boundary). LINEAR UP / DOWN
+both yield stc=50 because MACD is constant in the steady-state
+EMA lag, so the stochastic of a constant holds the seed. MACD is
+verifiably constant under LINEAR UP after the EMA seed
+(`macd[10] ~ macd[11] ~ ...`). 69 passing cases covering finite
+filtering, length / threshold normalization, EMA seed + LINEAR
+lag, full STC pipeline including all internal channels (macd, k1,
+d1, k2, stc), regime classifier (strict `>=`), cross detector
+(strict `>` / `<`), layout determinism (`.toFixed(2)`, single-M
+stc path, thresholdY exactly at panel midpoint for threshold=50),
+ARIA region + role=img SVG + sr-only desc claiming "bias
+coloring" + "centerline regime transition", config badge, legend
+toggle (pointer + Enter / Space), hover tooltip, controlled
+`hiddenSeries`, threshold band, axes / grid / legend / crosses /
+overlay visibility flags, `data-*` counters matching run output
+(includes data-cycle / data-fast / data-slow), defaults
+`{ cycle: 10, fast: 23, slow: 50, threshold: 50 }`, and
+`forwardRef` exposing the wrapping div.
+
 ## [1.11.991] - 2026-05-27 -- UI: chart-line-qstick-mid-cross primitive (TODO 11.973)
 
 Added `<ChartLineQstickMidCross />` -- Tushar Chande's QStick (SMA
