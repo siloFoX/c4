@@ -4,6 +4,58 @@
 
 (no entries -- next release window)
 
+## [1.11.971] - 2026-05-27 -- UI: chart-line-coppock-zero-cross primitive (TODO 11.953)
+
+Added `<ChartLineCoppockZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish/bearish chevron overlays at every Edwin Coppock Curve
+zero crossover, and a Coppock panel (bottom) with auto-fitted
+range and the zero reference band. Coppock is the weighted
+moving average of the sum of two percentage rate-of-change
+windows (a slow / fast pair) over the close, originally
+designed for monthly equity-index trend confirmation. Zero
+crossovers mark long-term momentum baseline regime transition
+events -- a slower, lower-noise trigger than a single
+short-window momentum indicator. Bit-exact anchors verified
+by tests: CONST close=K (K > 0) yields `coppock = 0` (each
+ROC = 0, sum = 0, WMA of 0 = 0); GEOMETRIC UP close = K * r^i
+(r > 1) yields constant positive coppock equal to
+`((r^short - 1) + (r^long - 1)) * 100` (each ROC collapses to
+`(r^N - 1) * 100` for constant ratio, sum is constant, WMA of
+a constant is bit-exact); GEOMETRIC DOWN with r < 1 yields
+the same formula but negative. Standard pipeline --
+`applyLineCoppockZeroCrossWma(values, length)` with CONST
+`min === max` short-circuit, length=1 identity, and
+denominator `length * (length + 1) / 2`,
+`computeLineCoppockZeroCross(series, {short, long, period}) ->
+{rocShort, rocLong, sum, coppock, short, long, period}`,
+`classifyLineCoppockZeroCrossRegime` with threshold default 0
+(null -> none, coppock >= T -> bullish, coppock < T ->
+bearish), `detectLineCoppockZeroCrossCrosses` with strict
+boundary behaviour, `runLineCoppockZeroCross`, and
+`computeLineCoppockZeroCrossLayout` returning per-cross-marker
+`(cx, cyOsc, cyPrice, kind)` triples for the overlay arrow +
+osc circle pair. Layout defaults: 720 x 460 with a ~55% / 45%
+price / Coppock panel split, auto-fit `[oscMin, oscMax]`
+(always includes the threshold) with 10% padding,
+deterministic `.toFixed(2)` SVG paths, ARIA region +
+`role="img"` SVG + sr-only desc, `role="graphics-symbol"` +
+`tabIndex={0}` on each cross marker, motion-safe fade-in,
+controlled / uncontrolled legend, hover tooltip showing close
+/ Coppock / regime / short / long / period / threshold,
+configurable showBands / showAxis / showGrid / showLegend /
+showCrosses / showOverlayCrosses / showConfigBadge flags,
+data-* attrs reflecting short / long / period / threshold /
+cross-count / bullish-count / bearish-count, and forwardRef
+wired to the outer `<div>`. Defaults: short=11, long=14,
+period=10 (Coppock canonical monthly settings), threshold=0.
+71 vitest cases green (incl. K in `{1, 42, 100, 1234}` anchors,
+GEOMETRIC UP/DOWN bit-exact constants,
+decline-then-rise / rise-then-decline cross detection, custom
+larger short / long / period warmup, zero-prior-close edge
+case, and layout determinism across calls). Pure SVG, no
+canvas / chart libraries.
+
 ## [1.11.970] - 2026-05-27 -- UI: chart-line-tsi-zero-cross primitive (TODO 11.952)
 
 Added `<ChartLineTsiZeroCross />` -- pure-SVG dual-panel React/TS

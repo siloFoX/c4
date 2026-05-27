@@ -662,3 +662,4 @@ export * from './chart-line-qstick-zero-cross';
 export * from './chart-line-vfi-zero-cross';
 export * from './chart-line-schaff-zero-cross';
 export * from './chart-line-tsi-zero-cross';
+export * from './chart-line-coppock-zero-cross';
