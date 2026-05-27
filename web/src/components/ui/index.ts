@@ -647,3 +647,4 @@ export * from './chart-line-cci-mid-cross';
 export * from './chart-line-mfi-mid-cross';
 export * from './chart-line-stoch-rsi-mid-cross';
 export * from './chart-line-williams-r-mid-cross';
+export * from './chart-line-macd-zero-cross';

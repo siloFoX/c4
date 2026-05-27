@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.956] - 2026-05-27 -- UI: chart-line-macd-zero-cross primitive (TODO 11.938)
+
+Added `<ChartLineMacdZeroCross />` -- pure-SVG dual-panel
+React/TS primitive rendering the close (top panel) with
+bullish (fast EMA crosses above slow EMA) / bearish (fast EMA
+crosses below slow EMA) chevron overlays at every MACD zero-
+line cross, and the close-only MACD line (bottom panel) on an
+auto-fitted oscillator with the zero baseline reference band.
+Zero-line cross variant of the MACD family that flags the
+discrete MACD crossing of the zero baseline distinct from the
+canonical MACD / signal crossover. Bit-exact anchor: CONST
+`close = K` -> fastEma = slowEma = K -> macd = 0, sits on
+threshold but strict-inequality detector never fires, regime
+`bullish` (macd >= 0), 0 crosses, verified across K in {0,
+1, 42, 100, 1234}. LINEAR UP -> EMA(close, n) tracks `close
+- (n-1)/2` at steady state, so fastEma - slowEma converges
+to `(slowLength - fastLength) / 2 = 7` with default windows,
+regime `bullish`, 0 crosses. LINEAR DOWN -> macd converges
+to -7, regime `bearish`, 0 crosses. Decline + sustained
+rise -> 1 bullish zero-line cross. Rise + sustained decline
+-> 1 bearish cross. Defaults `fastLength=12`, `slowLength=
+26`, `threshold=0`. Oscillator range auto-fits to observed
+MACD values with 10% padding (MACD is unbounded). Regime
+classifier `bullish` / `bearish` / `none`. ARIA region +
+role=img SVG with sr-only desc, `data-section` attributes
+on every drawn group, `role="graphics-symbol"` + `tabIndex
+=0` on every cross / overlay marker, motion-safe fade-in,
+controlled / uncontrolled hidden-series legend. 74 vitest
+cases covering pure helpers
+(`getLineMacdZeroCrossFinitePoints`,
+`normalizeLineMacdZeroCrossLength`,
+`normalizeLineMacdZeroCrossThreshold`,
+`applyLineMacdZeroCrossEma`), the MACD compute pipeline
+(CONST / LINEAR UP / LINEAR DOWN / decline-then-rise /
+rise-then-decline), the regime classifier (with custom
+positive / negative thresholds), the bullish / bearish
+cross detector, layout (threshold y placement, oscillator
+range auto-fit, path M/L precision, marker placement), and
+the JSX render path. Manifests 1.11.955 -> 1.11.956.
+
 ## [1.11.955] - 2026-05-27 -- UI: chart-line-williams-r-mid-cross primitive (TODO 11.937)
 
 Added `<ChartLineWilliamsRMidCross />` -- pure-SVG dual-panel
