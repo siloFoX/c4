@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.1088] - 2026-05-28 -- UI: chart-line-momentum-divergence-cross primitive (TODO 11.1070)
+
+Added `<ChartLineMomentumDivergenceCross />` -- single-
+close-input Momentum oscillator price-vs-momentum
+direction divergence detector. The canonical reversal-
+warning signal: when price and momentum disagree on
+direction, the trend is either decelerating (divergent-
+bearish: price still rising but at slower pace, momentum
+already falling) or accelerating against itself
+(divergent-bullish: price still falling but momentum
+already turning up). M[i] = close[i] - close[i-period]
+(simple Momentum oscillator). 5-state regime: aligned-
+bullish (priceUp + momUp), aligned-bearish (priceDown +
+momDown), divergent-bullish (priceDown + momUp = bullish
+reversal warning), divergent-bearish (priceUp + momDown
+= bearish reversal warning), none (any flat or null).
+Cross fires on entry into divergent-bullish (bullish
+cross) or divergent-bearish (bearish cross), with bias
+from momentum slope at the divergence-entry bar. Default
+period=10 (canonical Momentum tuning), warmup=11. Bit-
+exact anchors (single-close): CONST -> M=0 constant +
+flat price -> regime none, 0 crosses; LINEAR UP -> M =
+period constant (momentum flat) -> regime none, 0
+crosses; LINEAR DOWN -> M = -period mirror, regime none,
+0 crosses; QUADRATIC UP (close=i*i) -> M monotonically
+increasing + price up -> aligned-bullish throughout, 0
+crosses; SQRT UP (close=sqrt(i+1)) -> price up but
+momentum decays as rate slows -> divergent-bearish with
+at least one bearish cross. Joins the divergence-cross
+family (5 members now): atr-divergence-cross (volatility
+direction), keltner / bollinger / donchian midline
+direction, momentum (this primitive, the canonical
+reversal warning). Distinct from sibling
+chart-line-momentum-mid-cross-sig v1.11.1080 (zero level
+cross) and chart-line-momentum (raw oscillator). Top
+panel renders close, bottom panel renders Momentum
+(uptrend.blue) with zero reference line; oscillator
+panel auto-scales but guarantees zero-visibility. Pure-
+SVG, deterministic `.toFixed(2)`, no chart-lib
+dependency. 56/56 vitest cases pass.
+
 ## [1.11.1087] - 2026-05-28 -- UI: chart-line-psar-flip-cross primitive (TODO 11.1069)
 
 Added `<ChartLinePsarFlipCross />` -- single-value-input
