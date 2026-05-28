@@ -299,7 +299,12 @@ export default function HistoryView() {
       ) : null}
       <aside className="w-full shrink-0 overflow-y-auto border-b border-border bg-card p-4 md:w-80 md:border-b-0 md:border-r">
         <Card className="border-none bg-transparent shadow-none">
-          <CardHeader className="flex-row items-center justify-between gap-2 p-0">
+          {/* (v1.11.1112, TODO 11.1094) Stack the title above the
+              actions toolbar below sm so the column-picker / export /
+              scribe controls no longer overflow and clip at the right
+              edge at 375; the single-row title-left / toolbar-right
+              layout returns at >= sm. */}
+          <CardHeader className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-0">
             <div className="flex items-center gap-2">
               <HistoryIcon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
               <CardTitle className="text-sm uppercase tracking-wide text-muted-foreground">
@@ -316,6 +321,7 @@ export default function HistoryView() {
               size="sm"
               ariaLabel="History sidebar actions"
               data-testid="history-sidebar-toolbar"
+              className="flex-wrap"
             >
               {/* (11.190) ExportButton adoption: download visible history
                   workers as CSV/JSON. */}
@@ -843,7 +849,10 @@ function SidebarVirtualizedList({
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate">{w.name}</span>
+                    {/* (v1.11.1112, TODO 11.1094) min-w-0 lets the name
+                        truncate instead of pushing the status pill off
+                        the right edge of the full-width mobile row. */}
+                    <span className="min-w-0 truncate">{w.name}</span>
                     {visibleColSet.has('status') && (
                       /* (v1.11.278, TODO 11.260) Per-row Badge
                          migrated to StatusPill. Worker liveness
