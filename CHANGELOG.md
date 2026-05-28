@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1105] - 2026-05-28 -- UX FIX: skeleton loading states for perceived speed (TODO 11.1087)
+
+Added skeleton loading states to the two data panels
+that lacked them (the audit confirmed Sessions /
+Meetings / Specialists / Wiki / Autonomous / Settings
+already show a skeleton or Loading indicator, so those
+were left untouched). (1) ChartLineGallery: each lazy
+tile's Suspense fallback was a static "Loading chart..."
+line, so the grid read as 41 frozen labels on first
+visit; it now renders an animated Skeleton filling the
+chart area while the chunk mounts
+(data-section chart-gallery-tile-skeleton). (2) Features
+Workers hero (pages/Workers.tsx): useWorkerCounts polls
+/api/list and started every count at 0, so the
+Busy/Idle/Lost stat tiles showed a literal 0 during the
+first fetch and looked frozen; the hook now returns a
+loading flag (true until the first poll settles) and the
+hero renders skeleton stat tiles
+(data-section workers-hero-count-skeleton, label visible,
+count is a Skeleton) until then, with a frame matching
+CountBlock so the swap does not shift layout. Both use
+the existing token-backed Skeleton primitive (no new
+placeholders). Mandatory visual verification via a new
+Playwright spec (web/e2e/loading-skeleton.spec.ts):
+throttles /api/list and asserts the Workers skeleton
+tiles show (then the real counts), and throttles the lazy
+chart-line module requests and asserts a gallery tile
+skeleton shows -- 2 passed, screenshots captured +
+visually confirmed. Workers unit suite updated (12
+passed).
+
 ## [1.11.1104] - 2026-05-28 -- UX FIX: console error sweep on main routes (TODO 11.1086)
 
 Fixed the dominant console error on the main routes: the
