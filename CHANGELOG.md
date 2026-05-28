@@ -4,6 +4,46 @@
 
 (no entries -- next release window)
 
+## [1.11.1094] - 2026-05-28 -- UI: chart-line-williams-overbought-divergence primitive (TODO 11.1076)
+
+Added `<ChartLineWilliamsOverboughtDivergence />` --
+HLC-input Larry Williams (1973) Percent R divergence
+detector **gated to the overbought zone** for top
+reversal warning. Generalises the CCI zone-gated
+divergence pair (v1.11.1092 / v1.11.1093) to the bounded
+[-100, 0] Williams %R oscillator -- the FIRST member to
+extend the zone-gated divergence pattern beyond CCI,
+confirming the template applies to any bounded
+oscillator with overbought/oversold zones. %R = (HH -
+close) / (HH - LL) * -100, INVERTED relative to typical
+oscillators: values near 0 mean the close is at the
+period high (overbought / top), near -100 the period low
+(oversold / bottom). 5-state regime + cross firing
+additionally requires `cur %R >= overboughtLevel`.
+PRIMARY signal: divergent-BEARISH at overbought (price
+up but %R falling from a stretched top). Default
+period=14, overboughtLevel=-20 (canonical Williams +
+classical threshold), warmup=15. Bit-exact anchors
+(HLC): CONST band -> %R=-50 constant midpoint (NOT
+overbought), regime none, 0 crosses; LINEAR UP (close=i)
+-> %R = 1/(period+1) * -100 = -6.667 constant (IN
+overbought, close near period high) but flat slope ->
+regime none, overboughtCount>0, 0 crosses; LINEAR DOWN
+(close=-i) -> %R = period/(period+1) * -100 = -93.333
+constant (NOT overbought, close near period low =
+oversold), gate filters, 0 crosses. The bounded [-100,
+0] range is mathematically guaranteed so the chart panel
+hard-locks to it with overbought (-20) / midline (-50) /
+oversold (-80) reference lines -- no auto-scaling.
+Distinct from chart-line-williams-divergence-cross (the
+ungated sibling, fires anywhere). Zero-range guard
+returns null when HH === LL. Sets up obvious future
+siblings: williams-oversold-divergence (mirror, bottom
+reversal), rsi-overbought/oversold-divergence,
+stochastic-overbought/oversold-divergence. Pure-SVG,
+deterministic `.toFixed(2)`, no chart-lib dependency.
+57/57 vitest cases pass.
+
 ## [1.11.1093] - 2026-05-28 -- UI: chart-line-cci-oversold-divergence primitive (TODO 11.1075)
 
 Added `<ChartLineCciOversoldDivergence />` -- HLC-input
