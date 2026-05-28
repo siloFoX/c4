@@ -361,7 +361,7 @@ export function runLineTrendTrigger(
   }
 
   return {
-    series,
+    series = [],
     period,
     triggerLevel,
     bp,

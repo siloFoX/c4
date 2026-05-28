@@ -392,7 +392,7 @@ export function runLineBandwidth(
   }
 
   return {
-    series,
+    series = [],
     period,
     multiplier,
     basis,

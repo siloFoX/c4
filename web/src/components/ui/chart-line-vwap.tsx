@@ -216,7 +216,7 @@ export function runLineVwap(
   }
 
   return {
-    series,
+    series = [],
     samples,
     totalVolume: cumVol,
     vwapFinal,

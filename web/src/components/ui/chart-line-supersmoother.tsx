@@ -298,7 +298,7 @@ export function runLineSuperSmoother(
   }
 
   return {
-    series,
+    series = [],
     period,
     smoother,
     samples,

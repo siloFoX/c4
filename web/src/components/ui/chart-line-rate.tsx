@@ -633,7 +633,7 @@ export interface ChartLineRateProps {
 
 export const ChartLineRate = forwardRef(function ChartLineRate(
   {
-    series,
+    series = [],
     mode = DEFAULT_CHART_LINE_RATE_MODE,
     hiddenSeries,
     defaultHiddenSeries,

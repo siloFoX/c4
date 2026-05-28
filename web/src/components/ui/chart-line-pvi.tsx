@@ -298,7 +298,7 @@ export function runLinePvi(
   }
 
   return {
-    series,
+    series = [],
     base,
     pvi,
     samples,

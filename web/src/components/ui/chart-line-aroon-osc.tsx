@@ -375,7 +375,7 @@ export function runLineAroonOsc(
   }
 
   return {
-    series,
+    series = [],
     period,
     aroonUp,
     aroonDown,

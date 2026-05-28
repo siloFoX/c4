@@ -272,7 +272,7 @@ export function runLineMcGinley(
   }
 
   return {
-    series,
+    series = [],
     period,
     md,
     samples,

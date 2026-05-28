@@ -39,6 +39,10 @@ import { Skeleton } from './ui/skeleton';
 
 interface GalleryChartProps {
   data: unknown;
+  // (v1.11.1118, TODO 11.1100) Some chart-line primitives read `series`
+  // instead of `data`; the gallery passes both so every tile gets its
+  // sample regardless of which prop it consumes.
+  series?: unknown;
   width?: number;
   height?: number;
   showConfigBadge?: boolean;
@@ -131,6 +135,19 @@ export const GALLERY_SAMPLE = Array.from({ length: 96 }, (_, i) => {
   };
 });
 
+// (v1.11.1118, TODO 11.1100) Series-shaped sample for chart-line
+// primitives that read a `series` prop (e.g. ChartLineMomentum) instead
+// of `data`. One series whose points carry every field (incl. `y` =
+// close) so those charts render meaningfully rather than falling back to
+// their empty/no-data state. Charts that read `data` ignore this prop.
+export const GALLERY_SERIES = [
+  {
+    id: 'sample',
+    label: 'Sample',
+    data: GALLERY_SAMPLE.map((p) => ({ ...p, y: p.close })),
+  },
+];
+
 const TILE_WIDTH = 420;
 const TILE_HEIGHT = 260;
 
@@ -173,6 +190,7 @@ function GalleryTile({ item }: { item: GalleryEntry }) {
           >
             <Component
               data={GALLERY_SAMPLE}
+              series={GALLERY_SERIES}
               width={TILE_WIDTH}
               height={TILE_HEIGHT}
               showConfigBadge={false}

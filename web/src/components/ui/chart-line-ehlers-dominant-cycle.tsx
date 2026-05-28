@@ -422,7 +422,7 @@ export function runLineEhlersDominantCycle(
     if (isFiniteNumber(sample.period)) periodFinal = sample.period;
   }
   return {
-    series,
+    series = [],
     minPeriod,
     maxPeriod,
     shortBand,

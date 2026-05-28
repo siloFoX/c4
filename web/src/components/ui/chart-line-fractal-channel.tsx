@@ -508,7 +508,7 @@ export function runLineFractalChannel(
   const ok = series.length >= 2 * fractalLookback + 1;
 
   return {
-    series,
+    series = [],
     length,
     fractalLookback,
     upperFractalValues,

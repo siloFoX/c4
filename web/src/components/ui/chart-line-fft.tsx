@@ -399,7 +399,7 @@ export function computeLineFftLayout(
   options: ComputeLineFftLayoutOptions,
 ): ComputeLineFftLayoutResult {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

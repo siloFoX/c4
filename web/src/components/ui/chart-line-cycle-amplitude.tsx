@@ -403,7 +403,7 @@ export function runLineCycleAmplitude(
   if (!Number.isFinite(amplitudeMin)) amplitudeMin = 0;
   if (!Number.isFinite(amplitudeMax)) amplitudeMax = 0;
   return {
-    series,
+    series = [],
     lookback,
     smoothLength,
     highThreshold,

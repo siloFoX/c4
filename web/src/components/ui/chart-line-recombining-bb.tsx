@@ -424,7 +424,7 @@ export function runLineRecombiningBb(
     else noneCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     sigmaScale,
     meanValues: channels.mean,

@@ -637,7 +637,7 @@ export interface ChartLineDistributionProps {
 
 export const ChartLineDistribution = forwardRef(function ChartLineDistribution(
   {
-    series,
+    series = [],
     binCount = DEFAULT_CHART_LINE_DISTRIBUTION_BIN_COUNT,
     histogramRatio = DEFAULT_CHART_LINE_DISTRIBUTION_HISTOGRAM_RATIO,
     histogramGap = DEFAULT_CHART_LINE_DISTRIBUTION_HISTOGRAM_GAP,

@@ -528,7 +528,7 @@ export function runLineTrixDoubleSmoothed(
   const ok = series.length > warmup;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     bullishThreshold,

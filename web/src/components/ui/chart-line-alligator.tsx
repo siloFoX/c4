@@ -484,7 +484,7 @@ export function runLineAlligator(
     if (isFiniteNumber(sample.lips)) lipsFinal = sample.lips;
   }
   return {
-    series,
+    series = [],
     jawPeriod,
     jawShift,
     teethPeriod,

@@ -515,7 +515,7 @@ export interface ChartLineSparkBarProps {
 
 export const ChartLineSparkBar = forwardRef(function ChartLineSparkBar(
   {
-    series,
+    series = [],
     hiddenSeries,
     defaultHiddenSeries,
     onHiddenSeriesChange,

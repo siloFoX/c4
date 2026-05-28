@@ -382,7 +382,7 @@ export function runLineDonchianMid(
     if (isFiniteNumber(sample.middle)) middleFinal = sample.middle;
   }
   return {
-    series,
+    series = [],
     length,
     upper: channels.upper,
     lower: channels.lower,

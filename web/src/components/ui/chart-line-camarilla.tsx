@@ -368,7 +368,7 @@ export function runLineCamarilla(
   }
 
   return {
-    series,
+    series = [],
     r1: levels.r1,
     r2: levels.r2,
     r3: levels.r3,

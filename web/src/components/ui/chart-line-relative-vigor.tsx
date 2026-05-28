@@ -447,7 +447,7 @@ export function runLineRelativeVigor(
     if (isFiniteNumber(sample.signal)) signalFinal = sample.signal;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     rvi,

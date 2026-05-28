@@ -394,7 +394,7 @@ export function runLineDonchianWidth(
     if (isFiniteNumber(sample.width)) widthFinal = sample.width;
   }
   return {
-    series,
+    series = [],
     length,
     upper: channels.upper,
     lower: channels.lower,

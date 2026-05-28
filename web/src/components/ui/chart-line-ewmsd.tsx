@@ -427,7 +427,7 @@ export function computeLineEwmsdLayout(
   options: ComputeLineEwmsdLayoutOptions,
 ): ChartLineEwmsdLayout {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

@@ -345,7 +345,7 @@ export function runLineQQPlot(
   );
 
   return {
-    series,
+    series = [],
     sorted,
     quantiles,
     mean: stats.mean,

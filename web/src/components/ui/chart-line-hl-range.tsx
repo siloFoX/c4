@@ -420,7 +420,7 @@ export function runLineHlRange(
   const ok = series.length >= length;
 
   return {
-    series,
+    series = [],
     length,
     highThreshold,
     lowThreshold,

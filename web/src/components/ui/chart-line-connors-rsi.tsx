@@ -522,7 +522,7 @@ export function runLineConnorsRsi(
     if (isFiniteNumber(sample.crsi)) crsiFinal = sample.crsi;
   }
   return {
-    series,
+    series = [],
     lenRsi,
     lenStreak,
     lenRank,

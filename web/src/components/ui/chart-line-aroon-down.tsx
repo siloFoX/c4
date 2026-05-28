@@ -314,7 +314,7 @@ export function runLineAroonDown(
     if (isFiniteNumber(sample.aroonDown)) aroonDownFinal = sample.aroonDown;
   }
   return {
-    series,
+    series = [],
     period,
     thresholdHigh,
     thresholdLow,

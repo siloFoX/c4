@@ -367,7 +367,7 @@ export function runLinePzo(
   }
 
   return {
-    series,
+    series = [],
     period,
     threshold,
     signedChange,

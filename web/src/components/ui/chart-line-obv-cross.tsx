@@ -419,7 +419,7 @@ export function runLineObvCross(
   const ok = series.length > signalLength;
 
   return {
-    series,
+    series = [],
     signalLength,
     obvValues: channels.obv,
     signalValues: channels.signal,

@@ -391,7 +391,7 @@ export function runLineAtrCrossPct(
   const ok = series.length > length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     atrValues: channels.atr,

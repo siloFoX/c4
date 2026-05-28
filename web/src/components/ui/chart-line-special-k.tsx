@@ -454,7 +454,7 @@ export function runLineSpecialK(
   }
 
   return {
-    series,
+    series = [],
     components,
     signalPeriod,
     specialK,

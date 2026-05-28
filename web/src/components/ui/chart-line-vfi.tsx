@@ -378,7 +378,7 @@ export function runLineVfi(
   }
 
   return {
-    series,
+    series = [],
     period,
     typical,
     signedVolume,

@@ -426,7 +426,7 @@ export function runLineBbWidth(
     if (isFiniteNumber(sample.width)) widthFinal = sample.width;
   }
   return {
-    series,
+    series = [],
     length,
     numStdDev,
     middle: channels.middle,

@@ -488,7 +488,7 @@ export function computeLineCusumLayout(
   options: ComputeLineCusumLayoutOptions,
 ): ChartLineCusumLayout {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

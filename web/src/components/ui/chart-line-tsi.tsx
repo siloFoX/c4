@@ -363,7 +363,7 @@ export function runLineTsi(
   }
 
   return {
-    series,
+    series = [],
     longPeriod,
     shortPeriod,
     signalPeriod,

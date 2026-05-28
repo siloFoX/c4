@@ -335,7 +335,7 @@ export function runLineStochastic(
   });
 
   return {
-    series,
+    series = [],
     period,
     dPeriod,
     overbought,

@@ -295,7 +295,7 @@ export function runLinePivotPoints(
   }
 
   return {
-    series,
+    series = [],
     levels,
     levelList,
     samples,

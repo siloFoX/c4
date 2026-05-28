@@ -377,7 +377,7 @@ export function runLineElderImpulse(
     samples.length > 0 ? samples[samples.length - 1]!.impulse : 'none';
 
   return {
-    series,
+    series = [],
     emaPeriod,
     fastPeriod,
     slowPeriod,

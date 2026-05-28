@@ -313,7 +313,7 @@ export function runLineMomentumRoc(
     if (isFiniteNumber(sample.roc)) rocFinal = sample.roc;
   }
   return {
-    series,
+    series = [],
     length,
     roc,
     samples,

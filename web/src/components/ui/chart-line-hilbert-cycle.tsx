@@ -386,7 +386,7 @@ export function runLineHilbertCycle(
   // first defined: 6 + 6 + smoothLength - 1 = 11 + smoothLength.
   const requiredBars = 12 + smoothLength;
   return {
-    series,
+    series = [],
     smoothLength,
     inPhase,
     cycle,

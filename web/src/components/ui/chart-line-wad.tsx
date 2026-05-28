@@ -353,7 +353,7 @@ export function runLineWad(
   const last = samples[samples.length - 1];
 
   return {
-    series,
+    series = [],
     trueRangeHigh,
     trueRangeLow,
     delta,

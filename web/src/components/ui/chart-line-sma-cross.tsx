@@ -359,7 +359,7 @@ export function runLineSmaCross(
   const ok = series.length >= Math.max(fastLength, slowLength);
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     fastSmaValues: channels.fastSma,

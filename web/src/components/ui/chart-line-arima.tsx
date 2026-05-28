@@ -461,7 +461,7 @@ export function computeLineArimaLayout(
   options: ComputeLineArimaLayoutOptions,
 ): ChartLineArimaLayout {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

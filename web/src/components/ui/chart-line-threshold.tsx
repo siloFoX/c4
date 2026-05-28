@@ -515,7 +515,7 @@ export interface ChartLineThresholdProps {
 
 export const ChartLineThreshold = forwardRef(function ChartLineThreshold(
   {
-    series,
+    series = [],
     thresholds,
     xMin,
     xMax,

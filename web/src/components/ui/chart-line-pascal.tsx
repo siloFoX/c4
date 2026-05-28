@@ -282,7 +282,7 @@ export function runLinePascal(
   }
 
   return {
-    series,
+    series = [],
     period,
     weights,
     pma,

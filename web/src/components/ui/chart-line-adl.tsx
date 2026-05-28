@@ -325,7 +325,7 @@ export function runLineAdl(
   }
 
   return {
-    series,
+    series = [],
     mfm,
     mfv,
     adl,

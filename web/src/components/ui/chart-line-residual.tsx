@@ -518,7 +518,7 @@ export interface ChartLineResidualProps {
 
 export const ChartLineResidual = forwardRef(function ChartLineResidual(
   {
-    series,
+    series = [],
     biasEpsilon = DEFAULT_CHART_LINE_RESIDUAL_BIAS_EPSILON,
     hiddenSeries,
     defaultHiddenSeries,

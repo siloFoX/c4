@@ -498,7 +498,7 @@ export function runLineVsaCross(
   const ok = series.length > length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     normVolumeValues: channels.normVolume,

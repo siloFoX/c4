@@ -391,7 +391,7 @@ export function runLinePpo(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     signalPeriod,

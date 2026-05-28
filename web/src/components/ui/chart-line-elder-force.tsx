@@ -380,7 +380,7 @@ export function runLineElderForce(
     if (isFiniteNumber(sample.efi)) efiFinal = sample.efi;
   }
   return {
-    series,
+    series = [],
     length,
     raw: channels.raw,
     efi: channels.efi,

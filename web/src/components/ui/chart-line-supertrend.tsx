@@ -407,7 +407,7 @@ export function runLineSupertrend(
   }
 
   return {
-    series,
+    series = [],
     period,
     multiplier,
     samples,

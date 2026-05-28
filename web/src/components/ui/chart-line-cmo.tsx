@@ -322,7 +322,7 @@ export function runLineCmo(
   }
 
   return {
-    series,
+    series = [],
     period,
     overbought,
     oversold,

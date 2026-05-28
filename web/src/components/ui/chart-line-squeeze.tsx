@@ -470,7 +470,7 @@ export function runLineSqueeze(
   }
 
   return {
-    series,
+    series = [],
     period,
     bbMult,
     kcMult,

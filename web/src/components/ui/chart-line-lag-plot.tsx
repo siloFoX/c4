@@ -239,7 +239,7 @@ export function runLineLagPlot(
   );
 
   return {
-    series,
+    series = [],
     lag: k,
     pairs,
     pairCount: pairs.length,

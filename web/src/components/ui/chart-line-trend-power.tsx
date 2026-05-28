@@ -384,7 +384,7 @@ export function runLineTrendPower(
     else noneCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     strongThreshold,
     slope: channels.slope,

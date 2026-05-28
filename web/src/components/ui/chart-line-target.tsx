@@ -629,7 +629,7 @@ export interface ChartLineTargetProps {
 
 export const ChartLineTarget = forwardRef(function ChartLineTarget(
   {
-    series,
+    series = [],
     target = DEFAULT_CHART_LINE_TARGET_VALUE,
     epsilon = DEFAULT_CHART_LINE_TARGET_EPSILON,
     targetLabel = 'Target',

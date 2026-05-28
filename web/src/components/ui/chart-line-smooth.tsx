@@ -516,7 +516,7 @@ export interface ChartLineSmoothProps {
 
 export const ChartLineSmooth = forwardRef(function ChartLineSmooth(
   {
-    series,
+    series = [],
     curve = DEFAULT_CHART_LINE_SMOOTH_CURVE,
     tension = DEFAULT_CHART_LINE_SMOOTH_TENSION,
     xMin,

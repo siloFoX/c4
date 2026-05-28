@@ -590,7 +590,7 @@ export interface ChartLineCumulativeProps {
 
 export const ChartLineCumulative = forwardRef(function ChartLineCumulative(
   {
-    series,
+    series = [],
     target,
     targetLabel = 'Target',
     hiddenSeries,

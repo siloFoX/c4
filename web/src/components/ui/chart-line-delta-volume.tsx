@@ -295,7 +295,7 @@ export function runLineDeltaVolume(
     if (isFiniteNumber(sample.delta)) deltaFinal = sample.delta;
   }
   return {
-    series,
+    series = [],
     delta,
     samples,
     deltaFinal,

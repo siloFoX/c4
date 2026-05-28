@@ -344,7 +344,7 @@ export function runLineBandPass(
   }
 
   return {
-    series,
+    series = [],
     period,
     bandwidth,
     beta,

@@ -405,7 +405,7 @@ export function runLineMassIndexSignal(
     if (isFiniteNumber(sample.mass)) massFinal = sample.mass;
   }
   return {
-    series,
+    series = [],
     emaLength,
     lookback,
     reversalThreshold,

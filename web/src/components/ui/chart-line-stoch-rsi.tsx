@@ -373,7 +373,7 @@ export function runLineStochRsi(
   }
 
   return {
-    series,
+    series = [],
     rsiPeriod,
     stochPeriod,
     upperThreshold,

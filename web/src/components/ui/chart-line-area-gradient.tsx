@@ -468,7 +468,7 @@ export interface ChartLineAreaGradientProps {
 
 export const ChartLineAreaGradient = forwardRef(function ChartLineAreaGradient(
   {
-    series,
+    series = [],
     baseline,
     gradientTopOpacity = DEFAULT_CHART_LINE_AREA_GRADIENT_TOP_OPACITY,
     gradientBottomOpacity = DEFAULT_CHART_LINE_AREA_GRADIENT_BOTTOM_OPACITY,

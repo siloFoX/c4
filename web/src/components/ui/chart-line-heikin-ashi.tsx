@@ -281,7 +281,7 @@ export function runLineHeikinAshi(
   const haCloseSeries = bars.map((b) => b.haClose);
 
   return {
-    series,
+    series = [],
     bars,
     samples,
     haCloseSeries,

@@ -329,7 +329,7 @@ export function runLineRavi(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     ravi,

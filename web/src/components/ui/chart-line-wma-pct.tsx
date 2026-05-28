@@ -429,7 +429,7 @@ export function runLineWmaPct(
   const ok = series.length >= length;
 
   return {
-    series,
+    series = [],
     length,
     bullishThreshold,
     bearishThreshold,

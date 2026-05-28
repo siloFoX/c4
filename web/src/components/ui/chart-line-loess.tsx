@@ -455,7 +455,7 @@ export function computeLineLoessLayout(
   options: ComputeLineLoessLayoutOptions,
 ): ChartLineLoessLayout {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

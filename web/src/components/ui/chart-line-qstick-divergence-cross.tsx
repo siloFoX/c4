@@ -424,7 +424,7 @@ export function runLineQstickDivergenceCross(
   const ok = series.length > length - 1 + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     qstickValues: channels.qstick,

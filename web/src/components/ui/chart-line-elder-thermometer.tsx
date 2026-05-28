@@ -313,7 +313,7 @@ export function runLineElderThermometer(
     if (isFiniteNumber(sample.thermo)) thermoFinal = sample.thermo;
   }
   return {
-    series,
+    series = [],
     hotThreshold,
     thermo,
     samples,

@@ -618,7 +618,7 @@ export interface ChartLineEventProps {
 
 export const ChartLineEvent = forwardRef(function ChartLineEvent(
   {
-    series,
+    series = [],
     events,
     hiddenSeries,
     defaultHiddenSeries,

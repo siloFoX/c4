@@ -389,7 +389,7 @@ export function runLineSupertrendCrossPct(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     factor,
     supertrendValues: channels.supertrend,

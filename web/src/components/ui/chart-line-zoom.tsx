@@ -429,7 +429,7 @@ export interface ChartLineZoomProps {
 
 export const ChartLineZoom = forwardRef(function ChartLineZoom(
   {
-    series,
+    series = [],
     zoom,
     defaultZoom,
     onZoomChange,

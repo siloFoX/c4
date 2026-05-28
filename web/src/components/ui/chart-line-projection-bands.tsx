@@ -369,7 +369,7 @@ export function runLineProjectionBands(
     if (isFiniteNumber(sample.levels.lower)) lowerFinal = sample.levels.lower;
   }
   return {
-    series,
+    series = [],
     period,
     levels,
     samples,

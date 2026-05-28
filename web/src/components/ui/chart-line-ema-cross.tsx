@@ -374,7 +374,7 @@ export function runLineEmaCross(
   const ok = series.length >= Math.max(fastLength, slowLength);
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     fastEmaValues: channels.fastEma,

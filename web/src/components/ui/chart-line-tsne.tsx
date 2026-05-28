@@ -515,7 +515,7 @@ export function computeLineTsneLayout(
   options: ComputeLineTsneLayoutOptions,
 ): ChartLineTsneLayout {
   const {
-    series,
+    series = [],
     width,
     height,
     padding,

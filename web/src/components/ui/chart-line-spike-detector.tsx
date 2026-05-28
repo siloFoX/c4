@@ -377,7 +377,7 @@ export function runLineSpikeDetector(
     if (isFiniteNumber(sample.spike)) spikeFinal = sample.spike;
   }
   return {
-    series,
+    series = [],
     length,
     delta,
     spike,

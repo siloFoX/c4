@@ -539,7 +539,7 @@ export function runLineStochCross(
   const ok = series.length > kLength + dLength;
 
   return {
-    series,
+    series = [],
     kLength,
     dLength,
     overboughtLevel,

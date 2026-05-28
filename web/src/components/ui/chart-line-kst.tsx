@@ -473,7 +473,7 @@ export function runLineKst(
   }
 
   return {
-    series,
+    series = [],
     config,
     rcma1,
     rcma2,

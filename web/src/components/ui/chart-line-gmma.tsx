@@ -366,7 +366,7 @@ export function runLineGmma(
   }
 
   return {
-    series,
+    series = [],
     shortPeriods,
     longPeriods,
     short,

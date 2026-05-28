@@ -298,7 +298,7 @@ export function runLineIchimokuKijun(
     if (isFiniteNumber(sample.kijun)) kijunFinal = sample.kijun;
   }
   return {
-    series,
+    series = [],
     period,
     kijun,
     samples,

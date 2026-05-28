@@ -373,7 +373,7 @@ export function runLineHilbert(
   }
 
   return {
-    series,
+    series = [],
     minPeriod,
     maxPeriod,
     smooth,

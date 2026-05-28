@@ -371,7 +371,7 @@ export function runLineFrama(
   }
 
   return {
-    series,
+    series = [],
     period,
     dimension,
     alpha,

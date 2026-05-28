@@ -434,7 +434,7 @@ export function runLineRangeOsc(
     if (isFiniteNumber(sample.rangeOsc)) rangeOscFinal = sample.rangeOsc;
   }
   return {
-    series,
+    series = [],
     shortLength,
     longLength,
     tr: channels.tr,

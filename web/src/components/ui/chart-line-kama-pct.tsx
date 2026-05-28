@@ -400,7 +400,7 @@ export function runLineKamaPct(
   const ok = series.length > erLength + 1;
 
   return {
-    series,
+    series = [],
     erLength,
     fastLength,
     slowLength,

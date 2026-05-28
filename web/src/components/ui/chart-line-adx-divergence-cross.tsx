@@ -506,7 +506,7 @@ export function runLineAdxDivergenceCross(
   const ok = series.length > 2 * length - 1 + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     adxValues: channels.adx,

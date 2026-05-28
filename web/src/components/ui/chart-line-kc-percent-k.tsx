@@ -439,7 +439,7 @@ export function runLineKcPercentK(
     if (isFiniteNumber(sample.percentK)) percentKFinal = sample.percentK;
   }
   return {
-    series,
+    series = [],
     length,
     multiplier,
     percentK,

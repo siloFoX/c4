@@ -397,7 +397,7 @@ export function runLineMfiCrossPct(
   const ok = series.length > length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     mfiValues: channels.mfi,

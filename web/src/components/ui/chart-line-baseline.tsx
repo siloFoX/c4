@@ -472,7 +472,7 @@ export interface ChartLineBaselineProps {
 
 export const ChartLineBaseline = forwardRef(function ChartLineBaseline(
   {
-    series,
+    series = [],
     baseline = DEFAULT_CHART_LINE_BASELINE_BASELINE_VALUE,
     baselineLabel,
     baselineColor = DEFAULT_CHART_LINE_BASELINE_BASELINE_COLOR,

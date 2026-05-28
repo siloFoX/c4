@@ -436,7 +436,7 @@ export function runLineAdxCrossPct(
   const ok = series.length > 2 * length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     adxValues: channels.adx,

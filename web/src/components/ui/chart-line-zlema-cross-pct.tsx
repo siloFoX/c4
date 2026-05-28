@@ -331,7 +331,7 @@ export function runLineZlemaCrossPct(
   const ok = series.length > length + channels.lag;
 
   return {
-    series,
+    series = [],
     length,
     lag: channels.lag,
     zlemaValues: channels.zlema,

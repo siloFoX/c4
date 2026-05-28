@@ -275,7 +275,7 @@ export function runLineKagi(
   }
 
   return {
-    series,
+    series = [],
     reversalAmount,
     turns,
     segments,

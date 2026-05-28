@@ -431,7 +431,7 @@ export function runLineHilbertQuadrature(
   const ok = series.length >= length + shift;
 
   return {
-    series,
+    series = [],
     length,
     shift,
     threshold,

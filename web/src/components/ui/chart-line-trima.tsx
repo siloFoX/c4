@@ -325,7 +325,7 @@ export function runLineTrima(
   }
 
   return {
-    series,
+    series = [],
     period,
     firstPeriod,
     secondPeriod,

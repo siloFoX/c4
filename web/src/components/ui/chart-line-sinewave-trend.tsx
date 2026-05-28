@@ -354,7 +354,7 @@ export function runLineSinewaveTrend(
     if (isFiniteNumber(sample.leadSine)) leadSineFinal = sample.leadSine;
   }
   return {
-    series,
+    series = [],
     sine,
     leadSine,
     samples,

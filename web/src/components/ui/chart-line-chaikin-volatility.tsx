@@ -363,7 +363,7 @@ export function runLineChaikinVolatility(
     if (isFiniteNumber(sample.cv)) cvFinal = sample.cv;
   }
   return {
-    series,
+    series = [],
     length,
     cv,
     samples,

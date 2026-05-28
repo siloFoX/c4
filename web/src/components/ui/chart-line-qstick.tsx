@@ -313,7 +313,7 @@ export function runLineQstick(
   }
 
   return {
-    series,
+    series = [],
     period,
     spread,
     qstick,

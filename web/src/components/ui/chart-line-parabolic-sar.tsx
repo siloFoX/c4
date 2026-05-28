@@ -283,7 +283,7 @@ export function runLineParabolicSar(
   for (const s of samples) if (s.trend === 'up') upCount += 1;
 
   return {
-    series,
+    series = [],
     step,
     maxStep,
     samples,

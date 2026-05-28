@@ -373,7 +373,7 @@ export function runLineBbCrossSig(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     mult,
     midValues: channels.mid,

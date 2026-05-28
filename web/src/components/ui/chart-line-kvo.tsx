@@ -413,7 +413,7 @@ export function runLineKvo(
     if (isFiniteNumber(sample.kvo)) kvoFinal = sample.kvo;
   }
   return {
-    series,
+    series = [],
     fast,
     slow,
     vf,

@@ -413,7 +413,7 @@ export function runLineVwapCross(
   const ok = series.length >= 2;
 
   return {
-    series,
+    series = [],
     vwapValues: channels.vwap,
     deviationValues: channels.deviation,
     samples,

@@ -389,7 +389,7 @@ export function runLineGator(
   }
 
   return {
-    series,
+    series = [],
     jawPeriod,
     teethPeriod,
     lipsPeriod,

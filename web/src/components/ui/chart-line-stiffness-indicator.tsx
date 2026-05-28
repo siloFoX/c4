@@ -409,7 +409,7 @@ export function runLineStiffnessIndicator(
     if (isFiniteNumber(sample.stiffness)) stiffnessFinal = sample.stiffness;
   }
   return {
-    series,
+    series = [],
     length,
     stiffnessFactor,
     stiffness,

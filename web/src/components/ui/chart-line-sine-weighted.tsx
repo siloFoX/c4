@@ -280,7 +280,7 @@ export function runLineSineWeighted(
   }
 
   return {
-    series,
+    series = [],
     period,
     weights,
     swma,

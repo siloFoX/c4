@@ -410,7 +410,7 @@ export function runLineRsiCrossPct(
   const ok = series.length > length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     rsiValues: channels.rsi,

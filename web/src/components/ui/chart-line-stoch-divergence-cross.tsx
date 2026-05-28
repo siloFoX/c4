@@ -401,7 +401,7 @@ export function runLineStochDivergenceCross(
   const ok = series.length > length + divergenceWindow - 1;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     stochValues: channels.stoch,

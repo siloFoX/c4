@@ -386,7 +386,7 @@ export function runLineInertia(
   }
 
   return {
-    series,
+    series = [],
     vigorPeriod,
     regPeriod,
     rvgi,

@@ -340,7 +340,7 @@ export function runLineTemaCrossPct(
   const ok = series.length > length * 3;
 
   return {
-    series,
+    series = [],
     length,
     ema1Values: channels.ema1,
     ema2Values: channels.ema2,

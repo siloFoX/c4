@@ -368,7 +368,7 @@ export function runLineHilbertInstant(
     if (isFiniteNumber(sample.instant)) instantFinal = sample.instant;
   }
   return {
-    series,
+    series = [],
     lag,
     smoothed,
     instant,

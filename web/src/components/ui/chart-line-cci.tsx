@@ -313,7 +313,7 @@ export function runLineCci(
   }
 
   return {
-    series,
+    series = [],
     period,
     overbought,
     oversold,

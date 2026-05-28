@@ -372,7 +372,7 @@ export function runLinePfe(
   }
 
   return {
-    series,
+    series = [],
     period,
     smooth,
     threshold,

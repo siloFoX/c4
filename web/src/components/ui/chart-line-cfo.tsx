@@ -341,7 +341,7 @@ export function runLineCfo(
   }
 
   return {
-    series,
+    series = [],
     period,
     threshold,
     forecast,

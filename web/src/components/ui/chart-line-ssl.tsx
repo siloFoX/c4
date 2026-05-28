@@ -326,7 +326,7 @@ export function runLineSsl(
   }
 
   return {
-    series,
+    series = [],
     period,
     smaHigh,
     smaLow,

@@ -280,7 +280,7 @@ export function runLineZigzag(
   });
 
   return {
-    series,
+    series = [],
     pivots,
     pivotCount: pivots.length,
     thresholdPercent: pct,

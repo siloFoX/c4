@@ -278,7 +278,7 @@ export function runLineMacd(
   }));
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     signalPeriod,

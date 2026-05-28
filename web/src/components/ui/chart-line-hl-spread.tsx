@@ -366,7 +366,7 @@ export function runLineHlSpread(
     if (isFiniteNumber(sample.spread)) spreadFinal = sample.spread;
   }
   return {
-    series,
+    series = [],
     length,
     raw: channels.raw,
     spread: channels.spread,

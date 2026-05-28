@@ -485,7 +485,7 @@ export function runLineTsiDivergenceCross(
   const ok = series.length > lengthR + lengthS + divergenceWindow;
 
   return {
-    series,
+    series = [],
     lengthR,
     lengthS,
     divergenceWindow,

@@ -397,7 +397,7 @@ export function runLineTrixSignal(
     if (isFiniteNumber(sample.signal)) signalFinal = sample.signal;
   }
   return {
-    series,
+    series = [],
     period,
     signalPeriod,
     threshold,

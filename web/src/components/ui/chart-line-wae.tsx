@@ -420,7 +420,7 @@ export function runLineWae(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     bbPeriod,

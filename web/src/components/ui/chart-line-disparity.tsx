@@ -316,7 +316,7 @@ export function runLineDisparity(
   }
 
   return {
-    series,
+    series = [],
     period,
     sma,
     disparity,

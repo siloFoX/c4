@@ -342,7 +342,7 @@ export function runLineFractalPivot(
   const ok = series.length >= 2 * fractalLookback + 1;
 
   return {
-    series,
+    series = [],
     fractalLookback,
     upperFractalValues,
     lowerFractalValues,

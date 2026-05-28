@@ -371,7 +371,7 @@ export function runLineElderBearCross(
   const ok = series.length > length + 1;
 
   return {
-    series,
+    series = [],
     length,
     lowProxyLength,
     bearValues: channels.bear,

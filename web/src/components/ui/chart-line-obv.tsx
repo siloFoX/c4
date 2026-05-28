@@ -258,7 +258,7 @@ export function runLineObv(
   }
 
   return {
-    series,
+    series = [],
     obv,
     directions,
     samples,

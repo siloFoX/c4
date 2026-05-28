@@ -404,7 +404,7 @@ export function runLineDemaCross(
   const ok = series.length > length * 2;
 
   return {
-    series,
+    series = [],
     length,
     ema1Values: channels.ema1,
     ema2Values: channels.ema2,

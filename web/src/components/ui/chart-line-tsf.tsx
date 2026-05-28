@@ -320,7 +320,7 @@ export function runLineTsf(
     if (isFiniteNumber(sample.tsf)) tsfFinal = sample.tsf;
   }
   return {
-    series,
+    series = [],
     period,
     tsf,
     slope,

@@ -356,7 +356,7 @@ export function computeLineStreakLayout(
   options: ComputeLineStreakLayoutOptions,
 ): ComputeLineStreakLayoutResult {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

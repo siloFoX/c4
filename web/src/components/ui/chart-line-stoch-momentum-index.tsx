@@ -446,7 +446,7 @@ export function runLineStochMomentumIndex(
     if (isFiniteNumber(sample.smi)) smiFinal = sample.smi;
   }
   return {
-    series,
+    series = [],
     period,
     smooth1,
     smooth2,

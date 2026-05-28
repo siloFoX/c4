@@ -341,7 +341,7 @@ export function runLineHilo(
   }
 
   return {
-    series,
+    series = [],
     period,
     smaHigh,
     smaLow,

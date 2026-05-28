@@ -512,7 +512,7 @@ export interface ChartLineAnnotatedProps {
 
 export const ChartLineAnnotated = forwardRef(function ChartLineAnnotated(
   {
-    series,
+    series = [],
     annotations,
     xMin,
     xMax,

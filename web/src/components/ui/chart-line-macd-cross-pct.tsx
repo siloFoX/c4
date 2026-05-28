@@ -330,7 +330,7 @@ export function runLineMacdCrossPct(
   const ok = series.length > slowLength;
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     macdValues: channels.macd,

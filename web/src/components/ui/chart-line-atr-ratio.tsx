@@ -469,7 +469,7 @@ export function runLineAtrRatio(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     shortLength,
     longLength,
     highThreshold,

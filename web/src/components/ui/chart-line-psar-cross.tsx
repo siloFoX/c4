@@ -478,7 +478,7 @@ export function runLinePsarCross(
   const ok = series.length >= 2;
 
   return {
-    series,
+    series = [],
     afInitial,
     afStep,
     afMax,

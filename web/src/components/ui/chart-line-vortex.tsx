@@ -333,7 +333,7 @@ export function runLineVortex(
   }
 
   return {
-    series,
+    series = [],
     period,
     viPlus,
     viMinus,

@@ -302,7 +302,7 @@ export function runLineRsi(
   });
 
   return {
-    series,
+    series = [],
     period,
     overbought,
     oversold,

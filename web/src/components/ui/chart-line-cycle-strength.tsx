@@ -371,7 +371,7 @@ export function runLineCycleStrength(
     if (isFiniteNumber(sample.strength)) strengthFinal = sample.strength;
   }
   return {
-    series,
+    series = [],
     length,
     cycleLag,
     detrended,

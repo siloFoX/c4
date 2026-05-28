@@ -563,7 +563,7 @@ export interface ChartLineVelocityProps {
 
 export const ChartLineVelocity = forwardRef(function ChartLineVelocity(
   {
-    series,
+    series = [],
     arrowMode = DEFAULT_CHART_LINE_VELOCITY_ARROW_MODE,
     arrowSize = DEFAULT_CHART_LINE_VELOCITY_ARROW_SIZE,
     hiddenSeries,

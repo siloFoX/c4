@@ -406,7 +406,7 @@ export function runLineTroughDetector(
     else noneCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     threshFactor,
     mean: channels.mean,

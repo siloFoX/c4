@@ -478,7 +478,7 @@ export function runLineCoppockTrigger(
     }
   }
   return {
-    series,
+    series = [],
     longROC,
     shortROC,
     wmaPeriod,

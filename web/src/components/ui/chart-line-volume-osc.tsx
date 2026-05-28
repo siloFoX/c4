@@ -290,7 +290,7 @@ export function runLineVolumeOsc(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     fastMa,

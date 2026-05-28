@@ -293,7 +293,7 @@ export function runLineRainbow(
   }
 
   return {
-    series,
+    series = [],
     period,
     bandCount,
     bands,

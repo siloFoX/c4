@@ -250,7 +250,7 @@ export function runLineRenko(
   }
 
   return {
-    series,
+    series = [],
     brickSize,
     bricks,
     upCount,

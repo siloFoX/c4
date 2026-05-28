@@ -546,7 +546,7 @@ export function runLineSchaffDivergenceCross(
   const ok = series.length > warmup + divergenceWindow;
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     cycleLength,

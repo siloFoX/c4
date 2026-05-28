@@ -591,7 +591,7 @@ export interface ChartLineRollingMinMaxProps {
 
 export const ChartLineRollingMinMax = forwardRef(function ChartLineRollingMinMax(
   {
-    series,
+    series = [],
     window: chartWindow = DEFAULT_CHART_LINE_ROLLING_MIN_MAX_WINDOW,
     mode = DEFAULT_CHART_LINE_ROLLING_MIN_MAX_MODE,
     hiddenSeries,

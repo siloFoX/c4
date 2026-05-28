@@ -350,7 +350,7 @@ export function runLineForceIndex(
   }
 
   return {
-    series,
+    series = [],
     emaPeriod,
     rawForce,
     forceIndex,

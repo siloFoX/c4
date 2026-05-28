@@ -452,7 +452,7 @@ export function runLineTrixDivergenceCross(
   const ok = series.length > 3 * (length - 1) + 1 + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     trixValues: channels.trix,

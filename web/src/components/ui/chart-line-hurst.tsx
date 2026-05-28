@@ -348,7 +348,7 @@ export function runLineHurst(
   const lastSample = samples[n - 1]!;
 
   return {
-    series,
+    series = [],
     period,
     hurst,
     rs,

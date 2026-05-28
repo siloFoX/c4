@@ -368,7 +368,7 @@ export function runLineTilsonMa(
     if (isFiniteNumber(sample.t3)) t3Final = sample.t3;
   }
   return {
-    series,
+    series = [],
     period,
     volumeFactor,
     t3,

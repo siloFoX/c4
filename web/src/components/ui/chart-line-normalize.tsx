@@ -607,7 +607,7 @@ export interface ChartLineNormalizeProps {
 
 export const ChartLineNormalize = forwardRef(function ChartLineNormalize(
   {
-    series,
+    series = [],
     indexBase = DEFAULT_CHART_LINE_NORMALIZE_INDEX_BASE,
     mode = DEFAULT_CHART_LINE_NORMALIZE_MODE,
     referenceX,

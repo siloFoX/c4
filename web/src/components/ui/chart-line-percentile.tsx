@@ -520,7 +520,7 @@ export interface ChartLinePercentileProps {
 
 export const ChartLinePercentile = forwardRef(function ChartLinePercentile(
   {
-    series,
+    series = [],
     percentiles,
     hiddenSeries,
     defaultHiddenSeries,

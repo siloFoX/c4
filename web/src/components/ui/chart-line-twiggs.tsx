@@ -403,7 +403,7 @@ export function runLineTwiggs(
   }
 
   return {
-    series,
+    series = [],
     period,
     threshold,
     clv,

@@ -309,7 +309,7 @@ export function runLineMfi(
   }
 
   return {
-    series,
+    series = [],
     period,
     overbought,
     oversold,

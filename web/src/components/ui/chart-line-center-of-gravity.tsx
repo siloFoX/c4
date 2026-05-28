@@ -304,7 +304,7 @@ export function runLineCenterOfGravity(
     if (isFiniteNumber(sample.cg)) cgFinal = sample.cg;
   }
   return {
-    series,
+    series = [],
     length,
     cg,
     samples,

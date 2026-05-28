@@ -447,7 +447,7 @@ export function runLineAtrCross(
   const ok = series.length >= Math.max(shortLength, longLength);
 
   return {
-    series,
+    series = [],
     shortLength,
     longLength,
     trueRangeValues: channels.trueRange,

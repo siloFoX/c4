@@ -316,7 +316,7 @@ export function runLineEhlersSupersmoother(
     if (isFiniteNumber(sample.ss)) ssFinal = sample.ss;
   }
   return {
-    series,
+    series = [],
     period,
     ss,
     samples,

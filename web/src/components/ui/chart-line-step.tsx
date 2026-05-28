@@ -401,7 +401,7 @@ export interface ChartLineStepProps {
 
 export const ChartLineStep = forwardRef(function ChartLineStep(
   {
-    series,
+    series = [],
     stepType = DEFAULT_CHART_LINE_STEP_TYPE,
     xMin,
     xMax,

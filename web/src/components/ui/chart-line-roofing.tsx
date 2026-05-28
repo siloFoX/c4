@@ -385,7 +385,7 @@ export function runLineRoofing(
   }
 
   return {
-    series,
+    series = [],
     hpPeriod,
     ssPeriod,
     highpass,

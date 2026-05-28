@@ -426,7 +426,7 @@ export function runLineTrendDetector(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     slopeLookback,
     threshold,

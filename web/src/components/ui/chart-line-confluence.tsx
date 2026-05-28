@@ -358,7 +358,7 @@ export function runLineConfluence(
     if (isFiniteNumber(sample.score)) scoreFinal = sample.score;
   }
   return {
-    series,
+    series = [],
     lookbacks,
     threshold,
     signals,

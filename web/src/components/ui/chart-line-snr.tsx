@@ -348,7 +348,7 @@ export function runLineSnr(
   }
 
   return {
-    series,
+    series = [],
     period,
     range,
     avgRange,

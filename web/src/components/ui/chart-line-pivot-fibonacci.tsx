@@ -381,7 +381,7 @@ export function runLinePivotFibonacci(
     if (isFiniteNumber(sample.levels.pp)) ppFinal = sample.levels.pp;
   }
   return {
-    series,
+    series = [],
     ratios,
     levels,
     samples,

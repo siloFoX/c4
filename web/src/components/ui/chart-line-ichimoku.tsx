@@ -255,7 +255,7 @@ export function runLineIchimoku(
   const n = series.length;
 
   const baseRun: ChartLineIchimokuRun = {
-    series,
+    series = [],
     conversionPeriod,
     basePeriod,
     leadingPeriod,

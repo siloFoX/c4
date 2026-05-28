@@ -536,7 +536,7 @@ export function runLineBbFisher(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     sigma,
     clampLimit,

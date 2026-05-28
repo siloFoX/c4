@@ -388,7 +388,7 @@ export function runLineFisherCrossPct(
   const ok = series.length > length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     fisherValues: channels.fisher,

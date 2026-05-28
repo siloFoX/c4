@@ -303,7 +303,7 @@ export function runLineLaguerre(
   }
 
   return {
-    series,
+    series = [],
     gamma,
     filter,
     samples,

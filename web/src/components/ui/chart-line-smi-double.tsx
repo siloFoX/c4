@@ -592,7 +592,7 @@ export function runLineSmiDouble(
   const ok = series.length >= length + smoothLength1 + smoothLength2 - 2;
 
   return {
-    series,
+    series = [],
     length,
     smoothLength1,
     smoothLength2,

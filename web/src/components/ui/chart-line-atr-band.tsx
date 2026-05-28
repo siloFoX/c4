@@ -451,7 +451,7 @@ export function runLineAtrBand(
     if (isFiniteNumber(sample.middle)) middleFinal = sample.middle;
   }
   return {
-    series,
+    series = [],
     length,
     multiplier,
     middle: channels.middle,

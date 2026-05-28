@@ -337,7 +337,7 @@ export function runLineMomentumCross(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     priorValues: channels.prior,
     momentumValues: channels.momentum,

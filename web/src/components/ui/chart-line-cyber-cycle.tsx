@@ -338,7 +338,7 @@ export function runLineCyberCycle(
   }
 
   return {
-    series,
+    series = [],
     alpha,
     smooth,
     cycle,

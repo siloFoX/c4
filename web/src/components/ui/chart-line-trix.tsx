@@ -337,7 +337,7 @@ export function runLineTrix(
   }
 
   return {
-    series,
+    series = [],
     period,
     signalPeriod,
     ema3,

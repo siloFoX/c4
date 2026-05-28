@@ -284,7 +284,7 @@ export function runLineRmta(
   }
 
   return {
-    series,
+    series = [],
     alpha,
     beta,
     rmta,

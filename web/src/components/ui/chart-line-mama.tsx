@@ -400,7 +400,7 @@ export function runLineMama(
   }
 
   return {
-    series,
+    series = [],
     period,
     slowLimit,
     fastLimit,

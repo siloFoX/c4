@@ -424,7 +424,7 @@ export function runLineRocketRsi(
     if (isFiniteNumber(sample.rocketRsi)) rocketFinal = sample.rocketRsi;
   }
   return {
-    series,
+    series = [],
     rsiPeriod,
     smooth1,
     smooth2,

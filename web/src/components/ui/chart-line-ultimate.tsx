@@ -462,7 +462,7 @@ export function runLineUltimate(
   }
 
   return {
-    series,
+    series = [],
     shortPeriod,
     mediumPeriod,
     longPeriod,

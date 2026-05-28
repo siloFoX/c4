@@ -354,7 +354,7 @@ export function runLineTemaCross(
     if (isFiniteNumber(sample.slow)) slowFinal = sample.slow;
   }
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     fast,

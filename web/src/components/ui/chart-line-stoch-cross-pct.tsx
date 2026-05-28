@@ -369,7 +369,7 @@ export function runLineStochCrossPct(
   const ok = series.length > kLength + slowKLength + dLength;
 
   return {
-    series,
+    series = [],
     kLength,
     slowKLength,
     dLength,

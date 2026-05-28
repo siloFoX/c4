@@ -318,7 +318,7 @@ export function runLineHmaPct(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     hmaValues: channels.hma,
     hmaPctValues: channels.hmaPct,

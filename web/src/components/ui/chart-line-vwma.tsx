@@ -281,7 +281,7 @@ export function runLineVwma(
   }
 
   return {
-    series,
+    series = [],
     period,
     vwma,
     samples,

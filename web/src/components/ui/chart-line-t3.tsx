@@ -404,7 +404,7 @@ export function runLineT3(
   }
 
   return {
-    series,
+    series = [],
     period,
     vfactor,
     ema1,

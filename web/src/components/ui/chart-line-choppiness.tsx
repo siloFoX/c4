@@ -378,7 +378,7 @@ export function runLineChoppiness(
   }
 
   return {
-    series,
+    series = [],
     period,
     choppyThreshold,
     trendingThreshold,

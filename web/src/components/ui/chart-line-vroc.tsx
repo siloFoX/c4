@@ -285,7 +285,7 @@ export function runLineVroc(
   }
 
   return {
-    series,
+    series = [],
     period,
     vroc,
     samples,

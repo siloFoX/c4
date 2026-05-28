@@ -359,7 +359,7 @@ export function runLineRmi(
   }
 
   return {
-    series,
+    series = [],
     period,
     momentumPeriod,
     overbought,

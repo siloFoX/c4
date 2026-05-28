@@ -286,7 +286,7 @@ export function runLineFisher(
   }
 
   return {
-    series,
+    series = [],
     period,
     fisher,
     trigger,

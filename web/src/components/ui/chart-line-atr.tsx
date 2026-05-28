@@ -280,7 +280,7 @@ export function runLineAtr(
   }
 
   return {
-    series,
+    series = [],
     period,
     trueRange,
     atr,

@@ -368,7 +368,7 @@ export function runLineBalancePowerCross(
   const ok = series.length > barLength + smoothLength;
 
   return {
-    series,
+    series = [],
     barLength,
     smoothLength,
     bopValues: channels.bop,

@@ -611,7 +611,7 @@ export interface ChartLineBandProps {
 
 export const ChartLineBand = forwardRef(function ChartLineBand(
   {
-    series,
+    series = [],
     bands,
     hiddenSeries,
     defaultHiddenSeries,

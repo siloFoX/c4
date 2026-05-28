@@ -381,7 +381,7 @@ export function runLineVzo(
   }
 
   return {
-    series,
+    series = [],
     period,
     threshold,
     signedVolume,

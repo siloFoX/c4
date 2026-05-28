@@ -337,7 +337,7 @@ export function runLineKaufmanEfficiency(
     }
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     er,

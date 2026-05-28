@@ -429,7 +429,7 @@ export function runLineTsiSignal(
     if (isFiniteNumber(sample.signal)) signalFinal = sample.signal;
   }
   return {
-    series,
+    series = [],
     longLength,
     shortLength,
     signalLength,

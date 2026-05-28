@@ -464,7 +464,7 @@ export function runLineTdi(
   }
 
   return {
-    series,
+    series = [],
     rsiPeriod,
     signalPeriod,
     bandPeriod,
