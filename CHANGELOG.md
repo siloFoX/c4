@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.1097] - 2026-05-28 -- UI: chart-line-volume-trend-cross primitive (TODO 11.1079)
+
+Added `<ChartLineVolumeTrendCross />` -- close+volume-
+input volume-weighted moving average (VWMA) vs simple
+moving average (SMA) crossover detector. The VWMA-vs-SMA
+gap reveals whether volume is concentrated at higher
+prices (VWMA > SMA, demand confirming the advance) or
+lower prices (VWMA < SMA, supply confirming the decline)
+within the window; a cross marks trend confirmation by
+volume regime change. VWMA[i] = sum(close*volume) /
+sum(volume) over the period window; SMA[i] = sum(close) /
+period. 3-state regime (bullish on VWMA >= SMA via `>=`,
+bearish on VWMA < SMA, none if either null), bias from
+(VWMA - SMA) slope at the trigger bar. Zero-volume guard
+returns VWMA null when the window volume sum is 0 (SMA
+still computes). Default period=20, warmup=20. Bit-exact
+anchors (close+volume): CONST (close=K, vol=V>0) -> VWMA
+= SMA = K, regime bullish (via >=), 0 crosses; CONST
+zero-volume -> VWMA null, SMA=K, regime none; LINEAR UP
+const volume -> VWMA === SMA EXACTLY (the volume weights
+cancel: sum(c*V)/sum(V) = sum(c)/n), regime bullish, 0
+crosses; LINEAR UP rising volume (vol=i+1) -> VWMA > SMA
+(higher prices carry more volume), 0 crosses; VOLUME
+REGIME SHIFT (volume moves from concentrated-at-lows to
+concentrated-at-highs) -> bullish cross as the weighted
+price overtakes the average. The constant-volume identity
+VWMA === SMA is the defining property -- the signal is
+SILENT in flat-volume regimes and fires only when volume
+varies and its price-distribution shifts, making it
+fundamentally a volume-dispersion detector. Second member
+of the volume-input family after chart-line-volume-spike-
+cross v1.11.1064 (which thresholds volume magnitude;
+this measures volume distribution across prices --
+complementary). Distinct from the VWAP-cross family
+(cumulative session-anchored vs rolling-window). Pure-
+SVG, deterministic `.toFixed(2)`, no chart-lib
+dependency. 54/54 vitest cases pass.
+
 ## [1.11.1096] - 2026-05-28 -- UI: chart-line-ichimoku-kijun-cross primitive (TODO 11.1078)
 
 Added `<ChartLineIchimokuKijunCross />` -- HLC-input

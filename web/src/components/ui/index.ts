@@ -788,3 +788,4 @@ export * from './chart-line-cci-oversold-divergence';
 export * from './chart-line-williams-overbought-divergence';
 export * from './chart-line-williams-oversold-divergence';
 export * from './chart-line-ichimoku-kijun-cross';
+export * from './chart-line-volume-trend-cross';
