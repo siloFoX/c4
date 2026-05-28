@@ -90,7 +90,12 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
       icon: <Icon className="h-3.5 w-3.5" aria-hidden="true" />,
       label: (
         <>
-          <span className="hidden sm:inline">{label}</span>
+          {/* (v1.11.1102, TODO 11.1084) Labels collapse to icons
+              below lg (was sm) so the 12-tab strip stays compact on
+              mid widths (768/1024) and does not need to scroll as
+              aggressively; the icon's title/aria-label keep each tab
+              identifiable. Labels return at >= lg (1024). */}
+          <span className="hidden lg:inline">{label}</span>
           {badge && badge.count > 0 ? (
             // (v1.11.296, TODO 11.278) Inline badge swapped for the
             // BadgeCounter primitive. Tone map: legacy 'amber' ->
@@ -132,6 +137,16 @@ export default function TopTabs({ value, onChange, badges }: TopTabsProps) {
       items={items}
       ariaLabel={t('topTabs.label')}
       onPrefetch={handlePrefetch}
+      // (v1.11.1102, TODO 11.1084) Cap the tablist to its Navbar
+      // center cell. The shared Tabs primitive marks the tablist
+      // `shrink-0 overflow-x-auto`, but without a width cap it
+      // rendered at full intrinsic width (all 12 tabs) and, being
+      // centered in the `1fr` grid cell, spilled symmetrically over
+      // the "C4 Dashboard" title on the left and the action icons on
+      // the right. `min-w-0 max-w-full` clamps it to the cell so the
+      // overflow scrolls inside its own isolated track instead of
+      // overlapping the neighbours; it stays centered while it fits.
+      className="min-w-0 max-w-full"
     />
   );
 }

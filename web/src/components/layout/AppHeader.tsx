@@ -74,7 +74,13 @@ export default function AppHeader({
         className="h-7 w-7 shrink-0"
         aria-hidden="true"
       />
-      <h1 className="truncate text-lg font-semibold text-foreground md:text-xl">
+      {/* (v1.11.1102, TODO 11.1084) The wordmark hides below sm so
+          the narrowest viewports (375) keep just the logo + the tab
+          strip + actions without the title truncating or crowding the
+          tablist. The logo alone carries the brand at that width; the
+          wordmark returns at >= sm. `truncate` stays as a safety net
+          for in-between widths. */}
+      <h1 className="hidden truncate text-lg font-semibold text-foreground sm:block md:text-xl">
         {t('header.title')}
       </h1>
     </>
