@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.1096] - 2026-05-28 -- UI: chart-line-ichimoku-kijun-cross primitive (TODO 11.1078)
+
+Added `<ChartLineIchimokuKijunCross />` -- HLC-input
+Goichi Hosoda (1969) Ichimoku Kinko Hyo kijun-sen
+baseline crossover detector with cloud-color bias. The
+kijun (baseline) cross is a classic Ichimoku trend
+signal: the kijun-sen is the 26-period Donchian midpoint
+acting as dynamic support/resistance. Bullish when the
+close crosses up through the baseline (baseline trigger
+up); bearish when it crosses down (baseline trigger
+down). 3-state regime (bullish on close >= kijun via
+`>=`, bearish on close < kijun, none if kijun null).
+Bias derived from the kumo cloud color (senkouA vs
+senkouB) at the trigger bar -- bullish/bearish/flat/none
+cloud, the idiomatic Ichimoku confirmation. Pipeline:
+tenkan (9-bar Donchian mid), kijun (26-bar), senkouA =
+(tenkan + kijun) / 2, senkouB (52-bar); cross detector
+compares close vs kijun. Default tenkanPeriod=9,
+kijunPeriod=26, senkouBPeriod=52 (canonical), warmup=26
+(cloud bias needs senkouB at i=51). Bit-exact anchors
+(HLC): CONST band -> kijun=K, close=K, close === kijun,
+regime bullish (via >=), 0 crosses, flat cloud; LINEAR
+UP -> kijun = i - 12.5, close = i, close stays +12.5
+above kijun, 0 crosses, bullish cloud; LINEAR DOWN ->
+kijun = -i + 12.5, close = -i, close stays -12.5 below
+kijun, 0 crosses, bearish cloud; PEAK (linear up then
+down) -> close reverses below the lagging kijun baseline
+producing at least one bearish cross. All steady-state
+anchors produce 0 crosses (constant +/-12.5 spread) --
+real crosses fire on price reversals through the
+baseline. Distinct from sibling
+chart-line-ichimoku-tenkan-cross v1.11.1061 (tenkan/kijun
+TK-cross): this primitive detects the price/baseline
+cross. Reuses the same Ichimoku channel computation so
+tenkan/kijun/senkou values match across the two
+primitives. Completes the Ichimoku cross family
+(tenkan-cross TK signal, kijun-cross baseline signal,
+mid-cross-sig kumo midline, divergence-cross kumo
+direction). Pure-SVG, deterministic, no chart-lib
+dependency. 54/54 vitest cases pass.
+
 ## [1.11.1095] - 2026-05-28 -- UI: chart-line-williams-oversold-divergence primitive (TODO 11.1077)
 
 Added `<ChartLineWilliamsOversoldDivergence />` --
