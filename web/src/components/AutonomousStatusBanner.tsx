@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
+import { AlertOctagon, AlertTriangle } from 'lucide-react';
 import { NotificationBanner } from './ui/notification-banner';
 import { apiGet } from '../lib/api';
 import { AnnounceContext } from '../hooks/use-announce';
@@ -78,12 +79,26 @@ export default function AutonomousStatusBanner() {
     status.consecutiveHalts >= status.circuitThreshold;
   const hasEscalation = (status.pendingEscalations || 0) > 0;
 
+  // (v1.11.1116, TODO 11.1098) text-foreground raises the banner text
+  // to WCAG AA on the light destructive/10 (and warning/10) tint -- the
+  // NotificationBanner variants default to text-*-foreground, which is
+  // near-white (0 0% 98%) and washed out (~1:1) on the light-pink/amber
+  // background. The colored AlertOctagon / AlertTriangle icon keeps the
+  // critical / warning cue, and the counts are bold.
   if (halted) {
     return (
       <NotificationBanner
         variant="critical"
+        className="text-foreground"
+        icon={<AlertOctagon className="h-5 w-5 text-destructive" aria-hidden="true" />}
+        data-section="autonomous-status-banner"
         title="Autonomous loop halted"
-        description={`Circuit breaker tripped after ${status.consecutiveHalts} consecutive halts.`}
+        description={
+          <span>
+            Circuit breaker tripped after{' '}
+            <span className="font-bold">{status.consecutiveHalts}</span> consecutive halts.
+          </span>
+        }
       />
     );
   }
@@ -91,10 +106,18 @@ export default function AutonomousStatusBanner() {
     return (
       <NotificationBanner
         variant="critical"
+        className="text-foreground"
+        icon={<AlertOctagon className="h-5 w-5 text-destructive" aria-hidden="true" />}
+        data-section="autonomous-status-banner"
         title="Reviewer attention required"
-        description={`${status.pendingEscalations} pending escalation${
-          (status.pendingEscalations || 0) === 1 ? '' : 's'
-        }.`}
+        description={
+          <span>
+            <span className="font-bold" data-testid="banner-pending-count">
+              {status.pendingEscalations}
+            </span>{' '}
+            pending escalation{(status.pendingEscalations || 0) === 1 ? '' : 's'}.
+          </span>
+        }
       />
     );
   }
@@ -102,6 +125,9 @@ export default function AutonomousStatusBanner() {
     return (
       <NotificationBanner
         variant="warn"
+        className="text-foreground"
+        icon={<AlertTriangle className="h-5 w-5 text-warning" aria-hidden="true" />}
+        data-section="autonomous-status-banner"
         title="Autonomous loop paused"
         description={status.pauseReason || 'Paused manually.'}
       />

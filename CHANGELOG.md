@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1116] - 2026-05-28 -- UX FIX: status banner contrast (TODO 11.1098)
+
+Fixed the AutonomousStatusBanner reviewer-attention text + pending count
+being near-illegible (washed) on the light-pink background. The banner
+uses NotificationBanner's critical variant
+(bg-destructive/10 + text-destructive-foreground); on the light theme
+destructive-foreground is near-white (0 0% 98%) and the /10 tint is a
+very light pink (~96% L), so the text was ~1:1 -- far below WCAG AA.
+Scoped to the banner (the shared primitive is unchanged), each banner it
+renders now passes className="text-foreground" (the theme's primary text
+token -> near-black on light, near-white on dark -> AA on the tint in
+both themes, measured ~15:1; text-destructive was only ~3:1 on the light
+tint), a colored icon (AlertOctagon text-destructive / AlertTriangle
+text-warning) so the alert cue survives the neutral-dark text, and the
+counts bolded via a ReactNode description. Mandatory verification via a
+new Playwright spec (web/e2e/banner-contrast.spec.ts): it computes the
+WCAG contrast ratio of the count text vs the banner's composited
+background and asserts >= 4.5 (AA) + bold count at 1440/768/375 -- 3
+passed, 1440 screenshot confirmed (red icon + dark readable text + bold
+count).
+
 ## [1.11.1115] - 2026-05-28 -- UX FIX: Features content panel width (TODO 11.1097)
 
 Verified + guarded the Features panel width. A red-check showed the
