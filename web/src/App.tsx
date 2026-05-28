@@ -452,7 +452,14 @@ export default function App() {
           <WikiView />
         </div>
       ) : topView === 'chat' ? (
-        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden p-3 md:p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
+        // (v1.11.1113, TODO 11.1095) Center the chat in a readable
+        // max-w-3xl column that fills the view height. Previously the
+        // wrapper let the Chat card sit content-sized at the top-left
+        // of a vast empty area at 1440. `mx-auto max-w-3xl w-full`
+        // caps + centers the column (full width on mobile); `h-full
+        // flex-1 flex-col` fills the height so the transcript + composer
+        // get room.
+        <div key={topView} className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-1 flex-col overflow-hidden p-3 md:p-6 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <Chat />
         </div>
       ) : topView === 'workflows' ? (

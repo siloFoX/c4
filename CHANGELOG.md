@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1113] - 2026-05-28 -- UX FIX: Chat surface should fill height and center (TODO 11.1095)
+
+Fixed the Chat view rendering a small composer card pinned top-left in
+a vast empty area at 1440. Chat.tsx's card is h-full/w-full, so it
+fills whatever its wrapper gives it; the App.tsx chat branch wrapper
+(flex min-h-0 flex-1 overflow-hidden p-3 md:p-6) gave it neither a
+filled height nor a capped centered column. The wrapper is now
+mx-auto flex h-full min-h-0 w-full max-w-3xl flex-1 flex-col
+overflow-hidden p-3 md:p-6: mx-auto max-w-3xl w-full caps the column at
+a readable ~768px and centers it on wide viewports while staying
+full-width on mobile, and h-full flex-1 flex-col fills the view height
+so the transcript + composer get room. Chat.tsx gains
+data-section="chat-surface" for the e2e (no visual change).
+Layout-only, reusing token-backed classes. Mandatory verification via a
+new Playwright spec (web/e2e/chat-fill-center.spec.ts): at 1440 the
+surface fills > 60% height, is centered with symmetric margins and a
+capped width; at 768 fills height; at 375 stays full-width -- 3 passed,
+1440 screenshot confirmed.
+
 ## [1.11.1112] - 2026-05-28 -- UX FIX: History list overflows on mobile (TODO 11.1094)
 
 Fixed the History sidebar clipping at 375. The
