@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.1087] - 2026-05-28 -- UI: chart-line-psar-flip-cross primitive (TODO 11.1069)
+
+Added `<ChartLinePsarFlipCross />` -- single-value-input
+J. Welles Wilder Jr (1978) Parabolic SAR direction-flip
+crossover detector. The stop-and-reverse core of the SAR
+system: every flip event is the primary trading trigger
+in Wilder's original 1978 design, where the SAR is
+intended as a literal stop-loss line that flips sides
+when price pierces it. Bullish on prev trend 'down' ->
+cur trend 'up' (SAR flips from above price to below;
+trailing stop reversal from downtrend to uptrend);
+bearish on prev trend 'up' -> cur trend 'down' (SAR
+flips from below to above; reversal from uptrend to
+downtrend). 3-state regime (bullish on trend 'up',
+bearish on trend 'down', none if null), bias from SAR
+value jump at the flip bar (typically large in magnitude
+since SAR jumps to the prior ep). Pipeline: Wilder SAR
+iteration verbatim from chart-line-parabolic-sar (af
+acceleration with maxStep cap, two-bar clamp,
+stop-and-reverse on strict price piercing) -- trend-flip
+detector reads the algorithm's `reversed` flag. Default
+step=0.02, maxStep=0.2 (canonical Wilder). Bit-exact
+anchors (single-value): CONST (value=K) -> SAR=K
+constant, trend 'up' forever (v === nextSar fails strict
+v < nextSar check), 0 flips, 0 reversals, regime bullish
+(40/40); LINEAR UP (value=i) -> SAR forms slow-moving
+lower envelope, price never pierces, 0 flips, regime
+bullish; LINEAR DOWN (value=-i) -> mirror upper
+envelope, 0 flips, regime bearish; PEAK (linear up then
+linear down) -> at least one bearish flip when SAR
+detects the trend reversal. All three steady-state
+anchors produce 0 flips -- real flips fire at actual
+trend reversals (the SAR's primary purpose). Distinct
+from sibling sar-cross-sig v1.11.1086: cross-sig
+compares SAR vs SMA(SAR) (confirmation), this primitive
+detects the SAR's own stop-and-reverse events (primary
+trigger). Conceptual sibling of
+supertrend-flip-cross v1.11.1078 (analogous trend-flip
+detector, different trailing-stop indicator). Top panel
+renders close, bottom panel renders SAR (purple) with
+the flip-cross family overlay/oscillator marker pair.
+Pure-SVG, deterministic `.toFixed(2)`, no chart-lib
+dependency. Completes the SAR signal family triplet: raw
+SAR + cross-sig confirmation + flip-cross trigger.
+57/57 vitest cases pass.
+
 ## [1.11.1086] - 2026-05-28 -- UI: chart-line-sar-cross-sig primitive (TODO 11.1068)
 
 Added `<ChartLineSarCrossSig />` -- single-value-input J.
