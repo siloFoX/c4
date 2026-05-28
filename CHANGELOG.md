@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1077] - 2026-05-28 -- UI: chart-line-donchian-divergence-cross primitive (TODO 11.1059)
+
+Added `<ChartLineDonchianDivergenceCross />` -- HL-input
+Richard Donchian (1950s) rolling HH/LL channel divergence
+detector flagging price-vs-channel direction disagreement
+events as range-break-reversal warnings with bias coloring
+from the Donchian midline slope. Pipeline: upperBand =
+max(high) over period, lowerBand = min(low) over period,
+midline = (upperBand + lowerBand) / 2. 5-state regime:
+divergent-bullish (priceDown + midlineUp) suggests selling
+pressure but Donchian range still ratcheting up;
+divergent-bearish (priceUp + midlineDown) suggests rally
+but Donchian range ratcheting down. Crosses fire on
+transition INTO a divergent state. Default period=20
+(canonical 4-week breakout), warmup=20. Bit-exact anchors
+(HL): CONST [K-1, K+1] -> HH=K+1, LL=K-1, midline=K
+constant, regime none, 0 crosses; LINEAR UP -> HH=i+1,
+LL=i-20, midline = i - 9.5 (slope +1, exactly the same
+centroid as Bollinger SMA and Keltner EMA midlines on
+LINEAR), regime aligned-bullish, 0 crosses; LINEAR DOWN
+-> mirror, midline = -i + 9.5, regime aligned-bearish, 0
+crosses. Donchian's HH/LL midline is the most rigid of
+the three envelope-divergence variants (Keltner uses EMA
++ ATR, Bollinger uses SMA + stdev). 45 vitest cases. Pure
+SVG, no chart libs.
+
 ## [1.11.1076] - 2026-05-27 -- UI: chart-line-hma-mid-cross-sig primitive (TODO 11.1058)
 
 Added `<ChartLineHmaMidCrossSig />` -- close-input Alan
