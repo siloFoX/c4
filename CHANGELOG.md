@@ -4,6 +4,23 @@
 
 (no entries -- next release window)
 
+## [1.11.1115] - 2026-05-28 -- UX FIX: Features content panel width (TODO 11.1097)
+
+Verified + guarded the Features panel width. A red-check showed the
+feature panel is already balanced at 1440 -- FeatureView's main is
+flex-1 (fills the area right of the rail) and the PageFrame card inside
+is full-width, so the card spans the whole panel (no ~560px
+left-clinging / right dead zone). This is resolved by 11.1085
+(v1.11.1103): before that the shared PageTransition incoming layer was
+content-width and capped every route near the left; giving it
+min-w-0 flex-1 made routes fill the width, fixing this panel too.
+Rather than a redundant no-op, this locks it in: FeatureView.tsx gains
+data-section="feature-panel" (no visual change) and a new Playwright
+spec (web/e2e/features-panel-width.spec.ts) asserts the card fills
+(>=80%) or is centered within the panel at 1440 and the panel is a
+single full-width column at 375 -- 2 passed, 1440 screenshot confirmed.
+No layout change to the panel itself.
+
 ## [1.11.1114] - 2026-05-28 -- UX FIX: Settings column should be centered (TODO 11.1096)
 
 Verified + guarded the Settings column centering. A red-check showed
