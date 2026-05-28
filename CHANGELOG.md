@@ -4,6 +4,51 @@
 
 (no entries -- next release window)
 
+## [1.11.1089] - 2026-05-28 -- UI: chart-line-roc-divergence-cross primitive (TODO 11.1071)
+
+Added `<ChartLineRocDivergenceCross />` -- single-close-
+input Rate Of Change (ROC) percentage oscillator price-
+vs-ROC direction divergence detector. The percentage
+version of the Momentum divergence: ROC[i] = (close[i] -
+close[i-period]) / close[i-period] * 100. Normalisation
+by base price makes ROC comparable across instruments at
+different price levels and surfaces *relative* (not
+absolute) momentum reversal warnings. 5-state regime
+(aligned-bullish, aligned-bearish, divergent-bullish,
+divergent-bearish, none) -- same divergence detector
+pattern as the family. Bullish on entry into divergent-
+bullish (price down + ROC up = bullish momentum
+percentage reversal warning); bearish on entry into
+divergent-bearish (price up + ROC down = bearish momentum
+percentage reversal warning). Bias from ROC slope at
+divergence-entry. Default period=12 (canonical ROC
+tuning, distinct from Momentum sibling's period=10),
+warmup=13. Bit-exact anchors (single-close): CONST K!=0
+-> ROC=0 constant, regime none, 0 crosses; CONST K=0 ->
+divide-by-zero guard returns null throughout, 0 crosses,
+no throw; LINEAR UP (close=i+1) -> ROC DECAYS (same
+dollar delta as smaller percentage of larger base) ->
+divergent-bearish + at least one bearish cross; LINEAR
+DOWN (close=n-i) -> ROC negative + decreasing ->
+aligned-bearish, 0 crosses; DECELERATING DECLINE
+(close=100-sqrt(i+1)) -> price down but ROC rising
+toward zero -> divergent-bullish + at least one bullish
+cross. CRITICAL DISTINCTION from Momentum sibling: LINEAR
+UP fires bearish crosses under ROC but ZERO crosses
+under Momentum -- the percentage normalisation makes ROC
+"always divergent against linear price growth" while
+Momentum treats linear price growth as flat-momentum.
+This is documented as the family's canonical reactivity
+distinction. Sixth member of the divergence-cross family
+(atr, keltner, bollinger, donchian, momentum, roc).
+Distinct from chart-line-roc-mid-cross-sig v1.11.1081
+(zero level cross) and chart-line-roc (raw oscillator).
+Top panel renders close, bottom panel renders ROC
+(uptrend.cyan) with zero reference line; oscillator
+panel auto-scales but guarantees zero-visibility. Pure-
+SVG, deterministic `.toFixed(2)`, no chart-lib
+dependency. 57/57 vitest cases pass.
+
 ## [1.11.1088] - 2026-05-28 -- UI: chart-line-momentum-divergence-cross primitive (TODO 11.1070)
 
 Added `<ChartLineMomentumDivergenceCross />` -- single-
