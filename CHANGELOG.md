@@ -4,6 +4,36 @@
 
 (no entries -- next release window)
 
+## [1.11.1102] - 2026-05-28 -- UX FIX: top tab bar overflow + title overlap (TODO 11.1084)
+
+Fixed the AppHeader top tablist overlapping the
+"C4 Dashboard" wordmark on the left and colliding with
+the action icons on the right at 1440/768. The shared
+Tabs primitive marks the tablist `shrink-0
+overflow-x-auto` but never capped its width, so in the
+Navbar's centered `1fr` grid cell it rendered at full
+intrinsic width (all 12 tabs) and spilled symmetrically
+over the brand and the actions; the overflow-x scroll
+never engaged because the element was never constrained
+narrower than its content. TopTabs now passes
+`min-w-0 max-w-full` to the Tabs primitive so the tablist
+is clamped to its cell and the overflow scrolls inside
+its own isolated horizontal track instead of painting
+over the neighbours (it stays centered while it fits).
+Tab labels collapse to icons earlier -- below `lg`
+(was `sm`) -- so the 12-tab strip stays compact at
+768/1024 (icons keep their title/aria-label). In
+AppHeader the wordmark hides below `sm` so the narrowest
+viewport (375) shows just the logo + tab strip + actions
+with no title to truncate or crowd. No change to the
+shared Navbar/Tabs primitives -- other tablists are
+unaffected. Mandatory visual verification via a new
+Playwright spec (web/e2e/header-tab-overflow.spec.ts):
+loads the dashboard at 1440/768/375 and asserts the
+tablist's box stays between the brand cell and the
+actions cell (no overlap) and fits within the viewport --
+3 passed, screenshots captured + visually confirmed.
+
 ## [1.11.1101] - 2026-05-28 -- UX FIX: lazy-load ui directory for dev + bundle speed (TODO 11.1083)
 
 Sped up vite dev cold-start and HMR by removing the
