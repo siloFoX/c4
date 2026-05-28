@@ -35,7 +35,7 @@ export default function FeatureView({ sidebarOpen }: FeatureViewProps) {
         selectedId={selectedId}
         onSelect={setSelectedId}
       />
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
+      <main data-section="feature-panel" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 md:p-6">
         {feature ? (
           <Suspense
             fallback={
