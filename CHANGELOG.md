@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1081] - 2026-05-28 -- UI: chart-line-roc-mid-cross-sig primitive (TODO 11.1063)
+
+Added `<ChartLineRocMidCrossSig />` -- close-input
+canonical Rate of Change (ROC) oscillator midline-over-
+signal crossover detector flagging momentum percentage
+centerline trigger events with bias coloring from the
+ROC slope. ROC is the percentage variant of Momentum:
+relative change as a percentage rather than raw price
+units, making it comparable across instruments with
+different price scales. Pipeline: roc[i] = 100 * (close[i]
+- close[i - period]) / close[i - period] with zero-guard
+returning null on close[i - period] === 0, signal =
+SMA(roc, signalLength). Default period=10, signalLength=3,
+warmup=12. Bit-exact anchors (close): CONST K>0 -> ROC =
+0 (exactly centerline), signal=0, regime bullish (===),
+0 crosses; CONST K=0 -> ROC=null (zero-guard
+indeterminate); LINEAR UP shifted (close = i + 100) ->
+ROC decays as 1000/(i+90), verified at specific i values,
+0 crosses on monotonic input; LINEAR DOWN shifted -> ROC
+negative, 0 crosses. Unlike Momentum (clean integer
+LINEAR anchors), ROC produces a decay shape on LINEAR due
+to percentage normalisation -- canonical limitation
+documented. Layout auto-ranges but guarantees centerline
+visibility. Direct sibling to chart-line-momentum-mid-
+cross-sig v1.11.1080 (absolute-value form). 46 vitest
+cases. Pure SVG, no chart libs.
+
 ## [1.11.1080] - 2026-05-28 -- UI: chart-line-momentum-mid-cross-sig primitive (TODO 11.1062)
 
 Added `<ChartLineMomentumMidCrossSig />` -- close-input
