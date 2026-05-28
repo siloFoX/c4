@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1083] - 2026-05-28 -- UI: chart-line-adx-pos-cross primitive (TODO 11.1065)
+
+Added `<ChartLineAdxPosCross />` -- HLC-input J. Welles
+Wilder Jr (1978) ADX +DI zero-cross detector flagging
+uptrend strength trigger events: transitions from `+DI ===
+0` (indecision -- no bullish directional movement) to
+`+DI > 0` (uptrend pressure emerging). Pipeline: upMove =
+high[i] - high[i-1], downMove = low[i-1] - low[i], +DM =
+upMove if upMove > downMove && upMove > 0 else 0, TR =
+max(range, |H-prevC|, |L-prevC|), smPlus/smTr = SMA over
+period, plusDI = 100 * smPlus / smTr with zero-guard.
+Bullish: +DI crosses up through zero. Bearish: +DI crosses
+down (effectively never fires since +DI canonically
+bounded to [0, 100]; retained for family-shape symmetry).
+Regime: bullish when +DI > 0, none when === 0 (differs
+from cross-sig family `=== signal -> bullish` because zero
+literally means no movement). Default period=14,
+warmup=15. Uses SMA-based smoothing matching adx-* family.
+Bit-exact anchors (HLC): CONST [K-1, K+1, K] -> +DM=0,
++DI=0 (no movement), regime none, 0 crosses; LINEAR UP ->
++DI=50 constant (pure bullish movement), regime bullish,
+0 crosses (no transition from 0); LINEAR DOWN -> +DI=0
+constant (no bullish movement), regime none, 0 crosses.
+Panel hard-locked to [0, 100]. Simplest member of the ADX
+signal family: chart-line-adx-pos-neg-divergence
+v1.11.1075 (+DI vs -DI), chart-line-adx-trend-cross
+v1.11.1047 (ADX vs 20/25), this primitive (+DI vs 0). 46
+vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1082] - 2026-05-28 -- UI: chart-line-volume-spike-cross primitive (TODO 11.1064)
 
 Added `<ChartLineVolumeSpikeCross />` -- close+volume-
