@@ -25,6 +25,7 @@ const AutonomousView = lazy(() => import('./components/AutonomousView'));
 const Chat = lazy(() => import('./components/Chat'));
 const WorkflowEditor = lazy(() => import('./components/WorkflowEditor'));
 const SettingsView = lazy(() => import('./components/SettingsView'));
+const ChartLineGallery = lazy(() => import('./components/ChartLineGallery'));
 import PageTransition from './components/PageTransition';
 import AppHeader from './components/layout/AppHeader';
 import { AppShell } from './components/layout/AppShell';
@@ -206,6 +207,13 @@ export default function App() {
         label: 'Go to Features',
         group: 'Navigate',
         action: () => setTopView('features'),
+      },
+      {
+        id: 'go.gallery',
+        label: 'Go to Gallery',
+        group: 'Navigate',
+        keywords: ['charts', 'chart-line', 'showcase', 'primitives'],
+        action: () => setTopView('gallery'),
       },
       {
         id: 'app.settings',
@@ -441,6 +449,10 @@ export default function App() {
       ) : topView === 'features' ? (
         <div key={topView} className="flex min-h-0 flex-1 flex-col motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
           <FeatureView sidebarOpen={sidebarOpen} />
+        </div>
+      ) : topView === 'gallery' ? (
+        <div key={topView} className="flex min-h-0 flex-1 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">
+          <ChartLineGallery />
         </div>
       ) : topView === 'settings' ? (
         <div key={topView} className="flex min-h-0 flex-1 overflow-auto motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150">

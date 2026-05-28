@@ -4,6 +4,75 @@
 
 (no entries -- next release window)
 
+## [1.11.1099] - 2026-05-28 -- UX FIX: chart-line showcase gallery route (TODO 11.1081)
+
+Added a `gallery` top-view route backed by a new
+`ChartLineGallery` component that surfaces the chart-line
+primitives which previously had no UI entry point (1154
+exist under components/ui; App.tsx imported none, leaving
+them dead code). The gallery lazy-loads a curated slice
+(41 verified primitives, export names confirmed) via
+`React.lazy(() => import('./ui/chart-line-...').then(m =>
+({ default: m.ChartLineX })))` so the chart chunks stay
+out of the main bundle and only fetch when the gallery is
+visited. A single UNIVERSAL sample point carrying every
+field (high/low/close/value/volume) feeds all primitives
+regardless of input shape -- they ignore fields they do
+not read -- so no per-chart shape metadata is needed; the
+96-bar sine+drift series clears the longest warmup
+(Ichimoku senkouB=52) so crosses/divergences draw. Each
+tile is wrapped in a UIErrorBoundary (one bad primitive
+degrades to an inline "Chart failed" card, not a blank
+grid). Responsive CSS grid (1/2/3 columns) with a
+case-insensitive search filter that narrows by id/label.
+Navigation wiring: new Gallery tab (LineChart icon) in
+the top tab bar, a Cmd/Ctrl+K "Go to Gallery" command,
+`gallery` added to TopView + TOP_VIEW_VALUES (persists
+across reloads) + tab.gallery i18n labels (en "Gallery",
+ko "갤러리"). Mandatory visual verification via a new
+Playwright spec (web/e2e/showcase-gallery.spec.ts): boots
+directly into the gallery (seeds localStorage topView +
+onboarding-tour-seen so no modal occludes), asserts >= 12
+chart-gallery-tile containers AND >= 12 drawn SVGs, and
+screenshots into test-results; a second test confirms the
+search filter narrows the grid. Both pass headless
+(chromium, 2 passed). The registry is one-line-per-chart
+so extending coverage toward the full 1154 is trivial
+follow-up. Additive feature -- no existing view behaviour
+changes.
+
+## [1.11.1098] - 2026-05-28 -- UX FIX: App.tsx centered layout container (TODO 11.1080)
+
+Fixed the "whole app crowds to the top-left on wide
+viewports" bug. `web/src/App.tsx` rendered the page
+content flush against the left edge of `<main>` with no
+max-width cap or centering, so on 1440px+ displays the
+content hugged the left and wasted the right half of the
+screen. The page-content region (the lazy view switcher)
+is now wrapped in a centered responsive container
+(`mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col
+px-4`, data-testid `app-main-container`): max-w-6xl
+(1152px) caps the column on wide viewports, mx-auto
+centers it with symmetric ~144px side margins at 1440px,
+and below 1152px the column uses full width so mobile is
+unaffected (only the px-4 inset applies). The flex
+min-h-0 / flex-1 / flex-col chain is preserved so each
+view's overflow/scroll discipline keeps working. The
+full-width chrome strips above the content (MetricsBar,
+AutonomousStatusBanner, RouteProgressBar, GridDebugOverlay)
+stay outside the container by design and still span the
+viewport. Mandatory visual verification via a new
+Playwright spec (web/e2e/layout-app-shell.spec.ts): at
+1440px it screenshots into test-results and asserts the
+container left edge > 120px and width <= 1200px (proving
+real centering); at 375px it asserts left edge < 40px and
+width > 330px (proving mobile full-width). The spec stubs
+/api/auth/status -> { enabled: false } (single conditional
+route handler so it is never aborted) and aborts other
+/api calls (network error, not 401, so no auth flip).
+Both tests pass headless (chromium, 2 passed). No runtime
+logic touched -- pure layout + e2e addition.
+
 ## [1.11.1097] - 2026-05-28 -- UI: chart-line-volume-trend-cross primitive (TODO 11.1079)
 
 Added `<ChartLineVolumeTrendCross />` -- close+volume-

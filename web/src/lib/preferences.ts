@@ -30,6 +30,7 @@ const TOP_VIEW_VALUES: readonly TopView[] = [
   'workflows',
   'sessions',
   'features',
+  'gallery',
 ];
 const THEME_VALUES: readonly ThemeMode[] = ['light', 'dark', 'system'];
 
