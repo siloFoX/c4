@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.1086] - 2026-05-28 -- UI: chart-line-sar-cross-sig primitive (TODO 11.1068)
+
+Added `<ChartLineSarCrossSig />` -- single-value-input J.
+Welles Wilder Jr (1978) Parabolic SAR vs SMA(SAR) signal-
+line crossover detector. The SAR is a trailing stop line
+that pulls upward in uptrends (SAR below price) and
+downward in downtrends (SAR above price); crosses against
+its smoothed mean flag trailing stop confirmation trigger
+events. Bullish on SAR cross up through signal (trailing
+stop confirms uptrend; SAR pulling above its mean);
+bearish on SAR cross down through signal (trailing stop
+confirms downtrend; SAR pulling below). 3-state regime
+(bullish on SAR >= signal via `>=`, bearish on SAR <
+signal, none if either null), bias from (SAR - signal)
+slope at the trigger bar. Pipeline: Wilder SAR iteration
+(af acceleration with maxStep cap, two-bar clamp,
+stop-and-reverse on price piercing) + SMA(SAR,
+signalLength) signal. Default step=0.02, maxStep=0.2,
+signalLength=9 (canonical Wilder + cross-sig family
+convention). Bit-exact anchors (single-value): CONST
+(value=K) -> SAR=K constant (never pierced), signal=K, SAR
+=== signal every bar, regime bullish (via >=), 0 crosses,
+0 reversals; LINEAR UP (value=i) -> SAR forms slow-moving
+lower envelope clamped by recent lows, signal trails
+further, SAR >= signal throughout, 0 crosses, regime
+bullish; LINEAR DOWN (value=-i) -> mirror with upper
+envelope, SAR <= signal, 0 crosses, regime bearish. All
+steady-state anchors produce 0 crosses because SAR and
+signal remain on the same side throughout -- real crosses
+fire at trend direction or velocity changes. Reuses the
+verbatim Wilder SAR computation from
+chart-line-parabolic-sar so reversal counts match across
+the family. Conceptual sibling of
+chart-line-supertrend-cross-sig (analogous trailing-stop
+confirmation, different trailing-stop indicator). Top
+panel renders close, bottom panel renders SAR
+(uptrend.purple) and signal (orange) with the cross-sig
+family overlay/oscillator marker pair. Pure-SVG,
+deterministic `.toFixed(2)`, no chart-lib dependency.
+65/65 vitest cases pass.
+
 ## [1.11.1085] - 2026-05-28 -- UI: chart-line-di-cross-sig primitive (TODO 11.1067)
 
 Added `<ChartLineDiCrossSig />` -- HLC-input J. Welles
