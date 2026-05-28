@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1117] - 2026-05-28 -- UX FIX: C4 help drawer auto-opens over content (TODO 11.1099)
+
+Fixed the Sessions onboarding tour auto-opening over page content on
+every visit. useSessionsTour read the first-run flag
+(localStorage 'sessions-tour-v1') on mount and auto-opened if unset, but
+wrote the flag only on dismiss -- so a user who saw the tour but
+navigated away/reloaded without dismissing got it re-auto-opened over
+content every later visit. The flag is now written the moment the tour
+auto-opens, so it opens AT MOST ONCE and never re-opens automatically; a
+new reopenTour() shows it again without clearing the flag, wired to a
+visible "Tour" control (HelpCircle button, data-testid
+sessions-tour-reopen) in SessionsView. SessionsTour gains
+data-section="sessions-tour" for the e2e. Mandatory visual verification
+via a new Playwright spec (web/e2e/help-drawer-firstrun.spec.ts): flag
+cleared -> tour auto-opens (screenshot) and after a reload without
+dismissing does NOT re-open; flag set -> not auto-open (screenshot) and
+the manual control reopens it -- 2 passed. Unit suites unaffected
+(use-sessions-tour 8, SessionsView 39). The HelpDrawer and global
+onboarding tour were not the offenders (drawer starts closed; global
+tour already persists its flag) and are untouched.
+
 ## [1.11.1116] - 2026-05-28 -- UX FIX: status banner contrast (TODO 11.1098)
 
 Fixed the AutonomousStatusBanner reviewer-attention text + pending count

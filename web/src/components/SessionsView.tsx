@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
+import { HelpCircle } from 'lucide-react';
 import { t, tFormat, useLocale } from '../lib/i18n';
 import SessionsTour from './SessionsTour';
 import NewChatModal from './NewChatModal';
 import AttachModal from './AttachModal';
 import SessionsRightPane from './SessionsRightPane';
 import SessionsListCard from './SessionsListCard';
-import { SplitPane } from './ui';
+import { Button, SplitPane } from './ui';
 import { useIsDesktop } from '../hooks/use-is-desktop';
 import { useSessionsTour } from '../lib/use-sessions-tour';
 import { useSessionsList } from '../lib/use-sessions-list';
@@ -168,7 +169,7 @@ export default function SessionsView() {
     useSessionsCollapse();
   // (v1.10.629) First-time tour gate hook extracted to
   // ../lib/use-sessions-tour.
-  const { showTour, dismissTour } = useSessionsTour();
+  const { showTour, dismissTour, reopenTour } = useSessionsTour();
 
   // (v1.10.630) /api/sessions + /api/attach/list pair extracted to
   // ../lib/use-sessions-list. selection ref stays in this file so
@@ -292,6 +293,22 @@ export default function SessionsView() {
 
   return (
     <div className="flex w-full min-h-0 flex-1 flex-col gap-3 p-3 md:p-6">
+      {/* (v1.11.1117, TODO 11.1099) Visible manual control to reopen the
+          Sessions tour. The tour now auto-opens at most once (first-run
+          flag set on open), so this is the only way to see it again. */}
+      <div className="flex shrink-0 items-center justify-end">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={reopenTour}
+          aria-label="Replay sessions tour"
+          data-testid="sessions-tour-reopen"
+        >
+          <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Tour</span>
+        </Button>
+      </div>
       {isDesktop ? (
         <SplitPane
           orientation="horizontal"

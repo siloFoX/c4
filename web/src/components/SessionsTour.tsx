@@ -27,6 +27,7 @@ export default function SessionsTour({ onDismiss }: SessionsTourProps) {
       role="dialog"
       aria-modal="true"
       aria-label={t('sessions.aria.onboarding')}
+      data-section="sessions-tour"
     >
       <Card className="w-full max-w-sm">
         <CardHeader className="gap-1 border-b border-border p-4">
