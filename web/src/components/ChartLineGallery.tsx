@@ -8,6 +8,7 @@ import {
   type LazyExoticComponent,
 } from 'react';
 import { UIErrorBoundary } from './ui/error-boundary';
+import { Skeleton } from './ui/skeleton';
 
 // (v1.11.1099, TODO 11.1081) Chart-line showcase gallery.
 //
@@ -156,11 +157,17 @@ function GalleryTile({ item }: { item: GalleryEntry }) {
         >
           <Suspense
             fallback={
+              // (v1.11.1105, TODO 11.1087) Animated skeleton placeholder
+              // while the lazy chart chunk mounts. Previously a static
+              // "Loading chart..." line, which read as 41 frozen labels
+              // on first visit; an animated Skeleton signals progress so
+              // the grid does not look stuck while the chunks fetch.
               <div
-                data-section="chart-gallery-tile-loading"
-                className="flex h-[200px] items-center justify-center text-xs text-muted-foreground"
+                data-section="chart-gallery-tile-skeleton"
+                className="flex h-[200px] flex-col gap-2 p-1"
+                aria-hidden="true"
               >
-                Loading chart...
+                <Skeleton variant="rect" className="h-full w-full rounded-md" />
               </div>
             }
           >

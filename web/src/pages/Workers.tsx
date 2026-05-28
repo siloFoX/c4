@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Skeleton,
   Sparkline,
   ToastProvider,
   useToast,
@@ -66,13 +67,19 @@ function deriveCounts(json: WorkerListResponse | null): WorkerCounts {
   return { busy, idle, lost, total: busy + idle };
 }
 
-function useWorkerCounts(): WorkerCounts {
+// (v1.11.1105, TODO 11.1087) Returns `loading` alongside the counts so
+// the hero can show skeleton stat tiles instead of zero-value
+// placeholders until the first /api/list poll settles. `loading` flips
+// false after the first fetch resolves (success OR failure) and stays
+// false for subsequent polls.
+function useWorkerCounts(): { counts: WorkerCounts; loading: boolean } {
   const [counts, setCounts] = useState<WorkerCounts>({
     busy: 0,
     idle: 0,
     lost: 0,
     total: 0,
   });
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     const fetchOnce = async () => {
@@ -83,6 +90,8 @@ function useWorkerCounts(): WorkerCounts {
         if (!cancelled) setCounts(deriveCounts(json));
       } catch {
         // network error -- keep last known counts
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
     fetchOnce();
@@ -92,7 +101,7 @@ function useWorkerCounts(): WorkerCounts {
       window.clearInterval(id);
     };
   }, []);
-  return counts;
+  return { counts, loading };
 }
 
 // Sparkline drives off the live total worker count. We
@@ -187,7 +196,7 @@ interface HeroBodyProps {
 }
 
 function HeroBody({ onSpawnRequest }: HeroBodyProps) {
-  const counts = useWorkerCounts();
+  const { counts, loading } = useWorkerCounts();
   const sparkBuffer = useSparklineBuffer(counts.total);
   const sparkData = useMemo(() => {
     // Sparkline needs at least 2 points to render a
@@ -205,24 +214,38 @@ function HeroBody({ onSpawnRequest }: HeroBodyProps) {
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <CountBlock
-            label="Busy"
-            value={counts.busy}
-            tone="accent"
-            testId="workers-hero-count-busy"
-          />
-          <CountBlock
-            label="Idle"
-            value={counts.idle}
-            tone="muted"
-            testId="workers-hero-count-idle"
-          />
-          <CountBlock
-            label="Lost"
-            value={counts.lost}
-            tone="danger"
-            testId="workers-hero-count-lost"
-          />
+          {loading ? (
+            // (v1.11.1105, TODO 11.1087) Skeleton stat tiles while the
+            // first /api/list poll is in flight -- previously the three
+            // blocks showed a literal 0, which read as real data and
+            // made the panel look frozen during the fetch.
+            <>
+              <CountBlockSkeleton label="Busy" testId="workers-hero-skeleton-busy" />
+              <CountBlockSkeleton label="Idle" testId="workers-hero-skeleton-idle" />
+              <CountBlockSkeleton label="Lost" testId="workers-hero-skeleton-lost" />
+            </>
+          ) : (
+            <>
+              <CountBlock
+                label="Busy"
+                value={counts.busy}
+                tone="accent"
+                testId="workers-hero-count-busy"
+              />
+              <CountBlock
+                label="Idle"
+                value={counts.idle}
+                tone="muted"
+                testId="workers-hero-count-idle"
+              />
+              <CountBlock
+                label="Lost"
+                value={counts.lost}
+                tone="danger"
+                testId="workers-hero-count-lost"
+              />
+            </>
+          )}
         </div>
         <SpawnCta onSpawnRequest={onSpawnRequest} />
       </div>
@@ -279,6 +302,25 @@ function CountBlock({ label, value, tone, testId }: CountBlockProps) {
         variant="solid"
         srLabel={`${label}: ${value}`}
       />
+    </div>
+  );
+}
+
+// (v1.11.1105, TODO 11.1087) Loading placeholder mirroring CountBlock's
+// frame so the swap to real counts does not shift layout. The label
+// stays visible (it is known up front); only the count is a skeleton.
+function CountBlockSkeleton({ label, testId }: { label: string; testId: string }) {
+  return (
+    <div
+      className="flex flex-col gap-0.5 rounded-md border border-border bg-muted/20 px-3 py-2 min-w-[88px]"
+      data-section="workers-hero-count-skeleton"
+      data-testid={testId}
+      aria-hidden="true"
+    >
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <Skeleton variant="text" className="mt-0.5 h-5 w-8" />
     </div>
   );
 }

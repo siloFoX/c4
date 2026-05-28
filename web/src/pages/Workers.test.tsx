@@ -47,12 +47,25 @@ describe('<Workers> hero page', () => {
     ).not.toBeNull();
   });
 
-  it('renders three count blocks (busy / idle / lost)', () => {
+  it('renders three count blocks (busy / idle / lost) once loaded', async () => {
     stubFetchListResponse({ workers: [] });
     render(<Workers onSpawnRequest={async () => undefined} />);
-    expect(screen.getByTestId('workers-hero-count-busy')).toBeInTheDocument();
+    // (v1.11.1105, TODO 11.1087) Count blocks now render only after the
+    // first /api/list poll settles -- skeleton tiles show until then.
+    expect(await screen.findByTestId('workers-hero-count-busy')).toBeInTheDocument();
     expect(screen.getByTestId('workers-hero-count-idle')).toBeInTheDocument();
     expect(screen.getByTestId('workers-hero-count-lost')).toBeInTheDocument();
+  });
+
+  it('shows skeleton stat tiles while the first /api/list poll is in flight', () => {
+    // A fetch that never resolves keeps the hook in its loading state.
+    vi.stubGlobal('fetch', () => new Promise<Response>(() => {}));
+    render(<Workers onSpawnRequest={async () => undefined} />);
+    expect(
+      document.querySelector('[data-section="workers-hero-count-skeleton"]'),
+    ).not.toBeNull();
+    // The real count blocks are not present yet.
+    expect(screen.queryByTestId('workers-hero-count-busy')).toBeNull();
   });
 
   it('derives counts from /api/list (busy/idle split + lost)', async () => {
@@ -133,9 +146,10 @@ describe('<Workers> hero page', () => {
     expect(ariaLabel.toLowerCase()).toMatch(/worker total trend/);
   });
 
-  it('count blocks carry data-tone for theming', () => {
+  it('count blocks carry data-tone for theming', async () => {
     stubFetchListResponse({ workers: [] });
     render(<Workers onSpawnRequest={async () => undefined} />);
+    await screen.findByTestId('workers-hero-count-busy');
     expect(
       screen.getByTestId('workers-hero-count-busy').getAttribute('data-tone'),
     ).toBe('accent');
