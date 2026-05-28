@@ -4,6 +4,48 @@
 
 (no entries -- next release window)
 
+## [1.11.1091] - 2026-05-28 -- UI: chart-line-cmo-zero-cross-sig primitive (TODO 11.1073)
+
+Added `<ChartLineCmoZeroCrossSig />` -- single-close-input
+Tushar Chande Momentum Oscillator (CMO, 1994) zero-line
+cross-sig detector. CMO = ((Su - Sd) / (Su + Sd)) * 100,
+a zero-centered alternative to RSI bounded to [-100,
++100]. The CMO-vs-SMA-signal cross is the canonical
+centerline momentum trigger -- when the centerline-
+oscillating CMO pulls above (or below) its smoothed mean,
+recent momentum balance has tilted up (or down). 3-state
+regime (bullish on CMO >= signal via `>=`, bearish on CMO
+< signal, none if either null), bias from (CMO - signal)
+slope at the trigger bar. Divide-by-zero guard returns
+CMO = 0 when Su + Sd = 0 (matches pandas-ta/ta-lib).
+Default period=14, signalLength=9 (canonical Chande +
+cross-sig family pairing), warmup=23. Bit-exact anchors
+(single-close): CONST -> CMO = signal = 0, regime bullish
+(via >= over 0), 0 crosses; LINEAR UP (close=i) ->
+CMO=signal=100 (constant), regime bullish, 0 crosses;
+LINEAR DOWN (close=-i) -> CMO=signal=-100 mirror, regime
+bullish (via === per family convention), 0 crosses; PEAK
+(linear up then down) -> CMO climbs to 100 then falls
+toward -100, signal lags, bearish cross fires at the
+reversal. Bound at +/-100 is mathematically guaranteed
+by the normalisation, so the chart panel hard-locks to
+this range with reference lines at -100/-50/0/+50/+100.
+Distinct from existing CMO siblings: chart-line-cmo
+(raw), chart-line-cmo-zero-cross (zero-line only, no
+signal), chart-line-cmo-mid-cross (+/-50 mid levels),
+chart-line-cmo-cross-sig (SMA signal without zero-line
+awareness), chart-line-cmo-overbought-cross /
+cmo-oversold-cross (extremes), chart-line-cmo-divergence-
+cross (price-vs-CMO direction). This primitive
+specifically targets the "centerline + signal" pair --
+the most idiomatic CMO trigger combining both the zero-
+line context and the signal smoothing. Cross-sig family
+parallels include rsi-mid-cross-sig (RSI is 0-100, CMO
+is -100..+100; conceptually parallel pair),
+cci-mid-cross-sig, momentum / roc / dpo / trix
+mid-cross-sig. Pure-SVG, deterministic `.toFixed(2)`, no
+chart-lib dependency. 59/59 vitest cases pass.
+
 ## [1.11.1090] - 2026-05-28 -- UI: chart-line-awesome-zero-divergence primitive (TODO 11.1072)
 
 Added `<ChartLineAwesomeZeroDivergence />` -- HL-input
