@@ -769,3 +769,4 @@ export * from './chart-line-stoch-cross-divergence';
 export * from './chart-line-adx-pos-neg-divergence';
 export * from './chart-line-hma-mid-cross-sig';
 export * from './chart-line-donchian-divergence-cross';
+export * from './chart-line-supertrend-flip-cross';
