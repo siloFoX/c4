@@ -72,6 +72,7 @@
   "metrics.workers": "워커",
   "metrics.daemon": "데몬",
   "metrics.load": "부하",
+  "metrics.needsLogin": "메트릭 일시 중지 -- 로그인하면 재개됩니다",
 
   "login.title": "C4 로그인",
   "login.description": "대시보드 사용을 위해 로그인이 필요합니다.",

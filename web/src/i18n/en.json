@@ -72,6 +72,7 @@
   "metrics.workers": "workers",
   "metrics.daemon": "daemon",
   "metrics.load": "load",
+  "metrics.needsLogin": "Metrics paused -- sign in to resume",
 
   "login.title": "C4 Sign in",
   "login.description": "Session required to access the dashboard.",

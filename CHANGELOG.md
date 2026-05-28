@@ -4,6 +4,39 @@
 
 (no entries -- next release window)
 
+## [1.11.1100] - 2026-05-28 -- UX FIX: MetricsBar 401 flood + polling backoff (TODO 11.1082)
+
+Fixed the MetricsBar 401 flood. The bar polled
+/api/metrics every 5s and, on a persistent 401 (auth
+expired/required), kept hammering the daemon and console
+every interval forever. Now: (1) a 401 STOPS the poll
+loop and surfaces a quiet needs-login strip
+(data-section "metrics-bar-needs-login") instead of
+looping; (2) the healthy poll interval is raised from 5s
+to 20s; (3) transient errors (network blips, 5xx) keep
+the last value and retry with exponential backoff (20s ->
+40s -> 80s ... capped at 160s), resetting to 20s after
+the next success. `useMetrics` now returns
+`{ data, status }` (status: loading | ok | needs-login |
+error) and schedules via a self-rescheduling setTimeout
+(was setInterval) so the delay can vary per tick;
+HEALTHY_INTERVAL_MS and MAX_BACKOFF_MS are exported.
+MetricsBar consumes the new shape and renders the quiet
+needs-login strip (same muted styling, no layout jump,
+i18n metrics.needsLogin en/ko). The only consumer of the
+hook is MetricsBar (updated in lockstep). Mandatory
+visual verification via a new Playwright spec
+(web/e2e/metrics-bar-401.spec.ts): intercepts
+/api/metrics -> 401, asserts the needs-login strip
+renders AND that no more than 2 metrics requests fire in
+a 10s window (one mount tick + at most one StrictMode
+double-invoke; the old 5s loop fired ~3) -- 1 passed
+(33.2s) headless. Both unit suites rewritten for the new
+shape/behavior -- 34 passed (20s interval, 401-stop,
+40s/80s backoff, reset-after-success, keep-last-value,
+unmount cleanup, needs-login render). No other view
+behaviour changes.
+
 ## [1.11.1099] - 2026-05-28 -- UX FIX: chart-line showcase gallery route (TODO 11.1081)
 
 Added a `gallery` top-view route backed by a new
