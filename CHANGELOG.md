@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.1098] - 2026-05-28 -- UX FIX: App.tsx centered layout container (TODO 11.1080)
+
+Fixed the "whole app crowds to the top-left on wide
+viewports" bug. `web/src/App.tsx` rendered the page
+content flush against the left edge of `<main>` with no
+max-width cap or centering, so on 1440px+ displays the
+content hugged the left and wasted the right half of the
+screen. The page-content region (the lazy view switcher)
+is now wrapped in a centered responsive container
+(`mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col
+px-4`, data-testid `app-main-container`): max-w-6xl
+(1152px) caps the column on wide viewports, mx-auto
+centers it with symmetric ~144px side margins at 1440px,
+and below 1152px the column uses full width so mobile is
+unaffected (only the px-4 inset applies). The flex
+min-h-0 / flex-1 / flex-col chain is preserved so each
+view's overflow/scroll discipline keeps working. The
+full-width chrome strips above the content (MetricsBar,
+AutonomousStatusBanner, RouteProgressBar, GridDebugOverlay)
+stay outside the container by design and still span the
+viewport. Mandatory visual verification via a new
+Playwright spec (web/e2e/layout-app-shell.spec.ts): at
+1440px it screenshots into test-results and asserts the
+container left edge > 120px and width <= 1200px (proving
+real centering); at 375px it asserts left edge < 40px and
+width > 330px (proving mobile full-width). The spec stubs
+/api/auth/status -> { enabled: false } (single conditional
+route handler so it is never aborted) and aborts other
+/api calls (network error, not 401, so no auth flip).
+Both tests pass headless (chromium, 2 passed). No runtime
+logic touched -- pure layout + e2e addition.
+
 ## [1.11.1097] - 2026-05-28 -- UI: chart-line-volume-trend-cross primitive (TODO 11.1079)
 
 Added `<ChartLineVolumeTrendCross />` -- close+volume-

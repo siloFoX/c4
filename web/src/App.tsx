@@ -381,6 +381,23 @@ export default function App() {
           Self-gates on import.meta.env.PROD so production builds
           render null. Toggle via Cmd/Ctrl+Shift+G. */}
       <GridDebugOverlay />
+      {/* (v1.11.1098, TODO 11.1080) Centered responsive content
+          container. Without this the page content stretched flush
+          to the left edge of <main> and crowded the top-left on
+          wide viewports. `mx-auto max-w-6xl` centers the content
+          on wide screens (>= ~1200px the column caps at 1152px and
+          gains symmetric side margins); below that the column uses
+          full width so mobile is unaffected. `px-4` gives edge
+          breathing room on narrow viewports. The flex-1 / min-h-0
+          / flex-col chain is preserved so the per-view
+          overflow/scroll discipline below continues to work. The
+          chrome strips above (MetricsBar, AutonomousStatusBanner,
+          RouteProgressBar) stay full-width by design. */}
+      <div
+        data-testid="app-main-container"
+        data-section="app-main-container"
+        className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4"
+      >
       <Suspense fallback={
         <div className="flex min-h-0 flex-1 overflow-auto p-6">
           <LoadingSkeleton rows={6} />
@@ -499,6 +516,7 @@ export default function App() {
       </PageTransition>
       </UIErrorBoundary>
       </Suspense>
+      </div>
     </AppShell>
     </AnnounceRegion>
   );
