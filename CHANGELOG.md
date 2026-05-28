@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1112] - 2026-05-28 -- UX FIX: History list overflows on mobile (TODO 11.1094)
+
+Fixed the History sidebar clipping at 375. The
+master-detail root already collapsed to one column below
+md; the real overflows were inside the full-width mobile
+aside: the actions toolbar (column-picker / export /
+scribe) sat in a single-row flex-row justify-between
+header with no wrap and ran ~52px past the right edge
+(measured toolbar right edge 427 vs viewport 375), and
+each row's name span lacked min-w-0 so a long worker name
+kept its full width and pushed the StatusPill (CLOSED
+badge) off the right edge. The sidebar CardHeader now
+stacks the toolbar below the title below sm
+(flex-col gap-2 sm:flex-row sm:items-center
+sm:justify-between) and returns to the single row at
+>= sm; the Toolbar gains flex-wrap as a safety; and the
+row name span gains min-w-0 so it truncates and the
+status pill stays on screen. Layout-only, reusing
+token-backed classes. Mandatory verification via a new
+Playwright spec (web/e2e/history-mobile-overflow.spec.ts):
+at 375 / 768 / 1440 it asserts no horizontal page overflow
+and that the sidebar toolbar and the CLOSED row's status
+pill render fully inside the viewport, screenshotting 375
+-- red/green confirmed (375 toolbar right edge was 427
+before), 3 passed.
+
 ## [1.11.1111] - 2026-05-28 -- UX FIX: Autonomous status-card actions clipped on mobile (TODO 11.1093)
 
 Fixed the AutonomousView card headers clipping at 375.
