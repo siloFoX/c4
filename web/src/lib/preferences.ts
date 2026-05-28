@@ -23,12 +23,18 @@ const SIDEBAR_VALUES: readonly SidebarMode[] = ['list', 'tree'];
 const DETAIL_VALUES: readonly DetailMode[] = ['terminal', 'chat', 'control'];
 // 'settings' is intentionally excluded — the saved value represents the
 // content tab the app should restore to on load, never the settings screen.
+// (v1.11.1103, TODO 11.1085) 'autonomous' was missing here, so a reload
+// while on the Autonomous tab was rejected by readEnum and bounced the
+// operator back to 'workers'. It is a content tab like the rest and must
+// persist (this also lets the autonomous-fullwidth e2e boot directly into
+// the view). 'settings' stays excluded per the note above.
 const TOP_VIEW_VALUES: readonly TopView[] = [
   'workers',
   'history',
   'chat',
   'workflows',
   'sessions',
+  'autonomous',
   'features',
   'gallery',
 ];
