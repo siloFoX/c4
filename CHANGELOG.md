@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1101] - 2026-05-28 -- UX FIX: lazy-load ui directory for dev + bundle speed (TODO 11.1083)
+
+Sped up vite dev cold-start and HMR by removing the
+chart family from the ui barrel. web/src/components/ui/
+index.ts re-exported every chart with `export * from
+'./chart-*'` -- the ~640 chart-line-* indicator
+primitives plus the base chart-bar/line/pie/... set. In
+native-ESM Vite dev, each `export *` forces the browser
+to fetch+transform that module the first time ANY barrel
+consumer loads; since dozens of components import a
+single primitive (e.g. Button) from ./ui, the barrel
+dragged all ~640 chart modules into the cold-start graph
+even on the Login screen and the default Workers view,
+which render no chart. The charts are only ever shown via
+ChartLineGallery, which already lazy-loads each one with
+a direct dynamic import('./ui/chart-line-...'), so the
+barrel re-exports were dead weight on the critical path.
+Removed the contiguous 642-line chart export block; the
+barrel now carries only the ~150 lightweight primitives,
+with a guard comment forbidding re-adding charts. Purely
+subtractive -- no consumer imported a chart through the
+barrel (tsc --noEmit confirms; only ChartLineGallery
+references chart modules and it uses direct file
+imports). Measured headless cold-start (warm deps,
+identical for both barrels): /src module requests on the
+default view dropped 890 -> 248 (-642, -72%, exactly the
+642 chart exports removed -- the default view now pulls
+ZERO chart modules), and wall-to-settle ~45.2s -> ~21.8s
+(~-52%). HMR benefits identically. See
+docs/patches/11.1083-ui-ux-code-split.md.
+
 ## [1.11.1100] - 2026-05-28 -- UX FIX: MetricsBar 401 flood + polling backoff (TODO 11.1082)
 
 Fixed the MetricsBar 401 flood. The bar polled
