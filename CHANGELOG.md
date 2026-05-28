@@ -4,6 +4,50 @@
 
 (no entries -- next release window)
 
+## [1.11.1092] - 2026-05-28 -- UI: chart-line-cci-overbought-divergence primitive (TODO 11.1074)
+
+Added `<ChartLineCciOverboughtDivergence />` -- HLC-input
+Donald Lambert (1980) Commodity Channel Index divergence
+detector **gated to the overbought zone** for top
+reversal warning. NEW specialisation pattern in the
+divergence-cross family: "zone-gated" divergence
+detection that filters crosses to only those occurring
+while the indicator is in a specified extreme zone.
+Divergences at overbought levels are the strongest top
+reversal warning signals -- the underlying momentum has
+reversed while CCI still shows elevated readings,
+indicating that the recent advance is losing steam at a
+stretched level. 5-state regime (aligned/divergent x
+bullish/bearish, none) -- same divergence detector as
+the family, but cross firing additionally requires `cur
+CCI >= overboughtLevel`. Default period=20,
+overboughtLevel=+100 (canonical Lambert + classical
+threshold), warmup=21. Bit-exact anchors (HLC): CONST
+band -> CCI=null (MAD=0 divide-by-zero guard), regime
+none, 0 crosses; LINEAR UP (close=i) -> CCI=126.667
+constant (= 2*(period-1)/(0.015*period); period-
+invariant identity), in overbought zone but flat slope
+-> regime none, 0 crosses; LINEAR DOWN (close=-i) ->
+CCI=-126.667 mirror, OUTSIDE overbought zone, 0 crosses
+(zone gate filters); QUADRATIC UP -> reaches overbought
+with regime mix (CCI plateaus near asymptote). Distinct
+from existing CCI siblings: chart-line-cci (raw), cci-
+divergence-cross (ungated version, fires anywhere), cci-
+overbought-cross (level cross not divergence), cci-mid-
+cross-sig (centerline), cci-cross-sig (signal SMA), cci-
+extreme-cross (+/-200). The overbought-zone gate is the
+key specialisation -- explicitly verified by a detector-
+level test that builds the same divergent-bearish regime
+sequence with CCI values both above and below the
+threshold, confirming asymmetric behavior. Reference
+lines (overbought / oversold / zero centerline) render
+with distinct colors and dasharrays. Sets a pattern that
+could be extended to cci-oversold-divergence (mirror,
+bottom reversal), rsi-overbought/oversold-divergence,
+and other bounded-oscillator divergence variants. Pure-
+SVG, deterministic `.toFixed(2)`, no chart-lib
+dependency. 59/59 vitest cases pass.
+
 ## [1.11.1091] - 2026-05-28 -- UI: chart-line-cmo-zero-cross-sig primitive (TODO 11.1073)
 
 Added `<ChartLineCmoZeroCrossSig />` -- single-close-input
