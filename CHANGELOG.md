@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1078] - 2026-05-28 -- UI: chart-line-supertrend-flip-cross primitive (TODO 11.1060)
+
+Added `<ChartLineSupertrendFlipCross />` -- HLC-input
+Olivier Seban Supertrend trend-flip detector flagging
+canonical Supertrend trading signals: trend state
+transitions (downtrend -> uptrend = bullish flip; uptrend
+-> downtrend = bearish flip). When the close breaks
+through the active trailing stop, the trend flips and the
+supertrend line jumps to the opposite band. Pipeline
+matches supertrend-mid-cross-sig v1.11.1068: SMA-based
+ATR, HL2-centered upper/lower bands, ratcheting finalUpper
+/finalLower, init trend seeded via sign(close[period] -
+close[period-1]). The cross detector watches the trend
+variable itself for transitions rather than the supertrend
+vs a signal line. Bias at flip bar derived from supertrend
+slope (typically reads as a large up/down jump due to the
+band switch). Default period=10, multiplier=3, warmup=10.
+Bit-exact anchors (HLC): CONST -> trend stays uptrend (K-6
+constant supertrend), 0 flips; LINEAR UP -> trend stays
+uptrend, supertrend = i - 6, 0 flips; LINEAR DOWN -> trend
+stays downtrend, supertrend = -i + 6, 0 flips. Third
+member of the Supertrend signal family alongside
+supertrend-mid-cross-sig v1.11.1068 (vs SMA signal) and
+supertrend-divergence-cross v1.11.1062 (vs price
+direction); each surfaces a different signal niche.
+flip-cross is the canonical trading signal -- the trailing
+stop breach moment. 40 vitest cases. Pure SVG, no chart
+libs.
+
 ## [1.11.1077] - 2026-05-28 -- UI: chart-line-donchian-divergence-cross primitive (TODO 11.1059)
 
 Added `<ChartLineDonchianDivergenceCross />` -- HL-input
