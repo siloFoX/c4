@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getToken } from './api';
 
 // (v1.10.726) Extracted from MetricsBar. The self-polling
 // /api/metrics fetch -- keeps the last value on a network blip (no
@@ -18,9 +19,19 @@ import { useEffect, useState } from 'react';
 // Scheduling moved from setInterval to a self-rescheduling
 // setTimeout so the delay can vary per tick.
 //
-// The fetch goes through `fetch()` directly rather than `apiFetch()`
-// because MetricsBar predates the shared API helper and the metrics
-// endpoint does not need the auth-injection middleware.
+// (v1.11.1104, TODO 11.1086) The metrics poll DOES need the session
+// token. /api/metrics is auth-gated like every other /api route, so the
+// old bare `fetch('/api/metrics')` (no Authorization header) returned
+// 401 on EVERY view even for a valid admin session -- surfacing the
+// "Metrics paused -- sign in to resume" strip for signed-in users and
+// logging a failed-resource console error on each route. We now attach
+// `Authorization: Bearer <token>` from the same store apiFetch uses
+// (getToken), but deliberately do NOT route through apiFetch: its 401
+// handler clears the token and fires AUTH_EVENT (a global logout), which
+// is too aggressive for a decorative, self-pausing poll. A 401 here
+// keeps the local 11.1082 needs-login behaviour instead. The failing
+// response URL is logged (warn) so the gated endpoint is easy to
+// confirm without re-deriving it from the network panel.
 
 export interface MetricsResponse {
   daemon: {
@@ -89,17 +100,26 @@ export function useMetrics(): UseMetricsResult {
 
     const tick = async (): Promise<void> => {
       try {
-        const res = await fetch('/api/metrics');
+        // (v1.11.1104, TODO 11.1086) Attach the session token so the
+        // auth-gated /api/metrics route stops 401-ing for signed-in
+        // operators. Same source as apiFetch; see the note above for
+        // why we don't reuse apiFetch directly.
+        const token = getToken();
+        const res = await fetch('/api/metrics', {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (!alive) return;
         if (res.status === 401) {
           // Auth expired / required: stop polling and surface a
           // quiet needs-login state. Do NOT reschedule -- this is
           // the whole point of the fix (no 401 flood).
+          console.warn(`[metrics] /api/metrics returned 401 (${res.url}); pausing until re-auth`);
           setStatus('needs-login');
           return;
         }
         if (!res.ok) {
           // Transient server error: keep the last value, back off.
+          console.warn(`[metrics] /api/metrics returned ${res.status} (${res.url}); backing off`);
           if (!hasData) setStatus('error');
           backoff();
           return;

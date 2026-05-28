@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.1104] - 2026-05-28 -- UX FIX: console error sweep on main routes (TODO 11.1086)
+
+Fixed the dominant console error on the main routes: the
+MetricsBar /api/metrics poll returned 401 on every view
+even with a valid admin session, because use-metrics.ts
+polled with a bare fetch('/api/metrics') that omitted the
+Authorization header every other /api call sends via
+apiFetch. /api/metrics is auth-gated like the rest, so
+the header-less request was rejected -- logging a
+failed-resource console error on each view and showing
+the "Metrics paused -- sign in to resume" strip to
+signed-in operators (11.1082 stopped the flood but not
+this root cause). The poll now attaches
+`Authorization: Bearer <token>` from the same store
+apiFetch uses (getToken), so it succeeds for signed-in
+operators. It deliberately does not route through
+apiFetch, whose 401 handler clears the token and fires a
+global AUTH_EVENT logout -- too aggressive for a
+decorative self-pausing poll; the local 11.1082
+needs-login behaviour on a genuine 401 is preserved. The
+failing response URL is logged (warn) so the gated
+endpoint is easy to confirm. Mandatory verification via a
+new Playwright spec (web/e2e/console-clean.spec.ts): signs
+in as admin, visits the root + two main nav destinations
+(History, Autonomous), collects console errors + page
+errors and asserts zero -- with the /api/metrics stub
+gated on the Authorization header so the pre-fix bare
+fetch would 401 and fail the test. 1 passed; the
+pre-existing use-metrics unit suite still passes (9). The
+gallery ChartLineMomentum crash is tracked separately as
+11.1100.
+
 ## [1.11.1103] - 2026-05-28 -- UX FIX: Autonomous dashboard should fill width (TODO 11.1085)
 
 Fixed the Autonomous view's status stat-grid and
