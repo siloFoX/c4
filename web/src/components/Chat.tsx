@@ -77,7 +77,10 @@ export default function Chat() {
   };
 
   return (
-    <Card className="flex h-full min-h-0 w-full min-w-0 flex-col">
+    // (v1.11.1113, TODO 11.1095) data-section for the fill/center e2e.
+    // The card fills its column (h-full/w-full); the App.tsx chat
+    // branch supplies the centered max-w-3xl column + height.
+    <Card data-section="chat-surface" className="flex h-full min-h-0 w-full min-w-0 flex-col">
       <CardHeader className="flex-row items-start justify-between gap-2 p-4 md:p-5">
         <div>
           <CardTitle>{t('chat.title')}</CardTitle>
