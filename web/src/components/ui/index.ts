@@ -781,3 +781,4 @@ export * from './chart-line-sar-cross-sig';
 export * from './chart-line-psar-flip-cross';
 export * from './chart-line-momentum-divergence-cross';
 export * from './chart-line-roc-divergence-cross';
+export * from './chart-line-awesome-zero-divergence';

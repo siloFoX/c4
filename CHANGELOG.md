@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.1090] - 2026-05-28 -- UI: chart-line-awesome-zero-divergence primitive (TODO 11.1072)
+
+Added `<ChartLineAwesomeZeroDivergence />` -- HL-input
+Bill Williams Awesome Oscillator (AO) zero-line momentum
+divergence detector. The classical Bill Williams reversal
+warning: AO = SMA(HL2, 5) - SMA(HL2, 34), a "zero-line"
+oscillator that oscillates around zero rather than within
+a fixed [0, 100] range. Divergence between price (HL2)
+direction and AO direction signals that the underlying
+short-vs-long momentum gap has reversed direction even
+though price has not yet. 5-state regime (aligned/
+divergent x bullish/bearish, none) -- same divergence
+detector pattern as the family. Bullish on entry into
+divergent-bullish (price down + AO up = bullish momentum
+reversal warning); bearish on entry into divergent-
+bearish (price up + AO down = bearish momentum reversal
+warning). Bias from AO slope at divergence-entry. Default
+fastLength=5, slowLength=34 (canonical Bill Williams
+tuning), warmup=35. Bit-exact anchors (HL): CONST band
+(high=K+1, low=K-1) -> HL2=K, AO=0 constant, regime
+none, 0 crosses; LINEAR UP (high=i+1, low=i-1) -> HL2=i,
+AO = 14.5 constant (slowLength - fastLength) / 2 -- flat
+AO, regime none, 0 crosses; LINEAR DOWN -> AO = -14.5
+mirror, 0 crosses; QUADRATIC UP -> aligned-bullish
+throughout, 0 crosses; DECELERATING DECLINE -> divergent-
+bullish + at least one bullish cross. Constant-on-linear-
+input bit-exact property (AO = 14.5 / -14.5) is a unique
+signature of the dual-SMA construction shared with
+Momentum (also constant on linear) but distinct from ROC
+(always divergent against linear due to percentage
+normalisation). Seventh member of the divergence-cross
+family (atr, keltner, bollinger, donchian, momentum, roc,
+awesome). HL input shape distinguishes this primitive
+from Momentum / ROC siblings (single-close); HL2 is the
+canonical Bill Williams price proxy. Top panel renders
+HL2, bottom panel renders AO (purple) with zero reference
+line. Pure-SVG, deterministic `.toFixed(2)`, no chart-lib
+dependency. 56/56 vitest cases pass.
+
 ## [1.11.1089] - 2026-05-28 -- UI: chart-line-roc-divergence-cross primitive (TODO 11.1071)
 
 Added `<ChartLineRocDivergenceCross />` -- single-close-
