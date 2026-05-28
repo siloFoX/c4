@@ -4,6 +4,21 @@
 
 (no entries -- next release window)
 
+## [1.11.1114] - 2026-05-28 -- UX FIX: Settings column should be centered (TODO 11.1096)
+
+Verified + guarded the Settings column centering. A red-check showed
+SettingsView was already centered at 1440 -- its root container is
+already mx-auto flex w-full max-w-3xl, so the narrow reading column
+auto-centers on wide viewports (the "add mx-auto" fix was already in
+place; a second one would twMerge to a no-op). Rather than a redundant
+change, this locks it in: SettingsView.tsx gains
+data-section="settings-view" (no visual change) and a new Playwright
+spec (web/e2e/settings-center.spec.ts) navigates to Settings and asserts
+the column is centered at 1440 (symmetric margins, capped width), fits
+within the viewport at 768, and is full-width on mobile (375) -- 3
+passed, 1440 screenshot confirmed. No layout change to the settings
+column itself.
+
 ## [1.11.1113] - 2026-05-28 -- UX FIX: Chat surface should fill height and center (TODO 11.1095)
 
 Fixed the Chat view rendering a small composer card pinned top-left in
