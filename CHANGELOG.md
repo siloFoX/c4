@@ -4,6 +4,43 @@
 
 (no entries -- next release window)
 
+## [1.11.1093] - 2026-05-28 -- UI: chart-line-cci-oversold-divergence primitive (TODO 11.1075)
+
+Added `<ChartLineCciOversoldDivergence />` -- HLC-input
+Donald Lambert (1980) CCI divergence detector **gated to
+the oversold zone** for bottom reversal warning. Direct
+mirror of chart-line-cci-overbought-divergence v1.11.1092
+-- same zone-gated divergence pattern but focused on
+bottom reversal warnings. Divergences at oversold levels
+are the strongest bottom reversal warning signals -- the
+underlying momentum has reversed (turning up) while the
+price still shows depressed CCI, indicating the recent
+decline is losing steam at a stretched level. 5-state
+regime (aligned/divergent x bullish/bearish, none) --
+same divergence detector as the family, but cross firing
+additionally requires `cur CCI <= oversoldLevel`. Default
+period=20, oversoldLevel=-100 (canonical Lambert +
+classical threshold), warmup=21. Bit-exact anchors (HLC):
+CONST band -> CCI=null (MAD=0 divide-by-zero guard),
+regime none, 0 crosses; LINEAR UP -> CCI=+126.667 in
+OVERBOUGHT region (NOT oversold), oversoldCount=0, 0
+crosses (gate filters); LINEAR DOWN -> CCI=-126.667 in
+oversold zone but flat slope, oversoldCount>0, regime
+none, 0 crosses. The LINEAR UP / DOWN anchors mirror
+those of the overbought sibling with inverted zone
+asymmetry. PRIMARY signal: divergent-BULLISH at oversold
+(price falling but CCI recovering from depressed
+extreme); secondary: divergent-BEARISH at oversold
+(contrarian rally exhaustion, less common). Completes
+the CCI zone-gated divergence pair (overbought top
+reversal + oversold bottom reversal). Establishes a
+fully symmetric template for top/bottom reversal warning
+detection extensible to RSI, Williams %R, Stochastic,
+and other bounded-oscillator variants with overbought/
+oversold zone semantics. Pure-SVG, deterministic
+`.toFixed(2)`, no chart-lib dependency. 58/58 vitest
+cases pass.
+
 ## [1.11.1092] - 2026-05-28 -- UI: chart-line-cci-overbought-divergence primitive (TODO 11.1074)
 
 Added `<ChartLineCciOverboughtDivergence />` -- HLC-input
