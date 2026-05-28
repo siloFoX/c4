@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1084] - 2026-05-28 -- UI: chart-line-adx-neg-cross primitive (TODO 11.1066)
+
+Added `<ChartLineAdxNegCross />` -- HLC-input J. Welles
+Wilder Jr (1978) ADX -DI zero-cross detector flagging
+downtrend strength trigger events: transitions from `-DI
+=== 0` (indecision -- no bearish directional movement) to
+`-DI > 0` (downtrend pressure emerging). Mirror of the +DI
+sibling (v1.11.1083) but with **inverted semantics**:
+when -DI rises, downtrend pressure is increasing, which is
+bearish for price. Detector therefore maps `kind: 'bearish'`
+to up-cross of zero (downtrend emerging) and `kind:
+'bullish'` to down-cross (never fires, retained for
+family-shape symmetry). Pipeline: upMove, downMove, -DM
+with directional dominance, TR, SMA-smoothed minusDI with
+zero-guard. Regime: bearish when -DI > 0 (downtrend
+pressure active), none when === 0 (matching +DI sibling
+convention: zero = no movement, not bearish-zone). Default
+period=14, warmup=15. SMA-based smoothing matching adx-*
+family. Bit-exact anchors (HLC): CONST -> -DI=0 constant
+(no movement), regime none, 0 crosses; LINEAR UP -> -DI=0
+constant (no bearish movement), regime none, 0 crosses;
+LINEAR DOWN -> -DI=50 constant (pure bearish movement),
+regime bearish, 0 crosses (no transition from 0). Panel
+hard-locked to [0, 100]. Completes the simple-zero-cross
+pair with chart-line-adx-pos-cross v1.11.1083 -- together
+they provide independent uptrend/downtrend emergence
+detection in the ADX signal family. 46 vitest cases. Pure
+SVG, no chart libs.
+
 ## [1.11.1083] - 2026-05-28 -- UI: chart-line-adx-pos-cross primitive (TODO 11.1065)
 
 Added `<ChartLineAdxPosCross />` -- HLC-input J. Welles
