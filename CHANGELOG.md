@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1080] - 2026-05-28 -- UI: chart-line-momentum-mid-cross-sig primitive (TODO 11.1062)
+
+Added `<ChartLineMomentumMidCrossSig />` -- close-input
+canonical Momentum oscillator midline-over-signal
+crossover detector flagging momentum centerline trigger
+events with bias coloring from the Momentum slope. The
+simplest and oldest of all momentum indicators: the raw
+difference between the current close and the close period
+bars ago, in price units (not percentage). 0 is the
+natural centerline. Pipeline: momentum[i] = close[i] -
+close[i - period], signal = SMA(momentum, signalLength).
+Bullish: momentum crosses up signal. Bearish: momentum
+crosses down signal. Default period=10, signalLength=3,
+warmup=12. Bit-exact anchors (close): CONST [K] ->
+momentum = K - K = 0 (exactly the centerline), signal=0,
+regime bullish (===), 0 crosses; LINEAR UP -> momentum =
+i - (i - 10) = +10 (constant, slope x lookback), signal =
++10, regime bullish (===), 0 crosses; LINEAR DOWN ->
+mirror -10, regime bullish (===), 0 crosses. The clean
+integer LINEAR anchors (+/- period exactly) are a defining
+feature of Momentum -- no centroid lag, no smoothing
+offset, just raw slope-over-lookback. Simplest member of
+the mid-cross-sig family. Layout auto-ranges but
+guarantees centerline visibility. 45 vitest cases. Pure
+SVG, no chart libs.
+
 ## [1.11.1079] - 2026-05-28 -- UI: chart-line-ichimoku-tenkan-cross primitive (TODO 11.1061)
 
 Added `<ChartLineIchimokuTenkanCross />` -- HL-input
