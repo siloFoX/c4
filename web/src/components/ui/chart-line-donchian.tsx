@@ -361,7 +361,7 @@ export function runLineDonchian(
   }
 
   return {
-    series,
+    series = [],
     period,
     upper,
     lower,

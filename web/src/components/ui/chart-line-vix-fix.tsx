@@ -319,7 +319,7 @@ export function runLineVixFix(
   }
 
   return {
-    series,
+    series = [],
     period,
     threshold,
     highest,

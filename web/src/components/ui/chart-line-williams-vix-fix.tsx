@@ -337,7 +337,7 @@ export function runLineWilliamsVixFix(
     }
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     wvf,

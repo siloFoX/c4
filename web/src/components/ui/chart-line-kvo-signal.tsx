@@ -499,7 +499,7 @@ export function runLineKvoSignal(
   const ok = series.length > slowLength + signalLength;
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     signalLength,

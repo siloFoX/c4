@@ -269,7 +269,7 @@ export function runLineFractals(
   }
 
   return {
-    series,
+    series = [],
     wing,
     fractals,
     signals,

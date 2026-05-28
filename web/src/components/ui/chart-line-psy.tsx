@@ -338,7 +338,7 @@ export function runLinePsy(
   }
 
   return {
-    series,
+    series = [],
     period,
     upperThreshold,
     lowerThreshold,

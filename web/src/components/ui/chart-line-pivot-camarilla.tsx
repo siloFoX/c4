@@ -426,7 +426,7 @@ export function runLinePivotCamarilla(
     if (isFiniteNumber(sample.pivot)) pivotFinal = sample.pivot;
   }
   return {
-    series,
+    series = [],
     pivot: channels.pivot,
     r1: channels.r1,
     r2: channels.r2,

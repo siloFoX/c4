@@ -614,7 +614,7 @@ export function runLineDynamicRsi(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     baseLength,
     shortVolLength,
     longVolLength,

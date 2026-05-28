@@ -574,7 +574,7 @@ export interface ChartLineAnomalyProps {
 
 export const ChartLineAnomaly = forwardRef(function ChartLineAnomaly(
   {
-    series,
+    series = [],
     threshold = DEFAULT_CHART_LINE_ANOMALY_THRESHOLD,
     hiddenSeries,
     defaultHiddenSeries,

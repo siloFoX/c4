@@ -336,7 +336,7 @@ export function computeLineBumpLayout(
   options: ComputeLineBumpLayoutOptions,
 ): ChartLineBumpLayout {
   const {
-    series,
+    series = [],
     rankOrder = 'desc',
     hiddenSeries,
     curved = true,

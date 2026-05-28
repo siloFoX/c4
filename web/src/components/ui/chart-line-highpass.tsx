@@ -321,7 +321,7 @@ export function runLineHighpass(
   }
 
   return {
-    series,
+    series = [],
     period,
     a1,
     b1,

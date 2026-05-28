@@ -343,7 +343,7 @@ export function runLineGapo(
   }
 
   return {
-    series,
+    series = [],
     period,
     range,
     gapo,

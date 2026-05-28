@@ -449,7 +449,7 @@ export function runLineAdxPosCross(
   const ok = series.length > warmup;
 
   return {
-    series,
+    series = [],
     period,
     plusDIValues,
     samples,

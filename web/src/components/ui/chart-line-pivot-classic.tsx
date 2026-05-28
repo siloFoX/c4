@@ -328,7 +328,7 @@ export function runLinePivotClassic(
     if (isFiniteNumber(sample.levels.pp)) ppFinal = sample.levels.pp;
   }
   return {
-    series,
+    series = [],
     levels,
     samples,
     ppFinal,

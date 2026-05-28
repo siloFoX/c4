@@ -627,7 +627,7 @@ export interface ChartLineForecastProps {
 
 export const ChartLineForecast = forwardRef(function ChartLineForecast(
   {
-    series,
+    series = [],
     forecastFrom,
     forecastLabel = 'Forecast',
     hiddenSeries,

@@ -403,7 +403,7 @@ export function runLineEhlersFisher(
     if (isFiniteNumber(sample.fisher)) fisherFinal = sample.fisher;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     norm,

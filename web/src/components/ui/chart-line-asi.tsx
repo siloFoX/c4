@@ -360,7 +360,7 @@ export function runLineAsi(
   const last = samples[samples.length - 1];
 
   return {
-    series,
+    series = [],
     limitMove,
     swingIndex,
     asi,

@@ -277,7 +277,7 @@ export function runLineFibonacci(
   }));
 
   return {
-    series,
+    series = [],
     swingHigh,
     swingLow,
     trend,

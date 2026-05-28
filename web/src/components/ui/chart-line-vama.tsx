@@ -344,7 +344,7 @@ export function runLineVama(
     if (isFiniteNumber(sample.vama)) vamaFinal = sample.vama;
   }
   return {
-    series,
+    series = [],
     period,
     vama,
     weightShare,

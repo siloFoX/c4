@@ -319,7 +319,7 @@ export function computeLineEwmaLayout(
   options: ComputeLineEwmaLayoutOptions,
 ): ComputeLineEwmaLayoutResult {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

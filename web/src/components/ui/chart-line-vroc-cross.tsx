@@ -421,7 +421,7 @@ export function runLineVrocCross(
   const ok = series.length > length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     vrocValues: channels.vroc,

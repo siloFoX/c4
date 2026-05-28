@@ -298,7 +298,7 @@ export function runLineIchimokuTenkan(
     if (isFiniteNumber(sample.tenkan)) tenkanFinal = sample.tenkan;
   }
   return {
-    series,
+    series = [],
     period,
     tenkan,
     samples,

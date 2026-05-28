@@ -523,7 +523,7 @@ export interface ChartLineTrendProps {
 
 export const ChartLineTrend = forwardRef(function ChartLineTrend(
   {
-    series,
+    series = [],
     hiddenSeries,
     defaultHiddenSeries,
     onHiddenSeriesChange,

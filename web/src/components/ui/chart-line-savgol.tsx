@@ -418,7 +418,7 @@ export function computeLineSavgolLayout(
   options: ComputeLineSavgolLayoutOptions,
 ): ChartLineSavgolLayout {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

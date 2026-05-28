@@ -575,7 +575,7 @@ export function runLineAdxCross(
   const ok = series.length > length * 2;
 
   return {
-    series,
+    series = [],
     length,
     lowThreshold,
     highThreshold,

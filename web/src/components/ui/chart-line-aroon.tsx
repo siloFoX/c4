@@ -285,7 +285,7 @@ export function runLineAroon(
   };
 
   return {
-    series,
+    series = [],
     period,
     aroonUp,
     aroonDown,

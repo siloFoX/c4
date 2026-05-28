@@ -358,7 +358,7 @@ export function runLineCoppock(
   }
 
   return {
-    series,
+    series = [],
     roc1Period,
     roc2Period,
     wmaPeriod,

@@ -407,7 +407,7 @@ export function runLineStarc(
   }
 
   return {
-    series,
+    series = [],
     maPeriod,
     atrPeriod,
     multiplier,

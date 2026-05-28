@@ -483,7 +483,7 @@ export function runLineDerivativeOsc(
   }
 
   return {
-    series,
+    series = [],
     rsiPeriod,
     ema1Period,
     ema2Period,

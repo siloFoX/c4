@@ -357,7 +357,7 @@ export function runLineChaikinMf(
     if (isFiniteNumber(sample.cmf)) cmfFinal = sample.cmf;
   }
   return {
-    series,
+    series = [],
     length,
     cmf,
     samples,

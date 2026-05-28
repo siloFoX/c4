@@ -378,7 +378,7 @@ export function runLineButterworth(
   }
 
   return {
-    series,
+    series = [],
     period,
     poles,
     coefficients,

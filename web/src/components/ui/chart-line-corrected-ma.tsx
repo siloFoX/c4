@@ -431,7 +431,7 @@ export function runLineCorrectedMa(
   }
 
   return {
-    series,
+    series = [],
     period,
     sma,
     variance,

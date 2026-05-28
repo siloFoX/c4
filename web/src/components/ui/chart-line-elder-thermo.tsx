@@ -365,7 +365,7 @@ export function runLineElderThermo(
   }
 
   return {
-    series,
+    series = [],
     period,
     hotFactor,
     thermometer,

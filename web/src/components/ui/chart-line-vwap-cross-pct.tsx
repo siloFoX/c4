@@ -336,7 +336,7 @@ export function runLineVwapCrossPct(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     vwapValues: channels.vwap,
     pctValues: channels.pct,

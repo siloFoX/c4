@@ -233,7 +233,7 @@ export function runLineTypical(
     series.length > 0 ? series[series.length - 1]!.close : null;
 
   return {
-    series,
+    series = [],
     typical,
     samples,
     typicalFinal,

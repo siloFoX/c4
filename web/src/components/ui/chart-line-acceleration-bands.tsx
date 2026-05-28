@@ -403,7 +403,7 @@ export function runLineAccelerationBands(
     if (isFiniteNumber(sample.levels.middle)) middleFinal = sample.levels.middle;
   }
   return {
-    series,
+    series = [],
     period,
     levels,
     samples,

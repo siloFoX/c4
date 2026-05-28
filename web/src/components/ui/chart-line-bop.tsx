@@ -343,7 +343,7 @@ export function runLineBop(
   }
 
   return {
-    series,
+    series = [],
     period,
     raw,
     signal,

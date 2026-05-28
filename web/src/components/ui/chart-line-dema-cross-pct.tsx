@@ -328,7 +328,7 @@ export function runLineDemaCrossPct(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     demaValues: channels.dema,
     demaPctValues: channels.demaPct,

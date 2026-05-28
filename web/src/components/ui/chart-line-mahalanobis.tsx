@@ -410,7 +410,7 @@ export function runLineMahalanobis(
     if (isFiniteNumber(sample.distance)) distanceFinal = sample.distance;
   }
   return {
-    series,
+    series = [],
     window,
     threshold,
     distance,

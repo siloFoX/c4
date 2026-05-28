@@ -229,7 +229,7 @@ export function runLineMedian(
     series.length > 0 ? series[series.length - 1]!.close : null;
 
   return {
-    series,
+    series = [],
     median,
     samples,
     medianFinal,

@@ -413,7 +413,7 @@ export function runLineVortexViMinus(
     if (isFiniteNumber(sample.viMinus)) viMinusFinal = sample.viMinus;
   }
   return {
-    series,
+    series = [],
     length,
     viMinus,
     samples,

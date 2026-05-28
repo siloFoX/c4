@@ -348,7 +348,7 @@ export function runLineVsa(
     if (isFiniteNumber(sample.vsa)) vsaFinal = sample.vsa;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     vsa,

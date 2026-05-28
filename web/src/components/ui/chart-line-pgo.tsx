@@ -391,7 +391,7 @@ export function runLinePgo(
   }
 
   return {
-    series,
+    series = [],
     period,
     pgo,
     samples,

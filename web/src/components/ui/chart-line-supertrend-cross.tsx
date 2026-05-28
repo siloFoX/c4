@@ -527,7 +527,7 @@ export function runLineSupertrendCross(
   const ok = series.length > length + 1;
 
   return {
-    series,
+    series = [],
     length,
     multiplier,
     atrValues: channels.atr,

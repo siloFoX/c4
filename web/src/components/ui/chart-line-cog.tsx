@@ -317,7 +317,7 @@ export function runLineCog(
   }
 
   return {
-    series,
+    series = [],
     period,
     cog,
     samples,

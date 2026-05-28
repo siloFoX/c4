@@ -399,7 +399,7 @@ export function runLineBayesian(
     if (isFiniteNumber(sample.pDown)) pDownFinal = sample.pDown;
   }
   return {
-    series,
+    series = [],
     window,
     delta,
     sigma,

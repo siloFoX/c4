@@ -356,7 +356,7 @@ export function runLineBbPercentB(
     if (isFiniteNumber(sample.percentB)) percentBFinal = sample.percentB;
   }
   return {
-    series,
+    series = [],
     length,
     numStd,
     percentB,

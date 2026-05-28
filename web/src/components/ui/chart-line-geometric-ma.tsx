@@ -270,7 +270,7 @@ export function runLineGeometricMa(
   }
 
   return {
-    series,
+    series = [],
     period,
     gma,
     samples,

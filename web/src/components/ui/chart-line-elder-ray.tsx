@@ -357,7 +357,7 @@ export function runLineElderRay(
   }
 
   return {
-    series,
+    series = [],
     emaPeriod,
     ema,
     bullPower,

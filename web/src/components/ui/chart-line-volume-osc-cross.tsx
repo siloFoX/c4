@@ -377,7 +377,7 @@ export function runLineVolumeOscCross(
   const ok = series.length > longLength;
 
   return {
-    series,
+    series = [],
     shortLength,
     longLength,
     volOscValues: channels.volOsc,

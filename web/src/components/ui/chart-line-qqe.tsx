@@ -452,7 +452,7 @@ export function runLineQqe(
   }
 
   return {
-    series,
+    series = [],
     rsiPeriod,
     smoothPeriod,
     wilderPeriod,

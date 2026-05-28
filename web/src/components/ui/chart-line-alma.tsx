@@ -326,7 +326,7 @@ export function runLineAlma(
   }
 
   return {
-    series,
+    series = [],
     period,
     offset,
     sigma,

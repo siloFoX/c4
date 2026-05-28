@@ -459,7 +459,7 @@ export function runLineKeltnerCrossSig(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     atrLength,
     mult,

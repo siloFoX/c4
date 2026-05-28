@@ -517,7 +517,7 @@ export interface ChartLineDashedProps {
 
 export const ChartLineDashed = forwardRef(function ChartLineDashed(
   {
-    series,
+    series = [],
     xMin,
     xMax,
     yMin,

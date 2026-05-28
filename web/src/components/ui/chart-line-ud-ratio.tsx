@@ -324,7 +324,7 @@ export function runLineUdRatio(
   }
 
   return {
-    series,
+    series = [],
     period,
     upGain,
     downLoss,

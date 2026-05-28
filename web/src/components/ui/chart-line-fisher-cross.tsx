@@ -410,7 +410,7 @@ export function runLineFisherCross(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     normalizedValues: channels.normalized,
     fisherValues: channels.fisher,

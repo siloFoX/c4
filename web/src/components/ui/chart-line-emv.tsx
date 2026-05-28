@@ -408,7 +408,7 @@ export function runLineEmv(
   }
 
   return {
-    series,
+    series = [],
     smaPeriod,
     volumeDivisor,
     midpoint,

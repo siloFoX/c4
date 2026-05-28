@@ -391,7 +391,7 @@ export function runLineWavetrend(
   }
 
   return {
-    series,
+    series = [],
     channelLength,
     averageLength,
     upperThreshold,

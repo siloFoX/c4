@@ -475,7 +475,7 @@ export function runLineRmiDivergenceCross(
   const ok = series.length > momentumLength + length - 1 + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     momentumLength,
     divergenceWindow,

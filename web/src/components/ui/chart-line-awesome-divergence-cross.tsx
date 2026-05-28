@@ -433,7 +433,7 @@ export function runLineAwesomeDivergenceCross(
   const ok = series.length > slowLength + divergenceWindow - 1;
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     divergenceWindow,

@@ -420,7 +420,7 @@ export function runLineRsiDivergenceCross(
   const ok = series.length > length + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     rsiValues: channels.rsi,

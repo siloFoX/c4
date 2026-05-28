@@ -452,7 +452,7 @@ export function runLineFractalBb(
     if (sample.fractalLow !== null) fractalLowCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     pivotRadius,
     fractalHighValues: channels.fractalHighs,

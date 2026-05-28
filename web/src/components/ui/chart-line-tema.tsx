@@ -329,7 +329,7 @@ export function runLineTema(
   }
 
   return {
-    series,
+    series = [],
     period,
     ema1,
     ema2,

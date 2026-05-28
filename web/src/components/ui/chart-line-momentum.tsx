@@ -578,6 +578,14 @@ export function describeLineMomentumChart(
   return `Line chart with momentum oscillator across ${visible.length} series (${totalPoints} points). ${summaries.join('; ')}.`;
 }
 
+// (v1.11.1118, TODO 11.1100) Stable empty default for the `series`
+// prop so a missing/undefined series never crashes (e.g. the gallery
+// passes `data`, not `series`). computeLineMomentumLayout guards its
+// input, but the allTotalPoints useMemo called `series.reduce(...)`
+// directly -- undefined.reduce threw and tripped the GalleryTile's
+// UIErrorBoundary. A module-level const keeps the useMemo deps stable.
+const EMPTY_MOMENTUM_SERIES: readonly ChartLineMomentumSeries[] = [];
+
 export const ChartLineMomentum = forwardRef<
   HTMLDivElement,
   ChartLineMomentumProps
@@ -586,7 +594,7 @@ export const ChartLineMomentum = forwardRef<
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const {
-    series,
+    series = EMPTY_MOMENTUM_SERIES,
     hiddenSeries: controlledHidden,
     defaultHiddenSeries,
     onHiddenSeriesChange,

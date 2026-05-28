@@ -392,7 +392,7 @@ export function runLineEntropy(
   const lastSample = samples[n - 1]!;
 
   return {
-    series,
+    series = [],
     period,
     bins,
     entropy,

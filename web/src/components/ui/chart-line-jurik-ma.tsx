@@ -336,7 +336,7 @@ export function runLineJurikMa(
     if (isFiniteNumber(sample.jma)) jmaFinal = sample.jma;
   }
   return {
-    series,
+    series = [],
     length,
     phase,
     power,

@@ -356,7 +356,7 @@ export function runLineRocCrossPct(
   const ok = series.length > length + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     rocValues: channels.roc,

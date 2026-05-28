@@ -326,7 +326,7 @@ export function runLineUlcerIndex(
     }
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     ulcer,

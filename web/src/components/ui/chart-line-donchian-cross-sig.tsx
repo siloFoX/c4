@@ -342,7 +342,7 @@ export function runLineDonchianCrossSig(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     upperValues: channels.upper,
     lowerValues: channels.lower,

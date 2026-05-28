@@ -328,7 +328,7 @@ export function runLineUlcer(
   }
 
   return {
-    series,
+    series = [],
     period,
     threshold,
     drawdown,

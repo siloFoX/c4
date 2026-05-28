@@ -532,7 +532,7 @@ export function runLineStochRsiDivergenceCross(
   const ok = series.length > warmup + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     stochLength,
     divergenceWindow,

@@ -375,7 +375,7 @@ export function runLineObvDivergenceCross(
   const ok = series.length > divergenceWindow;
 
   return {
-    series,
+    series = [],
     divergenceWindow,
     obvValues: channels.obv,
     samples,

@@ -384,7 +384,7 @@ export function runLineAdxDiMinus(
     if (isFiniteNumber(sample.diMinus)) diMinusFinal = sample.diMinus;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     diMinus,

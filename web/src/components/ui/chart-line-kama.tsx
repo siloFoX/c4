@@ -343,7 +343,7 @@ export function runLineKama(
   }
 
   return {
-    series,
+    series = [],
     erPeriod,
     fastPeriod,
     slowPeriod,

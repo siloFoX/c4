@@ -314,7 +314,7 @@ export function runLineVhf(
   }
 
   return {
-    series,
+    series = [],
     period,
     vhf,
     samples,

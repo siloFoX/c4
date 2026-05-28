@@ -375,7 +375,7 @@ export function runLineFisherStoch(
     if (isFiniteNumber(sample.fisher)) fisherFinal = sample.fisher;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     stochK,

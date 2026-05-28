@@ -463,7 +463,7 @@ export function runLineTemaPct(
   const ok = series.length >= 3 * (length - 1) + 1;
 
   return {
-    series,
+    series = [],
     length,
     bullishThreshold,
     bearishThreshold,

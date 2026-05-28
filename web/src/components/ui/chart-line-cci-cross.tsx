@@ -466,7 +466,7 @@ export function runLineCciCross(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     cciValues: channels.cci,
     samples,

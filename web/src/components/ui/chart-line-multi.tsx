@@ -453,7 +453,7 @@ export interface ChartLineMultiProps {
 
 export const ChartLineMulti = forwardRef(function ChartLineMulti(
   {
-    series,
+    series = [],
     xMin,
     xMax,
     yMin,

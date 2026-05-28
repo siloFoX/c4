@@ -469,7 +469,7 @@ export function runLineAtrTrail(
     if (isFiniteNumber(sample.trail)) trailFinal = sample.trail;
   }
   return {
-    series,
+    series = [],
     length,
     multiplier,
     tr: channels.tr,

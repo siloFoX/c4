@@ -431,7 +431,7 @@ export function runLineTrixCross(
   const ok = series.length > length * 3 + signalLength;
 
   return {
-    series,
+    series = [],
     length,
     signalLength,
     trixValues: channels.trix,

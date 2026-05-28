@@ -521,7 +521,7 @@ export function runLineRsiCrossSig(
   const ok = series.length > rsiLength + signalLength;
 
   return {
-    series,
+    series = [],
     rsiLength,
     signalLength,
     rsiValues: channels.rsi,

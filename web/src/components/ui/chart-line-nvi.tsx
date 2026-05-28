@@ -298,7 +298,7 @@ export function runLineNvi(
   }
 
   return {
-    series,
+    series = [],
     base,
     nvi,
     samples,

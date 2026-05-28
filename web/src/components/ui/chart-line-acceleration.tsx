@@ -656,7 +656,7 @@ export interface ChartLineAccelerationProps {
 
 export const ChartLineAcceleration = forwardRef(function ChartLineAcceleration(
   {
-    series,
+    series = [],
     mode = DEFAULT_CHART_LINE_ACCELERATION_MODE,
     hiddenSeries,
     defaultHiddenSeries,

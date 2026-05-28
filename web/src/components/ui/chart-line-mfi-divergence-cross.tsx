@@ -418,7 +418,7 @@ export function runLineMfiDivergenceCross(
   const ok = series.length > length + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     mfiValues: channels.mfi,

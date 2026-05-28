@@ -522,7 +522,7 @@ export function runLinePsarDivergenceCross(
   const ok = series.length > warmupLength + divergenceWindow;
 
   return {
-    series,
+    series = [],
     step,
     maxStep,
     warmupLength,

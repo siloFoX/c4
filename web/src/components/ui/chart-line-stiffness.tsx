@@ -505,7 +505,7 @@ export function runLineStiffness(
   }
 
   return {
-    series,
+    series = [],
     period,
     factor,
     smoothPeriod,

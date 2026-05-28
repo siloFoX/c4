@@ -438,7 +438,7 @@ export function runLineVolatilityQuality(
     if (isFiniteNumber(sample.vqi)) vqiFinal = sample.vqi;
   }
   return {
-    series,
+    series = [],
     length,
     tr: channels.tr,
     emaTr: channels.emaTr,

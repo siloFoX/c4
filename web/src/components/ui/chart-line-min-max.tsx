@@ -518,7 +518,7 @@ export interface ChartLineMinMaxProps {
 
 export const ChartLineMinMax = forwardRef(function ChartLineMinMax(
   {
-    series,
+    series = [],
     hiddenSeries,
     defaultHiddenSeries,
     onHiddenSeriesChange,

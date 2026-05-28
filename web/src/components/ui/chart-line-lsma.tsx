@@ -329,7 +329,7 @@ export function runLineLsma(
   }
 
   return {
-    series,
+    series = [],
     period,
     lsma,
     slope,

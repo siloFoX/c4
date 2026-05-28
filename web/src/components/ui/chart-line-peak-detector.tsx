@@ -405,7 +405,7 @@ export function runLinePeakDetector(
     else noneCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     threshFactor,
     mean: channels.mean,

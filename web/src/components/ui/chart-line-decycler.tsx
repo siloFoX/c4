@@ -299,7 +299,7 @@ export function runLineDecycler(
   }
 
   return {
-    series,
+    series = [],
     period,
     alpha,
     highpass,

@@ -454,7 +454,7 @@ export function runLineRsiCross(
   const ok = series.length > Math.max(shortLength, longLength);
 
   return {
-    series,
+    series = [],
     shortLength,
     longLength,
     shortRsiValues: channels.shortRsi,

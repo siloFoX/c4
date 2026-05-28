@@ -254,7 +254,7 @@ export function runLineVrocPct(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     vrocValues,
     samples,

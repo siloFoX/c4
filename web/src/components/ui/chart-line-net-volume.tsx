@@ -459,7 +459,7 @@ export function runLineNetVolume(
   const ok = series.length >= length;
 
   return {
-    series,
+    series = [],
     length,
     overbought,
     oversold,

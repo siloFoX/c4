@@ -385,7 +385,7 @@ export function runLineMomentumPct(
   const ok = series.length > length;
 
   return {
-    series,
+    series = [],
     length,
     bullishThreshold,
     bearishThreshold,

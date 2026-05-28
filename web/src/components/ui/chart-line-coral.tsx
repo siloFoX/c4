@@ -298,7 +298,7 @@ export function runLineCoral(
   }
 
   return {
-    series,
+    series = [],
     period,
     cd,
     coral,

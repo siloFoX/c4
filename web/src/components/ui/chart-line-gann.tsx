@@ -325,7 +325,7 @@ export function runLineGann(
   }
 
   return {
-    series,
+    series = [],
     pivotIndex,
     pivot,
     pricePerUnit,

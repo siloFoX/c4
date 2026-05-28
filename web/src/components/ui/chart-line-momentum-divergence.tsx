@@ -397,7 +397,7 @@ export function runLineMomentumDivergence(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     rocValues: channels.roc,
     momentumValues: channels.momentum,

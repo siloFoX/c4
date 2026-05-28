@@ -371,7 +371,7 @@ export function runLineRangeBias(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     highThreshold,
     lowThreshold,
     biasValues: channels.bias,

@@ -436,7 +436,7 @@ export function runLineCyclePeriod(
     if (isFiniteNumber(sample.period)) periodFinal = sample.period;
   }
   return {
-    series,
+    series = [],
     lookback,
     smoothLength,
     minPeriod,

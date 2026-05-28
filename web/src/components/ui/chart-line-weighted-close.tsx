@@ -237,7 +237,7 @@ export function runLineWeightedClose(
     series.length > 0 ? series[series.length - 1]!.close : null;
 
   return {
-    series,
+    series = [],
     weighted,
     samples,
     weightedFinal,

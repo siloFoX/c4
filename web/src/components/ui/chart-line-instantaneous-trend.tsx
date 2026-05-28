@@ -346,7 +346,7 @@ export function runLineInstantaneousTrend(
   }
 
   return {
-    series,
+    series = [],
     alpha,
     c1,
     c2,

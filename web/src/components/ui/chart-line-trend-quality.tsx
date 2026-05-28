@@ -340,7 +340,7 @@ export function runLineTrendQuality(
     if (isFiniteNumber(sample.tqi)) tqiFinal = sample.tqi;
   }
   return {
-    series,
+    series = [],
     lookback,
     strongThreshold,
     tqi,

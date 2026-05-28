@@ -450,7 +450,7 @@ export function runLineChandelier(
   }
 
   return {
-    series,
+    series = [],
     period,
     multiplier,
     trueRange,

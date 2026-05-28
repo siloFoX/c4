@@ -325,7 +325,7 @@ export function runLineHma(
   }
 
   return {
-    series,
+    series = [],
     period,
     halfPeriod,
     sqrtPeriod,

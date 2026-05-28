@@ -292,7 +292,7 @@ export function runLineWilliamsR(
   }
 
   return {
-    series,
+    series = [],
     period,
     overbought,
     oversold,

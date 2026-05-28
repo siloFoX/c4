@@ -515,7 +515,7 @@ export function runLineRecombiningKc(
     else noneCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     atrLength,
     multiplier,

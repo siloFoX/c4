@@ -412,7 +412,7 @@ export function runLineStochSignal(
     if (isFiniteNumber(sample.d)) dFinal = sample.d;
   }
   return {
-    series,
+    series = [],
     kPeriod,
     dPeriod,
     overboughtThreshold,

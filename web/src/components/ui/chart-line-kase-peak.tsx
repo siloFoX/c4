@@ -400,7 +400,7 @@ export function runLineKasePeak(
     if (isFiniteNumber(sample.kp)) kpFinal = sample.kp;
   }
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     threshold,

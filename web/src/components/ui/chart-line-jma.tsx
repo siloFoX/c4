@@ -300,7 +300,7 @@ export function runLineJma(
   }
 
   return {
-    series,
+    series = [],
     length,
     phase,
     jma,

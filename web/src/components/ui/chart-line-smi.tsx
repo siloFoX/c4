@@ -391,7 +391,7 @@ export function runLineSmi(
   }
 
   return {
-    series,
+    series = [],
     qPeriod,
     smoothPeriod1,
     smoothPeriod2,

@@ -384,7 +384,7 @@ export function runLineTrendStrength(
     if (isFiniteNumber(sample.strength)) strengthFinal = sample.strength;
   }
   return {
-    series,
+    series = [],
     length,
     slope: channels.slope,
     stdErr: channels.stdErr,

@@ -385,7 +385,7 @@ export function runLineRwi(
   }
 
   return {
-    series,
+    series = [],
     period,
     trendThreshold,
     trueRange,

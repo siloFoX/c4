@@ -350,7 +350,7 @@ export function runLineTii(
   }
 
   return {
-    series,
+    series = [],
     period,
     deviations,
     tii,

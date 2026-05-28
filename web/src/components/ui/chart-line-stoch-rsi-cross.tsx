@@ -675,7 +675,7 @@ export function runLineStochRsiCross(
     series.length > rsiLength + stochLength + kSmooth + dSmooth;
 
   return {
-    series,
+    series = [],
     rsiLength,
     stochLength,
     kSmooth,

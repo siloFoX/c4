@@ -552,7 +552,7 @@ export interface ChartLineSegmentProps {
 
 export const ChartLineSegment = forwardRef(function ChartLineSegment(
   {
-    series,
+    series = [],
     xMin,
     xMax,
     yMin,

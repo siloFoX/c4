@@ -340,7 +340,7 @@ export function runLinePsarCrossPct(
   const ok = series.length > 2;
 
   return {
-    series,
+    series = [],
     afStep,
     afMax,
     psarValues: channels.psar,

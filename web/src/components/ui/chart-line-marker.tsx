@@ -470,7 +470,7 @@ export interface ChartLineMarkerProps {
 
 export const ChartLineMarker = forwardRef(function ChartLineMarker(
   {
-    series,
+    series = [],
     xMin,
     xMax,
     yMin,

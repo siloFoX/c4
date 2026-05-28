@@ -492,7 +492,7 @@ export function runLineKvoDivergenceCross(
   const ok = series.length > slowLength + divergenceWindow;
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     divergenceWindow,

@@ -436,7 +436,7 @@ export interface ChartLineAreaStackedProps {
 
 export const ChartLineAreaStacked = forwardRef(function ChartLineAreaStacked(
   {
-    series,
+    series = [],
     stackMode = DEFAULT_CHART_LINE_AREA_STACKED_STACK_MODE,
     xMin,
     xMax,

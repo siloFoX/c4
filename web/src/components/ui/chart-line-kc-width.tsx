@@ -474,7 +474,7 @@ export function runLineKcWidth(
     if (isFiniteNumber(sample.width)) widthFinal = sample.width;
   }
   return {
-    series,
+    series = [],
     length,
     multiplier,
     middle: channels.middle,

@@ -296,7 +296,7 @@ export function runLineDpo(
   }
 
   return {
-    series,
+    series = [],
     period,
     shift,
     dpo,

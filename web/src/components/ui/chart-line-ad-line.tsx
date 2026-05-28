@@ -305,7 +305,7 @@ export function runLineAdLine(
     if (isFiniteNumber(sample.ad)) adFinal = sample.ad;
   }
   return {
-    series,
+    series = [],
     ad,
     samples,
     adFinal,

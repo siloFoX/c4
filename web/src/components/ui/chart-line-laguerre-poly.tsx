@@ -308,7 +308,7 @@ export function runLineLaguerrePoly(
     if (isFiniteNumber(sample.laguerre)) laguerreFinal = sample.laguerre;
   }
   return {
-    series,
+    series = [],
     gamma,
     laguerre,
     samples,

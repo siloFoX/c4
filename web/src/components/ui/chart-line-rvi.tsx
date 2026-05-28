@@ -426,7 +426,7 @@ export function runLineRvi(
   }
 
   return {
-    series,
+    series = [],
     period,
     co,
     hl,

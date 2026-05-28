@@ -396,7 +396,7 @@ export function runLineCmoDivergenceCross(
   const ok = series.length > length + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     cmoValues: channels.cmo,

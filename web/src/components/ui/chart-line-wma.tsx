@@ -271,7 +271,7 @@ export function runLineWma(
   }
 
   return {
-    series,
+    series = [],
     period,
     wma,
     samples,

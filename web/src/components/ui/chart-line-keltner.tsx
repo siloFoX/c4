@@ -285,7 +285,7 @@ export function runLineKeltner(
   for (const a of atr) if (a !== null) bandPointCount += 1;
 
   return {
-    series,
+    series = [],
     emaPeriod,
     atrPeriod,
     multiplier,

@@ -399,7 +399,7 @@ export function runLineErgodic(
   }
 
   return {
-    series,
+    series = [],
     firstPeriod,
     secondPeriod,
     thirdPeriod,

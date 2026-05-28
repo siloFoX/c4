@@ -315,7 +315,7 @@ export function runLineAndrews(
   }
 
   return {
-    series,
+    series = [],
     pivots: options?.pivots ?? null,
     fork,
     samples,

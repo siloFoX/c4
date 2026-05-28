@@ -518,7 +518,7 @@ export interface ChartLineMovingAvgProps {
 
 export const ChartLineMovingAvg = forwardRef(function ChartLineMovingAvg(
   {
-    series,
+    series = [],
     window: chartWindow = DEFAULT_CHART_LINE_MOVING_AVG_WINDOW,
     mode = 'trailing',
     hiddenSeries,

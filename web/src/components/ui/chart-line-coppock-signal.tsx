@@ -439,7 +439,7 @@ export function runLineCoppockSignal(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     longROC,
     shortROC,
     wmaPeriod,

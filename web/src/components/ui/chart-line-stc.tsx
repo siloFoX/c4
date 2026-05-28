@@ -483,7 +483,7 @@ export function runLineStc(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     cyclePeriod,

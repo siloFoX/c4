@@ -444,7 +444,7 @@ export function runLineChaikinOsc(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     adl,

@@ -417,7 +417,7 @@ export function runLineZlemaCross(
   const ok = series.length > length + channels.lag;
 
   return {
-    series,
+    series = [],
     length,
     lag: channels.lag,
     adjustedValues: channels.adjusted,

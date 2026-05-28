@@ -317,7 +317,7 @@ export function runLineDema(
   }
 
   return {
-    series,
+    series = [],
     period,
     ema1,
     ema2,

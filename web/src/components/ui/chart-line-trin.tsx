@@ -321,7 +321,7 @@ export function runLineTrin(
   }
 
   return {
-    series,
+    series = [],
     threshold,
     trin,
     samples,

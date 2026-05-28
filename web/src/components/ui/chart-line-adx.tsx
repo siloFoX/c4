@@ -350,7 +350,7 @@ export function runLineAdx(
   };
 
   return {
-    series,
+    series = [],
     period,
     plusDI,
     minusDI,

@@ -400,7 +400,7 @@ export function runLineVolatilityStop(
     }
   }
   return {
-    series,
+    series = [],
     period,
     multiplier,
     atr,

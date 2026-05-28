@@ -362,7 +362,7 @@ export function runLineCmf(
   }
 
   return {
-    series,
+    series = [],
     period,
     mfm,
     mfv,

@@ -327,7 +327,7 @@ export function runLineGauss(
   }
 
   return {
-    series,
+    series = [],
     period,
     poles,
     alpha,

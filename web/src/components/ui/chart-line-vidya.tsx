@@ -342,7 +342,7 @@ export function runLineVidya(
   }
 
   return {
-    series,
+    series = [],
     period,
     cmoPeriod,
     cmo,

@@ -523,7 +523,7 @@ export interface ChartLineDiscontinuousProps {
 
 export const ChartLineDiscontinuous = forwardRef(function ChartLineDiscontinuous(
   {
-    series,
+    series = [],
     xMin,
     xMax,
     yMin,

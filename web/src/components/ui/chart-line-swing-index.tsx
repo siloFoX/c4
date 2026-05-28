@@ -364,7 +364,7 @@ export function runLineSwingIndex(
     if (isFiniteNumber(sample.si)) siFinal = sample.si;
   }
   return {
-    series,
+    series = [],
     limitMove,
     si,
     samples,

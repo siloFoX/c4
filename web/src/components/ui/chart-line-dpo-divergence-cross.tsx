@@ -431,7 +431,7 @@ export function runLineDpoDivergenceCross(
   const ok = series.length > length - 1 + divergenceWindow;
 
   return {
-    series,
+    series = [],
     length,
     shift,
     divergenceWindow,

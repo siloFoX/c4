@@ -350,7 +350,7 @@ export function runLineDarvas(
   }
 
   return {
-    series,
+    series = [],
     confirm,
     boxes,
     samples,

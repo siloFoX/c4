@@ -364,7 +364,7 @@ export function runLineIft(
   }
 
   return {
-    series,
+    series = [],
     period,
     scale,
     threshold,

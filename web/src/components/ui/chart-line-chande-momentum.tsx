@@ -351,7 +351,7 @@ export function runLineChandeMomentum(
     if (isFiniteNumber(sample.cmo)) cmoFinal = sample.cmo;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     cmo,

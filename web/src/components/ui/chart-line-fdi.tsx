@@ -302,7 +302,7 @@ export function runLineFdi(
   }
 
   return {
-    series,
+    series = [],
     period,
     upperThreshold,
     lowerThreshold,

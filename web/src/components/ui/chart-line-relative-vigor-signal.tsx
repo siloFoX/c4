@@ -527,7 +527,7 @@ export function runLineRelativeVigorSignal(
   const ok = series.length >= length + 6;
 
   return {
-    series,
+    series = [],
     length,
     bullishThreshold,
     bearishThreshold,

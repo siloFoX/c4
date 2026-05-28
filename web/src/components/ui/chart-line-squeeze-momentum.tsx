@@ -396,7 +396,7 @@ export function runLineSqueezeMomentum(
     if (isFiniteNumber(sample.momentum)) momentumFinal = sample.momentum;
   }
   return {
-    series,
+    series = [],
     length,
     momentum,
     samples,

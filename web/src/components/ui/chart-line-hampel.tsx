@@ -443,7 +443,7 @@ export function computeLineHampelLayout(
   options: ComputeLineHampelLayoutOptions,
 ): ChartLineHampelLayout {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

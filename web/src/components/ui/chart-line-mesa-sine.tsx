@@ -379,7 +379,7 @@ export function runLineMesaSine(
   }
 
   return {
-    series,
+    series = [],
     period,
     sma,
     cycle,

@@ -421,7 +421,7 @@ export function runLinePmo(
   const lastSample = samples[n - 1]!;
 
   return {
-    series,
+    series = [],
     smooth1Period,
     smooth2Period,
     signalPeriod,

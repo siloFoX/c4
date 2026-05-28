@@ -364,7 +364,7 @@ export function runLineAbsoluteMomentum(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     strongThreshold,
     rawValues: channels.raw,

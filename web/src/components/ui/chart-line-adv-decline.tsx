@@ -366,7 +366,7 @@ export function runLineAdvDecline(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     netValues: channels.net,
     adLineValues: channels.adLine,

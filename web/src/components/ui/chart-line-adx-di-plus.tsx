@@ -387,7 +387,7 @@ export function runLineAdxDiPlus(
     if (isFiniteNumber(sample.diPlus)) diPlusFinal = sample.diPlus;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     diPlus,

@@ -311,7 +311,7 @@ export function runLineZlema(
   }
 
   return {
-    series,
+    series = [],
     period,
     lag,
     deLagged,

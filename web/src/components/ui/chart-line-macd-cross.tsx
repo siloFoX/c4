@@ -439,7 +439,7 @@ export function runLineMacdCross(
   const ok = series.length > slowLength + signalLength;
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     signalLength,

@@ -457,7 +457,7 @@ export function runLineStochFast(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     overbought,
     oversold,

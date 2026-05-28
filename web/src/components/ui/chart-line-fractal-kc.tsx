@@ -645,7 +645,7 @@ export function runLineFractalKc(
   const ok = series.length >= atrLength + fractalLookback;
 
   return {
-    series,
+    series = [],
     atrLength,
     fractalLookback,
     multiplier,

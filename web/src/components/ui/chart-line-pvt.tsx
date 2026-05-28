@@ -274,7 +274,7 @@ export function runLinePvt(
   }
 
   return {
-    series,
+    series = [],
     roc,
     pvc,
     pvt,

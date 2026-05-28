@@ -445,7 +445,7 @@ export function runLineMacdDivergenceCross(
   const ok = series.length > slowLength + divergenceWindow - 1;
 
   return {
-    series,
+    series = [],
     fastLength,
     slowLength,
     divergenceWindow,

@@ -271,7 +271,7 @@ export function runLineSmma(
   }
 
   return {
-    series,
+    series = [],
     period,
     smma,
     samples,

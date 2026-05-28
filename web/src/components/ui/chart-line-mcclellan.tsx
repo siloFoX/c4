@@ -322,7 +322,7 @@ export function runLineMcclellan(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     fastEma,

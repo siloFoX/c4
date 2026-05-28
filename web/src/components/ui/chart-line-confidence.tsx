@@ -503,7 +503,7 @@ export interface ChartLineConfidenceProps {
 
 export const ChartLineConfidence = forwardRef(function ChartLineConfidence(
   {
-    series,
+    series = [],
     xMin,
     xMax,
     yMin,

@@ -357,7 +357,7 @@ export function runLineHlMean(
     else if (sample.crossed === 'down') bearishCrossCount += 1;
   }
   return {
-    series,
+    series = [],
     length,
     midpointValues: channels.midpoint,
     hlMeanValues: channels.hlMean,

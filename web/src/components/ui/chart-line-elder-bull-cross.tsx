@@ -371,7 +371,7 @@ export function runLineElderBullCross(
   const ok = series.length > length + 1;
 
   return {
-    series,
+    series = [],
     length,
     highProxyLength,
     bullValues: channels.bull,

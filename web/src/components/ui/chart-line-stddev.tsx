@@ -334,7 +334,7 @@ export function runLineStdDev(
   }
 
   return {
-    series,
+    series = [],
     period,
     multiplier,
     basis,

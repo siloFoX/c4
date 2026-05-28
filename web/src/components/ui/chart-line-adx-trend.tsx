@@ -436,7 +436,7 @@ export function runLineAdxTrend(
     if (isFiniteNumber(sample.adx)) adxFinal = sample.adx;
   }
   return {
-    series,
+    series = [],
     period,
     threshold,
     plusDi,

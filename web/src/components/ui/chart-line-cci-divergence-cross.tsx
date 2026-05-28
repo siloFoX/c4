@@ -398,7 +398,7 @@ export function runLineCciDivergenceCross(
   const ok = series.length > length + divergenceWindow - 1;
 
   return {
-    series,
+    series = [],
     length,
     divergenceWindow,
     cciValues: channels.cci,

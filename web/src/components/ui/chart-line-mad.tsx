@@ -477,7 +477,7 @@ export function computeLineMadLayout(
   options: ComputeLineMadLayoutOptions,
 ): ChartLineMadLayout {
   const {
-    series,
+    series = [],
     hiddenSeries,
     width,
     height,

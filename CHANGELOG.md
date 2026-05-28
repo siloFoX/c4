@@ -4,6 +4,27 @@
 
 (no entries -- next release window)
 
+## [1.11.1118] - 2026-05-28 -- UX FIX: gallery ChartLineMomentum render crash (TODO 11.1100)
+
+Fixed the gallery ChartLineMomentum tile crashing with "Cannot read
+properties of undefined (reading 'reduce')" (tripped the per-tile
+UIErrorBoundary). ChartLineMomentum reads a `series` prop, but the
+GalleryTile passed only `data`, so `series` was undefined and the
+allTotalPoints useMemo's `series.reduce(...)` threw. Two-part fix:
+(1) ChartLineGallery now also passes a series-shaped sample
+(GALLERY_SERIES, points carrying every field incl. y=close) as
+`series={...}`, so every tile gets its sample regardless of which prop
+it reads; (2) chart-line components default a missing `series` prop to
+[] -- ChartLineMomentum uses a stable EMPTY_MOMENTUM_SERIES, and the
+sibling chart-line-*.tsx that destructure `series,` exactly once (the
+props destructure) got a `series = []` default (behaviour-neutral when
+a series is passed; ambiguous multi-occurrence files skipped; whole bulk
+edit tsc-validated). Mandatory visual verification via a new Playwright
+spec (web/e2e/gallery-no-crash.spec.ts): opens the gallery, waits for
+all lazy tiles to mount, asserts zero page errors and zero "Chart
+failed" UIErrorBoundary tiles -- 1 passed (all 41 registry tiles
+render) + screenshot.
+
 ## [1.11.1117] - 2026-05-28 -- UX FIX: C4 help drawer auto-opens over content (TODO 11.1099)
 
 Fixed the Sessions onboarding tour auto-opening over page content on

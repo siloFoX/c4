@@ -463,7 +463,7 @@ export function runLineKlinger(
   }
 
   return {
-    series,
+    series = [],
     fastPeriod,
     slowPeriod,
     signalPeriod,

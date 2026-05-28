@@ -320,7 +320,7 @@ export function runLineEnvelope(
   }
 
   return {
-    series,
+    series = [],
     period,
     percent,
     basis,

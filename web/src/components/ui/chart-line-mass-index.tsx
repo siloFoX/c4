@@ -405,7 +405,7 @@ export function runLineMassIndex(
   }
 
   return {
-    series,
+    series = [],
     emaPeriod,
     sumPeriod,
     setupThreshold,
