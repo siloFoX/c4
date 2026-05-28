@@ -152,7 +152,17 @@ const PageTransition = forwardRef<HTMLDivElement, PageTransitionProps>(
           key={`curr-${currentKey}`}
           data-page-transition-layer="incoming"
           className={cn(
-            'transition-opacity transition-transform',
+            // (v1.11.1103, TODO 11.1085) `min-w-0 flex-1` makes the
+            // incoming layer fill the outer flex-row instead of
+            // shrinking to its content's width. Without it the layer
+            // (a flex item with no grow) collapsed to max-content and
+            // left-aligned, capping every route's content near its
+            // intrinsic width (~630px for AutonomousView) and leaving
+            // the right side of wide viewports empty. Routes whose
+            // content does not opt into filling (no flex-1/w-full
+            // root) are visually unaffected -- the layer simply no
+            // longer imposes a content-width cap.
+            'min-w-0 flex-1 transition-opacity transition-transform',
             durationClass,
             incomingClass,
           )}

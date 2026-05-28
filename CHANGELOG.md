@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1103] - 2026-05-28 -- UX FIX: Autonomous dashboard should fill width (TODO 11.1085)
+
+Fixed the Autonomous view's status stat-grid and
+escalation queue being capped near ~630px and
+left-aligned at 1440, leaving ~810px empty on the right.
+The cap was not in AutonomousView itself but in two flex
+items in the route chain that failed to grow:
+PageTransition's incoming-layer div was a flex item of
+the outer flex-row with no flex-1, so it collapsed to its
+content's max-content width (~630px) and left-aligned --
+capping every route's content; and AutonomousView's root
+div was flex-col with no flex-1/w-full. Gave the
+PageTransition incoming layer `min-w-0 flex-1` so it fills
+the outer flex-row (routes whose content does not opt into
+filling are visually unaffected -- the layer just no
+longer imposes a content-width cap), and gave the
+AutonomousView root `w-full min-w-0 flex-1` so the cards
+span the content width, the 4-col digest grid spreads
+across it, and the escalation list uses the full width.
+Also added 'autonomous' to TOP_VIEW_VALUES in
+preferences.ts -- it was missing, so a reload while on the
+Autonomous tab was rejected and bounced the operator back
+to workers (a real reload-persistence bug); this also lets
+the e2e boot directly into the view. Mandatory visual
+verification via a new Playwright spec
+(web/e2e/autonomous-fullwidth.spec.ts): boots into the
+Autonomous view at 1440/768/375 and asserts the root +
+digest grid fill most of the viewport width -- 3 passed,
+screenshots captured. Red/green confirmed: root was 654px
+at 1440 before the fix, full-width after.
+
 ## [1.11.1102] - 2026-05-28 -- UX FIX: top tab bar overflow + title overlap (TODO 11.1084)
 
 Fixed the AppHeader top tablist overlapping the

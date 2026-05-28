@@ -80,7 +80,16 @@ export default function AutonomousView() {
     useEscalationResolve({ setEscalations });
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 md:p-6">
+    // (v1.11.1103, TODO 11.1085) `flex-1 min-w-0` makes the view fill
+    // its flex-row wrapper. Without it the root only took its content's
+    // max-content width (~630px) and hugged the left edge, leaving ~810px
+    // empty on the right at 1440. Now the cards span the content width,
+    // the 4-col digest grid spreads across it, and the escalation list
+    // uses the full width.
+    <div
+      data-section="autonomous-view"
+      className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3 md:p-6"
+    >
       <Card>
         <CardHeader className="flex-row items-center justify-between border-b border-border p-4">
           <div className="flex items-center gap-2">
