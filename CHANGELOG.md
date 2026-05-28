@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1079] - 2026-05-28 -- UI: chart-line-ichimoku-tenkan-cross primitive (TODO 11.1061)
+
+Added `<ChartLineIchimokuTenkanCross />` -- HL-input
+Goichi Hosoda (1969) canonical TK cross detector
+(tenkan-sen over kijun-sen crossover) with cloud-color
+bias at the trigger bar. The TK cross is the historically
+primary Ichimoku trading signal: when the fast conversion
+line crosses the slower base line, it suggests a shift in
+short-term equilibrium. The cloud color (senkouA vs
+senkouB) provides directional confirmation -- bullish
+cross with bullish cloud = strong bull; bullish cross
+with bearish cloud = counter-trend. Pipeline: tenkan =
+(HH+LL)/2 over 9, kijun = (HH+LL)/2 over 26, senkouA =
+(tenkan+kijun)/2, senkouB = (HH+LL)/2 over 52. Bullish:
+tenkan crosses up kijun. Bearish: tenkan crosses down
+kijun. Cloud-color bias replaces slope bias: bullish/
+bearish/flat cloud at trigger bar. Default tenkan=9,
+kijun=26, senkouB=52, warmup=26 (52 for cloud bias).
+Uses current-bar reads (no 26-bar forward displacement)
+matching sibling convention. Bit-exact anchors (HL):
+CONST -> tenkan=kijun=K, no cross, cloud flat; LINEAR UP
+-> tenkan = i - 4, kijun = i - 12.5, constant +8.5
+tenkan-kijun spread (no cross), senkouA = i - 8.25,
+senkouB = i - 25.5, +17.25 cloud spread = bullish cloud;
+LINEAR DOWN -> mirror, -8.5 spread (no cross), bearish
+cloud. Third member of Ichimoku signal family alongside
+ichimoku-mid-cross-sig v1.11.1067 (kumo midline vs SMA)
+and ichimoku-divergence-cross v1.11.1061 (kumo midline
+vs price). TK-cross is the canonical Ichimoku signal.
+49 vitest cases. Pure SVG, no chart libs.
+
 ## [1.11.1078] - 2026-05-28 -- UI: chart-line-supertrend-flip-cross primitive (TODO 11.1060)
 
 Added `<ChartLineSupertrendFlipCross />` -- HLC-input
