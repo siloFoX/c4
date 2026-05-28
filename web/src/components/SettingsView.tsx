@@ -138,7 +138,10 @@ export default function SettingsView({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-3 md:p-6">
+    <div
+      data-section="settings-view"
+      className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-3 md:p-6"
+    >
       <Card>
         <CardHeader>
           <CardTitle>{t('settings.title')}</CardTitle>
