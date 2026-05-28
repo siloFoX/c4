@@ -91,7 +91,13 @@ export default function AutonomousView() {
       className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3 md:p-6"
     >
       <Card>
-        <CardHeader className="flex-row items-center justify-between border-b border-border p-4">
+        {/* (v1.11.1111, TODO 11.1093) Stack the title and the
+            Refresh/Pause actions on narrow widths so the red Pause
+            button and the trailing status message no longer overflow
+            and clip at the right edge at 375. At >= sm the header
+            returns to the single-row title-left / actions-right
+            layout. */}
+        <CardHeader className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border p-4">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-muted-foreground" aria-hidden />
             <CardTitle className="text-base">{t('autonomous.title')}</CardTitle>
@@ -101,7 +107,7 @@ export default function AutonomousView() {
               </Badge>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -109,6 +115,7 @@ export default function AutonomousView() {
               disabled={loading}
               className="h-7 px-2 text-[11px]"
               aria-label={t('autonomous.refresh.label')}
+              data-testid="autonomous-refresh-btn"
             >
               <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} aria-hidden />
               {t('common.refresh')}
@@ -120,6 +127,7 @@ export default function AutonomousView() {
               variant={digest?.paused ? 'default' : 'destructive'}
               className="h-7 px-2 text-[11px]"
               aria-label={digest?.paused ? t('autonomous.resume.label') : t('autonomous.pause.label')}
+              data-testid="autonomous-pause-btn"
             >
               {digest?.paused ? (
                 <Play className="h-3 w-3" aria-hidden />
@@ -154,12 +162,19 @@ export default function AutonomousView() {
 
       <Card className="flex min-h-0 flex-1 flex-col">
         <CardHeader className="border-b border-border p-4">
-          <div className="flex flex-row items-center justify-between gap-2">
+          {/* (v1.11.1111, TODO 11.1093) Stack the title above the
+              show-resolved control on narrow widths so the control no
+              longer clips at the right edge at 375; row layout returns
+              at >= sm. The control group wraps as a final safety. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-base">
               {showResolved ? t('autonomous.escalations.history') : t('autonomous.escalations.pending')}
             </CardTitle>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3">
+              <label
+                className="flex items-center gap-1 text-[11px] text-muted-foreground"
+                data-testid="autonomous-show-resolved"
+              >
                 <input
                   type="checkbox"
                   checked={showResolved}

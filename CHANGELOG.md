@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1111] - 2026-05-28 -- UX FIX: Autonomous status-card actions clipped on mobile (TODO 11.1093)
+
+Fixed the AutonomousView card headers clipping at 375.
+CardHeader defaults to flex-col, but both headers
+overrode it to a single horizontal row
+(flex-row justify-between), so at 375 the digest card's
+Refresh + red Pause buttons (and the trailing status
+message) and the escalation card's show-resolved control
+ran off the right edge with no wrap. Both headers now
+stack the actions below the title below sm
+(flex-col gap-2 sm:flex-row sm:items-center
+sm:justify-between) and the action groups gain flex-wrap;
+at >= sm the single-row title-left / actions-right layout
+is unchanged. Added data-testid to the Refresh / Pause
+buttons and the show-resolved label for the e2e.
+Mandatory verification via a new Playwright spec
+(web/e2e/autonomous-mobile-actions.spec.ts): at
+375 / 768 / 1440 it asserts each of the three header
+controls renders with a bounding box fully inside the
+viewport (no clip) and screenshots the 375 layout --
+3 passed, screenshot confirmed (Refresh + Pause stacked
+below the title, show-resolved below the escalations
+title, all visible). Layout-only, reusing existing
+token-backed classes; the six audit-adequate views are
+untouched.
+
 ## [1.11.1105] - 2026-05-28 -- UX FIX: skeleton loading states for perceived speed (TODO 11.1087)
 
 Added skeleton loading states to the two data panels
