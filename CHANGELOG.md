@@ -4,6 +4,44 @@
 
 (no entries -- next release window)
 
+## [1.11.1095] - 2026-05-28 -- UI: chart-line-williams-oversold-divergence primitive (TODO 11.1077)
+
+Added `<ChartLineWilliamsOversoldDivergence />` --
+HLC-input Larry Williams (1973) Percent R divergence
+detector **gated to the oversold zone** for bottom
+reversal warning. Direct mirror of
+chart-line-williams-overbought-divergence v1.11.1094 --
+same zone-gated divergence pattern but focused on bottom
+reversal warnings. Completes the Williams %R zone-gated
+divergence pair, which generalises the CCI overbought/
+oversold pair (v1.11.1092 / v1.11.1093) to the bounded
+[-100, 0] Williams %R oscillator. 5-state regime + cross
+firing additionally requires `cur %R <= oversoldLevel`.
+PRIMARY signal: divergent-BULLISH at oversold (price
+falling but %R recovering from a depressed extreme).
+Default period=14, oversoldLevel=-80 (canonical Williams
++ classical threshold), warmup=15. Bit-exact anchors
+(HLC), the exact inverse of the overbought sibling: CONST
+band -> %R=-50 midpoint (NOT oversold), regime none, 0
+crosses; LINEAR UP (close=i) -> %R=1/(period+1)*-100 =
+-6.667 (NOT oversold, close near period high =
+overbought), gate filters, 0 crosses; LINEAR DOWN
+(close=-i) -> %R=period/(period+1)*-100 = -93.333 (IN
+oversold zone, close near period low) but flat slope ->
+regime none, oversoldCount>0, 0 crosses. LINEAR DOWN is
+the in-zone anchor here (vs LINEAR UP for the overbought
+sibling). Williams %R inverted orientation: oversold is
+near -100, so the `<=` gate is correct (lower %R = more
+oversold). Bounded [-100, 0] range hard-locks the panel
+with overbought (-20) / midline (-50) / oversold (-80)
+reference lines. Completes the Williams %R zone-gated
+divergence pair; together with the CCI pair the template
+now spans two oscillator families (one unbounded centered
+at 0, one bounded [-100, 0]). Obvious next siblings: rsi
+and stochastic overbought/oversold divergence. Pure-SVG,
+deterministic `.toFixed(2)`, no chart-lib dependency.
+57/57 vitest cases pass.
+
 ## [1.11.1094] - 2026-05-28 -- UI: chart-line-williams-overbought-divergence primitive (TODO 11.1076)
 
 Added `<ChartLineWilliamsOverboughtDivergence />` --

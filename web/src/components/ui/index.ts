@@ -786,3 +786,4 @@ export * from './chart-line-cmo-zero-cross-sig';
 export * from './chart-line-cci-overbought-divergence';
 export * from './chart-line-cci-oversold-divergence';
 export * from './chart-line-williams-overbought-divergence';
+export * from './chart-line-williams-oversold-divergence';
