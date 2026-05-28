@@ -776,3 +776,4 @@ export * from './chart-line-roc-mid-cross-sig';
 export * from './chart-line-volume-spike-cross';
 export * from './chart-line-adx-pos-cross';
 export * from './chart-line-adx-neg-cross';
+export * from './chart-line-di-cross-sig';

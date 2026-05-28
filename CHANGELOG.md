@@ -4,6 +4,47 @@
 
 (no entries -- next release window)
 
+## [1.11.1085] - 2026-05-28 -- UI: chart-line-di-cross-sig primitive (TODO 11.1067)
+
+Added `<ChartLineDiCrossSig />` -- HLC-input J. Welles
+Wilder Jr (1978) Directional Indicator +DI vs -DI direct
+crossover detector. The **oldest signal** in the ADX
+system, predating ADX itself: when +DI crosses up through
+-DI, bulls overtake bears (trend direction change up);
+when +DI crosses down through -DI, bears overtake bulls
+(trend direction change down). 3-state regime (bullish on
++DI >= -DI via `>=`, bearish on +DI < -DI, none if either
+null), bias from (+DI - -DI) slope at the trigger bar.
+Pipeline: upMove, downMove with directional dominance,
++DM/-DM, TR, SMA-smoothed plusDI/minusDI with zero-guard.
+Default period=14, warmup=15. SMA-based smoothing matching
+the adx-* family convention (deterministic for bit-exact
+testing) rather than Wilder's exponential smoothing.
+Bit-exact anchors (HLC): CONST (high=K+1, low=K-1,
+close=K) -> +DI = -DI = 0, regime bullish (via `>=`), 0
+crosses; LINEAR UP (high=i+1, low=i-1, close=i) -> +DI=50,
+-DI=0 constants (bulls dominate continuously), 0 crosses;
+LINEAR DOWN (high=-i+1, low=-i-1, close=-i) -> +DI=0,
+-DI=50 mirror (bears dominate continuously), 0 crosses.
+All steady-state anchors produce 0 crosses because DI
+values remain on the same side of each other throughout
+-- real crosses fire at trend reversals. Distinct from
+sibling adx-pos-neg-divergence v1.11.1075 which compares
+DI *directions* (5-state) rather than DI *values* (3-state
+here). The Wilder DI cross is famously prone to whipsaws
+in range-bound markets -- often paired with the ADX
+threshold (chart-line-adx-trend-cross v1.11.1047) to
+filter low-conviction signals. Top panel renders close,
+bottom panel renders +DI (uptrend.500) and -DI
+(downtrend.500), panel hard-locked to [0, 100] with
+threshold lines at 0/25/50/75/100. Pure-SVG,
+deterministic `.toFixed(2)`, no chart-lib dependency.
+Completes the ADX signal family at five primitives:
+adx-trend-cross (ADX-vs-threshold), adx-pos-neg-divergence
+(DI-direction-vs-DI-direction), adx-pos-cross (+DI vs 0),
+adx-neg-cross (-DI vs 0), di-cross-sig (this -- +DI vs
+-DI). 55/55 vitest cases pass.
+
 ## [1.11.1084] - 2026-05-28 -- UI: chart-line-adx-neg-cross primitive (TODO 11.1066)
 
 Added `<ChartLineAdxNegCross />` -- HLC-input J. Welles
