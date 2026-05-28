@@ -6,6 +6,7 @@ import {
   GraduationCap,
   History,
   LayoutGrid,
+  LineChart,
   MessageSquare,
   Settings,
   UsersRound,
@@ -30,6 +31,7 @@ export type TopView =
   | 'wiki'
   | 'autonomous'
   | 'features'
+  | 'gallery'
   | 'settings';
 
 interface TabDef {
@@ -54,6 +56,7 @@ const TABS: TabDef[] = [
   { value: 'chat', labelKey: 'tab.chat', fallback: 'Chat', Icon: MessageSquare },
   { value: 'workflows', labelKey: 'tab.workflows', fallback: 'Workflows', Icon: Workflow },
   { value: 'features', labelKey: 'tab.features', fallback: 'Features', Icon: LayoutGrid },
+  { value: 'gallery', labelKey: 'tab.gallery', fallback: 'Gallery', Icon: LineChart },
   { value: 'settings', labelKey: 'tab.settings', fallback: 'Settings', Icon: Settings },
 ];
 
