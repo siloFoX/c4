@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1082] - 2026-05-28 -- UI: chart-line-volume-spike-cross primitive (TODO 11.1064)
+
+Added `<ChartLineVolumeSpikeCross />` -- close+volume-
+input volume vs `multiplier * SMA(volume, period)`
+crossover detector flagging abnormal volume surge entry
+events for breakout confirmation, with bias coloring from
+the volume slope at the trigger bar. The canonical
+Wyckoff/Granville volume-spike pattern: when current
+volume exceeds its rolling average by a configured
+multiplier (default 2x), the move is considered confirmed
+by participation. Pipeline: avgVolume = SMA(volume,
+period), threshold = multiplier * avgVolume. Bullish:
+volume crosses up threshold (spike entry). Bearish: volume
+crosses down threshold (spike exit). First family member
+to accept a `volume` field alongside `close`. Volume must
+be non-negative; finite-points filter drops negative
+volume. Default period=20, multiplier=2, warmup=21.
+Asymmetric threshold (always above avgVolume for
+multiplier > 1) means steady-state produces regime
+`bearish` (below threshold); bullish regime requires
+spike. Bit-exact anchors (close + volume): CONST V=0 ->
+volume = threshold = 0, regime bullish (===); CONST V>0
+-> threshold = 2V, regime bearish, 0 crosses; LINEAR UP
+shifted (volume = i + 100) -> threshold = 2*(i+90.5),
+volume always below threshold, 0 crosses; LINEAR DOWN
+mirror, 0 crosses. Synthetic 5x spike test verifies
+detector fires bullish cross in real-shaped data. Layout
+renders volume as bars in the bottom panel (vs lines in
+other family members) with threshold overlay. 46 vitest
+cases. Pure SVG, no chart libs.
+
 ## [1.11.1081] - 2026-05-28 -- UI: chart-line-roc-mid-cross-sig primitive (TODO 11.1063)
 
 Added `<ChartLineRocMidCrossSig />` -- close-input
