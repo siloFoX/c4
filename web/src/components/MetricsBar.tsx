@@ -18,7 +18,23 @@ function fmtPct(pct: number | null | undefined): string {
 
 export default function MetricsBar() {
   useLocale();
-  const m = useMetrics();
+  const { data: m, status } = useMetrics();
+
+  // (v1.11.1100, TODO 11.1082) On a 401 the poll loop stops and
+  // surfaces a quiet needs-login strip instead of hammering the
+  // daemon / console. Same muted strip styling as the live bar so
+  // it does not introduce a layout jump.
+  if (status === 'needs-login') {
+    return (
+      <div
+        data-section="metrics-bar-needs-login"
+        className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground"
+      >
+        <Activity className="h-3.5 w-3.5" aria-hidden="true" />
+        <span>{t('metrics.needsLogin') || 'Metrics paused -- sign in to resume'}</span>
+      </div>
+    );
+  }
 
   if (!m) return null;
 

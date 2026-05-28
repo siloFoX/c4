@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { setLocale } from '../lib/i18n';
-import type { MetricsResponse } from '../lib/use-metrics';
+import type { MetricsResponse, MetricsStatus } from '../lib/use-metrics';
 
 // MetricsBar is a pure-display strip rendered above the daemon
 // dashboard. The 5s self-poll fetch + the MetricsResponse shape
@@ -14,9 +14,10 @@ import type { MetricsResponse } from '../lib/use-metrics';
 // for both).
 
 let mockMetrics: MetricsResponse | null = null;
+let mockStatus: MetricsStatus = 'ok';
 
 vi.mock('../lib/use-metrics', () => ({
-  useMetrics: () => mockMetrics,
+  useMetrics: () => ({ data: mockMetrics, status: mockStatus }),
 }));
 
 import MetricsBar from './MetricsBar';
@@ -48,6 +49,7 @@ function makeMetrics(over: Partial<MetricsResponse> = {}): MetricsResponse {
 beforeEach(() => {
   setLocale('en');
   mockMetrics = null;
+  mockStatus = 'ok';
 });
 
 describe('<MetricsBar>', () => {
@@ -57,6 +59,34 @@ describe('<MetricsBar>', () => {
     mockMetrics = null;
     const { container } = render(<MetricsBar />);
     expect(container.firstChild).toBeNull();
+  });
+
+  // ---- needs-login (401 backoff, TODO 11.1082) --------------------
+
+  it('renders the quiet needs-login strip when status is needs-login', () => {
+    mockMetrics = null;
+    mockStatus = 'needs-login';
+    const { container } = render(<MetricsBar />);
+    const strip = container.querySelector(
+      '[data-section="metrics-bar-needs-login"]',
+    );
+    expect(strip).not.toBeNull();
+    expect(strip?.textContent).toMatch(/sign in/i);
+  });
+
+  it('does not render the live cells while in the needs-login state', () => {
+    mockMetrics = makeMetrics({
+      totals: {
+        liveWorkers: 7,
+        totalWorkers: 9,
+        totalRssKb: 0,
+        totalCpuPct: 0,
+      },
+    });
+    mockStatus = 'needs-login';
+    render(<MetricsBar />);
+    // The live worker count cell must NOT render in needs-login.
+    expect(screen.queryByText('7')).not.toBeInTheDocument();
   });
 
   // ---- live workers cell ------------------------------------------
