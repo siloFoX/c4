@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getToken } from '../lib/api';
 
 // (11.203) Per-worker resource mini-graphs (CPU% + RSS bytes)
 // rendered as two side-by-side SVG sparklines. The graph
@@ -8,6 +9,18 @@ import { useEffect, useRef, useState } from 'react';
 // shared poll without contention. The hook keeps the last N
 // samples in a ring buffer and renders 'no data' before the
 // first poll resolves.
+//
+// (v1.11.1119, TODO 11.1101) /api/metrics is auth-gated. This graph's
+// poll was a bare `fetch('/api/metrics')` with no Authorization header
+// -- the same defect 11.1086 fixed in use-metrics, but in this second
+// consumer. Because every worker row mounts its own graph and the
+// setInterval kept firing on failure, a signed-in admin saw a flood of
+// 401s in the console (c4-qa: 14 of 18 /api/metrics responses were 401).
+// Fix: attach the session token from the same source as use-metrics /
+// apiFetch (getToken), and STOP polling on a 401 so an expired session
+// never floods. (The earlier hypothesis blamed the service worker, but
+// sw.ts is never registered -- registerServiceWorker is not called from
+// main.tsx -- so it cannot reissue anything.)
 
 export interface WorkerResourceGraphProps {
   workerName: string;
@@ -73,9 +86,22 @@ export default function WorkerResourceGraph({
 
   useEffect(() => {
     let alive = true;
+    let id: ReturnType<typeof setInterval> | undefined;
     const tick = async () => {
       try {
-        const res = await fetch('/api/metrics');
+        const token = getToken();
+        // Build init without an explicit `headers: undefined` so the
+        // call type-checks under exactOptionalPropertyTypes.
+        const init: RequestInit = token
+          ? { headers: { Authorization: `Bearer ${token}` } }
+          : {};
+        const res = await fetch('/api/metrics', init);
+        if (res.status === 401) {
+          // Auth required / expired: stop polling so we do not flood
+          // the console with 401s every interval (mirrors use-metrics).
+          if (id !== undefined) clearInterval(id);
+          return;
+        }
         if (!res.ok) return;
         const data = (await res.json()) as MetricsPayload;
         const row = data.workers?.find((w) => w.name === workerName);
@@ -92,10 +118,10 @@ export default function WorkerResourceGraph({
       }
     };
     tick();
-    const id = setInterval(tick, sampleIntervalMs);
+    id = setInterval(tick, sampleIntervalMs);
     return () => {
       alive = false;
-      clearInterval(id);
+      if (id !== undefined) clearInterval(id);
     };
   }, [workerName, sampleIntervalMs]);
 

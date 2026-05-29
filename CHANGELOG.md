@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1119] - 2026-05-29 -- UX FIX: /api/metrics 401 flood from the per-row WorkerResourceGraph (TODO 11.1101)
+
+Fixed a flood of /api/metrics 401s in the console for a signed-in admin
+(c4-qa: 14 of 18 responses were 401) even after 11.1086 made the
+MetricsBar poll resilient. Root cause: a SECOND /api/metrics consumer
+11.1086 missed -- WorkerResourceGraph (the per-worker CPU/RSS sparkline
+mounted once per sidebar row) kept doing a bare `fetch('/api/metrics')`
+with no Authorization header and never stopped polling on failure, so
+N rows x a 5s setInterval hammered the auth-gated endpoint. (The
+dispatch blamed the service worker, but sw.ts is never registered --
+registerServiceWorker is not called from main.tsx -- so it cannot
+reissue anything; the dormant SW was deliberately left untouched.) Fix:
+attach `Authorization: Bearer <token>` from the same source as
+use-metrics/apiFetch (getToken), and STOP polling on a 401 (mirrors the
+11.1082/11.1086 discipline). Mandatory verification: a new e2e
+(web/e2e/worker-graph-metrics-auth.spec.ts) loads the app as a
+signed-in admin with one worker row mounted, gates /api/metrics on the
+header, dwells past 3+ of the graph's 5s poll intervals, and asserts
+ZERO /api/metrics 401 responses + that the polls carried the session
+header -- 1 passed (23.9s) + screenshot. Unit: 2 new cases (header
+attached from getToken; 401 stops the interval) -- 9 passed.
+
 ## [1.11.1118] - 2026-05-28 -- UX FIX: gallery ChartLineMomentum render crash (TODO 11.1100)
 
 Fixed the gallery ChartLineMomentum tile crashing with "Cannot read
