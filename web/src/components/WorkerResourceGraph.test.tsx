@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
+import { setToken, clearToken } from '../lib/api';
 import WorkerResourceGraph from './WorkerResourceGraph';
 
 // (11.203) Mini-graph: two side-by-side sparklines polling
@@ -26,6 +27,7 @@ function metricsHandler(rows: WorkerRow[] | (() => WorkerRow[])) {
 
 afterEach(() => {
   vi.useRealTimers();
+  clearToken();
 });
 
 describe('WorkerResourceGraph', () => {
@@ -137,6 +139,52 @@ describe('WorkerResourceGraph', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
+    expect(screen.getByTestId('wrg-empty')).toHaveTextContent('no data');
+  });
+
+  // (v1.11.1119, TODO 11.1101) /api/metrics is auth-gated; the poll
+  // must carry the session token (the bug: it sent none, 401-flooding
+  // the console for signed-in admins via every worker row's graph).
+  it('attaches the Authorization header from getToken to the metrics poll', async () => {
+    vi.useFakeTimers();
+    setToken('test-token-1101');
+    let seenAuth: string | null | undefined;
+    server.use(
+      http.get('/api/metrics', ({ request }) => {
+        seenAuth = request.headers.get('authorization');
+        return HttpResponse.json({
+          workers: [{ name: 'w1', cpuPct: 5, rssKb: 1 }],
+        });
+      }),
+    );
+    render(<WorkerResourceGraph workerName="w1" />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(seenAuth).toBe('Bearer test-token-1101');
+  });
+
+  it('STOPS polling on a 401 (no console flood)', async () => {
+    vi.useFakeTimers();
+    setToken('expired-token');
+    let calls = 0;
+    server.use(
+      http.get('/api/metrics', () => {
+        calls++;
+        return HttpResponse.json({ error: 'unauthorized' }, { status: 401 });
+      }),
+    );
+    render(<WorkerResourceGraph workerName="w1" sampleIntervalMs={5000} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(calls).toBe(1);
+    // Advancing past several intervals must NOT fire another request --
+    // the 401 cleared the interval entirely.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000 * 5);
+    });
+    expect(calls).toBe(1);
     expect(screen.getByTestId('wrg-empty')).toHaveTextContent('no data');
   });
 
