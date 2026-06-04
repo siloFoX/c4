@@ -93,16 +93,6 @@ function Demo({ name, description, code, children }: DemoProps) {
   );
 }
 
-function MissingPrimitive({ name }: { name: string }) {
-  return (
-    <section className="rounded-md border border-dashed border-border bg-card/30 p-3 text-xs text-muted-foreground">
-      <strong className="text-foreground">{name}</strong> is not exported from
-      <code className="mx-1 rounded bg-muted px-1">components/ui</code>
-      yet - placeholder block, skipped gracefully.
-    </section>
-  );
-}
-
 function ButtonDemo() {
   const variants = ['default', 'secondary', 'outline', 'ghost', 'destructive'] as const;
   const sizes = ['sm', 'md', 'lg'] as const;

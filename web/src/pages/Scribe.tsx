@@ -106,7 +106,12 @@ export default function Scribe() {
               { id: 'lastScan', label: t('scribe.row.lastScan'), value: formatRelativeTime(status.lastScan) },
               { id: 'scans', label: t('scribe.row.scans'), value: String(status.scans ?? '-') },
               { id: 'sessions', label: t('scribe.row.sessions'), value: String(status.sessions ?? '-') },
-              { id: 'contextPath', label: t('scribe.row.contextPath'), value: status.contextPath || '-', copyValue: status.contextPath || undefined },
+              {
+                id: 'contextPath',
+                label: t('scribe.row.contextPath'),
+                value: status.contextPath || '-',
+                ...(status.contextPath ? { copyValue: status.contextPath } : {}),
+              },
             ] satisfies DataListItem[]}
           />
         </Panel>

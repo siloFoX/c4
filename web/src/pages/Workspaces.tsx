@@ -176,7 +176,6 @@ function WorkspaceRow({
             <IconButton
               type="button"
               size="sm"
-              variant="ghost"
               aria-label="Cancel rename"
               onClick={onCancel}
               data-testid={`workspace-edit-cancel-${workspace.name}`}
@@ -200,7 +199,6 @@ function WorkspaceRow({
               <IconButton
                 type="button"
                 size="sm"
-                variant="ghost"
                 onClick={onEdit}
                 aria-label={`Rename ${workspace.name}`}
                 data-testid={`workspace-edit-trigger-${workspace.name}`}

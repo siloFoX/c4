@@ -256,7 +256,6 @@ function LocalePanel() {
     >
       <div data-settings-panel="locale">
         <RadioGroup
-          name="settings-locale"
           value={locale}
           onChange={handleChange}
           ariaLabel="Locale"

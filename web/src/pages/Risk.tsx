@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Shield } from 'lucide-react';
 import PageFrame, { ErrorPanel } from './PageFrame';
-import { Alert, Button, Input, NumberInput, Panel, Switch, Textarea } from '../components/ui';
+import { Alert, Button, NumberInput, Panel, Switch, Textarea } from '../components/ui';
 import HelpTip from '../components/HelpTip';
 import { t, useLocale } from '../lib/i18n';
 import { cn } from '../lib/cn';
