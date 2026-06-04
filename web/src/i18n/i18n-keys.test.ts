@@ -45,9 +45,9 @@ function collectReferencedKeys(): Set<string> {
     const src = readFileSync(file, 'utf8');
     let m: RegExpExecArray | null;
     T_CALL.lastIndex = 0;
-    while ((m = T_CALL.exec(src)) !== null) keys.add(m[1]);
+    while ((m = T_CALL.exec(src)) !== null) keys.add(m[1]!);
     TFORMAT_CALL.lastIndex = 0;
-    while ((m = TFORMAT_CALL.exec(src)) !== null) keys.add(m[1]);
+    while ((m = TFORMAT_CALL.exec(src)) !== null) keys.add(m[1]!);
   }
   return keys;
 }

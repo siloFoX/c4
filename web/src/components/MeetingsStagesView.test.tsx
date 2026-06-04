@@ -323,8 +323,8 @@ describe('<MeetingsStagesView>', () => {
     // Order check: design card precedes review card in the DOM.
     const wrapper = container.firstChild as HTMLElement;
     const cards = Array.from(wrapper.children) as HTMLElement[];
-    expect(cards[0].textContent).toContain('[design]');
-    expect(cards[1].textContent).toContain('[review]');
+    expect(cards[0]!.textContent).toContain('[design]');
+    expect(cards[1]!.textContent).toContain('[review]');
   });
 
   it('renders distinct cards even when two stages share the same name (idx differentiates the key)', () => {

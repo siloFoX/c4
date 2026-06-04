@@ -91,10 +91,10 @@ describe('<Timeline>', () => {
     );
     const headers = container.querySelectorAll('[data-timeline-day-header]');
     expect(headers).toHaveLength(2);
-    expect(headers[0].getAttribute('data-timeline-day-header')).toBe(
+    expect(headers[0]!.getAttribute('data-timeline-day-header')).toBe(
       '2026-05-12',
     );
-    expect(headers[1].getAttribute('data-timeline-day-header')).toBe(
+    expect(headers[1]!.getAttribute('data-timeline-day-header')).toBe(
       '2026-05-13',
     );
   });

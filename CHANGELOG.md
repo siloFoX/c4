@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.1135] - 2026-06-04 -- CHORE: fix 20 source-confirmed tsc strict-type errors in 10 test files (TODO 11.1117)
+
+10 test files (3 src/lib + 5 src/components + 2 src/components/ui +
+1 src/i18n) held 20 strict-type errors under
+`exactOptionalPropertyTypes` / `noUncheckedIndexedAccess` /
+`noPropertyAccessFromIndexSignature` / `noUnusedLocals`. Per-file
+breakdown: portal-root (2x stale `@ts-expect-error` removed --
+surrounding cast already typechecks), conversation-render
+(`circular.self` -> `circular['self']` for index-sig), i18n-keys
+(2x `m[1]!` non-null after global-flag regex match), WorkflowGraph
+(TS1117 -- helper had `nodes,`/`edges,` both before and after
+`...overrides`; kept the trailing pair so the helper's args still
+override the spread, dropped the leading pair), toolbar (2x
+`as unknown as ...` for the conversion-too-narrow cast), timeline
+(2x `headers[i]!` after `toHaveLength(2)`), tag-input (replaced 8x
+`prop={props.X}` passes with an inline `opt()` helper that
+conditionally spreads only when defined -- the canonical
+exactOptionalPropertyTypes fix without `as any`; also removed unused
+`const user` from the maxTags test), SpecialistsAuditPanel (2x
+`within(items[i]!)`), SessionsComparisonCard (`headers[0]!` +
+`className={undefined}` -> no-prop since React treats them
+identically and the assertion still holds), MeetingsStagesView (2x
+`cards[i]!`). No `as any`, no `ts-ignore`, no new
+`ts-expect-error`. Mandated verification: tsc --noEmit total
+846 -> 826 (-20, all 20 in those 10 files cleared, zero new errors
+anywhere); vitest on the 10 files shows the SAME 2 failed files /
+6 failed tests / 230 passed as the baseline run -- zero NEW failures.
+
 ## [1.11.1134] - 2026-06-04 -- CHORE: fix 24 source-confirmed tsc strict-type errors in 11 test files (TODO 11.1116)
 
 11 test files (8 `src/lib/*.test.ts` + 2 `src/components/*.test.tsx` +

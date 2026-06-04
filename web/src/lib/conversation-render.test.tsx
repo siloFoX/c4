@@ -98,7 +98,7 @@ describe('formatToolArgs', () => {
 
   it('falls back to String() when JSON.stringify throws (circular ref)', () => {
     const circular: Record<string, unknown> = {};
-    circular.self = circular;
+    circular['self'] = circular;
     const out = formatToolArgs(circular);
     expect(out).toBe('[object Object]');
   });
@@ -134,7 +134,7 @@ describe('formatToolResult', () => {
 
   it('falls back to String() when JSON.stringify throws', () => {
     const circular: Record<string, unknown> = {};
-    circular.self = circular;
+    circular['self'] = circular;
     expect(formatToolResult(circular)).toBe('[object Object]');
   });
 });

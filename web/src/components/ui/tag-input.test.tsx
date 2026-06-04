@@ -17,6 +17,8 @@ function Controlled(props: {
   onChange?: (next: string[]) => void;
 }) {
   const [value, setValue] = useState<string[]>(props.initial ?? []);
+  const opt = <K extends string, V>(k: K, v: V | undefined): Record<K, V> | object =>
+    v === undefined ? {} : ({ [k]: v } as Record<K, V>);
   return (
     <TagInput
       value={value}
@@ -24,14 +26,14 @@ function Controlled(props: {
         setValue(next);
         props.onChange?.(next);
       }}
-      normalize={props.normalize}
-      dedupe={props.dedupe}
-      maxTags={props.maxTags}
-      disabled={props.disabled}
-      ariaLabel={props.ariaLabel}
-      className={props.className}
-      inputClassName={props.inputClassName}
-      placeholder={props.placeholder}
+      {...opt('normalize', props.normalize)}
+      {...opt('dedupe', props.dedupe)}
+      {...opt('maxTags', props.maxTags)}
+      {...opt('disabled', props.disabled)}
+      {...opt('ariaLabel', props.ariaLabel)}
+      {...opt('className', props.className)}
+      {...opt('inputClassName', props.inputClassName)}
+      {...opt('placeholder', props.placeholder)}
     />
   );
 }
@@ -137,8 +139,7 @@ describe('<TagInput>', () => {
     expect(screen.getAllByText('foo')).toHaveLength(1);
   });
 
-  it('maxTags caps additions', async () => {
-    const user = userEvent.setup();
+  it('maxTags caps additions', () => {
     render(<Controlled initial={['a', 'b']} maxTags={2} ariaLabel="tags" />);
     expect(screen.queryByLabelText('Add tag')).not.toBeInTheDocument();
   });
