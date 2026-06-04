@@ -203,11 +203,9 @@ interface CapturedListCardProps {
   onSelectSession: (id: string) => void;
 }
 
-let lastListCardProps: CapturedListCardProps | null = null;
 
 vi.mock('./SessionsListCard', () => ({
   default: (props: CapturedListCardProps) => {
-    lastListCardProps = props;
     return (
       <div
         data-testid="list-card"
@@ -305,11 +303,9 @@ interface CapturedRightPaneProps {
   onAttachNew: () => void;
 }
 
-let lastRightPaneProps: CapturedRightPaneProps | null = null;
 
 vi.mock('./SessionsRightPane', () => ({
   default: (props: CapturedRightPaneProps) => {
-    lastRightPaneProps = props;
     return (
       <div
         data-testid="right-pane"
@@ -352,11 +348,9 @@ interface CapturedAttachModalProps {
   onSubmit: (path: string, name: string) => void;
 }
 
-let lastAttachModalProps: CapturedAttachModalProps | null = null;
 
 vi.mock('./AttachModal', () => ({
   default: (props: CapturedAttachModalProps) => {
-    lastAttachModalProps = props;
     return (
       <div
         data-testid="attach-modal"
@@ -392,11 +386,9 @@ interface CapturedNewChatModalProps {
   onSubmit: (req: { prompt: string; model: string; agent: string }) => void;
 }
 
-let lastNewChatProps: CapturedNewChatModalProps | null = null;
 
 vi.mock('./NewChatModal', () => ({
   default: (props: CapturedNewChatModalProps) => {
-    lastNewChatProps = props;
     return (
       <div
         data-testid="new-chat-modal"
@@ -429,11 +421,9 @@ vi.mock('./NewChatModal', () => ({
   },
 }));
 
-let lastTourProps: { onDismiss: () => void } | null = null;
 
 vi.mock('./SessionsTour', () => ({
   default: (props: { onDismiss: () => void }) => {
-    lastTourProps = props;
     return (
       <div data-testid="tour">
         <button
@@ -528,11 +518,6 @@ beforeEach(() => {
   };
   collapseState = { collapsed: {}, attachedCollapsed: false };
   tourState = { showTour: false };
-  lastListCardProps = null;
-  lastRightPaneProps = null;
-  lastAttachModalProps = null;
-  lastNewChatProps = null;
-  lastTourProps = null;
   lastListGetSelection = null;
   lastListOnAutoSelect = null;
   lastActionsSetSelection = null;

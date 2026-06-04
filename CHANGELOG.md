@@ -4,6 +4,34 @@
 
 (no entries -- next release window)
 
+## [1.11.1132] - 2026-06-04 -- CHORE: fix 29 source-confirmed tsc strict-type errors in 6 src/components test files (TODO 11.1114)
+
+Type-only test cleanup across 6 src/components test files (29
+errors). RiskSandboxPreview: 4x `pres[0]!.textContent` (gated by
+toBeGreaterThanOrEqual(1)) + dropped unused `const { container }`
+destructure. SessionsView/WikiView/WorkflowEditor: removed 13
+write-only `last*` mock-prop trackers (TS6133) -- declarations +
+mock-body writes + beforeEach resets -- via one Node pass; tests
+assert via data-testid markers on the mock JSX, not the in-memory
+captures. SpecialistsEnrichmentPanels: widened `makeAudit` helper
+`Partial<AuditEntry>` -> mapped type `{ [K in keyof AuditEntry]?:
+AuditEntry[K] | undefined }` plus return `as AuditEntry` (same
+two-step playbook as 11.1111) so `makeAudit({ actor: undefined })`
+and `makeAudit({ reason: undefined })` accept the explicit
+undefined override; 4x `within(items[N])` -> `within(items[N]!)`
+gated by the array's construction. WikiBulkPublishRow: 5x
+`user.click(checkboxes[N])` -> `user.click(checkboxes[N]!)` (the
+component always renders the 2 checkboxes the indices reach). NO
+test assertion was changed; NO non-test source touched; NO as-any
+/ ts-ignore. Mandated verification: tsc errors in the 6 files
+29 -> 0; project-wide total 928 -> 899 (delta exactly -29, matches
+"at least -29"); diff confirms ZERO new errors anywhere; vitest on
+the 6 test files passes 155/156 in 5/6 files -- the 1 failing test
+(WikiBulkPublishRow:248 `wraps the row in a flex container ...`,
+a class-name assertion at L248 not touched by my edits at
+L119/129/138/148/209) was verified to ALSO fail on pristine main,
+so no regression introduced (same passing-test count as before).
+
 ## [1.11.1131] - 2026-06-04 -- FIX: update 5 stale test expectations in use-selected-feature-id.test.ts (TODO 11.1113)
 
 `web/src/lib/use-selected-feature-id.test.ts` had 5 FAILING tests

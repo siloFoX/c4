@@ -125,11 +125,9 @@ interface CapturedListProps {
   onRefresh: () => void;
 }
 
-let lastListCardProps: CapturedListProps | null = null;
 
 vi.mock('./WorkflowList', () => ({
   default: (props: CapturedListProps) => {
-    lastListCardProps = props;
     return (
       <div
         data-testid="workflow-list"
@@ -175,11 +173,9 @@ interface CapturedHeaderProps {
   onRun: () => void;
 }
 
-let lastHeaderProps: CapturedHeaderProps | null = null;
 
 vi.mock('./WorkflowSelectedHeader', () => ({
   default: (props: CapturedHeaderProps) => {
-    lastHeaderProps = props;
     return (
       <div
         data-testid="selected-header"
@@ -218,11 +214,9 @@ interface CapturedGraphProps {
   onSelectNode: (id: string | null) => void;
 }
 
-let lastGraphProps: CapturedGraphProps | null = null;
 
 vi.mock('./WorkflowGraph', () => ({
   default: (props: CapturedGraphProps) => {
-    lastGraphProps = props;
     return (
       <div
         data-testid="graph"
@@ -269,11 +263,9 @@ interface CapturedRunsPanelProps {
   onToggleExpanded: (next: string | null) => void;
 }
 
-let lastRunsPanelProps: CapturedRunsPanelProps | null = null;
 
 vi.mock('./WorkflowRunsPanel', () => ({
   default: (props: CapturedRunsPanelProps) => {
-    lastRunsPanelProps = props;
     return (
       <div
         data-testid="runs-panel"
@@ -329,10 +321,6 @@ beforeEach(() => {
   lastListArgs = null;
   lastRunsArg = undefined;
   lastRunArgs = null;
-  lastListCardProps = null;
-  lastHeaderProps = null;
-  lastGraphProps = null;
-  lastRunsPanelProps = null;
 });
 
 describe('<WorkflowEditor>', () => {

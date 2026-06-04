@@ -116,7 +116,7 @@ describe('<WikiBulkPublishRow>', () => {
     const onGitCommit = vi.fn();
     renderRow({ gitCommit: false, onGitCommit });
     const checkboxes = screen.getAllByRole('checkbox');
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
     expect(onGitCommit).toHaveBeenCalledTimes(1);
     expect(onGitCommit).toHaveBeenCalledWith(true);
   });
@@ -126,7 +126,7 @@ describe('<WikiBulkPublishRow>', () => {
     const onGitCommit = vi.fn();
     renderRow({ gitCommit: true, onGitCommit });
     const checkboxes = screen.getAllByRole('checkbox');
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
     expect(onGitCommit).toHaveBeenCalledWith(false);
   });
 
@@ -135,7 +135,7 @@ describe('<WikiBulkPublishRow>', () => {
     const onGitPush = vi.fn();
     renderRow({ gitPush: false, onGitPush });
     const checkboxes = screen.getAllByRole('checkbox');
-    await user.click(checkboxes[1]);
+    await user.click(checkboxes[1]!);
     expect(onGitPush).toHaveBeenCalledTimes(1);
     expect(onGitPush).toHaveBeenCalledWith(true);
   });
@@ -145,7 +145,7 @@ describe('<WikiBulkPublishRow>', () => {
     const onGitPush = vi.fn();
     renderRow({ gitPush: true, onGitPush });
     const checkboxes = screen.getAllByRole('checkbox');
-    await user.click(checkboxes[1]);
+    await user.click(checkboxes[1]!);
     expect(onGitPush).toHaveBeenCalledWith(false);
   });
 
@@ -206,7 +206,7 @@ describe('<WikiBulkPublishRow>', () => {
     const onPublish = vi.fn();
     renderRow({ onPublish });
     const checkboxes = screen.getAllByRole('checkbox');
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
     expect(onPublish).not.toHaveBeenCalled();
   });
 
