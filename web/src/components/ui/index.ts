@@ -148,6 +148,18 @@ export * from './user-card';
 export * from './kbd-shortcut-recorder';
 export * from './text-diff';
 
+// (v1.11.1121, TODO 11.1103) Disambiguate 4 barrel re-export collisions
+// (TS2308). Each pair below has two parallel definitions in different ui
+// modules; the explicit named re-exports shadow the implicit `export *`
+// ambiguity without touching the source modules' own exports. None of
+// these symbols are consumed via the ui barrel today, so the canonical
+// pick has zero runtime impact -- both modules continue to use their
+// own local definitions internally.
+export { detectPlatform } from './kbd';
+export type { ExportFormat } from './data-export';
+export type { AnsiSegment } from './cmd-history';
+export { parseAnsi } from './cmd-history';
+
 // (v1.11.1101, TODO 11.1083) The chart-* family (chart-bar / chart-line /
 // chart-pie / ... and the ~640 chart-line-* indicator primitives) is
 // DELIBERATELY NOT re-exported from this barrel. With native-ESM Vite dev,
