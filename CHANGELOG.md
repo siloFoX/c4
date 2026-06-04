@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1123] - 2026-06-04 -- CHORE: fix 19 stale prop-type errors in UIDemoRoute.tsx (TODO 11.1105)
+
+Resolved 19 stale prop usages in the feature-flag-gated UIDemoRoute
+gallery (registry id ui-demo; consumed only by registry.ts lazy-load
+and its own tests). Each error was a renamed / removed component prop
+and was fixed in place by picking the nearest valid enum, the
+corrected prop name, or by adding the now-required field -- with no
+edits anywhere under web/src/components and no `as any` /
+`ts-ignore` / `ts-expect-error`. The fixes were: Button
+`primary` -> `default`; Badge `muted` -> `neutral`, `danger`
+-> `destructive`; BadgeCounter `value` -> `count`; StatusDot
+`tone` -> `variant` with online/busy/offline/unknown values;
+StatusPill `tone` + children -> `status` + `label` (StatusPill
+Omits children); Checkbox onChange wrapped into a
+`ChangeEventHandler<HTMLInputElement>` -- the dispatch text labelled
+this as `Switch` but tsc reports L163 = the Checkbox; Switch sits
+at L158 and was never erring; Alert `danger` -> `error`;
+Breadcrumb items now carry the required `id` field; Tooltip
+`content` -> `label`. Mandated verification: tsc UIDemoRoute.tsx
+errors 19 -> 0; project-wide tsc total 1126 -> 1107 (delta exactly
+-19, no new errors anywhere); vitest on
+UIDemoRoute.responsive.test.tsx + UIDemoRoute.a11y.test.tsx passes
+3/3 tests in 2/2 files.
+
 ## [1.11.1122] - 2026-06-04 -- FIX: revert 344 chart-line TS1312 regressions from the 11.1100 codemod (TODO 11.1104)
 
 The v1.11.1118 bulk guard (TODO 11.1100) walked

@@ -111,7 +111,7 @@ export default function UIDemoRoute() {
           className="flex flex-col gap-6"
         >
           <DemoSection title="Buttons">
-            <Button variant="primary">Primary</Button>
+            <Button variant="default">Primary</Button>
             <Button variant="secondary">Secondary</Button>
             <Button variant="ghost">Ghost</Button>
             <Button variant="destructive">Destructive</Button>
@@ -120,24 +120,24 @@ export default function UIDemoRoute() {
 
           <DemoSection title="Badges and Chips">
             <Badge variant="default">Default</Badge>
-            <Badge variant="muted">Muted</Badge>
+            <Badge variant="neutral">Muted</Badge>
             <Badge variant="success">Success</Badge>
             <Badge variant="warning">Warning</Badge>
-            <Badge variant="danger">Danger</Badge>
+            <Badge variant="destructive">Danger</Badge>
             <Chip>Chip</Chip>
-            <BadgeCounter value={3} />
-            <BadgeCounter value={42} />
-            <BadgeCounter value={999} />
+            <BadgeCounter count={3} />
+            <BadgeCounter count={42} />
+            <BadgeCounter count={999} />
           </DemoSection>
 
           <DemoSection title="Status">
-            <StatusDot tone="success" />
-            <StatusDot tone="warning" />
-            <StatusDot tone="danger" />
-            <StatusDot tone="muted" />
-            <StatusPill tone="success">Healthy</StatusPill>
-            <StatusPill tone="warning">Degraded</StatusPill>
-            <StatusPill tone="danger">Down</StatusPill>
+            <StatusDot variant="online" />
+            <StatusDot variant="busy" />
+            <StatusDot variant="offline" />
+            <StatusDot variant="unknown" />
+            <StatusPill status="online" label="Healthy" />
+            <StatusPill status="busy" label="Degraded" />
+            <StatusPill status="offline" label="Down" />
           </DemoSection>
 
           <DemoSection title="Avatars">
@@ -160,7 +160,7 @@ export default function UIDemoRoute() {
               />
               <Checkbox
                 checked={checkboxValue}
-                onChange={setCheckboxValue}
+                onChange={(e) => setCheckboxValue(e.target.checked)}
                 label="Checked"
               />
               <Checkbox
@@ -184,7 +184,7 @@ export default function UIDemoRoute() {
             <Alert variant="info">Information message</Alert>
             <Alert variant="success">Success message</Alert>
             <Alert variant="warning">Warning message</Alert>
-            <Alert variant="danger">Danger message</Alert>
+            <Alert variant="error">Danger message</Alert>
             <Progress value={25} className="w-40" />
             <Progress value={75} className="w-40" />
             <Spinner size="sm" />
@@ -232,15 +232,15 @@ export default function UIDemoRoute() {
           <DemoSection title="Navigation and misc">
             <Breadcrumbs
               items={[
-                { label: 'Home', href: '#' },
-                { label: 'Section', href: '#' },
-                { label: 'Current' },
+                { id: 'home', label: 'Home', href: '#' },
+                { id: 'section', label: 'Section', href: '#' },
+                { id: 'current', label: 'Current' },
               ]}
             />
             <Kbd>Ctrl</Kbd>
             <span className="text-sm text-muted-foreground">+</span>
             <Kbd>K</Kbd>
-            <Tooltip content="Tooltip content">
+            <Tooltip label="Tooltip content">
               <Button variant="ghost">Hover me</Button>
             </Tooltip>
             <Separator className="w-32" />
