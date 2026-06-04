@@ -21,7 +21,7 @@ describe('useMeetingStateAction', () => {
     let capturedPath = '';
     server.use(
       http.post('/api/meetings/:id/:action', ({ params }) => {
-        capturedPath = `/api/meetings/${params.id}/${params.action}`;
+        capturedPath = `/api/meetings/${params['id']}/${params['action']}`;
         return HttpResponse.json({ ok: true });
       }),
     );

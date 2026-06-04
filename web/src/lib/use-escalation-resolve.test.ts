@@ -110,7 +110,7 @@ describe('useEscalationResolve', () => {
         '/api/autonomous/escalations/:id',
         async ({ request, params }) => {
           body = await request.json();
-          path = `/api/autonomous/escalations/${params.id}`;
+          path = `/api/autonomous/escalations/${params['id']}`;
           return HttpResponse.json({ ok: true });
         },
       ),
@@ -163,7 +163,7 @@ describe('useEscalationResolve', () => {
       await result.current.handleResolve(2, 'approve');
     });
     expect(setEscalations).toHaveBeenCalled();
-    const lastCall = setEscalations.mock.calls.at(-1);
+    const lastCall = setEscalations.mock.calls[setEscalations.mock.calls.length - 1];
     const updater = lastCall?.[0] as (prev: Escalation[]) => Escalation[];
     expect(typeof updater).toBe('function');
     const prev = [

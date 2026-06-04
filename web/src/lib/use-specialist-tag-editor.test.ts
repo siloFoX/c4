@@ -193,7 +193,7 @@ describe('useSpecialistTagEditor', () => {
       await result.current.handleSave();
     });
     expect(args.onError).toHaveBeenCalledTimes(1);
-    const msg = (args.onError as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    const msg = (args.onError as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
     expect(msg).toContain('tag edit:');
     expect(args.onSaved).not.toHaveBeenCalled();
     // Failure leaves the form open with its value so the user can fix + retry.
@@ -215,7 +215,7 @@ describe('useSpecialistTagEditor', () => {
         await result.current.handleSave();
       });
       expect(args.onError).toHaveBeenCalledTimes(1);
-      const msg = (args.onError as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      const msg = (args.onError as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
       expect(msg).toContain('failed');
     } finally {
       global.fetch = orig;
