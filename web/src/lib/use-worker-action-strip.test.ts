@@ -153,7 +153,7 @@ describe('useWorkerActionStrip', () => {
     });
     const [message, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(message).toContain('Merge');
     expect(message).toContain('merge conflict');
@@ -175,7 +175,7 @@ describe('useWorkerActionStrip', () => {
     });
     const [message, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(message).toContain('Close');
     expect(message.toLowerCase()).toContain('unknown');
@@ -196,7 +196,7 @@ describe('useWorkerActionStrip', () => {
     });
     const [message, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(message).toContain('Merge');
     expect(message).toContain('already merged');
@@ -213,7 +213,7 @@ describe('useWorkerActionStrip', () => {
     });
     const [, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(result.current.busyKind).toBeNull();
   });

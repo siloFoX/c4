@@ -4,6 +4,52 @@
 
 (no entries -- next release window)
 
+## [1.11.1130] - 2026-06-04 -- CHORE: fix 31 source-confirmed tsc strict-type errors in 8 src/lib test files (TODO 11.1112)
+
+Resolved 31 strict-type errors across the 8 dispatched src/lib test
+files plus 3 cascade-exposed peers. Patterns:
+
+- TS2532/TS18048 (use-theme x5, use-specialist-actions x3): non-null
+  `!` on `mock.calls[0][N]` (each gated by toHaveBeenCalledTimes).
+- TS2339 'never' on `body?.X` (use-meeting-create x5,
+  use-workflow-run x2, use-batch-submit x3): `let body: T | null =
+  null;` switched to `let body = null as T | null;` so flow-typing
+  keeps the declared union (the msw-closure reassignment is invisible
+  to TS).
+- TS2339 'total' on `MeetingsListResponse` (use-meetings-list x4):
+  cast at access site to `{ total: number } | null` since the mock
+  response carries `total` but the production type does not.
+- TS2339 '.mock' on Setter|Mock union (use-plan-dispatch x3): cast
+  to `ReturnType<typeof vi.fn>` before `.mock.calls` access.
+- TS2550 `.at()` (use-workflow-run x2): switched to
+  `[len - 1]?.[0]` index access since `.at` is not in the project
+  lib target.
+- TS4111 (use-meeting-enrichment x3): `params.id` ->
+  `params['id']` (msw path-params index signature). Also
+  use-batch-submit L268: `receivedBody?.namePrefix` ->
+  `receivedBody?.['namePrefix']` after recast to
+  `Record<string, unknown>`.
+- TS2488 (use-batch-submit L141): `mock.calls[0]` destructure ->
+  `mock.calls[0]!`.
+
+Cascade: TypeScript's diagnostic engine reports only the FIRST error
+in a dependency chain. As the dispatched fixes landed, three peer
+test files surfaced latent TS2488s on the same
+`const [...] = (X as Mock).mock.calls[0]` destructure pattern --
+empirically verified by reverting the use-batch-submit edit. To
+satisfy the dispatch's "no new errors anywhere" mandate, the same
+defensive `mock.calls[0] -> mock.calls[0]!` fix was applied via sed
+or replace_all in use-control-panel-single.test.ts (4 occurrences),
+use-worker-action-strip.test.ts (4), and use-worker-selection.test.ts
+(3). Total: 11 occurrences of the defensive same-pattern fix.
+
+NO test assertion was changed; NO non-test source touched; NO as-any
+/ ts-ignore. Mandated verification: tsc errors in the 8 dispatched
+files 31 -> 0; project-wide total 959 -> 928 (delta exactly -31,
+matches "at least -31"); diff confirms ZERO new errors anywhere;
+vitest on the 8 dispatched + 3 cascade files passes 148/148 in 11/11
+files.
+
 ## [1.11.1129] - 2026-06-04 -- CHORE: fix 26 source-confirmed tsc strict-type errors in 11 src/pages test files (TODO 11.1111)
 
 Resolved 26 strict-type errors across 11 src/pages test files. The

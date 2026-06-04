@@ -46,15 +46,15 @@ describe('useMeetingEnrichment', () => {
     const seen = new Set<string>();
     server.use(
       http.get('/api/meetings/:id/lineage', ({ params }) => {
-        seen.add(`lineage:${params.id}`);
+        seen.add(`lineage:${params['id']}`);
         return HttpResponse.json({ chain: [{ id: 'm1' }] });
       }),
       http.get('/api/meetings/:id/action-items', ({ params }) => {
-        seen.add(`actions:${params.id}`);
+        seen.add(`actions:${params['id']}`);
         return HttpResponse.json({ items: [{ text: 'do x', owner: 'a' }] });
       }),
       http.get('/api/meetings/:id/recap', ({ params }) => {
-        seen.add(`recap:${params.id}`);
+        seen.add(`recap:${params['id']}`);
         return HttpResponse.json({ recap: 'short summary' });
       }),
     );

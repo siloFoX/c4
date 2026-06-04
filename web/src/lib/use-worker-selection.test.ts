@@ -179,7 +179,7 @@ describe('useWorkerSelection', () => {
       { name: 'w1' },
       { name: 'w2' },
     ]);
-    const [, toastKind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [, toastKind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(toastKind).toBe('success');
     expect(args.fetchList).toHaveBeenCalledTimes(1);
     expect(result.current.selected.size).toBe(0);
@@ -237,7 +237,7 @@ describe('useWorkerSelection', () => {
     expect(byName['w1']?.ok).toBe(true);
     expect(byName['w2']?.ok).toBe(false);
     expect(byName['w2']?.error).toBe('busy');
-    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(kind).toBe('error');
   });
 
@@ -261,7 +261,7 @@ describe('useWorkerSelection', () => {
       ok: false,
       error: 'already-closed',
     });
-    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(kind).toBe('error');
   });
 

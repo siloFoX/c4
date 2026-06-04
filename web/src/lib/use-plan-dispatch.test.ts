@@ -165,7 +165,8 @@ describe('usePlanDispatch', () => {
     await act(async () => {
       await result.current.dispatchPlan();
     });
-    const lastError = args.setError.mock.calls.at(-1)?.[0] as string;
+    const setErrorCalls = (args.setError as ReturnType<typeof vi.fn>).mock.calls;
+    const lastError = setErrorCalls[setErrorCalls.length - 1]?.[0] as string;
     expect(lastError).toMatch(/HTTP 500/);
     expect(args.loadPlan).not.toHaveBeenCalled();
     expect(args.showToast).not.toHaveBeenCalled();
@@ -334,10 +335,11 @@ describe('usePlanDispatch', () => {
     await act(async () => {
       await result.current.redispatch();
     });
-    const arg = args.showToast.mock.calls[0]?.[0] as string;
+    const showToastCalls = (args.showToast as ReturnType<typeof vi.fn>).mock.calls;
+    const arg = showToastCalls[0]?.[0] as string;
     expect(arg).toMatch(/^Task dispatch failed: /);
     expect(arg).toMatch(/HTTP 500/);
-    expect(args.showToast.mock.calls[0]?.[1]).toBe('error');
+    expect(showToastCalls[0]?.[1]).toBe('error');
     expect(result.current.dispatching).toBe(false);
   });
 
