@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1124] - 2026-06-04 -- CHORE: fix 16 source-confirmed tsc strict-type errors in 7 src/lib + src/hooks files (TODO 11.1106)
+
+Resolved 16 strict-type errors in real (non-test, non-showcase) utility
+code: use-focus-trap.ts L52/77/82 (`?.focus()` on possibly-undefined
+elements from `noUncheckedIndexedAccess`), use-local-storage.ts
+L59/60 (bracket access for `noPropertyAccessFromIndexSignature`),
+ab-variant.ts L56/57/59 (`??` fallbacks on possibly-undefined array
+indices to satisfy the `VariantId` return type),
+error-reporter.ts L87/127/149/172 (widened optional `stack` /
+`componentStack` / `url` on both `ErrorRecord` and
+`ReportInput` to `T | undefined` for `exactOptionalPropertyTypes`),
+form-validation.ts L8/60 (widened `ValidationResult.error` to
+`string | undefined`), use-metrics.ts L108 (rebuilt fetch init to
+omit `headers: undefined` -- same pattern as the 11.1101
+WorkerResourceGraph fix), and use-workspace-prefs.ts L1 (removed
+unused `useCallback` import). Mandated verification: tsc errors in
+the 7 files 16 -> 0; project-wide total 1107 -> 1090 (delta -17, not
+the dispatch's stated -16 -- widening `ReportInput` also resolved a
+downstream `exactOptionalPropertyTypes` failure at
+ErrorBoundary.tsx:46 whose `report({...})` call had the same shape;
+that's a free collateral fix from a single type change, not a
+regression); diff confirms ZERO new errors anywhere; vitest on the 5
+colocated tests (ab-variant, error-reporter, form-validation,
+use-metrics, use-workspace-prefs -- the two hooks have no colocated
+test) passes 92/92. No edits anywhere outside the 7 dispatched files;
+no `as any` / `ts-ignore` / `ts-expect-error`.
+
 ## [1.11.1123] - 2026-06-04 -- CHORE: fix 19 stale prop-type errors in UIDemoRoute.tsx (TODO 11.1105)
 
 Resolved 19 stale prop usages in the feature-flag-gated UIDemoRoute

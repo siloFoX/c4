@@ -53,10 +53,10 @@ export function assignVariant(
   const bucket = (h % 10000) / 10000;
   let cumulative = 0;
   for (let i = 0; i < norm.length && i < VARIANT_IDS.length; i += 1) {
-    cumulative += norm[i];
-    if (bucket < cumulative) return VARIANT_IDS[i];
+    cumulative += norm[i] ?? 0;
+    if (bucket < cumulative) return VARIANT_IDS[i] ?? 'A';
   }
-  return VARIANT_IDS[VARIANT_IDS.length - 1];
+  return VARIANT_IDS[VARIANT_IDS.length - 1] ?? 'A';
 }
 
 function randomId(): string {

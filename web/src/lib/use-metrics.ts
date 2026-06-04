@@ -105,9 +105,12 @@ export function useMetrics(): UseMetricsResult {
         // operators. Same source as apiFetch; see the note above for
         // why we don't reuse apiFetch directly.
         const token = getToken();
-        const res = await fetch('/api/metrics', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
+        // (TODO 11.1106) Build init without an explicit `headers: undefined`
+        // so the call type-checks under exactOptionalPropertyTypes.
+        const init: RequestInit = token
+          ? { headers: { Authorization: `Bearer ${token}` } }
+          : {};
+        const res = await fetch('/api/metrics', init);
         if (!alive) return;
         if (res.status === 401) {
           // Auth expired / required: stop polling and surface a

@@ -2,7 +2,9 @@
 // returns { error?: string }. Compose with compose(...) to chain. Designed to
 // integrate with Input/Textarea's `error` slot and the useForm hook.
 
-export type ValidationResult = { error?: string };
+// (TODO 11.1106) `error?: string | undefined` so callers may construct
+// the result with an explicit undefined under exactOptionalPropertyTypes.
+export type ValidationResult = { error?: string | undefined };
 export type Validator<T> = (value: T) => ValidationResult;
 
 const PASS: ValidationResult = { error: undefined };
