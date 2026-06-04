@@ -14,9 +14,11 @@ export interface ErrorRecord {
   timestamp: string;
   source: ErrorSource;
   message: string;
-  stack?: string;
-  componentStack?: string;
-  url?: string;
+  // (TODO 11.1106) Widened to `T | undefined` so callers may pass through
+  // an unset value explicitly under exactOptionalPropertyTypes: true.
+  stack?: string | undefined;
+  componentStack?: string | undefined;
+  url?: string | undefined;
 }
 
 const MAX_RECORDS = 50;
@@ -78,9 +80,11 @@ function currentUrl(): string | undefined {
 export interface ReportInput {
   source: ErrorSource;
   message: string;
-  stack?: string;
-  componentStack?: string;
-  url?: string;
+  // (TODO 11.1106) Widened to `T | undefined` so callers may pass through
+  // an unset value explicitly under exactOptionalPropertyTypes: true.
+  stack?: string | undefined;
+  componentStack?: string | undefined;
+  url?: string | undefined;
 }
 
 export function report(input: ReportInput): ErrorRecord {

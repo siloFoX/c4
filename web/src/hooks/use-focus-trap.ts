@@ -49,7 +49,7 @@ export function useFocusTrap<T extends HTMLElement>(
       explicit.focus();
     } else {
       const focusables = getFocusables(container);
-      if (focusables.length > 0) focusables[0].focus();
+      if (focusables.length > 0) focusables[0]?.focus();
       else container.focus();
     }
 
@@ -74,12 +74,12 @@ export function useFocusTrap<T extends HTMLElement>(
       if (e.shiftKey) {
         if (activeEl === first || !node.contains(activeEl)) {
           e.preventDefault();
-          last.focus();
+          last?.focus();
         }
       } else {
         if (activeEl === last || !node.contains(activeEl)) {
           e.preventDefault();
-          first.focus();
+          first?.focus();
         }
       }
     };

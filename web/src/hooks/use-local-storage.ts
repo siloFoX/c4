@@ -56,8 +56,8 @@ function dispatchSyntheticStorage(key: string, newValue: string | null): void {
       const fallback = new CustomEvent('storage', {
         detail: { key, newValue },
       });
-      (fallback as unknown as Record<string, unknown>).key = key;
-      (fallback as unknown as Record<string, unknown>).newValue = newValue;
+      (fallback as unknown as Record<string, unknown>)['key'] = key;
+      (fallback as unknown as Record<string, unknown>)['newValue'] = newValue;
       window.dispatchEvent(fallback);
     } catch {
       // ignore
