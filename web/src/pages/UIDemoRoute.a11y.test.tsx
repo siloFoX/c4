@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import UIDemoRoute from './UIDemoRoute';
 import {

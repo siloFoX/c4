@@ -90,13 +90,13 @@ vi.mock('../lib/markdown', () => ({
 
 import Morning from './Morning';
 
-function makeReport(over: Partial<MorningResponse> = {}): MorningResponse {
+function makeReport(over: { [K in keyof MorningResponse]?: MorningResponse[K] | undefined } = {}): MorningResponse {
   return {
     content: '# morning report',
     generatedAt: '2026-05-12T08:00:00.000Z',
     sections: [],
     ...over,
-  };
+  } as MorningResponse;
 }
 
 beforeEach(() => {
@@ -202,7 +202,7 @@ describe('<Morning>', () => {
   it('disables the Copy button when the report has no content field', () => {
     hookState = {
       ...hookState,
-      report: { content: undefined, sections: [{ title: 't', body: 'b' }] },
+      report: { content: undefined, sections: [{ title: 't', body: 'b' }] } as unknown as MorningResponse,
     };
     render(<Morning />);
     expect(
@@ -308,7 +308,7 @@ describe('<Morning>', () => {
     render(<Morning />);
     const md = screen.getAllByTestId('markdown');
     expect(md).toHaveLength(1);
-    expect(md[0].getAttribute('data-src')).toBe('# fallback');
+    expect(md[0]!.getAttribute('data-src')).toBe('# fallback');
   });
 
   it('renders the no-content empty hint when sections empty AND content missing', () => {
@@ -333,7 +333,7 @@ describe('<Morning>', () => {
     render(<Morning />);
     const md = screen.getAllByTestId('markdown');
     expect(md).toHaveLength(1);
-    expect(md[0].getAttribute('data-src')).toBe('section-body');
+    expect(md[0]!.getAttribute('data-src')).toBe('section-body');
   });
 
   it('hides the toast slot when the toast hook is empty', () => {

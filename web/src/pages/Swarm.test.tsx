@@ -61,14 +61,14 @@ function makeWorker(name: string): Worker {
   };
 }
 
-function makeNode(over: Partial<SwarmNode> = {}): SwarmNode {
+function makeNode(over: { [K in keyof SwarmNode]?: SwarmNode[K] | undefined } = {}): SwarmNode {
   return {
     name: 'root',
     status: 'idle',
     branch: 'c4/root',
     children: [],
     ...over,
-  };
+  } as SwarmNode;
 }
 
 beforeEach(() => {
@@ -320,7 +320,7 @@ describe('<Swarm>', () => {
 
   it('treats non-array children defensively (no crash)', () => {
     const data: SwarmResponse = {
-      root: { name: 'root', children: undefined },
+      root: { name: 'root', children: undefined } as unknown as SwarmNode,
     };
     hookState = { ...hookState, data, selected: 'root' };
     render(<Swarm />);

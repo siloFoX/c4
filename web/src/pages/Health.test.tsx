@@ -34,7 +34,7 @@ vi.mock('../components/HelpUIRoot', () => ({
 
 import Health, { categorizeModule } from './Health';
 
-function makeHealth(over: Partial<HealthPayload> = {}): HealthPayload {
+function makeHealth(over: { [K in keyof HealthPayload]?: HealthPayload[K] | undefined } = {}): HealthPayload {
   return {
     ok: true,
     pid: 1234,
@@ -50,7 +50,7 @@ function makeHealth(over: Partial<HealthPayload> = {}): HealthPayload {
     modules: [],
     configPath: '/etc/c4/config.json',
     ...over,
-  };
+  } as HealthPayload;
 }
 
 function statValue(label: string): HTMLElement {

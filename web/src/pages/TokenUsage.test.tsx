@@ -78,7 +78,7 @@ vi.mock('../components/HelpUIRoot', () => ({
 
 import TokenUsage from './TokenUsage';
 
-function makeData(over: Partial<TokenUsagePayload> = {}): TokenUsagePayload {
+function makeData(over: { [K in keyof TokenUsagePayload]?: TokenUsagePayload[K] | undefined } = {}): TokenUsagePayload {
   return {
     total: 12345,
     totalInput: 6000,
@@ -87,7 +87,7 @@ function makeData(over: Partial<TokenUsagePayload> = {}): TokenUsagePayload {
     perDay: {},
     perTask: [],
     ...over,
-  };
+  } as TokenUsagePayload;
 }
 
 function makeQuota(over: Partial<QuotaPayload> = {}): QuotaPayload {
