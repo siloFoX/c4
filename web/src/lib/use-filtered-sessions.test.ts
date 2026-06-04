@@ -81,7 +81,7 @@ describe('useFilteredSessions: filteredGroups', () => {
       useFilteredSessions({ groups, attached: [], query: 'myapp' }),
     );
     expect(result.current.filteredGroups).toHaveLength(1);
-    expect(result.current.filteredGroups[0].sessions).toHaveLength(2);
+    expect(result.current.filteredGroups[0]!.sessions).toHaveLength(2);
   });
 
   it('keeps every session in a group whose projectDir matches the needle', () => {
@@ -97,7 +97,7 @@ describe('useFilteredSessions: filteredGroups', () => {
     const { result } = renderHook(() =>
       useFilteredSessions({ groups, attached: [], query: 'myapp' }),
     );
-    expect(result.current.filteredGroups[0].sessions).toHaveLength(2);
+    expect(result.current.filteredGroups[0]!.sessions).toHaveLength(2);
   });
 
   it('keeps only sessions whose own fields match when the group has no project hit', () => {
@@ -115,7 +115,7 @@ describe('useFilteredSessions: filteredGroups', () => {
     const { result } = renderHook(() =>
       useFilteredSessions({ groups, attached: [], query: 'needle' }),
     );
-    expect(result.current.filteredGroups[0].sessions.map((s) => s.sessionId)).toEqual([
+    expect(result.current.filteredGroups[0]!.sessions.map((s) => s.sessionId)).toEqual([
       'sess-needle-1',
       'other-id',
     ]);
@@ -136,7 +136,7 @@ describe('useFilteredSessions: filteredGroups', () => {
       useFilteredSessions({ groups, attached: [], query: 'aaa' }),
     );
     expect(result.current.filteredGroups).toHaveLength(1);
-    expect(result.current.filteredGroups[0].projectPath).toBe('/a');
+    expect(result.current.filteredGroups[0]!.projectPath).toBe('/a');
   });
 
   it('matches case-insensitively across haystack and needle', () => {
@@ -166,7 +166,7 @@ describe('useFilteredSessions: filteredGroups', () => {
     const { result } = renderHook(() =>
       useFilteredSessions({ groups, attached: [], query: 'needle' }),
     );
-    expect(result.current.filteredGroups[0].sessions.map((s) => s.sessionId)).toEqual([
+    expect(result.current.filteredGroups[0]!.sessions.map((s) => s.sessionId)).toEqual([
       'has-needle',
     ]);
   });
@@ -183,7 +183,7 @@ describe('useFilteredSessions: filteredGroups', () => {
       useFilteredSessions({ groups: [group], attached: [], query: 'needle' }),
     );
     expect(result.current.filteredGroups[0]).not.toBe(group);
-    expect(result.current.filteredGroups[0].projectPath).toBe('/unrelated');
+    expect(result.current.filteredGroups[0]!.projectPath).toBe('/unrelated');
   });
 });
 

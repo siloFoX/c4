@@ -91,7 +91,7 @@ describe('useAuditExport', () => {
 
   it('GETs /api/audit/export with lineEnd=crlf and no `from` when auditWindow=all', async () => {
     let path = '';
-    let params: URLSearchParams | null = null;
+    let params = null as URLSearchParams | null;
     server.use(
       http.get('/api/audit/export', ({ request }) => {
         const u = new URL(request.url);
@@ -121,7 +121,7 @@ describe('useAuditExport', () => {
       const fixed = new Date('2026-05-12T00:00:00.000Z').getTime();
       vi.useFakeTimers();
       vi.setSystemTime(fixed);
-      let captured: URLSearchParams | null = null;
+      let captured = null as URLSearchParams | null;
       server.use(
         http.get('/api/audit/export', ({ request }) => {
           captured = new URL(request.url).searchParams;
@@ -249,7 +249,7 @@ describe('useAuditExport', () => {
   });
 
   it('rerender with a new auditWindow makes the next call use the new window (cross-selection effect)', async () => {
-    let lastParams: URLSearchParams | null = null;
+    let lastParams = null as URLSearchParams | null;
     server.use(
       http.get('/api/audit/export', ({ request }) => {
         lastParams = new URL(request.url).searchParams;

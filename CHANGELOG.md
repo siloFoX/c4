@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1127] - 2026-06-04 -- CHORE: fix 30 source-confirmed tsc strict-type errors in 4 src/lib unit test files (TODO 11.1109)
+
+Resolved 30 strict-type errors across 4 src/lib unit test files
+(the project tsconfig includes tests, so tsc gates them too).
+error-reporter.test.ts (12 TS2532) used non-null assertion `!` on
+`all[N]` / `windowRecs[0]` / `listener.mock.calls[0]` /
+`createUrl.mock.calls[0]` -- every site is gated by an explicit
+length / call-count expectation a line or two above, so the
+assertion never throws at runtime; use-history-worker-detail.test.ts
+(6 TS4111) switched msw `params.name` -> `params['name']` for the
+index-signature bracket-access rule; use-filtered-sessions.test.ts
+(6 TS2532) used `!` on `result.current.filteredGroups[0]` --
+each test builds a `groups` array whose first entry is guaranteed
+to survive the filter under test; use-audit-export.test.ts (6 TS2339)
+switched three `let X: URLSearchParams | null = null;` declarations
+to `let X = null as URLSearchParams | null;` so flow-typing keeps
+the declared union instead of narrowing to the `null` literal (the
+narrow caused `X?.get(...)` to evaluate `.get` on `never`).
+No test assertion was changed; runtime behaviour is identical.
+Mandated verification: tsc errors in the 4 files 30 -> 0; project-wide
+total 1051 -> 1021 (delta exactly -30; diff confirms ZERO new errors
+anywhere); vitest on the 4 test files passes 49/49 in 4/4 files
+(same number of passing tests as before).
+
 ## [1.11.1126] - 2026-06-04 -- CHORE: fix 25 source-confirmed tsc strict-type errors across 18 src/components files (TODO 11.1108)
 
 Resolved 25 strict-type errors across 18 non-chart, non-test
