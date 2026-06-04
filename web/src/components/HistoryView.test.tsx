@@ -84,11 +84,8 @@ interface CapturedDetailPaneProps {
   detail: HistoryWorkerDetail;
 }
 
-let lastDetailPaneProps: CapturedDetailPaneProps | null = null;
-
 vi.mock('./HistoryDetailPane', () => ({
   default: (props: CapturedDetailPaneProps) => {
-    lastDetailPaneProps = props;
     return (
       <div
         data-testid="history-detail-pane"
@@ -151,7 +148,6 @@ beforeEach(() => {
   scribeState = { showScribe: false, scribe: null, loadingScribe: false };
   lastSummaryArgs = null;
   lastDetailArgs = null;
-  lastDetailPaneProps = null;
   setErrorParamRecorder.setError = null;
 });
 

@@ -55,7 +55,7 @@ vi.mock('../../pages/registry', async () => {
           labelKey: 'feature.scribe.label',
           descriptionKey: 'feature.scribe.description',
           category: 'operations' as const,
-          Icon: actual.FEATURES[0].Icon,
+          Icon: actual.FEATURES[0]!.Icon,
           load: () =>
             Promise.resolve({
               default: () => (

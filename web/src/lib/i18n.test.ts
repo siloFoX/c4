@@ -153,7 +153,7 @@ describe('getLocale / setLocale', () => {
 
   it('does not throw when localStorage.setItem fails', () => {
     const spy = vi
-      .spyOn(window.localStorage.__proto__, 'setItem')
+      .spyOn(window.localStorage['__proto__'], 'setItem')
       .mockImplementation(() => {
         throw new Error('quota exceeded');
       });

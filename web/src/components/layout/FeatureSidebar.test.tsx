@@ -225,7 +225,7 @@ describe('<FeatureSidebar>', () => {
     const nav = screen.getByRole('navigation', { name: 'Feature pages' });
     const buttons = within(nav).getAllByRole('button');
     expect(buttons).toHaveLength(1);
-    expect(buttons[0].textContent).toMatch(/Token usage/);
+    expect(buttons[0]!.textContent).toMatch(/Token usage/);
   });
 
   it('matches features by description substring', async () => {

@@ -131,7 +131,7 @@ describe('useMeetingTemplateEditor', () => {
         return HttpResponse.json({ ok: true });
       }),
       http.delete('/api/meetings/templates/:name', ({ params }) => {
-        deletedName = decodeURIComponent(params.name as string);
+        deletedName = decodeURIComponent(params['name'] as string);
         return HttpResponse.json({ ok: true });
       }),
     );
