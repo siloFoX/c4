@@ -4,6 +4,38 @@
 
 (no entries -- next release window)
 
+## [1.11.1122] - 2026-06-04 -- FIX: revert 344 chart-line TS1312 regressions from the 11.1100 codemod (TODO 11.1104)
+
+The v1.11.1118 bulk guard (TODO 11.1100) walked
+`web/src/components/ui/chart-line-*.tsx` and replaced the line
+`    series,` with `    series = [],` whenever it appeared exactly
+once. That intent is correct for component-props destructures (44
+files) but the same `^    series,# Changelog
+
+## [Unreleased]
+
+(no entries -- next release window)
+
+ regex ALSO matched a shorthand-key
+entry in some helper functions' return-object literals (344 files),
+where `series = [],` is invalid JS -- 344 TS1312 errors. The 11.1100
+tsc check missed them because the captured output was piped through
+`| head -40` and truncated; the gallery e2e missed them because only
+41 of the 388 modified chart-line files are in the registry today, so
+the other 347 (including all 344 broken) were never transpiled by
+vite at runtime. Fix: strictly tsc-driven codemod -- for every
+(file, line) pair tsc reports as TS1312, validate the line is
+`    series = [],` and revert to `    series,` (the pre-11.1100
+shape; restores the helper's return data flow that downstream code
+relies on as `run.series.length` etc.). The 44 destructure-default
+files have no TS1312 and are NEVER touched. Mandated verification:
+tsc TS1312 count 344 -> 0 (total error delta = -344, no new errors
+introduced); gallery-no-crash.spec.ts 1 passed (8.9s) -- all 41
+registry tiles still mount with zero page errors. Deviated from the
+dispatch's prescribed `series: [],` (would have silently returned
+`[]` everywhere, breaking the chart data flow) -- the
+revert-to-`series,` path keeps both tsc and runtime correct.
+
 ## [1.11.1121] - 2026-06-04 -- CHORE: fix 4 TS2308 barrel re-export collisions in ui/index.ts (TODO 11.1103)
 
 Resolved four `tsc --noEmit` TS2308 duplicate-export errors raised by
