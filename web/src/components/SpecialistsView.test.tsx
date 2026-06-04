@@ -130,10 +130,8 @@ vi.mock('../lib/use-specialist-filter', () => ({
 }));
 
 interface CapturedSummaryBar {}
-let lastSummaryRendered = false;
 vi.mock('./SpecialistsSummaryBar', () => ({
   default: (_props: CapturedSummaryBar) => {
-    lastSummaryRendered = true;
     return <div data-testid="summary-bar" />;
   },
 }));
@@ -141,10 +139,8 @@ vi.mock('./SpecialistsSummaryBar', () => ({
 interface CapturedBulkOpsToolbar {
   onChange: () => void;
 }
-let lastBulkOpsProps: CapturedBulkOpsToolbar | null = null;
 vi.mock('./SpecialistsBulkOpsToolbar', () => ({
   default: (props: CapturedBulkOpsToolbar) => {
-    lastBulkOpsProps = props;
     return (
       <div data-testid="bulk-ops">
         <button
@@ -159,10 +155,8 @@ vi.mock('./SpecialistsBulkOpsToolbar', () => ({
   },
 }));
 
-let lastAuditRendered = false;
 vi.mock('./SpecialistsAuditPanel', () => ({
   default: () => {
-    lastAuditRendered = true;
     return <div data-testid="audit-panel" />;
   },
 }));
@@ -184,10 +178,8 @@ interface CapturedListCardHeader {
   filteredCount: number;
   totalCount: number;
 }
-let lastListCardHeader: CapturedListCardHeader | null = null;
 vi.mock('./SpecialistsListCardHeader', () => ({
   default: (props: CapturedListCardHeader) => {
-    lastListCardHeader = props;
     return (
       <div
         data-testid="list-card-header"
@@ -262,10 +254,8 @@ interface CapturedList {
   onSelect: (id: string) => void;
   flaggedIds: Set<string>;
 }
-let lastListProps: CapturedList | null = null;
 vi.mock('./SpecialistsList', () => ({
   default: (props: CapturedList) => {
-    lastListProps = props;
     return (
       <div
         data-testid="list"
@@ -301,10 +291,8 @@ interface CapturedDetailHeader {
   onConfirmRemove: (id: string | null) => void;
   onRemove: (id: string) => void;
 }
-let lastDetailHeader: CapturedDetailHeader | null = null;
 vi.mock('./SpecialistsDetailHeader', () => ({
   default: (props: CapturedDetailHeader) => {
-    lastDetailHeader = props;
     return (
       <div
         data-testid="detail-header"
@@ -334,10 +322,8 @@ vi.mock('./SpecialistsDetailHeader', () => ({
 interface CapturedMetadataPanel {
   specialist: Specialist;
 }
-let lastMetadataPanel: CapturedMetadataPanel | null = null;
 vi.mock('./SpecialistsMetadataPanel', () => ({
   default: (props: CapturedMetadataPanel) => {
-    lastMetadataPanel = props;
     return (
       <div
         data-testid="metadata-panel"
@@ -353,10 +339,8 @@ interface CapturedTagEditor {
   onSaved: () => void;
   onError: (msg: string) => void;
 }
-let lastTagEditor: CapturedTagEditor | null = null;
 vi.mock('./SpecialistsTagEditor', () => ({
   default: (props: CapturedTagEditor) => {
-    lastTagEditor = props;
     return (
       <div
         data-testid="tag-editor"
@@ -389,10 +373,8 @@ interface CapturedScoreHistory {
   onConfirmReset: (id: string | null) => void;
   onScoreReset: (id: string) => void;
 }
-let lastScoreHistory: CapturedScoreHistory | null = null;
 vi.mock('./SpecialistsScoreHistory', () => ({
   default: (props: CapturedScoreHistory) => {
-    lastScoreHistory = props;
     return (
       <div
         data-testid="score-history"
@@ -423,10 +405,8 @@ interface CapturedPromptPanel {
   specialistId: string;
   systemPrompt: string;
 }
-let lastPromptPanel: CapturedPromptPanel | null = null;
 vi.mock('./SpecialistsPromptPanel', () => ({
   default: (props: CapturedPromptPanel) => {
-    lastPromptPanel = props;
     return (
       <div
         data-testid="prompt-panel"
@@ -441,10 +421,8 @@ interface CapturedEnrichmentPanels {
   recentAudit?: AuditEntry[];
   recentMeetings?: MeetingMeta[];
 }
-let lastEnrichmentPanels: CapturedEnrichmentPanels | null = null;
 vi.mock('./SpecialistsEnrichmentPanels', () => ({
   default: (props: CapturedEnrichmentPanels) => {
-    lastEnrichmentPanels = props;
     return (
       <div
         data-testid="enrichment-panels"
@@ -515,17 +493,6 @@ beforeEach(() => {
     confirmResetId: null,
   };
   enrichmentState = null;
-  lastSummaryRendered = false;
-  lastBulkOpsProps = null;
-  lastAuditRendered = false;
-  lastListCardHeader = null;
-  lastListProps = null;
-  lastDetailHeader = null;
-  lastMetadataPanel = null;
-  lastTagEditor = null;
-  lastScoreHistory = null;
-  lastPromptPanel = null;
-  lastEnrichmentPanels = null;
   lastActionsArgs = null;
   lastFilterArgs = null;
   lastEnrichmentId = undefined;
@@ -590,7 +557,7 @@ describe('<SpecialistsView>', () => {
       filter: 'design',
       tierFilter: 'design',
       vetoOnly: true,
-      filtered: [SPECS[0]],
+      filtered: [SPECS[0]!],
     };
     render(<SpecialistsView />);
     const header = screen.getByTestId('list-card-header');

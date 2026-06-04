@@ -4,6 +4,32 @@
 
 (no entries -- next release window)
 
+## [1.11.1128] - 2026-06-04 -- CHORE: fix 36 source-confirmed tsc strict-type errors in 3 src/components test files (TODO 11.1110)
+
+Resolved 36 strict-type errors across 3 component test files.
+WorkerActions.test.tsx (16): removed the write-only `lastToastProps`
+tracker (declaration + mock-body assignment + beforeEach reset --
+TS6133), and switched 15 `runActionMock.mock.calls[0][0]` accesses
+to `mock.calls[0]![0]` -- each site is preceded by a user click and,
+in several cases, an explicit `toHaveBeenCalledTimes(1)`.
+SpecialistsView.test.tsx (12): removed 11 write-only `last*`
+mock-prop trackers (each had a declaration + mock-body assignment +
+beforeEach reset, but nothing ever read them -- the tests assert via
+`data-testid` on the JSX returned by the mock) and added a non-null
+assertion at the L593-equivalent `filtered: [SPECS[0]!]` site.
+ui/stepper.test.tsx (8): 7 sites of `items[N].getAttribute` /
+`connectors[N].getAttribute` switched to bracket-then-bang form
+`[N]!.getAttribute`, plus the L160 `last.querySelector(...)` ->
+`last!.querySelector(...)` -- every site is in a test that just
+rendered a `<Stepper>` with a fixed-length steps array so the
+indices are guaranteed by construction. No test assertion was
+changed; no edits outside the 3 files; no as-any / ts-ignore.
+Mandated verification: tsc errors in the 3 files 36 -> 0;
+project-wide total 1021 -> 985 (delta exactly -36, matches
+"at least -36"); diff confirms ZERO new errors anywhere; vitest on
+the 3 test files passes 119/119 in 3/3 files (same passing count as
+before).
+
 ## [1.11.1127] - 2026-06-04 -- CHORE: fix 30 source-confirmed tsc strict-type errors in 4 src/lib unit test files (TODO 11.1109)
 
 Resolved 30 strict-type errors across 4 src/lib unit test files

@@ -40,10 +40,10 @@ describe('<Stepper>', () => {
       <Stepper steps={baseSteps} currentIndex={1} />,
     );
     const items = container.querySelectorAll('[data-stepper-item]');
-    expect(items[0].getAttribute('aria-current')).toBeNull();
-    expect(items[1].getAttribute('aria-current')).toBe('step');
-    expect(items[2].getAttribute('aria-current')).toBeNull();
-    expect(items[3].getAttribute('aria-current')).toBeNull();
+    expect(items[0]!.getAttribute('aria-current')).toBeNull();
+    expect(items[1]!.getAttribute('aria-current')).toBe('step');
+    expect(items[2]!.getAttribute('aria-current')).toBeNull();
+    expect(items[3]!.getAttribute('aria-current')).toBeNull();
   });
 
   it('vertical orientation renders description text', () => {
@@ -146,9 +146,9 @@ describe('<Stepper>', () => {
     // connector[1] sits inside item[1] (complete) -> "true"
     // connector[2] sits inside item[2] (current)  -> "false"
     expect(connectors).toHaveLength(3);
-    expect(connectors[0].getAttribute('data-complete')).toBe('true');
-    expect(connectors[1].getAttribute('data-complete')).toBe('true');
-    expect(connectors[2].getAttribute('data-complete')).toBe('false');
+    expect(connectors[0]!.getAttribute('data-complete')).toBe('true');
+    expect(connectors[1]!.getAttribute('data-complete')).toBe('true');
+    expect(connectors[2]!.getAttribute('data-complete')).toBe('false');
   });
 
   it('omits the trailing connector on the last step', () => {
@@ -157,7 +157,7 @@ describe('<Stepper>', () => {
     );
     const items = container.querySelectorAll('[data-stepper-item]');
     const last = items[items.length - 1];
-    expect(last.querySelector('[data-stepper-connector]')).toBeNull();
+    expect(last!.querySelector('[data-stepper-connector]')).toBeNull();
   });
 
   // -- v1.11.270 error state (TODO 11.252) -------------------------

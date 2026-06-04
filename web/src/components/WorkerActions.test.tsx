@@ -48,11 +48,8 @@ interface CapturedToastProps {
   onDismiss: () => void;
 }
 
-let lastToastProps: CapturedToastProps | null = null;
-
 vi.mock('./Toast', () => ({
   default: (props: CapturedToastProps) => {
-    lastToastProps = props;
     return (
       <div
         data-testid="toast"
@@ -102,7 +99,6 @@ beforeEach(() => {
   toastState = { toast: null };
   stripState = { busyKind: null };
   lastStripArgs = null;
-  lastToastProps = null;
 });
 
 describe('<WorkerActions>', () => {
@@ -166,7 +162,7 @@ describe('<WorkerActions>', () => {
     render(<WorkerActions workerName="alpha" />);
     await user.click(getButton('Merge'));
     expect(runActionMock).toHaveBeenCalledTimes(1);
-    const action = runActionMock.mock.calls[0][0];
+    const action = runActionMock.mock.calls[0]![0];
     expect(action.kind).toBe('merge');
     expect(action.endpoint).toBe('/api/merge');
     expect(action.body).toEqual({ name: 'alpha' });
@@ -180,7 +176,7 @@ describe('<WorkerActions>', () => {
     render(<WorkerActions workerName="bravo" />);
     await user.click(getButton('Approve'));
     expect(runActionMock).toHaveBeenCalledTimes(1);
-    const action = runActionMock.mock.calls[0][0];
+    const action = runActionMock.mock.calls[0]![0];
     expect(action.kind).toBe('approve');
     expect(action.endpoint).toBe('/api/key');
     expect(action.body).toEqual({ name: 'bravo', key: 'Enter' });
@@ -194,7 +190,7 @@ describe('<WorkerActions>', () => {
     render(<WorkerActions workerName="charlie" />);
     await user.click(getButton('Ctrl+C'));
     expect(runActionMock).toHaveBeenCalledTimes(1);
-    const action = runActionMock.mock.calls[0][0];
+    const action = runActionMock.mock.calls[0]![0];
     expect(action.kind).toBe('interrupt');
     expect(action.endpoint).toBe('/api/key');
     expect(action.body).toEqual({ name: 'charlie', key: 'C-c' });
@@ -207,7 +203,7 @@ describe('<WorkerActions>', () => {
     render(<WorkerActions workerName="delta" />);
     await user.click(getButton('Close'));
     expect(runActionMock).toHaveBeenCalledTimes(1);
-    const action = runActionMock.mock.calls[0][0];
+    const action = runActionMock.mock.calls[0]![0];
     expect(action.kind).toBe('close');
     expect(action.endpoint).toBe('/api/close');
     expect(action.body).toEqual({ name: 'delta' });
@@ -222,7 +218,7 @@ describe('<WorkerActions>', () => {
         runActionMock.mockClear();
         const user = userEvent.setup();
         await user.click(getButton(KIND_LABEL_EN[kind]));
-        const action = runActionMock.mock.calls[0][0];
+        const action = runActionMock.mock.calls[0]![0];
         expect(action.body).toMatchObject({ name: 'echo' });
       }),
     );
@@ -234,21 +230,21 @@ describe('<WorkerActions>', () => {
     const user = userEvent.setup();
     render(<WorkerActions workerName="w1" />);
     await user.click(getButton('Merge'));
-    expect(runActionMock.mock.calls[0][0].endpoint).toBe(KIND_ENDPOINT.merge);
+    expect(runActionMock.mock.calls[0]![0].endpoint).toBe(KIND_ENDPOINT.merge);
   });
 
   it('passes the approve action endpoint /api/key through to runAction', async () => {
     const user = userEvent.setup();
     render(<WorkerActions workerName="w1" />);
     await user.click(getButton('Approve'));
-    expect(runActionMock.mock.calls[0][0].endpoint).toBe(KIND_ENDPOINT.approve);
+    expect(runActionMock.mock.calls[0]![0].endpoint).toBe(KIND_ENDPOINT.approve);
   });
 
   it('passes the close action endpoint /api/close through to runAction', async () => {
     const user = userEvent.setup();
     render(<WorkerActions workerName="w1" />);
     await user.click(getButton('Close'));
-    expect(runActionMock.mock.calls[0][0].endpoint).toBe(KIND_ENDPOINT.close);
+    expect(runActionMock.mock.calls[0]![0].endpoint).toBe(KIND_ENDPOINT.close);
   });
 
   // ---- busy / disabled state -----------------------------------
@@ -355,7 +351,7 @@ describe('<WorkerActions>', () => {
     btn.focus();
     await user.keyboard('{Enter}');
     expect(runActionMock).toHaveBeenCalledTimes(1);
-    expect(runActionMock.mock.calls[0][0].kind).toBe('merge');
+    expect(runActionMock.mock.calls[0]![0].kind).toBe('merge');
   });
 
   it('triggers runAction when the focused close button receives Space', async () => {
@@ -365,7 +361,7 @@ describe('<WorkerActions>', () => {
     btn.focus();
     await user.keyboard(' ');
     expect(runActionMock).toHaveBeenCalledTimes(1);
-    expect(runActionMock.mock.calls[0][0].kind).toBe('close');
+    expect(runActionMock.mock.calls[0]![0].kind).toBe('close');
   });
 
   it('walks focus through every action button in order via Tab', async () => {
@@ -491,23 +487,23 @@ describe('<WorkerActions>', () => {
     const user = userEvent.setup();
     const { rerender } = render(<WorkerActions workerName="foo" />);
     await user.click(getButton('Merge'));
-    expect(runActionMock.mock.calls[0][0].body).toEqual({ name: 'foo' });
+    expect(runActionMock.mock.calls[0]![0].body).toEqual({ name: 'foo' });
 
     runActionMock.mockClear();
     rerender(<WorkerActions workerName="bar" />);
     await user.click(getButton('Merge'));
-    expect(runActionMock.mock.calls[0][0].body).toEqual({ name: 'bar' });
-    expect(runActionMock.mock.calls[0][0].confirm).toContain('bar');
+    expect(runActionMock.mock.calls[0]![0].body).toEqual({ name: 'bar' });
+    expect(runActionMock.mock.calls[0]![0].confirm).toContain('bar');
   });
 
   it('handles a workerName with dashes / underscores without re-encoding it', async () => {
     const user = userEvent.setup();
     render(<WorkerActions workerName="auto-w_49" />);
     await user.click(getButton('Close'));
-    expect(runActionMock.mock.calls[0][0].body).toEqual({
+    expect(runActionMock.mock.calls[0]![0].body).toEqual({
       name: 'auto-w_49',
     });
-    expect(runActionMock.mock.calls[0][0].confirm).toContain('auto-w_49');
+    expect(runActionMock.mock.calls[0]![0].confirm).toContain('auto-w_49');
   });
 
   // ---- rerender stability --------------------------------------
