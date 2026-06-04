@@ -242,10 +242,8 @@ function ImportConfigSection() {
         accept="application/json,.json"
         maxSize={1024 * 1024}
         error={error ?? undefined}
-        onFiles={(files) => {
+        onFiles={() => {
           setError(null);
-          // eslint-disable-next-line no-console
-          console.log('[config] import file', files[0]?.name, files[0]?.size);
         }}
         onError={(msg) => setError(msg)}
       />

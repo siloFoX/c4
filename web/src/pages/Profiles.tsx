@@ -175,10 +175,6 @@ export default function Profiles() {
         accept="application/json,application/yaml,.json,.yaml,.yml"
         maxSize={256 * 1024}
         data-testid="profiles-import-filedrop"
-        onAdd={(files) => {
-          // eslint-disable-next-line no-console
-          console.log('[profiles] import staged', files[0]?.name);
-        }}
       />
       {error && <ErrorPanel message={error} />}
       {loading && items.length === 0 ? <LoadingSkeleton rows={3} /> : null}
