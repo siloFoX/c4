@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, ScrollText } from 'lucide-react';
-import PageFrame, { ErrorPanel, LoadingSkeleton } from './PageFrame';
+import PageFrame, { ErrorPanel } from './PageFrame';
 import Toast from '../components/Toast';
 import { PageDescriptionBanner } from '../components/PageDescriptionBanner';
 import { openHelpDrawer } from '../components/HelpUIRoot';
@@ -339,8 +339,6 @@ function ImportTemplateForm() {
           placeholder="You are a helpful assistant. ..."
           rows={4}
           maxLength={20000}
-          autoResize
-          maxRows={16}
           showCharCount
           aria-label="Template body"
           data-testid="templates-import-body"

@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1125] - 2026-06-04 -- CHORE: fix 14 source-confirmed tsc strict-type errors in 9 src/pages files (TODO 11.1107)
+
+Resolved 14 strict-type errors in 9 page components.
+DesignSystem.tsx L96: removed dead MissingPrimitive helper (TS6133);
+Notifications.tsx L139/144: `?? 'system'` fallback on the
+`types[i]` index plus a `?? ''` fallback on `pool[N]`
+(noUncheckedIndexedAccess collateral after L139 unblocked tsc -- fix
+kept in scope, net project delta stayed -14); Profiles.tsx L408 +
+Settings.tsx L259: removed the unsupported `name` prop from
+`RadioGroup` (component is controlled via value/onChange, no name
+attribute); Risk.tsx L4: dropped unused `Input` import;
+Scribe.tsx L96/L109: replaced `copyValue: ... || undefined` with
+a conditional spread that omits `copyValue` when there is no
+context path (DataListItem.copyValue?: string under
+exactOptionalPropertyTypes); Templates.tsx L3 + L342: dropped unused
+`LoadingSkeleton` import and removed inert `autoResize` +
+`maxRows` props from the `Textarea` (not part of TextareaProps);
+Workers.tsx L263: `Sparkline variant="line"` -> `"default"`;
+Workers.tsx L302: `BadgeCounter variant="solid"` -> `"numeric"`;
+Workspaces.tsx L179/L203: removed inert `variant="ghost"` from
+IconButton (IconButtonProps has `tone`, not `variant`). NO edits
+anywhere outside the 9 files; NO as-any/ts-ignore/ts-expect-error.
+Mandated verification: tsc errors in the 9 files 14 -> 0; project-wide
+total 1090 -> 1076 (delta exactly -14, matches the dispatch's "at
+least -14"); diff confirms zero new errors anywhere; vitest on the 9
+colocated page tests passes 245/245 in 9/9 files.
+
 ## [1.11.1124] - 2026-06-04 -- CHORE: fix 16 source-confirmed tsc strict-type errors in 7 src/lib + src/hooks files (TODO 11.1106)
 
 Resolved 16 strict-type errors in real (non-test, non-showcase) utility

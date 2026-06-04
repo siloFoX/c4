@@ -135,9 +135,9 @@ function buildMockNotifications(): NotificationItem[] {
 
   const out: NotificationItem[] = [];
   for (let i = 0; i < 20; i++) {
-    const type = types[i % types.length];
+    const type = types[i % types.length] ?? 'system';
     const pool = titles[type];
-    const title = pool[i % pool.length];
+    const title = pool[i % pool.length] ?? '';
     const offsetMs = Math.floor((i * 7 * day) / 20) + (i % 5) * 60 * 60 * 1000;
     out.push({
       id: `mock-${i}`,

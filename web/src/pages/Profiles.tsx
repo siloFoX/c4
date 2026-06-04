@@ -405,7 +405,6 @@ function ProfileBudgetRow({ name }: { name: string }) {
         helperText="Which role inherits the profile's allow/deny set."
       >
         <RadioGroup
-          name={`profiles-role-${name}`}
           value={role}
           onChange={setRole}
           ariaLabel={`Inheriting role for profile ${name}`}

@@ -260,7 +260,7 @@ function HeroBody({ onSpawnRequest }: HeroBodyProps) {
           data={sparkData}
           size="md"
           width="100%"
-          variant="line"
+          variant="default"
           showDots={false}
           showLastValue
           ariaLabel={`Worker total trend: ${sparkData.length} samples, latest ${counts.total}`}
@@ -299,7 +299,7 @@ function CountBlock({ label, value, tone, testId }: CountBlockProps) {
         showZero
         tone={badgeTone}
         size="md"
-        variant="solid"
+        variant="numeric"
         srLabel={`${label}: ${value}`}
       />
     </div>
