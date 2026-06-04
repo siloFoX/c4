@@ -52,7 +52,7 @@ describe('<FileInput>', () => {
     const f = makeFile('a.json', 10, 'application/json');
     dropFiles(dropzone, [f]);
     expect(onFiles).toHaveBeenCalledTimes(1);
-    expect(onFiles.mock.calls[0][0][0].name).toBe('a.json');
+    expect(onFiles.mock.calls[0]![0]![0]!.name).toBe('a.json');
   });
 
   it('rejects a file exceeding maxSize via onError (and does not call onFiles)', () => {
@@ -64,7 +64,7 @@ describe('<FileInput>', () => {
     const dropzone = screen.getByRole('button', { name: /upload/i });
     dropFiles(dropzone, [makeFile('big.bin', 100, 'application/octet-stream')]);
     expect(onError).toHaveBeenCalled();
-    expect(onError.mock.calls[0][0]).toMatch(/too large/i);
+    expect(onError.mock.calls[0]![0]).toMatch(/too large/i);
     expect(onFiles).not.toHaveBeenCalled();
   });
 
@@ -78,7 +78,7 @@ describe('<FileInput>', () => {
       makeFile('b.json', 1, 'application/json'),
     ]);
     expect(onError).toHaveBeenCalled();
-    expect(onError.mock.calls[0][0]).toMatch(/one file/i);
+    expect(onError.mock.calls[0]![0]).toMatch(/one file/i);
     expect(onFiles).not.toHaveBeenCalled();
   });
 
@@ -96,7 +96,7 @@ describe('<FileInput>', () => {
     const dropzone = screen.getByRole('button', { name: /upload/i });
     dropFiles(dropzone, [makeFile('a.png', 1, 'image/png')]);
     expect(onError).toHaveBeenCalled();
-    expect(onError.mock.calls[0][0]).toMatch(/not accepted/i);
+    expect(onError.mock.calls[0]![0]).toMatch(/not accepted/i);
     expect(onFiles).not.toHaveBeenCalled();
   });
 

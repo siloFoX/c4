@@ -26,7 +26,7 @@ describe('useTableSort', () => {
 
   it('returns the defaultSort when nothing is persisted', () => {
     const { result } = renderHook(() =>
-      useTableSort(KEY, { key: 'total', dir: 'desc' }),
+      useTableSort<'total' | 'worker'>(KEY, { key: 'total', dir: 'desc' }),
     );
     expect(result.current.sortKey).toBe('total');
     expect(result.current.sortDir).toBe('desc');
@@ -38,7 +38,7 @@ describe('useTableSort', () => {
       JSON.stringify({ v: 1, key: 'input', dir: 'asc' }),
     );
     const { result } = renderHook(() =>
-      useTableSort(KEY, { key: 'total', dir: 'desc' }),
+      useTableSort<'total' | 'worker'>(KEY, { key: 'total', dir: 'desc' }),
     );
     expect(result.current.sortKey).toBe('input');
     expect(result.current.sortDir).toBe('asc');
@@ -62,7 +62,7 @@ describe('useTableSort', () => {
 
   it('reset() clears localStorage and reverts to the default', () => {
     const { result } = renderHook(() =>
-      useTableSort(KEY, { key: 'total', dir: 'desc' }),
+      useTableSort<'total' | 'worker'>(KEY, { key: 'total', dir: 'desc' }),
     );
     act(() => result.current.onSortChange('worker', 'asc'));
     expect(window.localStorage.getItem(STORAGE_KEY)).not.toBeNull();
@@ -82,7 +82,7 @@ describe('useTableSort', () => {
 
   it('clear() is an alias for reset()', () => {
     const { result } = renderHook(() =>
-      useTableSort(KEY, { key: 'total', dir: 'asc' }),
+      useTableSort<'total' | 'worker'>(KEY, { key: 'total', dir: 'asc' }),
     );
     act(() => result.current.onSortChange('worker', 'desc'));
     act(() => result.current.clear());
@@ -93,7 +93,7 @@ describe('useTableSort', () => {
   it('ignores malformed JSON in localStorage and falls back to the default', () => {
     window.localStorage.setItem(STORAGE_KEY, '{not-json');
     const { result } = renderHook(() =>
-      useTableSort(KEY, { key: 'total', dir: 'desc' }),
+      useTableSort<'total' | 'worker'>(KEY, { key: 'total', dir: 'desc' }),
     );
     expect(result.current.sortKey).toBe('total');
     expect(result.current.sortDir).toBe('desc');
@@ -164,10 +164,10 @@ describe('useTableSort', () => {
 
   it('reset() also fires the same-tab event so siblings re-sync', () => {
     const { result: a } = renderHook(() =>
-      useTableSort(KEY, { key: 'total', dir: 'desc' }),
+      useTableSort<'total' | 'worker'>(KEY, { key: 'total', dir: 'desc' }),
     );
     const { result: b } = renderHook(() =>
-      useTableSort(KEY, { key: 'total', dir: 'desc' }),
+      useTableSort<'total' | 'worker'>(KEY, { key: 'total', dir: 'desc' }),
     );
     act(() => a.current.onSortChange('worker', 'asc'));
     expect(b.current.sortKey).toBe('worker');

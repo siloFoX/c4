@@ -11,7 +11,7 @@ import RiskCheckResult from './RiskCheckResult';
 // reasons / decoded / inspectedSource / intent rollups. Each test
 // drives one branch of the result shape; no module mocks needed.
 
-function makeResult(over: Partial<CheckResponse> = {}): CheckResponse {
+function makeResult(over: { [K in keyof CheckResponse]?: CheckResponse[K] | undefined } = {}): CheckResponse {
   return {
     level: 'low',
     suggestedAction: 'allow',
@@ -22,7 +22,7 @@ function makeResult(over: Partial<CheckResponse> = {}): CheckResponse {
     autoDenyLevel: 'high',
     enforcementEnabled: true,
     ...over,
-  };
+  } as CheckResponse;
 }
 
 beforeEach(() => {
@@ -130,7 +130,7 @@ describe('<RiskCheckResult>', () => {
     expect(screen.getByText('Decoded (post-denoise)')).toBeInTheDocument();
     const pres = container.querySelectorAll('pre');
     expect(pres.length).toBeGreaterThanOrEqual(1);
-    expect(pres[0].textContent).toBe('rm -rf /tmp');
+    expect(pres[0]!.textContent).toBe('rm -rf /tmp');
   });
 
   it('hides the inspectedSource block when inspectedSource is omitted', () => {

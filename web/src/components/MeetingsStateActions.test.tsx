@@ -183,10 +183,10 @@ describe('<MeetingsStateActions>', () => {
     render(<MeetingsStateActions meetingId="m1" mode="in-progress" />);
     const btns = screen.getAllByRole('button');
     expect(btns).toHaveLength(4);
-    expect(btns[0].textContent).toBe('Advance');
-    expect(btns[1].textContent).toBe('Next round');
-    expect(btns[2].textContent).toBe('Escalate');
-    expect(btns[3].textContent).toBe('Abort');
+    expect(btns[0]!.textContent).toBe('Advance');
+    expect(btns[1]!.textContent).toBe('Next round');
+    expect(btns[2]!.textContent).toBe('Escalate');
+    expect(btns[3]!.textContent).toBe('Abort');
   });
 
   it('does NOT render the Start button on the in-progress branch', () => {

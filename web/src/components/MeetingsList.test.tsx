@@ -104,7 +104,7 @@ describe('<MeetingsList>', () => {
       container.querySelectorAll('span[title]'),
     ).filter((el) => /forked from/i.test(el.getAttribute('title') ?? ''));
     expect(forkSpans).toHaveLength(1);
-    expect(forkSpans[0].textContent).toContain('mtg-pare');
+    expect(forkSpans[0]!.textContent).toContain('mtg-pare');
   });
 
   it('renders the snippet text inside the row that has one', () => {
@@ -120,7 +120,7 @@ describe('<MeetingsList>', () => {
     const { container } = renderList();
     const rows = container.querySelectorAll('li');
     const first = rows[0];
-    expect(first.querySelector('span.bg-amber-500\\/20')).toBeNull();
+    expect(first!.querySelector('span.bg-amber-500\\/20')).toBeNull();
   });
 
   it('renders the stage / round / id footer line for each row', () => {
@@ -266,7 +266,7 @@ describe('<MeetingsList>', () => {
     const forkSpans = Array.from(
       container.querySelectorAll('span[title]'),
     ).filter((el) => /forked from/i.test(el.getAttribute('title') ?? ''));
-    expect(forkSpans[0].textContent).toMatch(/mtg-pare$/);
+    expect(forkSpans[0]!.textContent).toMatch(/mtg-pare$/);
   });
 
   it('does not fire onSelect on initial render', () => {
@@ -289,7 +289,7 @@ describe('<MeetingsList>', () => {
     const rows = container.querySelectorAll('li');
     const second = rows[1];
     expect(within(second as HTMLElement).queryByText(/<<.+>>/)).toBeNull();
-    expect(second.querySelector('span.line-clamp-2')).toBeNull();
+    expect(second!.querySelector('span.line-clamp-2')).toBeNull();
   });
 
   it('re-renders the empty copy when the locale flips to ko', () => {
