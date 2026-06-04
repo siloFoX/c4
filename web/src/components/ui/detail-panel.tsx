@@ -109,7 +109,7 @@ function partitionSlots(children: ReactNode): {
         (arr as { type: { __type?: symbol } }).type.__type === FOOTER_TYPE
       )
     ) {
-      const t = (arr as { type: { __type: symbol } }).type.__type;
+      const t = (arr as { type: { __type?: symbol } }).type.__type;
       if (t === BODY_TYPE) body = arr;
       else if (t === FOOTER_TYPE) footer = arr;
       return;

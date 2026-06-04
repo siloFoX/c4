@@ -158,7 +158,10 @@ export function Popover({
 
   useFocusTrap(panelRef, {
     active: open,
-    onEscape: closeOnEsc ? handleEscape : undefined,
+    // (TODO 11.1108) Conditional spread so `onEscape` is omitted
+    // (not undefined) -- UseFocusTrapOptions is in hooks/ outside
+    // this dispatch's edit scope.
+    ...(closeOnEsc ? { onEscape: handleEscape } : {}),
     restoreFocusOnUnmount: false,
   });
 

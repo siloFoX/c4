@@ -61,7 +61,8 @@ function formatRss(bytes: number): string {
 function pointsFor(values: number[], peak: number, width: number, height: number): string {
   if (values.length === 0) return '';
   if (values.length === 1) {
-    const y = peak > 0 ? height - (values[0] / peak) * height : height;
+    const v0 = values[0] ?? 0;
+    const y = peak > 0 ? height - (v0 / peak) * height : height;
     return `0,${y.toFixed(2)} ${width},${y.toFixed(2)}`;
   }
   const step = width / (values.length - 1);
@@ -142,6 +143,7 @@ export default function WorkerResourceGraph({
   const cpuPeak = 100;
   const rssPeak = Math.max(1, ...rssValues);
   const latest = samples[samples.length - 1];
+  if (!latest) return null;
 
   return (
     <div

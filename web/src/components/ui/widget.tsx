@@ -67,13 +67,17 @@ export interface WidgetSlotProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export interface WidgetHeaderProps extends WidgetSlotProps {
-  title?: ReactNode;
-  icon?: ReactNode;
-  updatedAt?: string | number | null;
-  updatedLabel?: string;
-  onRefresh?: () => void;
-  loading?: boolean;
+// (TODO 11.1108) Omit 'title' from the inherited HTMLAttributes-based
+// WidgetSlotProps because HTMLAttributes declares `title?: string` and
+// our override widens to ReactNode. Other optional fields widened to
+// `T | undefined` to satisfy exactOptionalPropertyTypes at callers.
+export interface WidgetHeaderProps extends Omit<WidgetSlotProps, 'title'> {
+  title?: ReactNode | undefined;
+  icon?: ReactNode | undefined;
+  updatedAt?: string | number | null | undefined;
+  updatedLabel?: string | undefined;
+  onRefresh?: (() => void) | undefined;
+  loading?: boolean | undefined;
 }
 
 function formatUpdated(

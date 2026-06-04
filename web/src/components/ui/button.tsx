@@ -98,7 +98,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     if (
       size === 'icon' &&
       !ariaLabel &&
-      process.env.NODE_ENV !== 'production' &&
+      process.env['NODE_ENV'] !== 'production' &&
       typeof children !== 'string'
     ) {
       // eslint-disable-next-line no-console

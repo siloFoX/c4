@@ -151,7 +151,7 @@ export const FocusTrap = forwardRef<HTMLElement, FocusTrapProps>(
     }
     return (
       <div
-        ref={localRef as RefObject<HTMLElement>}
+        ref={localRef as RefObject<HTMLDivElement>}
         tabIndex={resolvedTabIndex}
         className={mergedClassName}
         {...dataAttrs}

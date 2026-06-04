@@ -17,9 +17,12 @@ export type AlertVariant = 'info' | 'success' | 'warning' | 'error' | 'neutral';
 export type AlertSize = 'sm' | 'md' | 'lg';
 
 export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title' | 'role'> {
-  variant?: AlertVariant;
-  title?: ReactNode;
-  children?: ReactNode;
+  // (TODO 11.1108) AlertProps's own optional fields widened to
+  // `T | undefined` so callers (esp. AlertBanner wrapper that
+  // destructures + re-spreads) satisfy exactOptionalPropertyTypes.
+  variant?: AlertVariant | undefined;
+  title?: ReactNode | undefined;
+  children?: ReactNode | undefined;
   // (v1.11.398, TODO 11.380) Icon resolution:
   //   - `undefined` (default): use the per-variant auto-icon
   //     (Info / CheckCircle2 / AlertTriangle / XCircle for
@@ -28,13 +31,13 @@ export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'
   //     byte-identical.
   //   - `false`: opt out of the auto-icon entirely.
   //   - any ReactNode: render verbatim (legacy contract).
-  icon?: ReactNode | false;
-  action?: ReactNode;
-  dismissible?: boolean;
-  onDismiss?: () => void;
-  role?: 'status' | 'alert';
-  size?: AlertSize;
-  className?: string;
+  icon?: ReactNode | false | undefined;
+  action?: ReactNode | undefined;
+  dismissible?: boolean | undefined;
+  onDismiss?: (() => void) | undefined;
+  role?: 'status' | 'alert' | undefined;
+  size?: AlertSize | undefined;
+  className?: string | undefined;
 }
 
 const VARIANT_CLASSES: Record<AlertVariant, string> = {

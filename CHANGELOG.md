@@ -4,6 +4,40 @@
 
 (no entries -- next release window)
 
+## [1.11.1126] - 2026-06-04 -- CHORE: fix 25 source-confirmed tsc strict-type errors across 18 src/components files (TODO 11.1108)
+
+Resolved 25 strict-type errors across 18 non-chart, non-test
+src/components files. Mixed pattern: TS6133 dead handler removed
+(HelpUIRoot openPalette); TS4111 bracket access for process.env
+(dev/GridDebugOverlay L19/20 + ui/button L101); TS2532/TS18048
+fallbacks and narrows (WorkerResourceGraph L64 `?? 0` + a single
+`if (!latest) return null` guard that handles L170+L191); TS2375/
+TS2379 exactOptionalPropertyTypes resolved by widening the affected
+interfaces to `T | undefined` where the interface lives within
+src/components (Toast.duration, RectProps width/height/rounded/
+className, WidgetHeaderProps optionals + Omit<WidgetSlotProps,'title'>,
+file-input inline return type, AccountMenuProps theme/onThemeChange,
+AlertProps own optional fields, DropdownMenuProps placement/ariaLabel/
+header/className) and by conditional-spread-at-callsite for the two
+that touch outside-scope types (NumberFormat -> formatNumber's
+NumberFormatOptions in lib/; popover -> UseFocusTrapOptions in hooks/);
+TS2430 interface-incorrectly-extends fixed with Omit<...,'title'> for
+both PanelProps and WidgetHeaderProps (their `title?: ReactNode`
+overrides clashed with HTMLAttributes's `title?: string`); TS2322
+prop-drift fixes (focus-trap div ref cast to RefObject<HTMLDivElement>,
+list-action-menu IconButton variant prop dropped, panel
+normalizeItems builds BreadcrumbItem rows via conditional spread on
+href, HelpUIRoot ctx via conditional spread on navigateTopView);
+TS2339 narrow file-tree VisibleEntry-or-undefined with `if (!entry)
+return`; TS2352 detail-panel cast widened to `__type?: symbol`
+matching the prior check shape. Mandated verification: tsc errors in
+the 18 files 25 -> 0; project-wide tsc total 1076 -> 1051 (delta
+exactly -25, matches "at least -25"); diff confirms ZERO new errors
+anywhere; vitest on all 21 colocated component tests (8 top-level +
+13 ui/, including the 3 widening-only files AccountMenu / alert /
+dropdown-menu) passes 525/525 in 21/21 files. With this dispatch all
+non-chart-line, non-test app code is type-clean.
+
 ## [1.11.1125] - 2026-06-04 -- CHORE: fix 14 source-confirmed tsc strict-type errors in 9 src/pages files (TODO 11.1107)
 
 Resolved 14 strict-type errors in 9 page components.

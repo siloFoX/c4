@@ -55,7 +55,6 @@ export default function HelpUIRoot({ onNavigateTopView }: HelpUIRootProps = {}) 
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
-  const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
@@ -83,7 +82,9 @@ export default function HelpUIRoot({ onNavigateTopView }: HelpUIRootProps = {}) 
   }, []);
 
   const ctx = useMemo(
-    () => ({ navigateTopView: onNavigateTopView }),
+    () => ({
+      ...(onNavigateTopView ? { navigateTopView: onNavigateTopView } : {}),
+    }),
     [onNavigateTopView],
   );
 

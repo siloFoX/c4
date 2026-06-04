@@ -75,7 +75,7 @@ export const FileInput = forwardRef<HTMLDivElement, FileInputProps>(
     }, [disabled]);
 
     const validate = useCallback(
-      (incoming: File[]): { ok: File[]; reason?: string; offender?: File } => {
+      (incoming: File[]): { ok: File[]; reason?: string | undefined; offender?: File | undefined } => {
         if (!multiple && incoming.length > 1) {
           return {
             ok: [],
