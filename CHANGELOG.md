@@ -4,6 +4,24 @@
 
 (no entries -- next release window)
 
+## [1.11.1120] - 2026-06-04 -- CHORE: remove leftover debug console.log from page components (TODO 11.1102)
+
+Removed five stray debug `console.log` calls that were shipped in
+page components and spammed the browser console in production (lint is
+tsc-only so it did not catch them): Config.tsx and Templates.tsx import
+handlers (each kept its real `setError(null)` body, dropped the
+now-unused `(files)` param); Snapshots.tsx and Profiles.tsx
+`onAdd` handlers contained ONLY the log so the optional prop was
+removed entirely (FileDrop still stages files internally); Health.tsx
+Rating `onChange` was replaced with a no-op `() => {}` to keep the
+widget interactive (Rating flips to readonly when `onChange` is
+absent). Mandated verification: grep returns zero `console.log` in
+the 5 files; `tsc --noEmit` adds no new errors (3 pre-existing errors
+on untouched lines unchanged); vitest on the 5 page test files: 178/179
+pass, the 1 failing assertion (Health > does NOT render the loading
+skeleton when data is already present) was verified to fail on
+pristine main as well, so no regression introduced.
+
 ## [1.11.1119] - 2026-05-29 -- UX FIX: /api/metrics 401 flood from the per-row WorkerResourceGraph (TODO 11.1101)
 
 Fixed a flood of /api/metrics 401s in the console for a signed-in admin

@@ -564,10 +564,6 @@ export default function Snapshots() {
           maxSize={5 * 1024 * 1024}
           className="mt-2"
           data-testid="snapshots-import-filedrop"
-          onAdd={(files) => {
-            // eslint-disable-next-line no-console
-            console.log('[snapshots] import staged', files[0]?.name);
-          }}
         />
       ) : null}
 

@@ -320,10 +320,8 @@ function ImportTemplateForm() {
         accept="application/json,application/yaml,.json,.yaml,.yml"
         maxSize={1024 * 1024}
         error={error ?? undefined}
-        onAdd={(files) => {
+        onAdd={() => {
           setError(null);
-          // eslint-disable-next-line no-console
-          console.log('[templates] import file', files[0]?.name, files[0]?.size);
         }}
         onError={(msg) => setError(msg)}
       />

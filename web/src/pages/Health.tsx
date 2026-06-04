@@ -633,7 +633,7 @@ export default function Health() {
             <Rating
               value={0}
               max={5}
-              onChange={(v) => console.log('[health.rating]', v)}
+              onChange={() => {}}
               size="sm"
               label="Was this dashboard helpful?"
             />
