@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.1131] - 2026-06-04 -- FIX: update 5 stale test expectations in use-selected-feature-id.test.ts (TODO 11.1113)
+
+`web/src/lib/use-selected-feature-id.test.ts` had 5 FAILING tests
+because they asserted the OLD hero feature id (`scribe`); the
+registry intentionally moved `workers-hero` to FEATURES[0] in TODO
+11.314. Test was stale, not the registry. Imported the canonical
+`FEATURES` from `../pages/registry` and switched the five
+hardcoded `expect(...).toBe('scribe')` assertions to
+`expect(...).toBe(FEATURES[0]!.id)` so the test stays correct if
+the hero feature ever moves again. Also updated the docstring
+comment to drop the stale `(currently 'scribe')` parenthetical.
+No registry / non-test source touched. Mandatory verification:
+vitest on use-selected-feature-id.test.ts passes 14/14 (previously
+5 failing); tsc --noEmit project-wide total unchanged at 928 (zero
+new type errors).
+
 ## [1.11.1130] - 2026-06-04 -- CHORE: fix 31 source-confirmed tsc strict-type errors in 8 src/lib test files (TODO 11.1112)
 
 Resolved 31 strict-type errors across the 8 dispatched src/lib test
