@@ -16,7 +16,7 @@ describe('useStuckMeetings', () => {
   });
 
   it('starts idle: returns null before the first fetch resolves', () => {
-    const gate = new Promise<HttpResponse>(() => {
+    const gate = new Promise<never>(() => {
       // never resolves so the initial tick stays in flight
     });
     server.use(

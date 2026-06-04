@@ -201,7 +201,7 @@ describe('useAttachProcessState', () => {
     });
     server.use(
       http.get('/api/attach/:name/process', async ({ params }) => {
-        const n = String(params.name);
+        const n = String(params['name']);
         seenNames.push(n);
         if (n === 'a') {
           await firstGate;

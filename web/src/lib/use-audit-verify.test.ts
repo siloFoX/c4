@@ -57,7 +57,7 @@ describe('useAuditVerify', () => {
 
   it('GETs /api/audit/verify?includeRotated=1 when includeRotated=true', async () => {
     let path = '';
-    let params: URLSearchParams | null = null;
+    let params = null as URLSearchParams | null;
     server.use(
       http.get('/api/audit/verify', ({ request }) => {
         const u = new URL(request.url);

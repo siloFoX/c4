@@ -4,6 +4,35 @@
 
 (no entries -- next release window)
 
+## [1.11.1138] - 2026-06-04 -- CHORE: fix 16 source-confirmed tsc strict-type errors in 15 test files -- FINAL test-nit batch (TODO 11.1120)
+
+FINAL batch of the test type-clean campaign. After this commit
+`tsc --noEmit` is reduced to ONLY the chart showcase bucket
+`web/src/components/ui/chart-*.tsx` -- the build gate blocker is
+now a single chart policy decision. 15 test files (5 src/components +
+10 src/lib) held 16 errors total. Per-file (minimal):
+ControlPanelBatch (drop unused `within`), HierarchyTree (drop
+duplicate `name` key in makeWorker), HistoryView (drop unused
+`lastDetailPaneProps`), layout/FeatureSidebar (`buttons[0]!`),
+layout/FeatureView (`FEATURES[0]!`), lib/i18n
+(`window.localStorage['__proto__']` bracket), lib/use-attach-process-state
++ use-meeting-template-editor (bracket access on params['name']),
+lib/use-audit-verify + use-risk-check (`let X = null as ... | null;`
+cast-init to defeat `never` narrowing through msw closures),
+lib/use-profiles + use-risk-stats + use-stuck-meetings
+(`new Promise<never>(() => {})` for never-resolving gates),
+lib/use-scribe-context (`.at(-1)` -> index access), lib/use-scrollback
+(2x `'X' as const` -> `'X' as 'screen' | 'scrollback'` so rerender
+with the other literal typechecks). No `as any`, no `ts-ignore`,
+no fresh `ts-expect-error`. No edits outside the 15 dispatched
+files. No test assertion behaviour changed. Mandated verification:
+tsc --noEmit 791 -> 775 (-16, zero in the 15 files); every remaining
+project-wide error is inside src/components/ui/chart-* (grep returns
+zero non-chart hits); vitest on the 15 files: 6 failed / 308 passed
+== same 6 pre-existing failures (3 dispatched + 1 FeatureSidebar
+"filter" test confirmed pre-existing via stash + re-run). Zero NEW
+failures.
+
 ## [1.11.1137] - 2026-06-04 -- CHORE: fix 15 source-confirmed tsc strict-type errors in 15 test files (TODO 11.1119)
 
 15 test files (13 src/components incl. 3 ui + 2 src/hooks) each held

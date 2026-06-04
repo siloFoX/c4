@@ -235,7 +235,7 @@ describe('useScrollback', () => {
     const { result, rerender } = renderHook(
       ({ tab }: { tab: 'screen' | 'scrollback' }) =>
         useScrollback({ workerName: 'w1', tab, setActionMsg: vi.fn() }),
-      { initialProps: { tab: 'scrollback' as const } },
+      { initialProps: { tab: 'scrollback' as 'screen' | 'scrollback' } },
     );
     await waitFor(() => {
       expect(result.current.scrollbackContent).toBe('v');
@@ -255,7 +255,7 @@ describe('useScrollback', () => {
     const { rerender } = renderHook(
       ({ tab }: { tab: 'screen' | 'scrollback' }) =>
         useScrollback({ workerName: 'w1', tab, setActionMsg }),
-      { initialProps: { tab: 'screen' as const } },
+      { initialProps: { tab: 'screen' as 'screen' | 'scrollback' } },
     );
     expect(setActionMsg).toHaveBeenCalledWith(null);
     setActionMsg.mockClear();

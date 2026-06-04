@@ -120,7 +120,7 @@ describe('useScribeContext', () => {
       await result.current.openScribe();
     });
     expect(setError).toHaveBeenCalled();
-    const msg = setError.mock.calls.at(-1)?.[0] as string;
+    const msg = setError.mock.calls[setError.mock.calls.length - 1]?.[0] as string;
     expect(msg).toContain('HTTP 500');
     expect(result.current.scribe).toBeNull();
     expect(result.current.loadingScribe).toBe(false);

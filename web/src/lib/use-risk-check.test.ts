@@ -96,7 +96,7 @@ describe('useRiskCheck', () => {
   });
 
   it('forwards includeInspected=false verbatim', async () => {
-    let receivedBody: { includeInspected?: boolean } | null = null;
+    let receivedBody = null as { includeInspected?: boolean } | null;
     server.use(
       http.post('/api/risk/check', async ({ request }) => {
         receivedBody = (await request.json()) as typeof receivedBody;

@@ -34,7 +34,7 @@ describe('useRiskStats', () => {
     server.use(
       http.get(
         '/api/risk/stats',
-        () => new Promise<HttpResponse>(() => {}),
+        () => new Promise<never>(() => {}),
       ),
     );
     const { result } = renderHook(() => useRiskStats());
