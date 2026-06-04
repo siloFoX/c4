@@ -157,7 +157,7 @@ describe('<MeetingsPeerRetroControls>', () => {
     renderRow();
     await user.click(screen.getByRole('button', { name: 'Run peer retro' }));
     expect(handlePeerRetroMock.mock.calls[0]).toHaveLength(1);
-    expect(handlePeerRetroMock.mock.calls[0][0]).toHaveProperty(
+    expect(handlePeerRetroMock.mock.calls[0]![0]).toHaveProperty(
       'type',
       'click',
     );

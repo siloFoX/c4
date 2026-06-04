@@ -79,7 +79,7 @@ describe('<WorkflowNodeProperties>', () => {
   });
 
   it('renders an empty object when config is undefined', () => {
-    render(<WorkflowNodeProperties node={makeNode({ config: undefined })} />);
+    render(<WorkflowNodeProperties node={{ id: 'n1', type: 'task', name: 'task one' }} />);
     const pre = screen.getByText((_, el) => el?.tagName === 'PRE');
     expect(pre.textContent?.trim()).toBe('{}');
   });

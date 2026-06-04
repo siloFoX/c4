@@ -256,7 +256,7 @@ describe('<SpecialistsBulkOpsToolbar>', () => {
     });
     await user.upload(input, file);
     expect(handleImportFileMock).toHaveBeenCalledTimes(1);
-    const arg = handleImportFileMock.mock.calls[0][0] as File;
+    const arg = handleImportFileMock.mock.calls[0]![0] as File;
     expect(arg.name).toBe('bundle.json');
   });
 

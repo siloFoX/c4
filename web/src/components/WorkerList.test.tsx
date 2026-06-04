@@ -37,7 +37,6 @@ import WorkerList from './WorkerList';
 
 function makeWorker(over: Partial<Worker> & { name: string }): Worker {
   return {
-    name: over.name,
     command: 'claude',
     target: 'local',
     branch: null,

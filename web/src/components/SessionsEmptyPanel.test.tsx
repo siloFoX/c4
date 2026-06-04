@@ -10,11 +10,8 @@ import { setLocale } from '../lib/i18n';
 // suite exercises only the panel's branching + prop-wiring logic
 // without re-exercising the comparison card's own coverage.
 
-let lastComparisonProps: { className?: string } | null = null;
-
 vi.mock('./SessionsComparisonCard', () => ({
   default: (props: { className?: string }) => {
-    lastComparisonProps = props;
     return (
       <div
         data-testid="comparison-card"
@@ -30,7 +27,6 @@ import SessionsEmptyPanel from './SessionsEmptyPanel';
 
 beforeEach(() => {
   setLocale('en');
-  lastComparisonProps = null;
 });
 
 function renderPanel(

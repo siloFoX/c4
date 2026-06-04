@@ -482,7 +482,7 @@ describe('<MeetingsView>', () => {
   it('switches the list to search-mode when the search hook returns results', () => {
     searchResult = {
       ...searchResult,
-      searchResults: [SAMPLE[0]],
+      searchResults: [SAMPLE[0]!],
       searchTotal: 1,
     };
     render(<MeetingsView />);

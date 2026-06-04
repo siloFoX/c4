@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1137] - 2026-06-04 -- CHORE: fix 15 source-confirmed tsc strict-type errors in 15 test files (TODO 11.1119)
+
+15 test files (13 src/components incl. 3 ui + 2 src/hooks) each held
+exactly 1 strict-type error. Per-file fixes (minimal): MeetingsDetailBody
+(`as unknown as RecapResponse`), MeetingsPeerRetroControls
+(`mock.calls[0]!`), MeetingsRecapPanel (drop unused `vi`),
+MeetingsView (`SAMPLE[0]!` non-null), SessionsEmptyPanel (drop unused
+`lastComparisonProps`), SpecialistsAddPanel (`getAllByRole(...)[0]!`),
+SpecialistsBulkOpsToolbar (`mock.calls[0]!`), WorkerList (drop
+duplicate `name` key in helper; trailing `...over` spread already
+supplies it), WorkflowNodeProperties (replace
+`makeNode({ config: undefined })` with inline node literal that
+omits `config`; runtime-equivalent via `node.config || {}` fallback),
+XtermView (conditional spread for `visible`), ui/copy-button (drop
+unused `act`), ui/export-button
+(`(click as unknown as () => void)()` for Mock callability),
+ui/number-input (12x conditional spread via `opt()` helper), hooks/
+use-a11y-ids (cast initialProps to the full union so rerender accepts
+`error`), hooks/use-focus-cycle (conditional spread for `onSelect`).
+No `as any`, no `ts-ignore`, no fresh `ts-expect-error`. No edits
+outside the 15 dispatched files. No test assertion behaviour changed.
+Mandated verification: tsc --noEmit 806 -> 791 (-15, zero in the 15
+files, zero new errors anywhere); vitest on the 15 files: 14/15 files
+pass + 1 file (ui/number-input) with same 1 pre-existing failed test
+("ArrowUp / ArrowDown step via keyboard") pre and post fix (stash +
+re-run confirmed). Zero NEW failures.
+
 ## [1.11.1136] - 2026-06-04 -- CHORE: fix 20 source-confirmed tsc strict-type errors in 13 test files (TODO 11.1118)
 
 13 test files (7 src/components + 6 src/lib) held 20 strict-type

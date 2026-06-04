@@ -256,7 +256,7 @@ function renderView(over: { workerName?: string; fontSize?: number; visible?: bo
   const props = {
     workerName: over.workerName ?? 'demo-worker',
     fontSize: over.fontSize ?? 14,
-    visible: over.visible,
+    ...(over.visible !== undefined ? { visible: over.visible } : {}),
   };
   const utils = render(<XtermView {...props} />);
   return { ...utils, props };
