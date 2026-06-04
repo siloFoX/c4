@@ -88,13 +88,16 @@ export function NumberFormat({
 }: NumberFormatProps): JSX.Element {
   const appLocale = useLocale();
   const resolved = locale ?? localeTag(appLocale);
+  // (TODO 11.1108) Conditional spread so undefined optional fields
+  // are omitted (NumberFormatOptions is in lib/ -- outside this
+  // dispatch's edit scope, so we cannot widen it).
   const text = formatNumber(value, {
-    style,
-    currency,
-    minimumFractionDigits,
-    maximumFractionDigits,
+    ...(style !== undefined ? { style } : {}),
+    ...(currency !== undefined ? { currency } : {}),
+    ...(minimumFractionDigits !== undefined ? { minimumFractionDigits } : {}),
+    ...(maximumFractionDigits !== undefined ? { maximumFractionDigits } : {}),
     locale: resolved,
-    compact,
+    ...(compact !== undefined ? { compact } : {}),
   });
   return <span className={className}>{text}</span>;
 }

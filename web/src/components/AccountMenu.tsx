@@ -40,8 +40,8 @@ interface AccountMenuProps {
   // Optional so AccountMenu still renders standalone (e.g. the unit
   // test for the trigger label) without forcing every callsite to
   // thread theme state. Renders the Theme row only when both are set.
-  theme?: ThemeMode;
-  onThemeChange?: (next: ThemeMode) => void;
+  theme?: ThemeMode | undefined;
+  onThemeChange?: ((next: ThemeMode) => void) | undefined;
 }
 
 // Pulled out so tests can source-grep the labels and a future i18n

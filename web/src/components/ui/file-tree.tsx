@@ -119,6 +119,7 @@ export const FileTree = forwardRef<HTMLUListElement, FileTreeProps>(
         const idx = visible.findIndex((entry) => entry.node.id === focusedId);
         if (idx < 0) return;
         const entry = visible[idx];
+        if (!entry) return;
         const { node, parentId } = entry;
         const isFolder = node.type === 'folder';
         const isOpen = isFolder && expanded.has(node.id);

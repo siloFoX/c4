@@ -190,14 +190,17 @@ interface DropdownMenuProps {
   // call sites are still valid -- a plain item shape narrows
   // to the union without a cast.
   items: DropdownMenuEntry[];
-  placement?: DropdownPlacement;
+  // (TODO 11.1108) Optional fields widened to `T | undefined`
+  // so callers may pass an explicitly-undefined value under
+  // exactOptionalPropertyTypes.
+  placement?: DropdownPlacement | undefined;
   // Aria label for the menu container -- defaults to 'Menu'.
-  ariaLabel?: string;
+  ariaLabel?: string | undefined;
   // Optional additional content rendered above the items (e.g. a
   // header card showing the current user). Receives no props; the
   // parent owns the layout.
-  header?: ReactNode;
-  className?: string;
+  header?: ReactNode | undefined;
+  className?: string | undefined;
 }
 
 // Type-ahead reset window. Single-letter keys reset the buffer if the

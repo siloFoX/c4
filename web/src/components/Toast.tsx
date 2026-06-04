@@ -20,7 +20,7 @@ export interface ToastProps {
   message: string;
   type: ToastType;
   onDismiss: () => void;
-  duration?: number;
+  duration?: number | undefined;
 }
 
 const TONE: Record<ToastType, string> = {

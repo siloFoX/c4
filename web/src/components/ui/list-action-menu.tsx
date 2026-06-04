@@ -102,7 +102,6 @@ export const ListActionMenu = forwardRef<HTMLDivElement, ListActionMenuProps>(
     const trigger = (
       <IconButton
         type="button"
-        variant="ghost"
         aria-label={triggerAriaLabel ?? menuAriaLabel}
         data-section="list-action-menu-trigger"
         data-size={size}

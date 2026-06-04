@@ -13,7 +13,10 @@ export type PanelBreadcrumbsProp =
   | Array<PanelBreadcrumb | BreadcrumbItem>
   | ReactNode;
 
-export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+// (TODO 11.1108) Omit `title` from the inherited HTMLAttributes-based
+// type because HTMLAttributes declares `title?: string` and our
+// `title?: ReactNode` override widens it (TS2430 incorrectly extends).
+export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'> {
   icon?: ReactNode;
   // (v1.11.264, TODO 11.246) Relaxed from `string` to `ReactNode`
   // so consumers can append inline glyphs (HelpTip, status chips)
@@ -46,7 +49,11 @@ function normalizeItems(
       'id' in entry && typeof entry.id === 'string' && entry.id.length > 0
         ? entry.id
         : `crumb-${idx}`;
-    return { id, label: entry.label, href: entry.href };
+    return {
+      id,
+      label: entry.label,
+      ...(entry.href !== undefined ? { href: entry.href } : {}),
+    };
   });
 }
 

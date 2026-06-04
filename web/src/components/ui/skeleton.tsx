@@ -193,10 +193,13 @@ const RECT_ROUNDED: Record<RectRounded, string> = {
 };
 
 export interface RectProps extends HTMLAttributes<HTMLDivElement> {
-  width?: string | number;
-  height?: string | number;
-  rounded?: RectRounded;
-  className?: string;
+  // (TODO 11.1108) Widened to `T | undefined` so callers may
+  // pass an explicitly-undefined value under
+  // exactOptionalPropertyTypes.
+  width?: string | number | undefined;
+  height?: string | number | undefined;
+  rounded?: RectRounded | undefined;
+  className?: string | undefined;
 }
 
 export const Rect = forwardRef<HTMLDivElement, RectProps>(
