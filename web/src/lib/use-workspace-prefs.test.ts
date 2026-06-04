@@ -53,7 +53,7 @@ describe('use-workspace-prefs storage', () => {
 
   it('trims the alias before persisting', () => {
     setWorkspaceAlias('arps', '   Padded   ');
-    expect(getWorkspacePrefs().aliases.arps).toBe('Padded');
+    expect(getWorkspacePrefs().aliases['arps']).toBe('Padded');
   });
 
   it('empty alias removes the entry', () => {

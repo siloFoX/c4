@@ -177,7 +177,7 @@ describe('useTokenUsage', () => {
     rerender({ p: true });
     await waitFor(() => expect(urls).toContain('?perTask=1'));
     expect(urls[0]).toBe('');
-    expect(urls.at(-1)).toBe('?perTask=1');
+    expect(urls[urls.length - 1]).toBe('?perTask=1');
   });
 
   it('refresh callback identity is stable across re-renders with the same perTask', async () => {

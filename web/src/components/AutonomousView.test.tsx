@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
 import type { DigestResponse } from './AutonomousView';
@@ -105,11 +105,9 @@ vi.mock('../lib/use-escalation-resolve', () => ({
 interface CapturedMetricsProps {
   digest: DigestResponse;
 }
-let lastMetricsProps: CapturedMetricsProps | null = null;
 
 vi.mock('./AutonomousDigestMetrics', () => ({
   default: (props: CapturedMetricsProps) => {
-    lastMetricsProps = props;
     return (
       <div
         data-testid="digest-metrics"
@@ -180,7 +178,6 @@ beforeEach(() => {
   lastDigestArgs = null;
   lastPauseArgs = null;
   lastResolveArgs = null;
-  lastMetricsProps = null;
 });
 
 describe('<AutonomousView>', () => {

@@ -14,7 +14,7 @@ import { useTemplates } from './use-templates';
 
 describe('useTemplates', () => {
   it('starts loading=true before the first fetch resolves', () => {
-    const gate = new Promise<HttpResponse>(() => {
+    const gate = new Promise<never>(() => {
       // never resolves so the initial fetch hangs
     });
     server.use(

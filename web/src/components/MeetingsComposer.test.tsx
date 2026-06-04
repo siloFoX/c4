@@ -453,14 +453,14 @@ describe('<MeetingsComposer>', () => {
   it('forwards onCreated through to the useMeetingCreate hook', () => {
     const onCreated = vi.fn();
     renderOpen({ onCreated });
-    expect(lastUseMeetingCreateArgs?.onCreated).toBe(onCreated);
+    expect(lastUseMeetingCreateArgs?.['onCreated']).toBe(onCreated);
   });
 
   it('forwards the typed newTask up into the useMeetingCreate hook args', async () => {
     const user = userEvent.setup();
     renderOpen();
     await user.type(screen.getByLabelText('Meeting task'), 'rotate auth');
-    expect(lastUseMeetingCreateArgs?.newTask).toBe('rotate auth');
+    expect(lastUseMeetingCreateArgs?.['newTask']).toBe('rotate auth');
   });
 
   it('opens the template editor with no target when New is clicked', async () => {

@@ -4,6 +4,30 @@
 
 (no entries -- next release window)
 
+## [1.11.1136] - 2026-06-04 -- CHORE: fix 20 source-confirmed tsc strict-type errors in 13 test files (TODO 11.1118)
+
+13 test files (7 src/components + 6 src/lib) held 20 strict-type
+errors. Per-file: AutonomousView (drop unused `within`, drop unused
+`lastMetricsProps`), ChatComposer (2x `mock.calls[len-1]!`),
+ControlPanel (drop unused `lastBatchProps`, `mock.calls[0]!`),
+ErrorBoundary (typed callback param + explicit `ReactNode` return on
+`NoMessage` so TS no longer rejects `never`-returning JSX),
+MeetingsComposer (bracket access on `onCreated` / `newTask` from
+index-sig type), MeetingsSearchFilterRow (2x `.at(-1)` -> index
+access), dev/GridDebugOverlay (drop stale `as unknown as string`
+casts; `vi.stubEnv('PROD', <bool>)` now accepts boolean),
+use-silent-poll (drop unused `waitFor`), use-specialist-filter
+(`as unknown as Specialist['triggers']` for an intentional narrower
+cast), use-swarm + use-templates (`new Promise<never>(...)` for
+never-resolving fetch gates), use-token-usage (`.at(-1)` -> index
+access), use-workspace-prefs (`aliases['arps']` bracket). No
+`as any`, no `ts-ignore`. No edits outside the 13 dispatched
+files. No test assertion behaviour changed. Mandated verification:
+tsc --noEmit 826 -> 806 (-20, zero in the 13 files, zero new errors
+anywhere); vitest on the 13 files shows same 12 files pass + 1
+file (ErrorBoundary) with same 2 pre-existing failed tests pre/post
+fix (stash + re-run confirmed) -- zero NEW failures.
+
 ## [1.11.1135] - 2026-06-04 -- CHORE: fix 20 source-confirmed tsc strict-type errors in 10 test files (TODO 11.1117)
 
 10 test files (3 src/lib + 5 src/components + 2 src/components/ui +

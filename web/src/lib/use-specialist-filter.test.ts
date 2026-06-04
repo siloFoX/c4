@@ -182,7 +182,7 @@ describe('useSpecialistFilter', () => {
     const list = [
       makeSpec({
         id: 'a',
-        triggers: { stages: [] } as Specialist['triggers'],
+        triggers: { stages: [] } as unknown as Specialist['triggers'],
       }),
       makeSpec({
         id: 'b',
