@@ -1,10 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useSelectedFeatureId } from './use-selected-feature-id';
+import { FEATURES } from '../pages/registry';
+
+// (TODO 11.1113) FEATURES[0] is sourced dynamically from the registry
+// so this test stays correct when the hero feature changes again. The
+// assertions below reference FEATURES[0]!.id rather than hardcoding
+// the current value (which is 'workers-hero' as of this writing).
 
 // useSelectedFeatureId owns the Features-tab selection state:
 //   - readInitialFeature priority: window.location.hash (#/feature/<id>)
-//     > localStorage[FEATURE_KEY] > FEATURES[0].id (currently 'scribe')
+//     > localStorage[FEATURE_KEY] > FEATURES[0].id
 //   - Every state change persists back to BOTH surfaces via a single
 //     effect: localStorage.setItem + writeHash (history.replaceState so
 //     the browser back stack is not polluted by rapid tab clicks).
@@ -24,9 +30,9 @@ beforeEach(() => {
 });
 
 describe('useSelectedFeatureId', () => {
-  it('falls back to FEATURES[0].id (scribe) when hash + localStorage are empty', () => {
+  it('falls back to FEATURES[0].id when hash + localStorage are empty', () => {
     const { result } = renderHook(() => useSelectedFeatureId());
-    expect(result.current[0]).toBe('scribe');
+    expect(result.current[0]).toBe(FEATURES[0]!.id);
     expect(typeof result.current[1]).toBe('function');
   });
 
@@ -59,7 +65,7 @@ describe('useSelectedFeatureId', () => {
   it('invalid localStorage value falls back to FEATURES[0]', () => {
     window.localStorage.setItem(FEATURE_KEY, 'phony');
     const { result } = renderHook(() => useSelectedFeatureId());
-    expect(result.current[0]).toBe('scribe');
+    expect(result.current[0]).toBe(FEATURES[0]!.id);
   });
 
   it('non-#/feature/ hash prefix is treated as no hash (uses localStorage)', () => {
@@ -84,7 +90,7 @@ describe('useSelectedFeatureId', () => {
 
   it('hashchange event with a valid feature id syncs state', () => {
     const { result } = renderHook(() => useSelectedFeatureId());
-    expect(result.current[0]).toBe('scribe');
+    expect(result.current[0]).toBe(FEATURES[0]!.id);
     act(() => {
       window.history.replaceState(null, '', '#/feature/health');
       window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -98,7 +104,7 @@ describe('useSelectedFeatureId', () => {
       window.history.replaceState(null, '', '#/feature/not-real');
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
-    expect(result.current[0]).toBe('scribe');
+    expect(result.current[0]).toBe(FEATURES[0]!.id);
   });
 
   it('hashchange event without the #/feature/ prefix is ignored', () => {
@@ -107,7 +113,7 @@ describe('useSelectedFeatureId', () => {
       window.history.replaceState(null, '', '#/random');
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
-    expect(result.current[0]).toBe('scribe');
+    expect(result.current[0]).toBe(FEATURES[0]!.id);
   });
 
   it('removes the hashchange listener on unmount', () => {
