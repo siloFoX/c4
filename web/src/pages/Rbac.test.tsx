@@ -323,7 +323,7 @@ describe('<Rbac>', () => {
     const uls = container.querySelectorAll('ul');
     expect(uls.length).toBeGreaterThanOrEqual(1);
     const usersUl = uls[uls.length - 1];
-    const lis = within(usersUl).getAllByRole('listitem');
+    const lis = within(usersUl!).getAllByRole('listitem');
     expect(lis).toHaveLength(2);
   });
 

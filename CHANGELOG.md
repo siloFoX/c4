@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1129] - 2026-06-04 -- CHORE: fix 26 source-confirmed tsc strict-type errors in 11 src/pages test files (TODO 11.1111)
+
+Resolved 26 strict-type errors across 11 src/pages test files. The
+dominant pattern (17 TS2379 + 4 TS2375) was an exactOptional-vs-spread
+mismatch in 9 `makeX(over: Partial<T> = {})` fixture helpers:
+widened each `over` parameter to
+`{ [K in keyof T]?: T[K] | undefined }` (so the test-only
+`{ field: undefined }` override is accepted), and asserted the
+helper's spread-merged return `as T` to compensate for the now-
+possibly-undefined spread carrying into required slots. Applied to
+Health.makeHealth, Morning.makeReport, Profiles.makeProfile,
+Scribe.makeStatus, Scribe.makeContext, Swarm.makeNode,
+Templates.makeTemplate, TokenUsage.makeData, Validation.makeReport.
+Two inline literals (Morning L205, Swarm L323) needed
+`as unknown as T` double-cast because tsc reports
+"neither type sufficiently overlaps" on the single-step form. The
+remaining 5 errors: Morning L311 + L336 `md[0].getAttribute` -> `md[0]!.`
+(each gated by `expect(md).toHaveLength(1)`), Rbac L326 `within(usersUl)`
+-> `within(usersUl!)` (gated by `uls.length >= 1`), and 4 TS6133 dead
+declarations removed (Queue `resolveGet/resolvePost` write-only +
+their beforeEach resets, Templates unused `within` import,
+UIDemoRoute.a11y unused `expect` import). NO test assertion was
+changed; NO edits outside the 11 files; NO as-any / ts-ignore.
+Mandated verification: tsc errors in the 11 files 26 -> 0;
+project-wide total 985 -> 959 (delta exactly -26, matches
+"at least -26"); diff confirms ZERO new errors anywhere; vitest on
+the 11 test files passes 359/360 in 10/11 files -- the 1 failing
+test (Health > does NOT render the loading skeleton when data is
+already present) was verified to ALSO fail on pristine main, so no
+regression introduced (same passing-test count as before).
+
 ## [1.11.1128] - 2026-06-04 -- CHORE: fix 36 source-confirmed tsc strict-type errors in 3 src/components test files (TODO 11.1110)
 
 Resolved 36 strict-type errors across 3 component test files.

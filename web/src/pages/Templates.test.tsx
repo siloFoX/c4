@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setLocale } from '../lib/i18n';
 import type { TemplateItem, UseTemplatesState } from '../lib/use-templates';
@@ -53,7 +53,7 @@ vi.mock('../components/Toast', () => ({
 
 import Templates from './Templates';
 
-function makeTemplate(over: Partial<TemplateItem> = {}): TemplateItem {
+function makeTemplate(over: { [K in keyof TemplateItem]?: TemplateItem[K] | undefined } = {}): TemplateItem {
   return {
     name: 'planner',
     description: 'planner template',
@@ -62,7 +62,7 @@ function makeTemplate(over: Partial<TemplateItem> = {}): TemplateItem {
     profile: 'web',
     source: 'builtin',
     ...over,
-  };
+  } as TemplateItem;
 }
 
 beforeEach(() => {

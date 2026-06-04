@@ -50,7 +50,7 @@ function makeWorker(over: Partial<Worker> = {}): Worker {
   } as Worker;
 }
 
-function makeReport(over: Partial<ValidationResponse> = {}): ValidationResponse {
+function makeReport(over: { [K in keyof ValidationResponse]?: ValidationResponse[K] | undefined } = {}): ValidationResponse {
   return {
     name: 'demo-1',
     tests: { passed: 10, failed: 0, ok: true },
@@ -59,7 +59,7 @@ function makeReport(over: Partial<ValidationResponse> = {}): ValidationResponse 
     dirty: false,
     branch: 'c4/demo-1',
     ...over,
-  };
+  } as ValidationResponse;
 }
 
 beforeEach(() => {

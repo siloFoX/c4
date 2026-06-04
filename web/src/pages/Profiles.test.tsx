@@ -55,7 +55,7 @@ vi.mock('../components/Toast', () => ({
 
 import Profiles from './Profiles';
 
-function makeProfile(over: Partial<ProfileItem> = {}): ProfileItem {
+function makeProfile(over: { [K in keyof ProfileItem]?: ProfileItem[K] | undefined } = {}): ProfileItem {
   return {
     name: 'web',
     description: 'web profile',
@@ -63,7 +63,7 @@ function makeProfile(over: Partial<ProfileItem> = {}): ProfileItem {
     deny: [],
     source: 'builtin',
     ...over,
-  };
+  } as ProfileItem;
 }
 
 beforeEach(() => {

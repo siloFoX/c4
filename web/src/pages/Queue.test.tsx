@@ -42,15 +42,10 @@ function makeFetchResponse(rows: QueueRow[], raw = 'raw markdown') {
   return { rows, raw, source: 'docs/autonomous-queue-v10.md' };
 }
 
-let resolveGet: ((value: unknown) => void) | null = null;
-let resolvePost: ((value: unknown) => void) | null = null;
-
 beforeEach(() => {
   setLocale('en');
   apiGetMock.mockReset();
   apiPostMock.mockReset();
-  resolveGet = null;
-  resolvePost = null;
 });
 
 afterEach(() => {

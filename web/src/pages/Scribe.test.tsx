@@ -95,7 +95,7 @@ vi.mock('../lib/format', () => ({
 
 import Scribe from './Scribe';
 
-function makeStatus(over: Partial<ScribeStatus> = {}): ScribeStatus {
+function makeStatus(over: { [K in keyof ScribeStatus]?: ScribeStatus[K] | undefined } = {}): ScribeStatus {
   return {
     running: false,
     lastScan: null,
@@ -103,15 +103,15 @@ function makeStatus(over: Partial<ScribeStatus> = {}): ScribeStatus {
     sessions: 0,
     contextPath: '/tmp/scribe.md',
     ...over,
-  };
+  } as ScribeStatus;
 }
 
-function makeContext(over: Partial<ContextResponse> = {}): ContextResponse {
+function makeContext(over: { [K in keyof ContextResponse]?: ContextResponse[K] | undefined } = {}): ContextResponse {
   return {
     content: 'snapshot body',
     path: '/tmp/scribe.md',
     ...over,
-  };
+  } as ContextResponse;
 }
 
 beforeEach(() => {
