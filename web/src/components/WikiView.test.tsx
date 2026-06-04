@@ -151,11 +151,9 @@ interface CapturedHeaderProps {
   onBulkPublish: () => void;
 }
 
-let lastHeaderProps: CapturedHeaderProps | null = null;
 
 vi.mock('./WikiSearchCardHeader', () => ({
   default: (props: CapturedHeaderProps) => {
-    lastHeaderProps = props;
     return (
       <div
         data-testid="search-header"
@@ -230,11 +228,9 @@ interface CapturedResultsProps {
   onSelect: (path: string | null) => void;
 }
 
-let lastResultsProps: CapturedResultsProps | null = null;
 
 vi.mock('./WikiSearchResults', () => ({
   default: (props: CapturedResultsProps) => {
-    lastResultsProps = props;
     return (
       <div
         data-testid="results"
@@ -270,11 +266,9 @@ interface CapturedDetailHeaderProps {
   onReopen: (relPath: string) => void;
 }
 
-let lastDetailHeaderProps: CapturedDetailHeaderProps | null = null;
 
 vi.mock('./WikiPageDetailHeader', () => ({
   default: (props: CapturedDetailHeaderProps) => {
-    lastDetailHeaderProps = props;
     return (
       <div
         data-testid="detail-header"
@@ -303,11 +297,9 @@ interface CapturedDetailProps {
   onSelectPath: (next: string | null) => void;
 }
 
-let lastDetailProps: CapturedDetailProps | null = null;
 
 vi.mock('./WikiPageDetail', () => ({
   default: (props: CapturedDetailProps) => {
-    lastDetailProps = props;
     return (
       <div
         data-testid="detail"
@@ -389,10 +381,6 @@ beforeEach(() => {
     bulkGitCommit: false,
     bulkGitPush: false,
   };
-  lastHeaderProps = null;
-  lastResultsProps = null;
-  lastDetailHeaderProps = null;
-  lastDetailProps = null;
   lastReopenArgs = null;
   lastBulkArgs = null;
   lastWikiPageArg = undefined;

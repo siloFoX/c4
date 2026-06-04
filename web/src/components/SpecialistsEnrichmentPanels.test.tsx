@@ -14,7 +14,7 @@ import type { AuditEntry, MeetingMeta } from './SpecialistsView';
 
 import SpecialistsEnrichmentPanels from './SpecialistsEnrichmentPanels';
 
-function makeAudit(over: Partial<AuditEntry> = {}): AuditEntry {
+function makeAudit(over: { [K in keyof AuditEntry]?: AuditEntry[K] | undefined } = {}): AuditEntry {
   return {
     ts: '2026-05-01T00:00:00Z',
     action: 'add',
@@ -22,7 +22,7 @@ function makeAudit(over: Partial<AuditEntry> = {}): AuditEntry {
     actor: 'alice',
     reason: 'initial',
     ...over,
-  };
+  } as AuditEntry;
 }
 
 function makeMeeting(over: Partial<MeetingMeta> = {}): MeetingMeta {
@@ -177,8 +177,8 @@ describe('<SpecialistsEnrichmentPanels>', () => {
     const items = within(container.querySelector('ul') as HTMLElement).getAllByRole(
       'listitem',
     );
-    expect(within(items[0]).getByText('remove')).toBeInTheDocument();
-    expect(within(items[1]).getByText('add')).toBeInTheDocument();
+    expect(within(items[0]!).getByText('remove')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('add')).toBeInTheDocument();
   });
 
   it('renders the meeting id per meeting row', () => {
@@ -232,8 +232,8 @@ describe('<SpecialistsEnrichmentPanels>', () => {
     const items = within(container.querySelector('ul') as HTMLElement).getAllByRole(
       'listitem',
     );
-    expect(within(items[0]).getByText('m-first')).toBeInTheDocument();
-    expect(within(items[1]).getByText('m-second')).toBeInTheDocument();
+    expect(within(items[0]!).getByText('m-first')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('m-second')).toBeInTheDocument();
   });
 
   it('renders both sections side by side when both props have entries', () => {

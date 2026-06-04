@@ -139,7 +139,7 @@ describe('<RiskSandboxPreview>', () => {
     );
     const pres = container.querySelectorAll('pre');
     expect(pres.length).toBeGreaterThanOrEqual(1);
-    expect(pres[0].textContent).toBe('/usr/bin/docker run --rm demo');
+    expect(pres[0]!.textContent).toBe('/usr/bin/docker run --rm demo');
   });
 
   it('falls back to <NullRuntime> in the argv pre when binary is null', () => {
@@ -149,7 +149,7 @@ describe('<RiskSandboxPreview>', () => {
       />,
     );
     const pres = container.querySelectorAll('pre');
-    expect(pres[0].textContent).toBe('<NullRuntime> noop');
+    expect(pres[0]!.textContent).toBe('<NullRuntime> noop');
   });
 
   it('falls back to <NullRuntime> in the argv pre when binary is the empty string', () => {
@@ -159,7 +159,7 @@ describe('<RiskSandboxPreview>', () => {
       />,
     );
     const pres = container.querySelectorAll('pre');
-    expect(pres[0].textContent).toBe('<NullRuntime> ');
+    expect(pres[0]!.textContent).toBe('<NullRuntime> ');
   });
 
   it('JSON-quotes any arg that contains whitespace and leaves bare args alone', () => {
@@ -172,7 +172,7 @@ describe('<RiskSandboxPreview>', () => {
       />,
     );
     const pres = container.querySelectorAll('pre');
-    expect(pres[0].textContent).toBe('/bin/sh -c "echo hi there" tail');
+    expect(pres[0]!.textContent).toBe('/bin/sh -c "echo hi there" tail');
   });
 
   it('hides the env details block when sandbox.env has no keys', () => {
@@ -181,7 +181,7 @@ describe('<RiskSandboxPreview>', () => {
   });
 
   it('renders the env details summary with the entry count and a key=value pre', () => {
-    const { container } = render(
+    render(
       <RiskSandboxPreview
         sandbox={makeSandbox({
           env: { FOO: 'bar', BAZ: 'qux' },
