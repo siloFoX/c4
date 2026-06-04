@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1121] - 2026-06-04 -- CHORE: fix 4 TS2308 barrel re-export collisions in ui/index.ts (TODO 11.1103)
+
+Resolved four `tsc --noEmit` TS2308 duplicate-export errors raised by
+`export *` from two ui modules each defining the same name:
+`detectPlatform` (kbd vs keyboard-shortcuts-overlay),
+`ExportFormat` (export-button vs data-export), and `AnsiSegment` +
+`parseAnsi` (cmd-history vs log-stream). Each pair has TWO parallel
+definitions with structurally different shapes (e.g. AnsiSegment is
+`{text, style}` in cmd-history but `{text, fgColor?, bgColor?,
+bold?, italic?, ...}` in log-stream). A repo-wide grep for external
+consumers of these names via the ui barrel returned ZERO, so the
+canonical pick has no runtime impact today. Fix added four explicit
+named re-exports to ui/index.ts that shadow the `export *` ambiguity
+(TS-suggested pattern) without touching either source module --
+`detectPlatform` -> `./kbd`, `ExportFormat` -> `./data-export`,
+`AnsiSegment` + `parseAnsi` -> `./cmd-history`. Mandated
+verification: grep for the 4 names in tsc output returns zero; the 5
+remaining pre-existing tsc errors are in untouched test files; vitest
+on the 6 touched-module test files passes 265/265.
+
 ## [1.11.1120] - 2026-06-04 -- CHORE: remove leftover debug console.log from page components (TODO 11.1102)
 
 Removed five stray debug `console.log` calls that were shipped in
