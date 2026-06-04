@@ -46,7 +46,7 @@ describe('useHistoryWorkerDetail', () => {
   it('fetches GET /api/history/:name and surfaces the detail on success', async () => {
     server.use(
       http.get('/api/history/:name', ({ params }) =>
-        HttpResponse.json(makeDetail(String(params.name))),
+        HttpResponse.json(makeDetail(String(params['name']))),
       ),
     );
     const args = makeArgs({ selected: 'w1' });
@@ -63,7 +63,7 @@ describe('useHistoryWorkerDetail', () => {
     server.use(
       http.get('/api/history/:name', ({ request, params }) => {
         calledUrl = request.url;
-        return HttpResponse.json(makeDetail(String(params.name)));
+        return HttpResponse.json(makeDetail(String(params['name'])));
       }),
     );
     const args = makeArgs({ selected: 'foo bar/baz' });
@@ -80,7 +80,7 @@ describe('useHistoryWorkerDetail', () => {
     const seen: string[] = [];
     server.use(
       http.get('/api/history/:name', ({ params }) => {
-        const name = String(params.name);
+        const name = String(params['name']);
         seen.push(name);
         return HttpResponse.json(makeDetail(name));
       }),
@@ -102,7 +102,7 @@ describe('useHistoryWorkerDetail', () => {
   it('clears the detail back to null when selected flips to null', async () => {
     server.use(
       http.get('/api/history/:name', ({ params }) =>
-        HttpResponse.json(makeDetail(String(params.name))),
+        HttpResponse.json(makeDetail(String(params['name']))),
       ),
     );
     const { result, rerender } = renderHook(
@@ -123,7 +123,7 @@ describe('useHistoryWorkerDetail', () => {
     server.use(
       http.get('/api/history/:name', ({ params }) => {
         calls++;
-        return HttpResponse.json(makeDetail(String(params.name)));
+        return HttpResponse.json(makeDetail(String(params['name'])));
       }),
     );
     const { rerender } = renderHook(
@@ -161,7 +161,7 @@ describe('useHistoryWorkerDetail', () => {
       http.get('/api/history/:name', ({ params }) => {
         n++;
         if (n === 1) {
-          return HttpResponse.json(makeDetail(String(params.name)));
+          return HttpResponse.json(makeDetail(String(params['name'])));
         }
         return HttpResponse.json({ error: 'bad' }, { status: 500 });
       }),

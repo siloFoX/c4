@@ -24,10 +24,10 @@ describe('error-reporter', () => {
     report({ source: 'manual', message: 'second' });
     const all = getAll();
     expect(all).toHaveLength(2);
-    expect(all[0].message).toBe('second');
-    expect(all[1].message).toBe('first');
-    expect(typeof all[0].id).toBe('string');
-    expect(typeof all[0].timestamp).toBe('string');
+    expect(all[0]!.message).toBe('second');
+    expect(all[1]!.message).toBe('first');
+    expect(typeof all[0]!.id).toBe('string');
+    expect(typeof all[0]!.timestamp).toBe('string');
   });
 
   it('buffer caps at 50 records with FIFO eviction (oldest dropped)', () => {
@@ -36,8 +36,8 @@ describe('error-reporter', () => {
     }
     const all = getAll();
     expect(all).toHaveLength(50);
-    expect(all[0].message).toBe('msg-59');
-    expect(all[49].message).toBe('msg-10');
+    expect(all[0]!.message).toBe('msg-59');
+    expect(all[49]!.message).toBe('msg-10');
   });
 
   it('clear() empties the buffer and notifies subscribers', () => {
@@ -48,7 +48,7 @@ describe('error-reporter', () => {
     clear();
     expect(getAll()).toHaveLength(0);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener.mock.calls[0][0]).toEqual([]);
+    expect(listener.mock.calls[0]![0]).toEqual([]);
     unsub();
   });
 
@@ -57,7 +57,7 @@ describe('error-reporter', () => {
     const unsub = subscribe(listener);
     report({ source: 'manual', message: 'one' });
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener.mock.calls[0][0]).toHaveLength(1);
+    expect(listener.mock.calls[0]![0]).toHaveLength(1);
     unsub();
     report({ source: 'manual', message: 'two' });
     expect(listener).toHaveBeenCalledTimes(1);
@@ -89,8 +89,8 @@ describe('error-reporter', () => {
     }
     const all = getAll();
     expect(all).toHaveLength(1);
-    expect(all[0].source).toBe('window');
-    expect(all[0].message).toBe('boom');
+    expect(all[0]!.source).toBe('window');
+    expect(all[0]!.message).toBe('boom');
     expect(prev).toHaveBeenCalledTimes(1);
   });
 
@@ -109,7 +109,7 @@ describe('error-reporter', () => {
     // At least one window-source record must have been captured.
     const windowRecs = all.filter((r) => r.source === 'window');
     expect(windowRecs.length).toBeGreaterThanOrEqual(1);
-    expect(windowRecs[0].message).toBe('synthetic');
+    expect(windowRecs[0]!.message).toBe('synthetic');
   });
 
   it('downloadJson() creates a Blob and triggers an anchor click (mocked URL)', () => {
@@ -127,7 +127,7 @@ describe('error-reporter', () => {
     downloadJson('errs.json');
 
     expect(createUrl).toHaveBeenCalledTimes(1);
-    const blobArg = createUrl.mock.calls[0][0] as Blob;
+    const blobArg = createUrl.mock.calls[0]![0] as Blob;
     expect(blobArg).toBeInstanceOf(Blob);
     expect(blobArg.type).toBe('application/json');
     expect(clickSpy).toHaveBeenCalledTimes(1);
