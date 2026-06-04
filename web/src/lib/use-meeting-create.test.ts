@@ -78,7 +78,7 @@ describe('useMeetingCreate', () => {
   });
 
   it('uses template branch when templateName is set (filters empty vars)', async () => {
-    let body: { template?: string; vars?: Record<string, string>; task?: string } | null = null;
+    let body = null as { template?: string; vars?: Record<string, string>; task?: string } | null;
     server.use(
       http.post('/api/meetings', async ({ request }) => {
         body = (await request.json()) as typeof body;
@@ -100,7 +100,7 @@ describe('useMeetingCreate', () => {
   });
 
   it('omits the vars key entirely when no template var has a value', async () => {
-    let body: { template?: string; vars?: Record<string, string> } | null = null;
+    let body = null as { template?: string; vars?: Record<string, string> } | null;
     server.use(
       http.post('/api/meetings', async ({ request }) => {
         body = (await request.json()) as typeof body;

@@ -138,7 +138,7 @@ describe('useBatchSubmit', () => {
     expect(result.current.result).toMatchObject({ ok: 2, fail: 0, total: 2 });
     expect(result.current.error).toBeNull();
     expect(args.showToast).toHaveBeenCalledTimes(1);
-    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(kind).toBe('success');
   });
 
@@ -244,7 +244,7 @@ describe('useBatchSubmit', () => {
   });
 
   it("falls back to namePrefix='batch' when the prop is the empty string", async () => {
-    let receivedBody: Record<string, unknown> | null = null;
+    let receivedBody = null as Record<string, unknown> | null;
     server.use(
       http.post('/api/batch', async ({ request }) => {
         receivedBody = (await request.json()) as Record<string, unknown>;
@@ -265,7 +265,7 @@ describe('useBatchSubmit', () => {
     await act(async () => {
       await result.current.submit();
     });
-    expect(receivedBody?.namePrefix).toBe('batch');
+    expect(receivedBody?.['namePrefix']).toBe('batch');
   });
 
   it('treats a 2xx with { error } payload as a failure (sets error, suppresses toast)', async () => {
@@ -312,7 +312,7 @@ describe('useBatchSubmit', () => {
     });
     expect(result.current.result).toMatchObject({ ok: 2, fail: 1, total: 3 });
     expect(result.current.error).toBeNull();
-    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [, kind] = (args.showToast as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(kind).toBe('error');
   });
 
@@ -456,7 +456,7 @@ describe('useBatchSubmit', () => {
   });
 
   it('rerender with a new task picks up the new value on the next submit (prop-driven re-eval)', async () => {
-    let received: { task?: string; count?: number } | null = null;
+    let received = null as { task?: string; count?: number } | null;
     server.use(
       http.post('/api/batch', async ({ request }) => {
         received = (await request.json()) as typeof received;

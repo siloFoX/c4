@@ -110,12 +110,12 @@ describe('useMeetingsList', () => {
       useMeetingsList({ listStatus: '', listTrack: '' }),
     );
     await waitFor(() => {
-      expect(result.current.data?.total).toBe(1);
+      expect((result.current.data as unknown as { total: number } | null)?.total).toBe(1);
     });
     await act(async () => {
       await result.current.refresh();
     });
-    expect(result.current.data?.total).toBe(2);
+    expect((result.current.data as unknown as { total: number } | null)?.total).toBe(2);
   });
 
   it('opens an EventSource on /api/meetings/stream and closes it on unmount', async () => {
@@ -146,7 +146,7 @@ describe('useMeetingsList', () => {
       useMeetingsList({ listStatus: '', listTrack: '' }),
     );
     await waitFor(() => {
-      expect(result.current.data?.total).toBe(1);
+      expect((result.current.data as unknown as { total: number } | null)?.total).toBe(1);
     });
     const es = EventSourceStub.instances[0];
     expect(typeof es?.onmessage).toBe('function');
@@ -154,7 +154,7 @@ describe('useMeetingsList', () => {
       es?.onmessage?.({ data: 'meeting-added' });
     });
     await waitFor(() => {
-      expect(result.current.data?.total).toBe(2);
+      expect((result.current.data as unknown as { total: number } | null)?.total).toBe(2);
     });
   });
 

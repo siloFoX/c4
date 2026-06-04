@@ -94,7 +94,7 @@ describe('useSpecialistActions', () => {
       await result.current.handleScoreReset('s1');
     });
     expect(args.setActionError).toHaveBeenCalledTimes(1);
-    const msg = (args.setActionError as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    const msg = (args.setActionError as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
     expect(msg).toContain('score-reset:');
     expect(args.refresh).not.toHaveBeenCalled();
     // confirmResetId stays set so the user can retry from the same prompt
@@ -111,7 +111,7 @@ describe('useSpecialistActions', () => {
         await result.current.handleScoreReset('s1');
       });
       expect(args.setActionError).toHaveBeenCalledTimes(1);
-      const msg = (args.setActionError as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      const msg = (args.setActionError as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
       expect(msg).toContain('failed');
     } finally {
       global.fetch = orig;
@@ -228,7 +228,7 @@ describe('useSpecialistActions', () => {
       await result.current.handleRemove('s1');
     });
     expect(args.setActionError).toHaveBeenCalledTimes(1);
-    const msg = (args.setActionError as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    const msg = (args.setActionError as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
     expect(msg).toContain('in use');
     expect(args.refresh).not.toHaveBeenCalled();
   });

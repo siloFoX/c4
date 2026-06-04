@@ -102,7 +102,7 @@ describe('useWorkflowRun', () => {
   });
 
   it('POSTs the parsed inputsJson as { inputs } when inputsOpen=true', async () => {
-    let body: { inputs?: unknown } | null = null;
+    let body = null as { inputs?: unknown } | null;
     server.use(
       http.post('/api/workflows/:id/run', async ({ request }) => {
         body = (await request.json()) as typeof body;
@@ -220,7 +220,7 @@ describe('useWorkflowRun', () => {
   });
 
   it('does NOT validate inputsJson when inputsOpen=false (garbage JSON is ignored)', async () => {
-    let body: { inputs?: unknown } | null = null;
+    let body = null as { inputs?: unknown } | null;
     server.use(
       http.post('/api/workflows/:id/run', async ({ request }) => {
         body = (await request.json()) as typeof body;
@@ -257,7 +257,8 @@ describe('useWorkflowRun', () => {
       await result.current.handleRun();
     });
     expect(args.setError).toHaveBeenCalled();
-    const lastErr = (args.setError as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0];
+    const setErrorCalls = (args.setError as ReturnType<typeof vi.fn>).mock.calls;
+    const lastErr = setErrorCalls[setErrorCalls.length - 1]?.[0];
     expect(lastErr).toBeTruthy();
     expect(runsCalls).toBe(0);
     expect(args.setRuns).not.toHaveBeenCalled();
@@ -303,7 +304,7 @@ describe('useWorkflowRun', () => {
     expect(setBusy.mock.calls.filter((c) => c[0] === false)).toHaveLength(0);
     release();
     await act(async () => { await runPromise; });
-    expect(setBusy.mock.calls.at(-1)?.[0]).toBe(false);
+    expect(setBusy.mock.calls[setBusy.mock.calls.length - 1]?.[0]).toBe(false);
   });
 
   it('clears inputsError on the next handleRun() invocation that gets past validation', async () => {

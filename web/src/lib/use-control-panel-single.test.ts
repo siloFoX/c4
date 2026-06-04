@@ -126,7 +126,7 @@ describe('useControlPanelSingle', () => {
     expect(args.showToast).toHaveBeenCalledTimes(1);
     const [message, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(message).toContain('Pause');
     expect(message).toContain('worker not found');
@@ -151,7 +151,7 @@ describe('useControlPanelSingle', () => {
     });
     const [message, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(message).toContain('Cancel');
     expect(message.toLowerCase()).toContain('unknown');
@@ -220,7 +220,7 @@ describe('useControlPanelSingle', () => {
     });
     const [message, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(message).toContain('Restart');
     expect(args.fetchList).toHaveBeenCalledTimes(1);
@@ -241,7 +241,7 @@ describe('useControlPanelSingle', () => {
     });
     const [message, kind] = (
       args.showToast as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
+    ).mock.calls[0]!;
     expect(kind).toBe('error');
     expect(message).toContain('Pause');
     expect(message).toContain('already paused');

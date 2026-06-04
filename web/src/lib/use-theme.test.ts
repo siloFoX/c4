@@ -133,7 +133,7 @@ describe('useTheme', () => {
     expect(mq.addEventListener).not.toHaveBeenCalled();
     act(() => result.current.setTheme('system'));
     expect(mq.addEventListener).toHaveBeenCalledTimes(1);
-    expect(mq.addEventListener.mock.calls[0][0]).toBe('change');
+    expect(mq.addEventListener.mock.calls[0]![0]).toBe('change');
   });
 
   it('re-applies on OS theme flips while theme is system', () => {
@@ -153,20 +153,20 @@ describe('useTheme', () => {
     window.localStorage.setItem(THEME_KEY, 'system');
     const { result } = renderHook(() => useTheme());
     expect(mq.addEventListener).toHaveBeenCalledTimes(1);
-    const registered = mq.addEventListener.mock.calls[0][1];
+    const registered = mq.addEventListener.mock.calls[0]![1];
     act(() => result.current.setTheme('light'));
     expect(mq.removeEventListener).toHaveBeenCalledTimes(1);
-    expect(mq.removeEventListener.mock.calls[0][1]).toBe(registered);
+    expect(mq.removeEventListener.mock.calls[0]![1]).toBe(registered);
   });
 
   it('removes the matchMedia listener on unmount when theme was system', () => {
     window.localStorage.setItem(THEME_KEY, 'system');
     const { unmount } = renderHook(() => useTheme());
     expect(mq.addEventListener).toHaveBeenCalledTimes(1);
-    const registered = mq.addEventListener.mock.calls[0][1];
+    const registered = mq.addEventListener.mock.calls[0]![1];
     unmount();
     expect(mq.removeEventListener).toHaveBeenCalledTimes(1);
-    expect(mq.removeEventListener.mock.calls[0][1]).toBe(registered);
+    expect(mq.removeEventListener.mock.calls[0]![1]).toBe(registered);
   });
 
   // (v1.11.371, TODO 11.353) Cross-tab sync.
