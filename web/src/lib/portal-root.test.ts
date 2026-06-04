@@ -93,7 +93,6 @@ describe('portal-root', () => {
   it('returns null in SSR (no document) without throwing', async () => {
     const docDesc = Object.getOwnPropertyDescriptor(globalThis, 'document');
     // Simulate SSR by removing the global document.
-    // @ts-expect-error - intentional teardown for SSR branch.
     delete (globalThis as { document?: unknown }).document;
     try {
       const mod = await import('./portal-root');
@@ -177,7 +176,6 @@ describe('portal-root', () => {
 
   it('definePortalRoot returns null in SSR', async () => {
     const docDesc = Object.getOwnPropertyDescriptor(globalThis, 'document');
-    // @ts-expect-error - intentional teardown for SSR branch.
     delete (globalThis as { document?: unknown }).document;
     try {
       const mod = await import('./portal-root');

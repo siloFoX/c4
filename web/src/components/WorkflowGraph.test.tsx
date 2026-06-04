@@ -25,8 +25,6 @@ function makeWorkflow(overrides: Partial<Workflow> = {}): Workflow {
     id: 'wf-a',
     name: 'pipeline',
     description: '',
-    nodes,
-    edges,
     enabled: true,
     createdAt: '2026-05-01T00:00:00Z',
     updatedAt: '2026-05-01T00:00:00Z',

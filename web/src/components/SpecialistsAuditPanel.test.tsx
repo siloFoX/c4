@@ -410,8 +410,8 @@ describe('<SpecialistsAuditPanel>', () => {
     const items = within(container.querySelector('ul') as HTMLElement).getAllByRole(
       'listitem',
     );
-    expect(within(items[0]).getByText('arch-second')).toBeInTheDocument();
-    expect(within(items[1]).getByText('arch-first')).toBeInTheDocument();
+    expect(within(items[0]!).getByText('arch-second')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('arch-first')).toBeInTheDocument();
   });
 
   it('renders the by-actor copy when actor is set', async () => {

@@ -52,7 +52,7 @@ describe('<SessionsComparisonCard>', () => {
   it('renders the empty first column header (spacer for the row label column)', () => {
     render(<SessionsComparisonCard />);
     const headers = screen.getAllByRole('columnheader');
-    expect(headers[0].textContent).toBe('');
+    expect(headers[0]!.textContent).toBe('');
   });
 
   it('renders the "Attached" column header from the i18n bundle', () => {
@@ -140,9 +140,7 @@ describe('<SessionsComparisonCard>', () => {
   });
 
   it('treats an undefined className the same as no className', () => {
-    const { container } = render(
-      <SessionsComparisonCard className={undefined} />,
-    );
+    const { container } = render(<SessionsComparisonCard />);
     const card = container.firstChild as HTMLElement;
     expect(card.className).toMatch(/max-w-md/);
   });

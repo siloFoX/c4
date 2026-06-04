@@ -71,7 +71,7 @@ describe('<Toolbar>', () => {
     await user.click(screen.getByRole('button', { name: 'Copy' }));
     expect(items[1]!.type !== 'divider' && (items[1] as { onClick: () => void }).onClick).toBeTruthy();
     // Use direct ref check on the mock:
-    const copy = items[1] as { onClick: ReturnType<typeof vi.fn> };
+    const copy = items[1] as unknown as { onClick: ReturnType<typeof vi.fn> };
     expect(copy.onClick).toHaveBeenCalledTimes(1);
   });
 
@@ -195,7 +195,7 @@ describe('<Toolbar>', () => {
       screen.getByRole('button', { name: 'More toolbar actions' }),
     );
     await user.click(screen.getByText('Paste'));
-    const paste = items[2] as { onClick: ReturnType<typeof vi.fn> };
+    const paste = items[2] as unknown as { onClick: ReturnType<typeof vi.fn> };
     expect(paste.onClick).toHaveBeenCalledTimes(1);
   });
 
