@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1133] - 2026-06-04 -- CHORE: fix 29 source-confirmed tsc strict-type errors in 8 test files (TODO 11.1115)
+
+Type-only test cleanup across 8 files (29 errors). ChatView (4)
+removed 4 write-only `last*` mock-prop trackers + renamed the
+now-unused `args` mock-param to `_args` (TS6133). WorkerDetail
+(3): 3 write-only `last*` trackers removed. MeetingsList (4):
+2x `forkSpans[0]!.textContent` + `first!.querySelector` +
+`second!.querySelector`. MeetingsStateActions (4): 4x
+`btns[N]!.textContent` gated by `toHaveLength(4)`.
+RiskCheckResult (3): widened `makeResult(over: Partial<CheckResponse>)`
+to mapped type with `| undefined` + return `as CheckResponse` so
+`makeResult({ inspectedSource: undefined })` / `makeResult({
+intent: undefined })` accept the explicit-undefined overrides; plus
+`pres[0]!.textContent` gated by `toBeGreaterThanOrEqual(1)`.
+SpecialistsList (4): same `makeSpecialist` helper widening + return
+cast (the L41 `const B: Specialist = makeSpecialist({ ..., tags:
+undefined })` was the offender), plus 3x non-null on
+`vetoPills[0]` / `badges[0]` / `pills[0]`.`closest('li')`.
+ui/file-input (4): 4x non-null on `mock.calls[0]` accesses gated
+by `toHaveBeenCalled`. hooks/use-table-sort (3): added explicit
+type argument `useTableSort<'total' | 'worker'>(...)` to all 7
+`useTableSort(KEY, { key: 'total', dir })` declarations -- the
+hook is generic K-extends-string with default `string`; TS narrows
+K to `'total'` from the literal, so `onSortChange('worker', ...)`
+errors. Widening K at the call site is a type-only fix; runtime
+identical. NO test assertion changed; NO non-test source touched;
+NO as-any / ts-ignore. Mandated verification: tsc errors in the 8
+files 29 -> 0; project-wide total 899 -> 870 (delta exactly -29);
+diff confirms ZERO new errors anywhere; vitest on the 8 files passes
+215/215 in 8/8 files -- no NEW failures introduced.
+
 ## [1.11.1132] - 2026-06-04 -- CHORE: fix 29 source-confirmed tsc strict-type errors in 6 src/components test files (TODO 11.1114)
 
 Type-only test cleanup across 6 src/components test files (29

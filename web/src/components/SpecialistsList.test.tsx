@@ -14,7 +14,7 @@ import type { Specialist } from './SpecialistsView';
 
 import SpecialistsList from './SpecialistsList';
 
-function makeSpecialist(over: Partial<Specialist> = {}): Specialist {
+function makeSpecialist(over: { [K in keyof Specialist]?: Specialist[K] | undefined } = {}): Specialist {
   return {
     id: 'arch-1',
     displayName: 'Arch One',
@@ -34,7 +34,7 @@ function makeSpecialist(over: Partial<Specialist> = {}): Specialist {
       lastUpdated: '2026-05-01T00:00:00Z',
     },
     ...over,
-  };
+  } as Specialist;
 }
 
 const A: Specialist = makeSpecialist({ id: 'arch-1', tier: 'design' });
@@ -156,7 +156,7 @@ describe('<SpecialistsList>', () => {
     renderList();
     const vetoPills = screen.getAllByText('veto');
     expect(vetoPills).toHaveLength(1);
-    const row = vetoPills[0].closest('li') as HTMLElement;
+    const row = vetoPills[0]!.closest('li') as HTMLElement;
     expect(within(row).getByText('sec-1')).toBeInTheDocument();
   });
 
@@ -164,7 +164,7 @@ describe('<SpecialistsList>', () => {
     renderList();
     const badges = screen.getAllByText(/probation/i);
     expect(badges.length).toBeGreaterThan(0);
-    const row = badges[0].closest('li') as HTMLElement;
+    const row = badges[0]!.closest('li') as HTMLElement;
     expect(within(row).getByText('sec-1')).toBeInTheDocument();
   });
 
@@ -183,7 +183,7 @@ describe('<SpecialistsList>', () => {
     renderList({ flaggedIds: new Set(['arch-1']) });
     const pills = screen.getAllByText('underperform');
     expect(pills).toHaveLength(1);
-    const row = pills[0].closest('li') as HTMLElement;
+    const row = pills[0]!.closest('li') as HTMLElement;
     expect(within(row).getByText('arch-1')).toBeInTheDocument();
   });
 

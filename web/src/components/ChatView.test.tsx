@@ -54,7 +54,6 @@ let lastBackfillArgs: {
   liveMessages: ChatMessage[];
   onResetExtras?: () => void;
 } | null = null;
-let lastAppendArgs: unknown = null;
 let lastFlusherArgs: { appendLive: (role: 'worker', text: string) => void } | null = null;
 let lastSseArgs: {
   workerName: string;
@@ -107,8 +106,7 @@ vi.mock('../lib/use-chat-backfill', async () => {
 });
 
 vi.mock('../lib/use-append-live', () => ({
-  useAppendLive: (args: unknown) => {
-    lastAppendArgs = args;
+  useAppendLive: (_args: unknown) => {
     return appendLiveMock;
   },
 }));
@@ -182,11 +180,9 @@ interface CapturedHeaderProps {
   onJumpToBottom: () => void;
 }
 
-let lastHeaderProps: CapturedHeaderProps | null = null;
 
 vi.mock('./ChatHeader', () => ({
   default: (props: CapturedHeaderProps) => {
-    lastHeaderProps = props;
     return (
       <div
         data-testid="chat-header"
@@ -235,11 +231,9 @@ interface CapturedLogProps {
   onLoadOlder: () => void;
 }
 
-let lastLogProps: CapturedLogProps | null = null;
 
 vi.mock('./ChatMessageLog', () => ({
   default: (props: CapturedLogProps) => {
-    lastLogProps = props;
     return (
       <div
         ref={props.scrollRef as React.RefObject<HTMLDivElement>}
@@ -280,11 +274,9 @@ interface CapturedComposerProps {
   onSubmit: () => void;
 }
 
-let lastComposerProps: CapturedComposerProps | null = null;
 
 vi.mock('./ChatComposer', () => ({
   default: (props: CapturedComposerProps) => {
-    lastComposerProps = props;
     return (
       <div
         data-testid="chat-composer"
@@ -350,14 +342,10 @@ beforeEach(() => {
   autoState = { autoScroll: true };
   submitState = { sending: false };
   lastBackfillArgs = null;
-  lastAppendArgs = null;
   lastFlusherArgs = null;
   lastSseArgs = null;
   lastAutoArgs = null;
   lastSubmitArgs = null;
-  lastHeaderProps = null;
-  lastLogProps = null;
-  lastComposerProps = null;
 });
 
 describe('<ChatView>', () => {

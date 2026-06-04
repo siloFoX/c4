@@ -119,11 +119,9 @@ interface CapturedHeaderProps {
   onBumpFont: (delta: number) => void;
 }
 
-let lastHeaderProps: CapturedHeaderProps | null = null;
 
 vi.mock('./WorkerDetailHeader', () => ({
   default: (props: CapturedHeaderProps) => {
-    lastHeaderProps = props;
     return (
       <div
         data-testid="worker-header"
@@ -170,11 +168,9 @@ interface CapturedXtermProps {
   visible?: boolean;
 }
 
-let lastXtermProps: CapturedXtermProps | null = null;
 
 vi.mock('./XtermView', () => ({
   default: (props: CapturedXtermProps) => {
-    lastXtermProps = props;
     return (
       <div
         data-testid="xterm-view"
@@ -261,11 +257,9 @@ interface CapturedKeysProps {
   onSendKey: (key: SendableKey) => void;
 }
 
-let lastKeysProps: CapturedKeysProps | null = null;
 
 vi.mock('./WorkerDetailKeysRow', () => ({
   default: (props: CapturedKeysProps) => {
-    lastKeysProps = props;
     return (
       <div data-testid="worker-keys" data-busy={props.busy ? 'true' : 'false'}>
         <button
@@ -328,10 +322,7 @@ beforeEach(() => {
   lastScrollbackArgs = null;
   lastFontArgs = null;
   lastActionsArgs = null;
-  lastHeaderProps = null;
-  lastXtermProps = null;
   lastComposerProps = null;
-  lastKeysProps = null;
 });
 
 describe('<WorkerDetail>', () => {
