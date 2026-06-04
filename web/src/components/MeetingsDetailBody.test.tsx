@@ -138,7 +138,7 @@ const SAMPLE_RECAP: RecapResponse = {
   status: 'in-progress',
   stages: [],
   actions: { count: 0, byType: { decision: 0, action: 0, todo: 0, blocker: 0 } },
-} as RecapResponse;
+} as unknown as RecapResponse;
 
 const SAMPLE_ACTIONS: ActionItemsResponse = {
   count: 0,

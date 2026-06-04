@@ -23,6 +23,8 @@ interface ControlledProps {
 
 function Controlled(props: ControlledProps) {
   const [value, setValue] = useState<number | undefined>(props.initial);
+  const opt = <K extends string, V>(k: K, v: V | undefined): Record<K, V> | object =>
+    v === undefined ? {} : ({ [k]: v } as Record<K, V>);
   return (
     <NumberInput
       value={value}
@@ -30,18 +32,18 @@ function Controlled(props: ControlledProps) {
         setValue(next);
         props.onChange?.(next);
       }}
-      min={props.min}
-      max={props.max}
-      step={props.step}
-      unit={props.unit}
-      prefix={props.prefix}
-      precision={props.precision}
-      placeholder={props.placeholder}
-      disabled={props.disabled}
-      ariaLabel={props.ariaLabel}
-      className={props.className}
-      inputClassName={props.inputClassName}
-      size={props.size}
+      {...opt('min', props.min)}
+      {...opt('max', props.max)}
+      {...opt('step', props.step)}
+      {...opt('unit', props.unit)}
+      {...opt('prefix', props.prefix)}
+      {...opt('precision', props.precision)}
+      {...opt('placeholder', props.placeholder)}
+      {...opt('disabled', props.disabled)}
+      {...opt('ariaLabel', props.ariaLabel)}
+      {...opt('className', props.className)}
+      {...opt('inputClassName', props.inputClassName)}
+      {...opt('size', props.size)}
     />
   );
 }

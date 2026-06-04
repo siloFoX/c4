@@ -24,7 +24,7 @@ function Harness({
     containerRef,
     orientation,
     wrap,
-    onSelect,
+    ...(onSelect !== undefined ? { onSelect } : {}),
   });
   return (
     <div

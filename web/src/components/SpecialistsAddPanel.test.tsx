@@ -255,7 +255,7 @@ describe('<SpecialistsAddPanel>', () => {
     await user.type(textarea, 'json-text');
     const propose = screen.getAllByRole('button', {
       name: 'Propose via meeting',
-    })[0];
+    })[0]!;
     await user.click(propose);
     expect(handleProposeMock).toHaveBeenCalledTimes(1);
   });

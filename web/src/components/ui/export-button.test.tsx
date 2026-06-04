@@ -32,7 +32,7 @@ describe('<ExportButton>', () => {
       if (tag === 'a') {
         (el as HTMLAnchorElement).click = (() => {
           lastFilename = (el as HTMLAnchorElement).download;
-          click();
+          (click as unknown as () => void)();
         }) as unknown as () => void;
       }
       return el;

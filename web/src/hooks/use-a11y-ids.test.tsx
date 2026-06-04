@@ -142,7 +142,7 @@ describe('useA11yIds', () => {
     const { result, rerender } = renderHook(
       (props: { id: string; helper?: string; error?: string }) =>
         useA11yIds(props),
-      { initialProps: { id: 'x', helper: 'h' } },
+      { initialProps: { id: 'x', helper: 'h' } as { id: string; helper?: string; error?: string } },
     );
     const first = result.current;
     rerender({ id: 'x', error: 'e' });
