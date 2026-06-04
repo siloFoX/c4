@@ -158,7 +158,7 @@ describe('useSpecialistEnrichment', () => {
     server.use(
       http.get('/api/specialists/:id', ({ params }) =>
         HttpResponse.json({
-          recentAudit: [{ ts: 't', action: `for-${params.id}` }],
+          recentAudit: [{ ts: 't', action: `for-${params['id']}` }],
         }),
       ),
     );
@@ -183,7 +183,7 @@ describe('useSpecialistEnrichment', () => {
     );
     const { result, rerender } = renderHook(
       ({ id }: { id: string | null }) => useSpecialistEnrichment(id),
-      { initialProps: { id: 'spec-x' } },
+      { initialProps: { id: 'spec-x' as string | null } },
     );
     await waitFor(() => {
       expect(result.current).not.toBeNull();

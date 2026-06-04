@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { createRef } from 'react';
 import type { RefObject } from 'react';
@@ -49,8 +49,7 @@ describe('useXtermThemeTracking', () => {
         return [];
       }
     }
-    // @ts-expect-error - assign fake.
-    globalThis.MutationObserver = FakeMO;
+    globalThis.MutationObserver = FakeMO as unknown as typeof MutationObserver;
   });
 
   afterEach(() => {

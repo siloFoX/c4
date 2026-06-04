@@ -94,7 +94,7 @@ describe('useMeetingContribute', () => {
   });
 
   it('handleContribute: omits vote / reason when blank', async () => {
-    let body: { vote?: string; reason?: string } | null = null;
+    let body = null as { vote?: string; reason?: string } | null;
     server.use(
       http.post('/api/meetings/:id/contribute', async ({ request }) => {
         body = (await request.json()) as typeof body;

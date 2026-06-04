@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { act, renderHook } from '@testing-library/react';
 import { server } from '../test/server';
+import type { ToastType } from '../components/Toast';
 
 // The hook now consumes `useConfirm()` (promise-based confirm dialog,
 // v1.11.225). The existing test bed asserts behaviour through the
@@ -41,7 +42,7 @@ function makeAction(overrides: Partial<ActionConfig> = {}): ActionConfig {
     body: { name: 'w1' },
     successMessage: 'Merged',
     icon: null as unknown as JSX.Element,
-    variant: 'primary',
+    variant: 'default',
     ...overrides,
   };
 }
@@ -331,7 +332,7 @@ describe('useWorkerActionStrip', () => {
 
   it('runAction reference changes when showToast identity changes (useCallback dep)', () => {
     const { result, rerender } = renderHook(
-      ({ showToast }: { showToast: (msg: string, type: 'success' | 'error' | 'info') => void }) =>
+      ({ showToast }: { showToast: (msg: string, type: ToastType) => void }) =>
         useWorkerActionStrip({ showToast }),
       { initialProps: { showToast: vi.fn() } },
     );

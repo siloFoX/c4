@@ -17,7 +17,7 @@ import { useRbac } from './use-rbac';
 
 describe('useRbac', () => {
   it('starts loading with roles=null and users=null before the first fetch resolves', () => {
-    const gate = new Promise<HttpResponse>(() => {});
+    const gate = new Promise<never>(() => {});
     server.use(
       http.get('/api/rbac/roles', async () => gate),
       http.get('/api/rbac/users', async () => gate),
@@ -277,6 +277,6 @@ describe('useRbac', () => {
     );
     const { result } = renderHook(() => useRbac());
     await waitFor(() => expect(result.current.users).toHaveLength(1));
-    expect(result.current.users?.[0]?.grants).toEqual(users[0].grants);
+    expect(result.current.users?.[0]?.grants).toEqual(users[0]!.grants);
   });
 });

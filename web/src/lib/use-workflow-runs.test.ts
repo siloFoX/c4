@@ -128,7 +128,7 @@ describe('useWorkflowRuns', () => {
     );
     const { result, rerender } = renderHook(
       ({ id }: { id: string | null }) => useWorkflowRuns(id),
-      { initialProps: { id: 'wf1' } },
+      { initialProps: { id: 'wf1' as string | null } },
     );
     await waitFor(() => {
       expect(result.current.runs).toHaveLength(1);
@@ -142,7 +142,7 @@ describe('useWorkflowRuns', () => {
   it('refetches and resets expandedRunId on a cross-selection (selectedId change)', async () => {
     server.use(
       http.get('/api/workflows/:id/runs', ({ params }) => {
-        const id = params.id as string;
+        const id = params['id'] as string;
         return HttpResponse.json({
           workflowId: id,
           runs: [makeRun(`${id}-r1`)],

@@ -176,7 +176,7 @@ describe('<MeetingsForkForm>', () => {
     renderOpen();
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
     const [modeSelect] = screen.getAllByRole('combobox');
-    await user.selectOptions(modeSelect, 'reuse');
+    await user.selectOptions(modeSelect!, 'reuse');
     expect(screen.getAllByRole('combobox')).toHaveLength(1);
   });
 
@@ -261,7 +261,7 @@ describe('<MeetingsForkForm>', () => {
     const user = userEvent.setup();
     renderOpen();
     const [modeSelect] = screen.getAllByRole('combobox');
-    await user.selectOptions(modeSelect, 'reuse');
+    await user.selectOptions(modeSelect!, 'reuse');
     expect(setModeMock).toHaveBeenCalledWith('reuse');
   });
 
@@ -269,7 +269,7 @@ describe('<MeetingsForkForm>', () => {
     const user = userEvent.setup();
     renderOpen();
     const trackSelect = screen.getAllByRole('combobox')[1];
-    await user.selectOptions(trackSelect, 'standard');
+    await user.selectOptions(trackSelect!, 'standard');
     expect(setTrackMock).toHaveBeenCalledWith('standard');
   });
 

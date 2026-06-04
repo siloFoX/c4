@@ -283,7 +283,7 @@ describe('<HelpDrawer>', () => {
       '[data-help-entry][data-active="true"]',
     );
     expect(active).toHaveLength(1);
-    expect(active[0].getAttribute('data-help-entry')).toBe('scribe');
+    expect(active[0]!.getAttribute('data-help-entry')).toBe('scribe');
   });
 
   it('does NOT mark any card active when activeFeatureId is an unknown id', () => {
@@ -302,13 +302,13 @@ describe('<HelpDrawer>', () => {
     let active = container.querySelectorAll(
       '[data-help-entry][data-active="true"]',
     );
-    expect(active[0].getAttribute('data-help-entry')).toBe('scribe');
+    expect(active[0]!.getAttribute('data-help-entry')).toBe('scribe');
     rerender(<HelpDrawer {...props} activeFeatureId="batch" />);
     active = container.querySelectorAll(
       '[data-help-entry][data-active="true"]',
     );
     expect(active).toHaveLength(1);
-    expect(active[0].getAttribute('data-help-entry')).toBe('batch');
+    expect(active[0]!.getAttribute('data-help-entry')).toBe('batch');
   });
 
   // ---- close paths --------------------------------------------

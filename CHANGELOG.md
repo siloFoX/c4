@@ -4,6 +4,37 @@
 
 (no entries -- next release window)
 
+## [1.11.1134] - 2026-06-04 -- CHORE: fix 24 source-confirmed tsc strict-type errors in 11 test files (TODO 11.1116)
+
+11 test files (8 `src/lib/*.test.ts` + 2 `src/components/*.test.tsx` +
+1 wired through the route) had strict-mode errors under
+`exactOptionalPropertyTypes` / `noUncheckedIndexedAccess` /
+`noPropertyAccessFromIndexSignature` / `noUnusedLocals`. The dispatch
+quoted 26 errors; a fresh tsc baseline against HEAD found 24 across the
+same 11 files (the dispatch slightly over-counted), and every one is now
+fixed. Mix: 3 HelpDrawer.test.tsx + 3 MeetingsForkForm.test.tsx
+(non-null `!` after presence assertion), 2 each in
+use-escalation-resolve.test.ts (bracket + index access for
+`.at(-1)`), use-meeting-contribute.test.ts (cast-init
+`let body = null as ... | null` to defeat `never` narrowing through
+the msw closure), use-meeting-state-action.test.ts (bracket access on
+params), use-rbac.test.ts (`Promise<HttpResponse>` type arg + non-null
+on users[0]), use-specialist-enrichment.test.ts (bracket + initialProps
+`as string | null`), use-specialist-tag-editor.test.ts (non-null
+`mock.calls[0]!`), use-worker-action-strip.test.ts (variant
+`'default'` + ToastType import for the rerender callback),
+use-workflow-runs.test.ts (bracket + initialProps cast), and
+use-xterm-theme-tracking.test.ts (remove unused `vi` import + stale
+`@ts-expect-error` line; cast assignment via
+`as unknown as typeof MutationObserver`). No `as any`, no
+`ts-ignore`, no fresh `ts-expect-error`. No edits outside the 11
+dispatched files. No test assertion behaviour changed -- only type-side
+adjustments and the one literal `'primary'` -> `'default'` swap in
+use-worker-action-strip (no test depends on the literal). Mandated
+verification: tsc --noEmit total 870 -> 846 (-24, all 24 in those 11
+files cleared, zero new errors anywhere); vitest on the 11 files passes
+11 files / 192 tests / 0 failures.
+
 ## [1.11.1133] - 2026-06-04 -- CHORE: fix 29 source-confirmed tsc strict-type errors in 8 test files (TODO 11.1115)
 
 Type-only test cleanup across 8 files (29 errors). ChatView (4)
