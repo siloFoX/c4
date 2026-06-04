@@ -21,7 +21,7 @@ describe('GridDebugOverlay', () => {
   beforeEach(() => {
     window.localStorage.clear();
     setViewport(1280, 800);
-    vi.stubEnv('PROD', false as unknown as string);
+    vi.stubEnv('PROD', false);
     vi.stubEnv('NODE_ENV', 'development');
   });
 
@@ -30,7 +30,7 @@ describe('GridDebugOverlay', () => {
   });
 
   it('renders null when import.meta.env.PROD=true', () => {
-    vi.stubEnv('PROD', true as unknown as string);
+    vi.stubEnv('PROD', true);
     window.localStorage.setItem(KEY, '1');
     const { container } = render(<GridDebugOverlay />);
     expect(container.firstChild).toBeNull();

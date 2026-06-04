@@ -219,7 +219,7 @@ describe('<MeetingsSearchFilterRow>', () => {
       '2026-05-01',
     );
     expect(onSinceChange).toHaveBeenCalled();
-    const last = onSinceChange.mock.calls.at(-1)![0];
+    const last = onSinceChange.mock.calls[onSinceChange.mock.calls.length - 1]![0];
     expect(last).toBe('2026-05-01');
   });
 
@@ -232,7 +232,7 @@ describe('<MeetingsSearchFilterRow>', () => {
       '2026-05-12',
     );
     expect(onUntilChange).toHaveBeenCalled();
-    const last = onUntilChange.mock.calls.at(-1)![0];
+    const last = onUntilChange.mock.calls[onUntilChange.mock.calls.length - 1]![0];
     expect(last).toBe('2026-05-12');
   });
 

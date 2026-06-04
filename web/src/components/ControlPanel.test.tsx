@@ -153,11 +153,8 @@ interface CapturedBatchProps {
   onRunBatch: (kind: BatchKind) => void;
 }
 
-let lastBatchProps: CapturedBatchProps | null = null;
-
 vi.mock('./ControlPanelBatch', () => ({
   default: (props: CapturedBatchProps) => {
-    lastBatchProps = props;
     return (
       <div
         data-testid="batch"
@@ -324,7 +321,6 @@ beforeEach(() => {
   lastSingleArgs = null;
   lastSelectionArgs = null;
   lastActionsProps = null;
-  lastBatchProps = null;
   lastStatusProps = null;
 });
 
@@ -457,7 +453,7 @@ describe('<ControlPanel>', () => {
     render(<ControlPanel workerName="w1" />);
     await user.click(screen.getByTestId('single-pause'));
     expect(runSingleMock).toHaveBeenCalledTimes(1);
-    expect(runSingleMock.mock.calls[0][0]).toMatchObject({
+    expect(runSingleMock.mock.calls[0]![0]).toMatchObject({
       kind: 'pause',
       endpoint: '/api/key',
     });

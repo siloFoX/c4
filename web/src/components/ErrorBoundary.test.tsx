@@ -145,7 +145,7 @@ describe('<ErrorBoundary>', () => {
     // tagged log is among them.
     const calls = consoleErrorSpy.mock.calls.flat();
     const tagged = calls.some(
-      (a) => typeof a === 'string' && a.includes('[ErrorBoundary]'),
+      (a: unknown) => typeof a === 'string' && a.includes('[ErrorBoundary]'),
     );
     expect(tagged).toBe(true);
   });
@@ -230,7 +230,7 @@ describe('<ErrorBoundary>', () => {
   // ---- error message edge cases --------------------------------
 
   it('falls back to String(error) when the thrown Error has no message', () => {
-    function NoMessage() {
+    function NoMessage(): ReactNode {
       const err = new Error();
       throw err;
     }

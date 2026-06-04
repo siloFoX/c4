@@ -256,7 +256,7 @@ describe('<ChatComposer>', () => {
     textarea.focus();
     await user.keyboard('{Enter}');
     expect(onKeyDown).toHaveBeenCalled();
-    const lastCall = onKeyDown.mock.calls[onKeyDown.mock.calls.length - 1][0];
+    const lastCall = onKeyDown.mock.calls[onKeyDown.mock.calls.length - 1]![0];
     expect(lastCall.key).toBe('Enter');
     expect(lastCall.shiftKey).toBe(false);
   });
@@ -268,7 +268,7 @@ describe('<ChatComposer>', () => {
     textarea.focus();
     await user.keyboard('{Shift>}{Enter}{/Shift}');
     expect(onKeyDown).toHaveBeenCalled();
-    const lastCall = onKeyDown.mock.calls[onKeyDown.mock.calls.length - 1][0];
+    const lastCall = onKeyDown.mock.calls[onKeyDown.mock.calls.length - 1]![0];
     expect(lastCall.key).toBe('Enter');
     expect(lastCall.shiftKey).toBe(true);
   });

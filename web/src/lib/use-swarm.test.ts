@@ -38,7 +38,7 @@ function makeWorker(name: string): Worker {
 describe('useSwarm', () => {
   it('mounts idle: workers=[], selected="", data=null, loading=false, error=null', () => {
     // Block /api/list so the effect cannot resolve before the assertion.
-    const gate = new Promise<HttpResponse>(() => {});
+    const gate = new Promise<never>(() => {});
     server.use(
       http.get('/api/list', async () => gate),
       http.get('/api/swarm', () => HttpResponse.json({})),
