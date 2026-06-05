@@ -786,7 +786,7 @@ describe('<ChartRadialStackedBar> component', () => {
         ref={ref}
       />
     );
-    expect(ref.current?.dataset.section).toBe('chart-radial-stacked-bar');
+    expect(ref.current?.dataset['section']).toBe('chart-radial-stacked-bar');
   });
 
   it('has stable displayName', () => {

@@ -684,7 +684,7 @@ describe('<ChartSpiderWeb> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartSpiderWeb nodes={NODES} edges={EDGES} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-spider-web');
+    expect(ref.current?.dataset['section']).toBe('chart-spider-web');
   });
 
   it('has stable displayName', () => {

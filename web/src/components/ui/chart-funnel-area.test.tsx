@@ -688,7 +688,7 @@ describe('<ChartFunnelArea> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartFunnelArea stages={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-funnel-area');
+    expect(ref.current?.dataset['section']).toBe('chart-funnel-area');
   });
 
   it('has stable displayName', () => {

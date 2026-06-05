@@ -23,9 +23,6 @@ const constBar = (count: number, K: number): ChartLineZlemaCrossPoint[] =>
 const linearUp = (count: number): ChartLineZlemaCrossPoint[] =>
   Array.from({ length: count }, (_, i) => ({ x: i, close: i + 1 }));
 
-const linearDown = (count: number): ChartLineZlemaCrossPoint[] =>
-  Array.from({ length: count }, (_, i) => ({ x: i, close: count - i }));
-
 describe('getLineZlemaCrossFinitePoints', () => {
   it('empty for null', () => {
     expect(getLineZlemaCrossFinitePoints(null)).toEqual([]);

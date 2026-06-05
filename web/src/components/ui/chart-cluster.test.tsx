@@ -792,7 +792,7 @@ describe('<ChartCluster> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartCluster root={ROOT} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-cluster');
+    expect(ref.current?.dataset['section']).toBe('chart-cluster');
   });
 
   it('has stable displayName', () => {

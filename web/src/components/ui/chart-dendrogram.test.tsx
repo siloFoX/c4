@@ -696,7 +696,7 @@ describe('<ChartDendrogram> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartDendrogram root={ROOT} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-dendrogram');
+    expect(ref.current?.dataset['section']).toBe('chart-dendrogram');
   });
 
   it('has stable displayName', () => {

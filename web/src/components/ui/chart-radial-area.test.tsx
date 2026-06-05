@@ -873,7 +873,7 @@ describe('<ChartRadialArea> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartRadialArea series={SAMPLE} cycleLength={6} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-radial-area');
+    expect(ref.current?.dataset['section']).toBe('chart-radial-area');
   });
 
   it('has stable displayName', () => {

@@ -642,7 +642,7 @@ describe('<ChartTreemapSquarified> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartTreemapSquarified items={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-treemap-squarified');
+    expect(ref.current?.dataset['section']).toBe('chart-treemap-squarified');
   });
 
   it('has stable displayName', () => {

@@ -21,9 +21,6 @@ const constBar = (count: number, K: number): ChartLineTemaCrossPctPoint[] =>
 const linearUp = (count: number): ChartLineTemaCrossPctPoint[] =>
   Array.from({ length: count }, (_, i) => ({ x: i, close: i + 1 }));
 
-const linearDown = (count: number): ChartLineTemaCrossPctPoint[] =>
-  Array.from({ length: count }, (_, i) => ({ x: i, close: count - i }));
-
 describe('getLineTemaCrossPctFinitePoints', () => {
   it('empty for null', () => {
     expect(getLineTemaCrossPctFinitePoints(null)).toEqual([]);

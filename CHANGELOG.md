@@ -4,6 +4,33 @@
 
 (no entries -- next release window)
 
+## [1.11.1147] - 2026-06-05 -- CHORE: fix 32 source-confirmed tsc strict-type errors in 32 chart test files -- FINAL chart bucket batch (TODO 11.1129)
+
+FINAL batch of the chart showcase tsc-debt clear. 32 chart .test.tsx
+files held exactly 1 error each (32 total). After this commit, every
+`.test.*` file project-wide is at zero tsc errors -- the only
+remaining errors are in chart component source `.tsx` files (out of
+scope for the chart-tests campaign). Error mix: 21 TS4111
+`\.dataset\.section` -> `\.dataset['section']` (chart-bubble,
+chart-calendar-heatmap, chart-circle-packing, chart-cluster,
+chart-dendrogram, chart-error-bars, chart-funnel-area, chart-histogram,
+chart-icicle, chart-marimekko, chart-pictogram, chart-polar-area,
+chart-radial-area, chart-radial-line, chart-radial-stacked-bar,
+chart-ridge, chart-slope, chart-spider-web, chart-streamgraph,
+chart-sunburst, chart-treemap-squarified) + 8 TS6133 unused helper
+removals (6x `linearDown` in chart-line-{dema,fractal-kc,macd,
+supertrend,tema,zlema}-cross, 1x `WARMUP` in
+chart-line-volume-trend-cross, 1x `buildDeceleratingAfterPeak` in
+chart-line-cci-overbought-divergence) + 3 TS2345 fixes (chart-line-band
+`null,null` -> `null,undefined`, chart-line-event same shape,
+chart-line-fft-window non-null on `w[w.length-1-i]!`). Runtime-
+equivalent. Fix scope was ONLY the 32 .test.tsx files -- no chart
+component .tsx was touched. No `as any`, no `ts-ignore`, no fresh
+`ts-expect-error`. Mandated verification: tsc --noEmit 411 -> 379
+(-32, zero in the 32 files, zero `.test.*` errors anywhere project-
+wide, zero new errors); vitest on the 32 files: 32/32 files pass,
+1883/1883 tests pass. Zero NEW failures.
+
 ## [1.11.1146] - 2026-06-05 -- CHORE: fix 51 source-confirmed tsc strict-type errors in 26 chart showcase test files (chart bucket batch 8) (TODO 11.1128)
 
 Eighth batch of the chart showcase tsc-debt clear. 26 chart .test.tsx

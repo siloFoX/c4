@@ -929,7 +929,7 @@ describe('<ChartRadialLine> component', () => {
     render(
       <ChartRadialLine series={HOURS} cycleLength={24} ref={ref} />
     );
-    expect(ref.current?.dataset.section).toBe('chart-radial-line');
+    expect(ref.current?.dataset['section']).toBe('chart-radial-line');
   });
 
   it('has stable displayName', () => {

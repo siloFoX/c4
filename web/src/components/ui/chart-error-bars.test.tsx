@@ -679,7 +679,7 @@ describe('<ChartErrorBars> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartErrorBars data={BAR_SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-error-bars');
+    expect(ref.current?.dataset['section']).toBe('chart-error-bars');
   });
 
   it('displayName stable', () => {

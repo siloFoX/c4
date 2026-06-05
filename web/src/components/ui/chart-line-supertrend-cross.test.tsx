@@ -38,14 +38,6 @@ const linearUp = (count: number): ChartLineSupertrendCrossPoint[] =>
     close: i + 1,
   }));
 
-const linearDown = (count: number): ChartLineSupertrendCrossPoint[] =>
-  Array.from({ length: count }, (_, i) => ({
-    x: i,
-    high: count - i,
-    low: count - i,
-    close: count - i,
-  }));
-
 describe('getLineSupertrendCrossFinitePoints', () => {
   it('empty for null', () => {
     expect(getLineSupertrendCrossFinitePoints(null)).toEqual([]);

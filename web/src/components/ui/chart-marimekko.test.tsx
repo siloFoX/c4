@@ -774,7 +774,7 @@ describe('<ChartMarimekko> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartMarimekko columns={COLUMNS} series={SERIES} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-marimekko');
+    expect(ref.current?.dataset['section']).toBe('chart-marimekko');
   });
 
   it('has stable displayName', () => {

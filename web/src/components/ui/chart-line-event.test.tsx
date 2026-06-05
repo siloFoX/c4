@@ -408,7 +408,7 @@ describe('computeLineEventLayout', () => {
 describe('describeLineEventChart', () => {
   it('returns "No data" when both series and events empty', () => {
     expect(describeLineEventChart([], [])).toBe('No data');
-    expect(describeLineEventChart(null, null)).toBe('No data');
+    expect(describeLineEventChart(null, undefined)).toBe('No data');
   });
 
   it('summarises series + event count', () => {

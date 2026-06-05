@@ -579,7 +579,7 @@ describe('<ChartRidge> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartRidge series={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-ridge');
+    expect(ref.current?.dataset['section']).toBe('chart-ridge');
   });
 
   it('has stable displayName', () => {

@@ -681,7 +681,7 @@ describe('<ChartSlope> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartSlope items={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-slope');
+    expect(ref.current?.dataset['section']).toBe('chart-slope');
   });
 
   it('has stable displayName', () => {

@@ -160,7 +160,7 @@ describe('computeLineFftWindowCoefficients', () => {
   it('Hann window symmetry', () => {
     const w = computeLineFftWindowCoefficients(17, 'hann');
     for (let i = 0; i < w.length; i += 1) {
-      expect(w[i]).toBeCloseTo(w[w.length - 1 - i], 5);
+      expect(w[i]).toBeCloseTo(w[w.length - 1 - i]!, 5);
     }
   });
 

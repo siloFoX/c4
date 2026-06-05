@@ -631,7 +631,7 @@ describe('<ChartCalendarHeatmap> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartCalendarHeatmap values={SAMPLE} year={2024} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-calendar-heatmap');
+    expect(ref.current?.dataset['section']).toBe('chart-calendar-heatmap');
   });
 
   it('has stable displayName', () => {

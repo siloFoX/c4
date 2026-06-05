@@ -594,7 +594,7 @@ describe('<ChartCirclePacking> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartCirclePacking root={ROOT} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-circle-packing');
+    expect(ref.current?.dataset['section']).toBe('chart-circle-packing');
   });
 
   it('has stable displayName', () => {

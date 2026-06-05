@@ -685,7 +685,7 @@ describe('<ChartStreamgraph> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartStreamgraph series={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-streamgraph');
+    expect(ref.current?.dataset['section']).toBe('chart-streamgraph');
   });
 
   it('has stable displayName', () => {

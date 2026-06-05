@@ -699,7 +699,7 @@ describe('<ChartPictogram> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartPictogram rows={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-pictogram');
+    expect(ref.current?.dataset['section']).toBe('chart-pictogram');
   });
 
   it('has stable displayName', () => {

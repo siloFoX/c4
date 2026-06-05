@@ -652,7 +652,7 @@ describe('<ChartHistogram> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartHistogram values={SMALL} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-histogram');
+    expect(ref.current?.dataset['section']).toBe('chart-histogram');
   });
 
   it('has stable displayName', () => {
