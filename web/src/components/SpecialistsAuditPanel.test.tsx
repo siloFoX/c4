@@ -388,6 +388,10 @@ describe('<SpecialistsAuditPanel>', () => {
   });
 
   it('renders one li per audit entry inside the expanded list', async () => {
+    // (TODO 11.149, v1.11.167) commit 5fa26dcf "feat(ui): timeline
+    // primitive" migrated the audit-log from a plain <ul>/<li> tree to
+    // the Timeline primitive (<ol data-timeline> with <li
+    // data-timeline-item>). Query the Timeline root instead of <ul>.
     auditState.auditEntries = [
       makeEntry({ id: 'arch-1' }),
       makeEntry({ id: 'arch-2', action: 'remove' }),
@@ -395,7 +399,7 @@ describe('<SpecialistsAuditPanel>', () => {
     ];
     const { user, container } = renderPanel();
     await openSection(user);
-    const lists = container.querySelectorAll('ul');
+    const lists = container.querySelectorAll('ol[data-timeline]');
     expect(lists.length).toBe(1);
     expect(within(lists[0] as HTMLElement).getAllByRole('listitem')).toHaveLength(3);
   });
@@ -407,7 +411,9 @@ describe('<SpecialistsAuditPanel>', () => {
     ];
     const { user, container } = renderPanel();
     await openSection(user);
-    const items = within(container.querySelector('ul') as HTMLElement).getAllByRole(
+    // (TODO 11.149, v1.11.167) Timeline primitive migration: query the
+    // <ol data-timeline> root instead of <ul>.
+    const items = within(container.querySelector('ol[data-timeline]') as HTMLElement).getAllByRole(
       'listitem',
     );
     expect(within(items[0]!).getByText('arch-second')).toBeInTheDocument();
@@ -429,10 +435,15 @@ describe('<SpecialistsAuditPanel>', () => {
   });
 
   it('renders the reason copy when reason is set', async () => {
+    // (TODO 11.149, v1.11.167) Timeline migration. The reason is now
+    // rendered as the description slot of the Timeline item: an italic
+    // <span> inside <div data-timeline-description>. The previous
+    // "— {reason}" em-dash prefix was dropped because the Timeline
+    // primitive owns the visual separation via its connector + dot.
     auditState.auditEntries = [makeEntry({ reason: 'manual cleanup' })];
     const { user } = renderPanel();
     await openSection(user);
-    expect(screen.getByText('— manual cleanup')).toBeInTheDocument();
+    expect(screen.getByText('manual cleanup')).toBeInTheDocument();
   });
 
   it('does NOT render the reason span when reason is null', async () => {
@@ -442,20 +453,34 @@ describe('<SpecialistsAuditPanel>', () => {
     expect(screen.queryByText(/^— /)).not.toBeInTheDocument();
   });
 
-  it('applies the per-action tone class on the action chip (add → emerald)', async () => {
+  it('applies the per-action tone via data-tone on the timeline item (add → success)', async () => {
+    // (TODO 11.149, v1.11.167) Timeline migration. The action-to-tone
+    // mapping is still present in the source (actionTone in
+    // SpecialistsAuditPanel.tsx: add -> 'success', remove -> 'danger',
+    // etc.), but the tone is now communicated via the
+    // `data-tone="success"` attribute on the parent <li
+    // data-timeline-item>, NOT a className on the action chip. The
+    // chip itself is uniformly styled by the Timeline primitive.
     auditState.auditEntries = [makeEntry({ action: 'add' })];
     const { user } = renderPanel();
     await openSection(user);
     const chip = screen.getByText('add');
-    expect(chip.className).toMatch(/text-success/);
+    const item = chip.closest('[data-timeline-item="true"]') as HTMLElement;
+    expect(item).not.toBeNull();
+    expect(item.getAttribute('data-tone')).toBe('success');
   });
 
-  it('applies the per-action tone class on remove (rose)', async () => {
+  it('applies the per-action tone via data-tone on the timeline item (remove → danger)', async () => {
+    // (TODO 11.149, v1.11.167) Same Timeline migration. The legacy
+    // `text-rose-700` chip className was replaced by
+    // `data-tone="danger"` on the parent <li>.
     auditState.auditEntries = [makeEntry({ action: 'remove' })];
     const { user } = renderPanel();
     await openSection(user);
     const chip = screen.getByText('remove');
-    expect(chip.className).toMatch(/text-rose-700/);
+    const item = chip.closest('[data-timeline-item="true"]') as HTMLElement;
+    expect(item).not.toBeNull();
+    expect(item.getAttribute('data-tone')).toBe('danger');
   });
 
   it('falls back to muted tone for an unknown action', async () => {

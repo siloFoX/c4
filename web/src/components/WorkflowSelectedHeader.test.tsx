@@ -213,10 +213,17 @@ describe('<WorkflowSelectedHeader>', () => {
         onRun={() => {}}
       />,
     );
-    // No span with destructive class on the only text content.
-    const errs = screen
-      .queryAllByText((c) => c === '')
-      .filter((el) => el.tagName === 'SPAN');
+    // (TODO 11.308, v1.11.181) commit bb97c0b1 "feat(ui): Button
+    // primitive enhancements" wraps Button children in a
+    // <span data-section="button-children"> with empty direct-text
+    // content when the children are non-text (icons, nested spans).
+    // The legacy `queryAllByText(c => c === '')` predicate now
+    // matches those wrappers in addition to the real error span the
+    // test wants to assert absent. Switch to a class-scoped query
+    // (the error span carries `text-destructive`), which preserves
+    // the test's stated intent ("no destructive-tone span when
+    // inputsError is null").
+    const errs = document.querySelectorAll('span.text-destructive');
     expect(errs.length).toBe(0);
   });
 

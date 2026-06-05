@@ -116,9 +116,17 @@ describe('renderMarkdown (lib/markdown.tsx)', () => {
     });
 
     it('renders a horizontal rule for --- and longer dash runs', () => {
+      // (TODO 11.147, v1.11.165) commit f25102c9 "feat(ui): separator
+      // primitive" migrated the markdown HR branch from a raw <hr> to
+      // the shared <Separator /> primitive. The Separator renders as
+      // <div data-section="separator" role="none" ...> (decorative by
+      // default), so the legacy `querySelector('hr')` returns null.
+      // Query the Separator's stable `data-section` attribute instead
+      // to preserve the assertion (a divider element renders between
+      // the two paragraphs).
       const { container } = renderMd('above\n\n---\n\nbelow');
-      expect(container.querySelector('hr')).not.toBeNull();
-      // The hr stays between the two paragraphs.
+      expect(container.querySelector('[data-section="separator"]')).not.toBeNull();
+      // The separator stays between the two paragraphs.
       const ps = container.querySelectorAll('p');
       expect(ps).toHaveLength(2);
     });

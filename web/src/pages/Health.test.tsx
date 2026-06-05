@@ -134,11 +134,19 @@ describe('<Health>', () => {
   });
 
   it('does NOT render the loading skeleton when data is already present', () => {
+    // (TODO 11.171) commit 688daabe "feat(ui): adopt StatusDot in
+    // WorkerList, SessionsListSection, Health" added a StatusDot to
+    // the Health page that exposes role="status" (with aria-label
+    // "Status: online" or similar). The skeleton at
+    // src/pages/Health.tsx:325 also uses role="status" with
+    // aria-label={t('healthPage.refresh.label')} == "Refresh health".
+    // Scope the query to the skeleton's specific accessible name so
+    // the assertion is not falsely caught by the StatusDot badge.
     hookState = { ...hookState, loading: true, data: makeHealth() };
     render(<Health />);
-    // The skeleton's status role is gated on `!data`. Stat panels do not
-    // expose role=status, so any role=status here would be the skeleton.
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Refresh health' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the error panel via role=alert when the hook reports an error', () => {
