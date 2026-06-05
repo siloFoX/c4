@@ -154,8 +154,8 @@ export interface ChartLineTrixDivergenceCrossLayout {
 export interface ChartLineTrixDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineTrixDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -331,7 +331,7 @@ export interface LineTrixDivergenceCrossChannels {
 
 export function computeLineTrixDivergenceCross(
   series: readonly ChartLineTrixDivergenceCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineTrixDivergenceCrossChannels {
   const cleaned = getLineTrixDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -380,7 +380,7 @@ export function detectLineTrixDivergenceCrossCrosses(
 
 export function runLineTrixDivergenceCross(
   data: ChartLineTrixDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): ChartLineTrixDivergenceCrossRun {
   const cleaned = getLineTrixDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -471,8 +471,8 @@ export function runLineTrixDivergenceCross(
 
 export interface ComputeLineTrixDivergenceCrossLayoutOptions {
   data: ChartLineTrixDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -647,7 +647,7 @@ export function computeLineTrixDivergenceCrossLayout(
 
 export function describeLineTrixDivergenceCrossChart(
   data: ChartLineTrixDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineTrixDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

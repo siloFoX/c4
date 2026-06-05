@@ -133,9 +133,9 @@ export interface ChartLineVolumeOscCrossSigLayout {
 export interface ChartLineVolumeOscCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVolumeOscCrossSigPoint[];
-  shortLength?: number;
-  longLength?: number;
-  signalLength?: number;
+  shortLength?: number | undefined;
+  longLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -282,9 +282,9 @@ export interface LineVolumeOscCrossSigChannels {
 export function computeLineVolumeOscCrossSig(
   series: readonly ChartLineVolumeOscCrossSigPoint[] | null | undefined,
   options: {
-    shortLength?: number;
-    longLength?: number;
-    signalLength?: number;
+    shortLength?: number | undefined;
+    longLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineVolumeOscCrossSigChannels {
   const cleaned = getLineVolumeOscCrossSigFinitePoints(series);
@@ -361,9 +361,9 @@ export function detectLineVolumeOscCrossSigCrosses(
 export function runLineVolumeOscCrossSig(
   data: ChartLineVolumeOscCrossSigPoint[],
   options: {
-    shortLength?: number;
-    longLength?: number;
-    signalLength?: number;
+    shortLength?: number | undefined;
+    longLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineVolumeOscCrossSigRun {
   const cleaned = getLineVolumeOscCrossSigFinitePoints(data);
@@ -438,9 +438,9 @@ export function runLineVolumeOscCrossSig(
 
 export interface ComputeLineVolumeOscCrossSigLayoutOptions {
   data: ChartLineVolumeOscCrossSigPoint[];
-  shortLength?: number;
-  longLength?: number;
-  signalLength?: number;
+  shortLength?: number | undefined;
+  longLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -633,9 +633,9 @@ export function computeLineVolumeOscCrossSigLayout(
 export function describeLineVolumeOscCrossSigChart(
   data: ChartLineVolumeOscCrossSigPoint[],
   options: {
-    shortLength?: number;
-    longLength?: number;
-    signalLength?: number;
+    shortLength?: number | undefined;
+    longLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineVolumeOscCrossSigFinitePoints(data);

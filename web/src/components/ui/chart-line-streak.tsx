@@ -126,8 +126,8 @@ export interface ComputeLineStreakLayoutOptions {
   height: number;
   padding: number;
   tickCount?: number;
-  minLength?: number;
-  flatEpsilon?: number;
+  minLength?: number | undefined;
+  flatEpsilon?: number | undefined;
   upColor?: string;
   downColor?: string;
   flatColor?: string;
@@ -147,8 +147,8 @@ export interface ChartLineStreakProps {
   height?: number;
   padding?: number;
   tickCount?: number;
-  minLength?: number;
-  flatEpsilon?: number;
+  minLength?: number | undefined;
+  flatEpsilon?: number | undefined;
   strokeWidth?: number;
   highlightWidth?: number;
   dotRadius?: number;
@@ -237,7 +237,7 @@ export function classifyLineStreakStep(
 
 export function computeLineStreaks(
   points: readonly ChartLineStreakPoint[] | null | undefined,
-  options?: { minLength?: number; flatEpsilon?: number },
+  options?: { minLength?: number | undefined; flatEpsilon?: number | undefined },
 ): ChartLineStreakRun[] {
   const finite = getLineStreakFinitePoints(points);
   if (finite.length < 2) return [];

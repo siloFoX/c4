@@ -127,7 +127,7 @@ export interface ChartLineVwapCrossPctLayout {
 export interface ChartLineVwapCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVwapCrossPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -222,7 +222,7 @@ export interface LineVwapCrossPctChannels {
 
 export function computeLineVwapCrossPct(
   series: readonly ChartLineVwapCrossPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineVwapCrossPctChannels {
   const cleaned = getLineVwapCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -296,7 +296,7 @@ export function detectLineVwapCrossPctCrosses(
 
 export function runLineVwapCrossPct(
   data: ChartLineVwapCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineVwapCrossPctRun {
   const cleaned = getLineVwapCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -352,7 +352,7 @@ export function runLineVwapCrossPct(
 
 export interface ComputeLineVwapCrossPctLayoutOptions {
   data: ChartLineVwapCrossPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -541,7 +541,7 @@ export function computeLineVwapCrossPctLayout(
 
 export function describeLineVwapCrossPctChart(
   data: ChartLineVwapCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineVwapCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

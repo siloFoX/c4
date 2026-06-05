@@ -140,7 +140,7 @@ export interface ChartLineVortexCrossLayout {
 export interface ChartLineVortexCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVortexCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -236,7 +236,7 @@ export interface LineVortexCrossChannels {
 
 export function computeLineVortexCross(
   series: readonly ChartLineVortexCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineVortexCrossChannels {
   const cleaned = getLineVortexCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -316,7 +316,7 @@ export function detectLineVortexCrossCrosses(
 
 export function runLineVortexCross(
   data: ChartLineVortexCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineVortexCrossRun {
   const cleaned = getLineVortexCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -377,7 +377,7 @@ export function runLineVortexCross(
 
 export interface ComputeLineVortexCrossLayoutOptions {
   data: ChartLineVortexCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -552,7 +552,7 @@ export function computeLineVortexCrossLayout(
 
 export function describeLineVortexCrossChart(
   data: ChartLineVortexCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineVortexCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

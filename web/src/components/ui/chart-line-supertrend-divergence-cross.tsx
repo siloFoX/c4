@@ -229,8 +229,8 @@ export interface ChartLineSupertrendDivergenceCrossLayout {
 export interface ChartLineSupertrendDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineSupertrendDivergenceCrossPoint[];
-  period?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -364,7 +364,7 @@ export function computeLineSupertrendDivergenceCross(
     | readonly ChartLineSupertrendDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): SupertrendDivergenceCrossChannels {
   const cleaned = getLineSupertrendDivergenceCrossFinitePoints(series);
   const n = cleaned.length;
@@ -565,7 +565,7 @@ export function detectLineSupertrendDivergenceCrossCrosses(
 
 export function runLineSupertrendDivergenceCross(
   data: ChartLineSupertrendDivergenceCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): ChartLineSupertrendDivergenceCrossRun {
   const cleaned = getLineSupertrendDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -677,8 +677,8 @@ export function runLineSupertrendDivergenceCross(
 
 export interface ComputeLineSupertrendDivergenceCrossLayoutOptions {
   data: ChartLineSupertrendDivergenceCrossPoint[];
-  period?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -857,7 +857,7 @@ export function computeLineSupertrendDivergenceCrossLayout(
 
 export function describeLineSupertrendDivergenceCrossChart(
   data: ChartLineSupertrendDivergenceCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): string {
   const cleaned = getLineSupertrendDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

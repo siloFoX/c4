@@ -126,9 +126,9 @@ export interface ChartLineVolumeRatioLayout {
 export interface ChartLineVolumeRatioProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVolumeRatioPoint[];
-  length?: number;
-  highThreshold?: number;
-  lowThreshold?: number;
+  length?: number | undefined;
+  highThreshold?: number | undefined;
+  lowThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -273,7 +273,7 @@ export interface LineVolumeRatioChannels {
 /** Compute the avg-volume and ratio channels. */
 export function computeLineVolumeRatio(
   series: readonly ChartLineVolumeRatioPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineVolumeRatioChannels {
   const cleaned = getLineVolumeRatioFinitePoints(series);
   if (cleaned.length === 0) {
@@ -344,9 +344,9 @@ export function detectLineVolumeRatioCrosses(
 export function runLineVolumeRatio(
   data: ChartLineVolumeRatioPoint[],
   options: {
-    length?: number;
-    highThreshold?: number;
-    lowThreshold?: number;
+    length?: number | undefined;
+    highThreshold?: number | undefined;
+    lowThreshold?: number | undefined;
   } = {},
 ): ChartLineVolumeRatioRun {
   const cleaned = getLineVolumeRatioFinitePoints(data);
@@ -429,9 +429,9 @@ export function runLineVolumeRatio(
 
 export interface ComputeLineVolumeRatioLayoutOptions {
   data: ChartLineVolumeRatioPoint[];
-  length?: number;
-  highThreshold?: number;
-  lowThreshold?: number;
+  length?: number | undefined;
+  highThreshold?: number | undefined;
+  lowThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -605,9 +605,9 @@ export function computeLineVolumeRatioLayout(
 export function describeLineVolumeRatioChart(
   data: ChartLineVolumeRatioPoint[],
   options: {
-    length?: number;
-    highThreshold?: number;
-    lowThreshold?: number;
+    length?: number | undefined;
+    highThreshold?: number | undefined;
+    lowThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineVolumeRatioFinitePoints(data);

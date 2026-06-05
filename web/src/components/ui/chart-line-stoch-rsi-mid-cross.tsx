@@ -139,10 +139,10 @@ export interface ChartLineStochRsiMidCrossLayout {
 export interface ChartLineStochRsiMidCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochRsiMidCrossPoint[];
-  rsiLength?: number;
-  stochLength?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  rsiLength?: number | undefined;
+  stochLength?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -315,9 +315,9 @@ export interface LineStochRsiMidCrossChannels {
 export function computeLineStochRsiMidCross(
   series: readonly ChartLineStochRsiMidCrossPoint[] | null | undefined,
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    kSmoothing?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    kSmoothing?: number | undefined;
   } = {},
 ): LineStochRsiMidCrossChannels {
   const cleaned = getLineStochRsiMidCrossFinitePoints(series);
@@ -424,10 +424,10 @@ export function detectLineStochRsiMidCrossCrosses(
 export function runLineStochRsiMidCross(
   data: ChartLineStochRsiMidCrossPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStochRsiMidCrossRun {
   const cleaned = getLineStochRsiMidCrossFinitePoints(data);
@@ -510,10 +510,10 @@ export function runLineStochRsiMidCross(
 
 export interface ComputeLineStochRsiMidCrossLayoutOptions {
   data: ChartLineStochRsiMidCrossPoint[];
-  rsiLength?: number;
-  stochLength?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  rsiLength?: number | undefined;
+  stochLength?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -680,10 +680,10 @@ export function computeLineStochRsiMidCrossLayout(
 export function describeLineStochRsiMidCrossChart(
   data: ChartLineStochRsiMidCrossPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochRsiMidCrossFinitePoints(data);

@@ -188,7 +188,7 @@ export interface ChartLineTemaDivergenceCrossLayout {
 export interface ChartLineTemaDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineTemaDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -353,7 +353,7 @@ export interface TemaDivergenceCrossChannels {
 
 export function computeLineTemaDivergenceCross(
   series: readonly ChartLineTemaDivergenceCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): TemaDivergenceCrossChannels {
   const cleaned = getLineTemaDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -441,7 +441,7 @@ export function detectLineTemaDivergenceCrossCrosses(
 
 export function runLineTemaDivergenceCross(
   data: ChartLineTemaDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineTemaDivergenceCrossRun {
   const cleaned = getLineTemaDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -541,7 +541,7 @@ export function runLineTemaDivergenceCross(
 
 export interface ComputeLineTemaDivergenceCrossLayoutOptions {
   data: ChartLineTemaDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -717,7 +717,7 @@ export function computeLineTemaDivergenceCrossLayout(
 
 export function describeLineTemaDivergenceCrossChart(
   data: ChartLineTemaDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineTemaDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

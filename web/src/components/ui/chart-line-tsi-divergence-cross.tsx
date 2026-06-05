@@ -157,9 +157,9 @@ export interface ChartLineTsiDivergenceCrossLayout {
 export interface ChartLineTsiDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineTsiDivergenceCrossPoint[];
-  lengthR?: number;
-  lengthS?: number;
-  divergenceWindow?: number;
+  lengthR?: number | undefined;
+  lengthS?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -349,7 +349,7 @@ export interface LineTsiDivergenceCrossChannels {
 
 export function computeLineTsiDivergenceCross(
   series: readonly ChartLineTsiDivergenceCrossPoint[] | null | undefined,
-  options: { lengthR?: number; lengthS?: number } = {},
+  options: { lengthR?: number | undefined; lengthS?: number | undefined } = {},
 ): LineTsiDivergenceCrossChannels {
   const cleaned = getLineTsiDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -403,9 +403,9 @@ export function detectLineTsiDivergenceCrossCrosses(
 export function runLineTsiDivergenceCross(
   data: ChartLineTsiDivergenceCrossPoint[],
   options: {
-    lengthR?: number;
-    lengthS?: number;
-    divergenceWindow?: number;
+    lengthR?: number | undefined;
+    lengthS?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineTsiDivergenceCrossRun {
   const cleaned = getLineTsiDivergenceCrossFinitePoints(data);
@@ -505,9 +505,9 @@ export function runLineTsiDivergenceCross(
 
 export interface ComputeLineTsiDivergenceCrossLayoutOptions {
   data: ChartLineTsiDivergenceCrossPoint[];
-  lengthR?: number;
-  lengthS?: number;
-  divergenceWindow?: number;
+  lengthR?: number | undefined;
+  lengthS?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -670,9 +670,9 @@ export function computeLineTsiDivergenceCrossLayout(
 export function describeLineTsiDivergenceCrossChart(
   data: ChartLineTsiDivergenceCrossPoint[],
   options: {
-    lengthR?: number;
-    lengthS?: number;
-    divergenceWindow?: number;
+    lengthR?: number | undefined;
+    lengthS?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineTsiDivergenceCrossFinitePoints(data);

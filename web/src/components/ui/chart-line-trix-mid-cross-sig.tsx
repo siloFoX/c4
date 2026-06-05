@@ -199,8 +199,8 @@ export interface ChartLineTrixMidCrossSigLayout {
 export interface ChartLineTrixMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineTrixMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -400,7 +400,7 @@ export interface TrixMidCrossSigChannels {
 
 export function computeLineTrixMidCrossSig(
   series: readonly ChartLineTrixMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): TrixMidCrossSigChannels {
   const cleaned = getLineTrixMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -476,7 +476,7 @@ export function detectLineTrixMidCrossSigCrosses(
 
 export function runLineTrixMidCrossSig(
   data: ChartLineTrixMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineTrixMidCrossSigRun {
   const cleaned = getLineTrixMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -564,8 +564,8 @@ export function runLineTrixMidCrossSig(
 
 export interface ComputeLineTrixMidCrossSigLayoutOptions {
   data: ChartLineTrixMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -771,7 +771,7 @@ export function computeLineTrixMidCrossSigLayout(
 
 export function describeLineTrixMidCrossSigChart(
   data: ChartLineTrixMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineTrixMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
