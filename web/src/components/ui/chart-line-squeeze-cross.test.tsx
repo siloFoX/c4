@@ -369,10 +369,10 @@ describe('<ChartLineSqueezeCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-squeeze-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('20');
-    expect(root?.dataset.bbMult).toBe('2');
-    expect(root?.dataset.kcMult).toBe('1.5');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('20');
+    expect(root?.dataset['bbMult']).toBe('2');
+    expect(root?.dataset['kcMult']).toBe('1.5');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -382,7 +382,7 @@ describe('<ChartLineSqueezeCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-squeeze-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {

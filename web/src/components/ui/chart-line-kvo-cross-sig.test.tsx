@@ -418,10 +418,10 @@ describe('<ChartLineKvoCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-kvo-cross-sig"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.fastLength).toBe('34');
-    expect(root?.dataset.slowLength).toBe('55');
-    expect(root?.dataset.signalLength).toBe('13');
-    expect(root?.dataset.totalPoints).toBe('120');
+    expect(root?.dataset['fastLength']).toBe('34');
+    expect(root?.dataset['slowLength']).toBe('55');
+    expect(root?.dataset['signalLength']).toBe('13');
+    expect(root?.dataset['totalPoints']).toBe('120');
   });
 
   it('reports cross count as data attribute', () => {
@@ -431,7 +431,7 @@ describe('<ChartLineKvoCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-kvo-cross-sig"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {

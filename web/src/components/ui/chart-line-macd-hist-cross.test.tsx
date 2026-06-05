@@ -349,10 +349,10 @@ describe('<ChartLineMacdHistCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-macd-hist-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.fastLength).toBe('12');
-    expect(root?.dataset.slowLength).toBe('26');
-    expect(root?.dataset.signalLength).toBe('9');
-    expect(root?.dataset.totalPoints).toBe('60');
+    expect(root?.dataset['fastLength']).toBe('12');
+    expect(root?.dataset['slowLength']).toBe('26');
+    expect(root?.dataset['signalLength']).toBe('9');
+    expect(root?.dataset['totalPoints']).toBe('60');
   });
 
   it('reports cross count as data attribute', () => {
@@ -362,7 +362,7 @@ describe('<ChartLineMacdHistCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-macd-hist-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {

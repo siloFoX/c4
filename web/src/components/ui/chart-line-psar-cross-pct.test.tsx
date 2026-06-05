@@ -286,9 +286,9 @@ describe('<ChartLinePsarCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-psar-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.afStep).toBe('0.02');
-    expect(root?.dataset.afMax).toBe('0.2');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['afStep']).toBe('0.02');
+    expect(root?.dataset['afMax']).toBe('0.2');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports regime counts as data attributes', () => {
@@ -298,8 +298,8 @@ describe('<ChartLinePsarCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-psar-cross-pct"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.aboveCount)).toBe(0);
-    expect(Number(root?.dataset.belowCount)).toBe(0);
+    expect(Number(root?.dataset['aboveCount'])).toBe(0);
+    expect(Number(root?.dataset['belowCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {

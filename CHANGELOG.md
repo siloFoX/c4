@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.1140] - 2026-06-05 -- CHORE: fix 50 source-confirmed tsc strict-type errors in 10 chart-line test files (chart bucket batch 2) (TODO 11.1122)
+
+Second batch of the chart showcase tsc-debt clear. 10 chart-line
+indicator .test.tsx files held 50 errors total (5 each), all TS4111
+index-signature bracket access on `HTMLElement.dataset.<key>`
+lookups inside the `data-section` assertions: keltner-cross-pct,
+keltner-cross-sig, kvo-cross-sig, kvo-cross, macd-cross-sig,
+macd-hist-cross, psar-cross-pct, squeeze-cross, stoch-cross-sig,
+stoch-overbought-cross. Pure `dataset.X` -> `dataset['X']` bracket
+access; no behaviour change, no assertion change. Fix scope was
+ONLY the 10 .test.tsx files -- no chart component .tsx was touched.
+No `as any`, no `ts-ignore`, no fresh `ts-expect-error`.
+Mandated verification: tsc --noEmit 743 -> 693 (-50, zero in the
+10 files, zero new errors anywhere); vitest on the 10 files: 10/10
+files pass, 568/568 tests pass. Zero NEW failures.
+
 ## [1.11.1139] - 2026-06-05 -- CHORE: fix 32 source-confirmed tsc strict-type errors in 6 chart-line test files (chart bucket batch 1) (TODO 11.1121)
 
 First batch of the chart showcase tsc-debt clear. 6 chart-line
