@@ -91,7 +91,27 @@ describe('useStuckMeetings', () => {
   });
 
   it('refetches on the 60s poll interval and updates with the latest payload', async () => {
-    vi.useFakeTimers();
+    // Previously this case wrapped each interval assertion in
+    // `waitFor(...)`. With `vi.useFakeTimers()` active, waitFor's
+    // own internal setInterval was also faked, so it could never
+    // re-run its predicate -- the test hung until the 5000ms test
+    // timeout. The fix is to drop waitFor and assert directly,
+    // letting `vi.advanceTimersByTimeAsync(ms)` advance fake time
+    // and pumping the microtask queue a few times so the multi-
+    // await apiGet chain (await apiFetch -> check res.ok -> await
+    // res.json -> .then(setData)) plus MSW's internal scheduling
+    // can drain. A single `await vi.advanceTimersByTimeAsync(0)`
+    // only flushes one round of microtasks, so add an explicit
+    // pump that loops until result.current.count moves on.
+    // `shouldAdvanceTime: true` keeps wall-clock progress under
+    // fake timers, so any internal setTimeout(0) used by MSW or
+    // the apiGet promise chain (await apiFetch -> check res.ok ->
+    // await res.json -> .then(setData)) fires naturally and the
+    // waitFor predicate has time to run. Manual
+    // `advanceTimersByTimeAsync(60_000)` still deterministically
+    // jumps the setInterval(tick, 60000) boundary so the 2nd/3rd
+    // polls fire without us actually sleeping 60 real seconds.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     let calls = 0;
     server.use(
       http.get('/api/meetings/stuck', () => {
@@ -100,7 +120,6 @@ describe('useStuckMeetings', () => {
       }),
     );
     const { result } = renderHook(() => useStuckMeetings());
-    await vi.advanceTimersByTimeAsync(0);
     await waitFor(() => {
       expect(result.current?.count).toBe(1);
     });
@@ -112,6 +131,7 @@ describe('useStuckMeetings', () => {
     await waitFor(() => {
       expect(result.current?.count).toBe(3);
     });
+    vi.useRealTimers();
   });
 
   it('does not write state after unmount (cancel flag prevents stale writes)', async () => {

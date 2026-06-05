@@ -4,6 +4,24 @@
 
 (no entries -- next release window)
 
+## [1.11.1162] - 2026-06-05 -- CHORE: fix 3 fake-timer/clipboard test-infra failures across 2 files (TODO 11.1144)
+
+2 test files held 3 failing assertions, all TEST-INFRA bugs (not
+real source regressions). use-stuck-meetings.test.ts (refetches on
+the 60s poll interval) hung because waitFor's internal interval
+was faked by vi.useFakeTimers(); fixed via shouldAdvanceTime: true
+so waitFor can poll while explicit advanceTimersByTimeAsync(60_000)
+still jumps the setInterval boundary deterministically.
+data-list.test.tsx (clipboard writeText): userEvent.setup() v14
+installs its own clipboard that shadows beforeEach's vi.fn(); fixed
+by spying on navigator.clipboard.writeText AFTER userEvent.setup().
+data-list.test.tsx (Check icon transient): same shouldAdvanceTime
+fix lets userEvent's internal awaits resolve while
+advanceTimersByTime(1300) still fires the 1200ms revert deterministically.
+Zero timeout values raised; zero timing assertions deleted; zero
+source files touched. Verification: tsc 0, npm build green, vitest
+2/2 files + 44/44 cases pass under two consecutive runs.
+
 ## [1.11.1161] - 2026-06-05 -- CHORE: triage 5 element-missing/count-state tests with REVERSED bias (TODO 11.1143)
 
 5 test files with 9 failing assertions triaged under the REVERSED-
