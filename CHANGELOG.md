@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1161] - 2026-06-05 -- CHORE: triage 5 element-missing/count-state tests with REVERSED bias (TODO 11.1143)
+
+5 test files with 9 failing assertions triaged under the REVERSED-
+bias contract (default REAL BUG). Every failure traced to a named
+source commit explicitly migrating a UI primitive: Button
+enhancement TODO 11.308 / bb97c0b1 (button-children span wrapper)
+caused MeetingsMaintenancePanel + WorkflowSelectedHeader queries
+to over-match; Timeline primitive TODO 11.149 / 5fa26dcf migrated
+SpecialistsAuditPanel audit-log from <ul>/<li> + className tones
+to <ol data-timeline> + data-tone (5 assertions); StatusDot
+adoption TODO 11.171 / 688daabe added a role="status" badge to
+Health that the broad queryByRole catches alongside the skeleton;
+Separator primitive TODO 11.147 / f25102c9 replaced <hr> in the
+markdown HR branch with <Separator data-section="separator">.
+All 9 assertions STALE per the contract (git history proves
+deliberate intended changes that predate the test expectations);
+all 9 fixed test-only. ZERO source files touched. Verification:
+tsc 0, npm build green, vitest 5/5 files + 178/178 tests pass.
+
 ## [1.11.1160] - 2026-06-05 -- CHORE: triage-and-fix 3 likely-stale component tests, classify stale-vs-real-bug (TODO 11.1142)
 
 3 likely-stale tests triaged. 2 STALE (WikiBulkPublishRow class

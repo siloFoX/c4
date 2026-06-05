@@ -252,11 +252,18 @@ describe('<MeetingsMaintenancePanel>', () => {
   });
 
   it('does NOT render the integrity message text when integrityMsg is null', async () => {
+    // (TODO 11.308, v1.11.181) commit bb97c0b1 "feat(ui): Button
+    // primitive enhancements" wrapped Button children in a
+    // <span data-section="button-children"> so the legacy
+    // `row.querySelector('span')` now matches the wrapper inside the
+    // button instead of the message <span>. Scope to the truncate-
+    // styled message span (the only one rendered for integrityMsg)
+    // so the assertion still pins the negative case correctly.
     integrityMsg = null;
     await openPanel();
     const btn = screen.getByTitle(TITLE_INTEGRITY);
     const row = btn.parentElement as HTMLElement;
-    expect(row.querySelector('span')).toBeNull();
+    expect(row.querySelector('span.truncate')).toBeNull();
   });
 
   it('disables the integrity button + swaps label to ellipsis when busy', async () => {
