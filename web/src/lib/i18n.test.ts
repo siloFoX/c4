@@ -55,6 +55,16 @@ describe('detectLocale', () => {
   });
 
   it('falls back to the navigator language when localStorage is empty', () => {
+    // (TODO 11.1147) The shared beforeEach clears localStorage and
+    // then calls setLocale(DEFAULT_LOCALE), which WRITES the default
+    // back to localStorage via the same persistence path detectLocale
+    // reads from (src/lib/i18n.ts:26-27). For this case the
+    // empty-localStorage precondition is load-bearing -- detectLocale
+    // returns the saved value early and never reaches the navigator
+    // fallback at i18n.ts:33 if anything is persisted. Remove only
+    // the locale key here (not localStorage.clear()) so this test's
+    // narrow precondition holds without affecting sibling tests.
+    window.localStorage.removeItem(LOCALE_KEY);
     const original = Object.getOwnPropertyDescriptor(
       Object.getPrototypeOf(window.navigator),
       'language',
