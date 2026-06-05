@@ -20,6 +20,7 @@ describe('<Tooltip> snapshot baselines', () => {
         class="relative inline-flex"
         data-arrow="false"
         data-placement="top"
+        data-portal="false"
         data-section="tooltip"
         data-tooltip-root="true"
         data-visible="false"
@@ -30,7 +31,10 @@ describe('<Tooltip> snapshot baselines', () => {
           Save
         </button>
         <span
-          class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0"
+          aria-label="Save changes"
+          class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0"
+          data-placement="top"
+          data-tooltip-body="true"
           data-visible="false"
           id=":r0:"
           role="tooltip"
@@ -52,6 +56,7 @@ describe('<Tooltip> snapshot baselines', () => {
         class="relative inline-flex"
         data-arrow="false"
         data-placement="top"
+        data-portal="false"
         data-section="tooltip"
         data-tooltip-root="true"
         data-visible="true"
@@ -63,7 +68,10 @@ describe('<Tooltip> snapshot baselines', () => {
           Save
         </button>
         <span
-          class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-100"
+          aria-label="Save changes"
+          class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-100"
+          data-placement="top"
+          data-tooltip-body="true"
           data-visible="true"
           id=":r1:"
           role="tooltip"
@@ -85,6 +93,7 @@ describe('<Tooltip> snapshot baselines', () => {
         class="relative inline-flex"
         data-arrow="false"
         data-placement="bottom"
+        data-portal="false"
         data-section="tooltip"
         data-tooltip-root="true"
         data-visible="true"
@@ -96,7 +105,10 @@ describe('<Tooltip> snapshot baselines', () => {
           Trigger
         </button>
         <span
-          class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity top-full left-1/2 -translate-x-1/2 mt-1.5 opacity-100"
+          aria-label="Below"
+          class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute top-full left-1/2 -translate-x-1/2 mt-1.5 opacity-100"
+          data-placement="bottom"
+          data-tooltip-body="true"
           data-visible="true"
           id=":r2:"
           role="tooltip"
@@ -118,6 +130,7 @@ describe('<Tooltip> snapshot baselines', () => {
         class="relative inline-flex"
         data-arrow="false"
         data-placement="left"
+        data-portal="false"
         data-section="tooltip"
         data-tooltip-root="true"
         data-visible="true"
@@ -129,7 +142,10 @@ describe('<Tooltip> snapshot baselines', () => {
           Trigger
         </button>
         <span
-          class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity right-full top-1/2 -translate-y-1/2 mr-1.5 opacity-100"
+          aria-label="Leftward"
+          class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute right-full top-1/2 -translate-y-1/2 mr-1.5 opacity-100"
+          data-placement="left"
+          data-tooltip-body="true"
           data-visible="true"
           id=":r3:"
           role="tooltip"
@@ -151,6 +167,7 @@ describe('<Tooltip> snapshot baselines', () => {
         class="relative inline-flex"
         data-arrow="false"
         data-placement="right"
+        data-portal="false"
         data-section="tooltip"
         data-tooltip-root="true"
         data-visible="true"
@@ -162,7 +179,10 @@ describe('<Tooltip> snapshot baselines', () => {
           Trigger
         </button>
         <span
-          class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity left-full top-1/2 -translate-y-1/2 ml-1.5 opacity-100"
+          aria-label="Rightward"
+          class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute left-full top-1/2 -translate-y-1/2 ml-1.5 opacity-100"
+          data-placement="right"
+          data-tooltip-body="true"
           data-visible="true"
           id=":r4:"
           role="tooltip"
