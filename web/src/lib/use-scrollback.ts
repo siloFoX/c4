@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiGet } from './api';
 
 // (v1.10.636) Extracted from WorkerDetail. Polled
@@ -34,6 +34,19 @@ export function useScrollback(args: {
   const [scrollbackContent, setScrollbackContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
+  // (v1.11.1163, TODO 11.1145) The tab-change reset effect needs to
+  // call setActionMsg(null) but must NOT take a fresh function
+  // reference as a dependency. Consumers like WorkerDetail.tsx pass
+  // `(next) => setActionMsg(next)` inline, which is a brand new
+  // arrow on every render. Without the ref, the dep array changes
+  // every render, the effect re-fires, and the `setError(null)` it
+  // contains clobbers any error the in-flight fetch was about to
+  // surface. That manifested as silent error-swallowing in the
+  // worker scrollback panel (and as 3 failing tests in
+  // use-scrollback.test.ts asserting the error string never stuck).
+  const setActionMsgRef = useRef(setActionMsg);
+  setActionMsgRef.current = setActionMsg;
+
   const fetchScrollback = useCallback(async () => {
     if (tab !== 'scrollback') return;
     try {
@@ -53,12 +66,12 @@ export function useScrollback(args: {
 
   useEffect(() => {
     setError(null);
-    setActionMsg(null);
+    setActionMsgRef.current(null);
     if (tab !== 'scrollback') return;
     fetchScrollback();
     const interval = setInterval(fetchScrollback, 3000);
     return () => clearInterval(interval);
-  }, [fetchScrollback, tab, setActionMsg]);
+  }, [fetchScrollback, tab]);
 
   return { scrollbackContent, error, setError, fetchScrollback };
 }
