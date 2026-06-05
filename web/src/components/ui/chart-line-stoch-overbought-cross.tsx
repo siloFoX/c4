@@ -128,9 +128,9 @@ export interface ChartLineStochOverboughtCrossLayout {
 export interface ChartLineStochOverboughtCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochOverboughtCrossPoint[];
-  length?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -268,7 +268,7 @@ export interface LineStochOverboughtCrossChannels {
 
 export function computeLineStochOverboughtCross(
   series: readonly ChartLineStochOverboughtCrossPoint[] | null | undefined,
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): LineStochOverboughtCrossChannels {
   const cleaned = getLineStochOverboughtCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -335,9 +335,9 @@ export function detectLineStochOverboughtCrossCrosses(
 export function runLineStochOverboughtCross(
   data: ChartLineStochOverboughtCrossPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStochOverboughtCrossRun {
   const cleaned = getLineStochOverboughtCrossFinitePoints(data);
@@ -413,9 +413,9 @@ export function runLineStochOverboughtCross(
 
 export interface ComputeLineStochOverboughtCrossLayoutOptions {
   data: ChartLineStochOverboughtCrossPoint[];
-  length?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -585,9 +585,9 @@ export function computeLineStochOverboughtCrossLayout(
 export function describeLineStochOverboughtCrossChart(
   data: ChartLineStochOverboughtCrossPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochOverboughtCrossFinitePoints(data);

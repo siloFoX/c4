@@ -127,8 +127,8 @@ export interface ChartLineVrocCrossSigLayout {
 export interface ChartLineVrocCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVrocCrossSigPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -275,7 +275,7 @@ export interface LineVrocCrossSigChannels {
 
 export function computeLineVrocCrossSig(
   series: readonly ChartLineVrocCrossSigPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineVrocCrossSigChannels {
   const cleaned = getLineVrocCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -345,7 +345,7 @@ export function detectLineVrocCrossSigCrosses(
 
 export function runLineVrocCrossSig(
   data: ChartLineVrocCrossSigPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineVrocCrossSigRun {
   const cleaned = getLineVrocCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -411,8 +411,8 @@ export function runLineVrocCrossSig(
 
 export interface ComputeLineVrocCrossSigLayoutOptions {
   data: ChartLineVrocCrossSigPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -601,7 +601,7 @@ export function computeLineVrocCrossSigLayout(
 
 export function describeLineVrocCrossSigChart(
   data: ChartLineVrocCrossSigPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineVrocCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

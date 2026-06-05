@@ -192,7 +192,7 @@ export interface ChartLineVwapDivergenceCrossLayout {
 export interface ChartLineVwapDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVwapDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -307,7 +307,7 @@ export interface VwapDivergenceCrossChannels {
 
 export function computeLineVwapDivergenceCross(
   series: readonly ChartLineVwapDivergenceCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): VwapDivergenceCrossChannels {
   const cleaned = getLineVwapDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -409,7 +409,7 @@ export function detectLineVwapDivergenceCrossCrosses(
 
 export function runLineVwapDivergenceCross(
   data: ChartLineVwapDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineVwapDivergenceCrossRun {
   const cleaned = getLineVwapDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -507,7 +507,7 @@ export function runLineVwapDivergenceCross(
 
 export interface ComputeLineVwapDivergenceCrossLayoutOptions {
   data: ChartLineVwapDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -683,7 +683,7 @@ export function computeLineVwapDivergenceCrossLayout(
 
 export function describeLineVwapDivergenceCrossChart(
   data: ChartLineVwapDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineVwapDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

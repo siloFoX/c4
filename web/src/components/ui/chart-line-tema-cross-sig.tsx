@@ -148,8 +148,8 @@ export interface ChartLineTemaCrossSigLayout {
 export interface ChartLineTemaCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineTemaCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -352,7 +352,7 @@ export interface LineTemaCrossSigChannels {
 
 export function computeLineTemaCrossSig(
   series: readonly ChartLineTemaCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): LineTemaCrossSigChannels {
   const cleaned = getLineTemaCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -415,7 +415,7 @@ export function detectLineTemaCrossSigCrosses(
 
 export function runLineTemaCrossSig(
   data: ChartLineTemaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineTemaCrossSigRun {
   const cleaned = getLineTemaCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -497,8 +497,8 @@ export function runLineTemaCrossSig(
 
 export interface ComputeLineTemaCrossSigLayoutOptions {
   data: ChartLineTemaCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -694,7 +694,7 @@ export function computeLineTemaCrossSigLayout(
 
 export function describeLineTemaCrossSigChart(
   data: ChartLineTemaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineTemaCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -204,8 +204,8 @@ export interface ChartLineVolumeSpikeCrossLayout {
 export interface ChartLineVolumeSpikeCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVolumeSpikeCrossPoint[];
-  period?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -358,7 +358,7 @@ export interface VolumeSpikeCrossChannels {
 
 export function computeLineVolumeSpikeCross(
   series: readonly ChartLineVolumeSpikeCrossPoint[] | null | undefined,
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): VolumeSpikeCrossChannels {
   const cleaned = getLineVolumeSpikeCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -423,7 +423,7 @@ export function detectLineVolumeSpikeCrossCrosses(
 
 export function runLineVolumeSpikeCross(
   data: ChartLineVolumeSpikeCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): ChartLineVolumeSpikeCrossRun {
   const cleaned = getLineVolumeSpikeCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -508,8 +508,8 @@ export function runLineVolumeSpikeCross(
 
 export interface ComputeLineVolumeSpikeCrossLayoutOptions {
   data: ChartLineVolumeSpikeCrossPoint[];
-  period?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -690,7 +690,7 @@ export function computeLineVolumeSpikeCrossLayout(
 
 export function describeLineVolumeSpikeCrossChart(
   data: ChartLineVolumeSpikeCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): string {
   const cleaned = getLineVolumeSpikeCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

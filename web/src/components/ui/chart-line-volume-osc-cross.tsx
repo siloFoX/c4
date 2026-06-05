@@ -127,8 +127,8 @@ export interface ChartLineVolumeOscCrossLayout {
 export interface ChartLineVolumeOscCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVolumeOscCrossPoint[];
-  shortLength?: number;
-  longLength?: number;
+  shortLength?: number | undefined;
+  longLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -269,7 +269,7 @@ export interface LineVolumeOscCrossChannels {
 
 export function computeLineVolumeOscCross(
   series: readonly ChartLineVolumeOscCrossPoint[] | null | undefined,
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): LineVolumeOscCrossChannels {
   const cleaned = getLineVolumeOscCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -332,7 +332,7 @@ export function detectLineVolumeOscCrossCrosses(
 
 export function runLineVolumeOscCross(
   data: ChartLineVolumeOscCrossPoint[],
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): ChartLineVolumeOscCrossRun {
   const cleaned = getLineVolumeOscCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -393,8 +393,8 @@ export function runLineVolumeOscCross(
 
 export interface ComputeLineVolumeOscCrossLayoutOptions {
   data: ChartLineVolumeOscCrossPoint[];
-  shortLength?: number;
-  longLength?: number;
+  shortLength?: number | undefined;
+  longLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -570,7 +570,7 @@ export function computeLineVolumeOscCrossLayout(
 
 export function describeLineVolumeOscCrossChart(
   data: ChartLineVolumeOscCrossPoint[],
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineVolumeOscCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

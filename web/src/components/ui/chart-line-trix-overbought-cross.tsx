@@ -139,8 +139,8 @@ export interface ChartLineTrixOverboughtCrossLayout {
 export interface ChartLineTrixOverboughtCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineTrixOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -306,7 +306,7 @@ export function computeLineTrixOverboughtCross(
     | readonly ChartLineTrixOverboughtCrossPoint[]
     | null
     | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineTrixOverboughtCrossChannels {
   const cleaned = getLineTrixOverboughtCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -368,8 +368,8 @@ export function detectLineTrixOverboughtCrossCrosses(
 export function runLineTrixOverboughtCross(
   data: ChartLineTrixOverboughtCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineTrixOverboughtCrossRun {
   const cleaned = getLineTrixOverboughtCrossFinitePoints(data);
@@ -437,8 +437,8 @@ export function runLineTrixOverboughtCross(
 
 export interface ComputeLineTrixOverboughtCrossLayoutOptions {
   data: ChartLineTrixOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -625,8 +625,8 @@ export function computeLineTrixOverboughtCrossLayout(
 export function describeLineTrixOverboughtCrossChart(
   data: ChartLineTrixOverboughtCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineTrixOverboughtCrossFinitePoints(data);

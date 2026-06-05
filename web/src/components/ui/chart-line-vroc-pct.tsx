@@ -96,7 +96,7 @@ export interface ChartLineVrocPctLayout {
 export interface ChartLineVrocPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVrocPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -186,7 +186,7 @@ export function normalizeLineVrocPctLength(
 
 export function computeLineVrocPct(
   series: readonly ChartLineVrocPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): Array<number | null> {
   const cleaned = getLineVrocPctFinitePoints(series);
   if (cleaned.length === 0) return [];
@@ -216,7 +216,7 @@ export function classifyLineVrocPctRegime(
 
 export function runLineVrocPct(
   data: ChartLineVrocPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineVrocPctRun {
   const cleaned = getLineVrocPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -268,7 +268,7 @@ export function runLineVrocPct(
 
 export interface ComputeLineVrocPctLayoutOptions {
   data: ChartLineVrocPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -422,7 +422,7 @@ export function computeLineVrocPctLayout(
 
 export function describeLineVrocPctChart(
   data: ChartLineVrocPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineVrocPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

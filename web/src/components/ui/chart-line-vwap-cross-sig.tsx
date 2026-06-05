@@ -131,8 +131,8 @@ export interface ChartLineVwapCrossSigLayout {
 export interface ChartLineVwapCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVwapCrossSigPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -275,7 +275,7 @@ export interface LineVwapCrossSigChannels {
 
 export function computeLineVwapCrossSig(
   series: readonly ChartLineVwapCrossSigPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineVwapCrossSigChannels {
   const cleaned = getLineVwapCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -352,7 +352,7 @@ export function detectLineVwapCrossSigCrosses(
 
 export function runLineVwapCrossSig(
   data: ChartLineVwapCrossSigPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineVwapCrossSigRun {
   const cleaned = getLineVwapCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -417,8 +417,8 @@ export function runLineVwapCrossSig(
 
 export interface ComputeLineVwapCrossSigLayoutOptions {
   data: ChartLineVwapCrossSigPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -601,7 +601,7 @@ export function computeLineVwapCrossSigLayout(
 
 export function describeLineVwapCrossSigChart(
   data: ChartLineVwapCrossSigPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineVwapCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

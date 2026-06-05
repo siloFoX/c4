@@ -201,7 +201,7 @@ export interface ChartLineVolumeTrendCrossLayout {
 export interface ChartLineVolumeTrendCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVolumeTrendCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -303,7 +303,7 @@ export interface ComputeLineVolumeTrendCrossResult {
 
 export function computeLineVolumeTrendCross(
   series: readonly ChartLineVolumeTrendCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ComputeLineVolumeTrendCrossResult {
   const cleaned = getLineVolumeTrendCrossFinitePoints(series);
   if (cleaned.length === 0) return { vwma: [], sma: [] };
@@ -377,7 +377,7 @@ export function detectLineVolumeTrendCrossCrosses(
 
 export function runLineVolumeTrendCross(
   data: ChartLineVolumeTrendCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineVolumeTrendCrossRun {
   const cleaned = getLineVolumeTrendCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -468,7 +468,7 @@ export function runLineVolumeTrendCross(
 
 export interface ComputeLineVolumeTrendCrossLayoutOptions {
   data: ChartLineVolumeTrendCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -659,7 +659,7 @@ export function computeLineVolumeTrendCrossLayout(
 
 export function describeLineVolumeTrendCrossChart(
   data: ChartLineVolumeTrendCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineVolumeTrendCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

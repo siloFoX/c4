@@ -148,10 +148,10 @@ export interface ChartLineStochRsiCrossSigLayout {
 export interface ChartLineStochRsiCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochRsiCrossSigPoint[];
-  rsiLength?: number;
-  stochLength?: number;
-  slowKLength?: number;
-  signalLength?: number;
+  rsiLength?: number | undefined;
+  stochLength?: number | undefined;
+  slowKLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -354,10 +354,10 @@ export interface LineStochRsiCrossSigChannels {
 export function computeLineStochRsiCrossSig(
   series: readonly ChartLineStochRsiCrossSigPoint[] | null | undefined,
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    slowKLength?: number;
-    signalLength?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    slowKLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineStochRsiCrossSigChannels {
   const cleaned = getLineStochRsiCrossSigFinitePoints(series);
@@ -477,10 +477,10 @@ export function detectLineStochRsiCrossSigCrosses(
 export function runLineStochRsiCrossSig(
   data: ChartLineStochRsiCrossSigPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    slowKLength?: number;
-    signalLength?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    slowKLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineStochRsiCrossSigRun {
   const cleaned = getLineStochRsiCrossSigFinitePoints(data);
@@ -563,10 +563,10 @@ export function runLineStochRsiCrossSig(
 
 export interface ComputeLineStochRsiCrossSigLayoutOptions {
   data: ChartLineStochRsiCrossSigPoint[];
-  rsiLength?: number;
-  stochLength?: number;
-  slowKLength?: number;
-  signalLength?: number;
+  rsiLength?: number | undefined;
+  stochLength?: number | undefined;
+  slowKLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -766,10 +766,10 @@ export function computeLineStochRsiCrossSigLayout(
 export function describeLineStochRsiCrossSigChart(
   data: ChartLineStochRsiCrossSigPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    slowKLength?: number;
-    signalLength?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    slowKLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochRsiCrossSigFinitePoints(data);

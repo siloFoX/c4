@@ -156,9 +156,9 @@ export interface ChartLineStochRsiDivergenceCrossLayout {
 export interface ChartLineStochRsiDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochRsiDivergenceCrossPoint[];
-  length?: number;
-  stochLength?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  stochLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -386,7 +386,7 @@ export function computeLineStochRsiDivergenceCross(
     | readonly ChartLineStochRsiDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { length?: number; stochLength?: number } = {},
+  options: { length?: number | undefined; stochLength?: number | undefined } = {},
 ): LineStochRsiDivergenceCrossChannels {
   const cleaned = getLineStochRsiDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -444,9 +444,9 @@ export function detectLineStochRsiDivergenceCrossCrosses(
 export function runLineStochRsiDivergenceCross(
   data: ChartLineStochRsiDivergenceCrossPoint[],
   options: {
-    length?: number;
-    stochLength?: number;
-    divergenceWindow?: number;
+    length?: number | undefined;
+    stochLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineStochRsiDivergenceCrossRun {
   const cleaned = getLineStochRsiDivergenceCrossFinitePoints(data);
@@ -552,9 +552,9 @@ export function runLineStochRsiDivergenceCross(
 
 export interface ComputeLineStochRsiDivergenceCrossLayoutOptions {
   data: ChartLineStochRsiDivergenceCrossPoint[];
-  length?: number;
-  stochLength?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  stochLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -718,9 +718,9 @@ export function computeLineStochRsiDivergenceCrossLayout(
 export function describeLineStochRsiDivergenceCrossChart(
   data: ChartLineStochRsiDivergenceCrossPoint[],
   options: {
-    length?: number;
-    stochLength?: number;
-    divergenceWindow?: number;
+    length?: number | undefined;
+    stochLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochRsiDivergenceCrossFinitePoints(data);

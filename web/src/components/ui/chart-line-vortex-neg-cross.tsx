@@ -169,8 +169,8 @@ export interface ChartLineVortexNegCrossLayout {
 export interface ChartLineVortexNegCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineVortexNegCrossPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -317,7 +317,7 @@ export interface VortexNegCrossChannels {
 
 export function computeLineVortexNegCross(
   series: readonly ChartLineVortexNegCrossPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): VortexNegCrossChannels {
   const cleaned = getLineVortexNegCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -421,7 +421,7 @@ export function detectLineVortexNegCrossCrosses(
 
 export function runLineVortexNegCross(
   data: ChartLineVortexNegCrossPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineVortexNegCrossRun {
   const cleaned = getLineVortexNegCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -509,8 +509,8 @@ export function runLineVortexNegCross(
 
 export interface ComputeLineVortexNegCrossLayoutOptions {
   data: ChartLineVortexNegCrossPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -707,7 +707,7 @@ export function computeLineVortexNegCrossLayout(
 
 export function describeLineVortexNegCrossChart(
   data: ChartLineVortexNegCrossPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineVortexNegCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
