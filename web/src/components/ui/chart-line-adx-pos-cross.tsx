@@ -197,7 +197,7 @@ export interface ChartLineAdxPosCrossLayout {
 export interface ChartLineAdxPosCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxPosCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -300,7 +300,7 @@ export function normalizeLineAdxPosCrossLength(
 
 export function computeLineAdxPosCross(
   series: readonly ChartLineAdxPosCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): Array<number | null> {
   const cleaned = getLineAdxPosCrossFinitePoints(series);
   if (cleaned.length === 0) return [];
@@ -398,7 +398,7 @@ export function detectLineAdxPosCrossCrosses(
 
 export function runLineAdxPosCross(
   data: ChartLineAdxPosCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineAdxPosCrossRun {
   const cleaned = getLineAdxPosCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -468,7 +468,7 @@ export function runLineAdxPosCross(
 
 export interface ComputeLineAdxPosCrossLayoutOptions {
   data: ChartLineAdxPosCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -628,7 +628,7 @@ export function computeLineAdxPosCrossLayout(
 
 export function describeLineAdxPosCrossChart(
   data: ChartLineAdxPosCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineAdxPosCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

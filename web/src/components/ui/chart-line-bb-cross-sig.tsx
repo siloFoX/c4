@@ -136,8 +136,8 @@ export interface ChartLineBbCrossSigLayout {
 export interface ChartLineBbCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineBbCrossSigPoint[];
-  length?: number;
-  mult?: number;
+  length?: number | undefined;
+  mult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -250,7 +250,7 @@ export interface LineBbCrossSigChannels {
 
 export function computeLineBbCrossSig(
   series: readonly ChartLineBbCrossSigPoint[] | null | undefined,
-  options: { length?: number; mult?: number } = {},
+  options: { length?: number | undefined; mult?: number | undefined } = {},
 ): LineBbCrossSigChannels {
   const cleaned = getLineBbCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -328,7 +328,7 @@ export function detectLineBbCrossSigCrosses(
 
 export function runLineBbCrossSig(
   data: ChartLineBbCrossSigPoint[],
-  options: { length?: number; mult?: number } = {},
+  options: { length?: number | undefined; mult?: number | undefined } = {},
 ): ChartLineBbCrossSigRun {
   const cleaned = getLineBbCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -392,8 +392,8 @@ export function runLineBbCrossSig(
 
 export interface ComputeLineBbCrossSigLayoutOptions {
   data: ChartLineBbCrossSigPoint[];
-  length?: number;
-  mult?: number;
+  length?: number | undefined;
+  mult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -587,7 +587,7 @@ export function computeLineBbCrossSigLayout(
 
 export function describeLineBbCrossSigChart(
   data: ChartLineBbCrossSigPoint[],
-  options: { length?: number; mult?: number } = {},
+  options: { length?: number | undefined; mult?: number | undefined } = {},
 ): string {
   const cleaned = getLineBbCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

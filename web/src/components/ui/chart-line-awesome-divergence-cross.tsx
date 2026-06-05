@@ -140,9 +140,9 @@ export interface ChartLineAwesomeDivergenceCrossLayout {
 export interface ChartLineAwesomeDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAwesomeDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -289,7 +289,7 @@ export function computeLineAwesomeDivergenceCross(
     | readonly ChartLineAwesomeDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineAwesomeDivergenceCrossChannels {
   const cleaned = getLineAwesomeDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) return { ao: [] };
@@ -349,9 +349,9 @@ export function detectLineAwesomeDivergenceCrossCrosses(
 export function runLineAwesomeDivergenceCross(
   data: ChartLineAwesomeDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineAwesomeDivergenceCrossRun {
   const cleaned = getLineAwesomeDivergenceCrossFinitePoints(data);
@@ -453,9 +453,9 @@ export function runLineAwesomeDivergenceCross(
 
 export interface ComputeLineAwesomeDivergenceCrossLayoutOptions {
   data: ChartLineAwesomeDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -641,9 +641,9 @@ export function computeLineAwesomeDivergenceCrossLayout(
 export function describeLineAwesomeDivergenceCrossChart(
   data: ChartLineAwesomeDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAwesomeDivergenceCrossFinitePoints(data);

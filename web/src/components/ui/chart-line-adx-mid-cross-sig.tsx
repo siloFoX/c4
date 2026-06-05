@@ -159,9 +159,9 @@ export interface ChartLineAdxMidCrossSigLayout {
 export interface ChartLineAdxMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxMidCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -405,7 +405,7 @@ export interface LineAdxMidCrossSigChannels {
 
 export function computeLineAdxMidCrossSig(
   series: readonly ChartLineAdxMidCrossSigPoint[] | null | undefined,
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): LineAdxMidCrossSigChannels {
   const cleaned = getLineAdxMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -469,9 +469,9 @@ export function detectLineAdxMidCrossSigCrosses(
 export function runLineAdxMidCrossSig(
   data: ChartLineAdxMidCrossSigPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineAdxMidCrossSigRun {
   const cleaned = getLineAdxMidCrossSigFinitePoints(data);
@@ -564,9 +564,9 @@ export function runLineAdxMidCrossSig(
 
 export interface ComputeLineAdxMidCrossSigLayoutOptions {
   data: ChartLineAdxMidCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -745,9 +745,9 @@ export function computeLineAdxMidCrossSigLayout(
 export function describeLineAdxMidCrossSigChart(
   data: ChartLineAdxMidCrossSigPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAdxMidCrossSigFinitePoints(data);

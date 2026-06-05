@@ -62,7 +62,7 @@ export interface ChartChordProps {
 export interface ChordArc {
   id: string;
   label: string;
-  color?: string;
+  color?: string | undefined;
   total: number;
   start: number;
   end: number;

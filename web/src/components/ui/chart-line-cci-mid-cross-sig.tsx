@@ -183,8 +183,8 @@ export interface ChartLineCciMidCrossSigLayout {
 export interface ChartLineCciMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCciMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -338,7 +338,7 @@ export interface CciMidCrossSigChannels {
 
 export function computeLineCciMidCrossSig(
   series: readonly ChartLineCciMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): CciMidCrossSigChannels {
   const cleaned = getLineCciMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -433,7 +433,7 @@ export function detectLineCciMidCrossSigCrosses(
 
 export function runLineCciMidCrossSig(
   data: ChartLineCciMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineCciMidCrossSigRun {
   const cleaned = getLineCciMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -519,8 +519,8 @@ export function runLineCciMidCrossSig(
 
 export interface ComputeLineCciMidCrossSigLayoutOptions {
   data: ChartLineCciMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -726,7 +726,7 @@ export function computeLineCciMidCrossSigLayout(
 
 export function describeLineCciMidCrossSigChart(
   data: ChartLineCciMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineCciMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

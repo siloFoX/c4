@@ -147,9 +147,9 @@ export interface ChartLineAdxStrengthCrossLayout {
 export interface ChartLineAdxStrengthCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxStrengthCrossPoint[];
-  length?: number;
-  mildThreshold?: number;
-  strongThreshold?: number;
+  length?: number | undefined;
+  mildThreshold?: number | undefined;
+  strongThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -289,7 +289,7 @@ export interface LineAdxStrengthCrossChannels {
 
 export function computeLineAdxStrengthCross(
   series: readonly ChartLineAdxStrengthCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineAdxStrengthCrossChannels {
   const cleaned = getLineAdxStrengthCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -399,9 +399,9 @@ export function detectLineAdxStrengthCrossCrosses(
 export function runLineAdxStrengthCross(
   data: ChartLineAdxStrengthCrossPoint[],
   options: {
-    length?: number;
-    mildThreshold?: number;
-    strongThreshold?: number;
+    length?: number | undefined;
+    mildThreshold?: number | undefined;
+    strongThreshold?: number | undefined;
   } = {},
 ): ChartLineAdxStrengthCrossRun {
   const cleaned = getLineAdxStrengthCrossFinitePoints(data);
@@ -489,9 +489,9 @@ export function runLineAdxStrengthCross(
 
 export interface ComputeLineAdxStrengthCrossLayoutOptions {
   data: ChartLineAdxStrengthCrossPoint[];
-  length?: number;
-  mildThreshold?: number;
-  strongThreshold?: number;
+  length?: number | undefined;
+  mildThreshold?: number | undefined;
+  strongThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -667,9 +667,9 @@ export function computeLineAdxStrengthCrossLayout(
 export function describeLineAdxStrengthCrossChart(
   data: ChartLineAdxStrengthCrossPoint[],
   options: {
-    length?: number;
-    mildThreshold?: number;
-    strongThreshold?: number;
+    length?: number | undefined;
+    mildThreshold?: number | undefined;
+    strongThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAdxStrengthCrossFinitePoints(data);

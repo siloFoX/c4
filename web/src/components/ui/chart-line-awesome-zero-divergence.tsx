@@ -231,8 +231,8 @@ export interface ChartLineAwesomeZeroDivergenceLayout {
 export interface ChartLineAwesomeZeroDivergenceProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAwesomeZeroDivergencePoint[];
-  fastLength?: number;
-  slowLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -351,7 +351,7 @@ function sma(
 
 export function computeLineAwesomeZeroDivergence(
   series: readonly ChartLineAwesomeZeroDivergencePoint[] | null | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): { hl2: number[]; ao: Array<number | null> } {
   const cleaned = getLineAwesomeZeroDivergenceFinitePoints(series);
   if (cleaned.length === 0) return { hl2: [], ao: [] };
@@ -440,7 +440,7 @@ export function detectLineAwesomeZeroDivergenceCrosses(
 
 export function runLineAwesomeZeroDivergence(
   data: ChartLineAwesomeZeroDivergencePoint[],
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): ChartLineAwesomeZeroDivergenceRun {
   const cleaned = getLineAwesomeZeroDivergenceFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -542,8 +542,8 @@ export function runLineAwesomeZeroDivergence(
 
 export interface ComputeLineAwesomeZeroDivergenceLayoutOptions {
   data: ChartLineAwesomeZeroDivergencePoint[];
-  fastLength?: number;
-  slowLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -724,7 +724,7 @@ export function computeLineAwesomeZeroDivergenceLayout(
 
 export function describeLineAwesomeZeroDivergenceChart(
   data: ChartLineAwesomeZeroDivergencePoint[],
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineAwesomeZeroDivergenceFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

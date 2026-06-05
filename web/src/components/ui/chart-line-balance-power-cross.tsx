@@ -125,8 +125,8 @@ export interface ChartLineBalancePowerCrossLayout {
 export interface ChartLineBalancePowerCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineBalancePowerCrossPoint[];
-  barLength?: number;
-  smoothLength?: number;
+  barLength?: number | undefined;
+  smoothLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -254,7 +254,7 @@ export interface LineBalancePowerCrossChannels {
 
 export function computeLineBalancePowerCross(
   series: readonly ChartLineBalancePowerCrossPoint[] | null | undefined,
-  options: { barLength?: number; smoothLength?: number } = {},
+  options: { barLength?: number | undefined; smoothLength?: number | undefined } = {},
 ): LineBalancePowerCrossChannels {
   const cleaned = getLineBalancePowerCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -323,7 +323,7 @@ export function detectLineBalancePowerCrossCrosses(
 
 export function runLineBalancePowerCross(
   data: ChartLineBalancePowerCrossPoint[],
-  options: { barLength?: number; smoothLength?: number } = {},
+  options: { barLength?: number | undefined; smoothLength?: number | undefined } = {},
 ): ChartLineBalancePowerCrossRun {
   const cleaned = getLineBalancePowerCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -384,8 +384,8 @@ export function runLineBalancePowerCross(
 
 export interface ComputeLineBalancePowerCrossLayoutOptions {
   data: ChartLineBalancePowerCrossPoint[];
-  barLength?: number;
-  smoothLength?: number;
+  barLength?: number | undefined;
+  smoothLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -556,7 +556,7 @@ export function computeLineBalancePowerCrossLayout(
 
 export function describeLineBalancePowerCrossChart(
   data: ChartLineBalancePowerCrossPoint[],
-  options: { barLength?: number; smoothLength?: number } = {},
+  options: { barLength?: number | undefined; smoothLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineBalancePowerCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

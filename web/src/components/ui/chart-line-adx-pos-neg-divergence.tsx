@@ -230,7 +230,7 @@ export interface ChartLineAdxPosNegDivergenceLayout {
 export interface ChartLineAdxPosNegDivergenceProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxPosNegDivergencePoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -348,7 +348,7 @@ export interface AdxPosNegDivergenceChannels {
 
 export function computeLineAdxPosNegDivergence(
   series: readonly ChartLineAdxPosNegDivergencePoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): AdxPosNegDivergenceChannels {
   const cleaned = getLineAdxPosNegDivergenceFinitePoints(series);
   if (cleaned.length === 0) {
@@ -492,7 +492,7 @@ export function detectLineAdxPosNegDivergenceCrosses(
 
 export function runLineAdxPosNegDivergence(
   data: ChartLineAdxPosNegDivergencePoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineAdxPosNegDivergenceRun {
   const cleaned = getLineAdxPosNegDivergenceFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -604,7 +604,7 @@ export function runLineAdxPosNegDivergence(
 
 export interface ComputeLineAdxPosNegDivergenceLayoutOptions {
   data: ChartLineAdxPosNegDivergencePoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -775,7 +775,7 @@ export function computeLineAdxPosNegDivergenceLayout(
 
 export function describeLineAdxPosNegDivergenceChart(
   data: ChartLineAdxPosNegDivergencePoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineAdxPosNegDivergenceFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

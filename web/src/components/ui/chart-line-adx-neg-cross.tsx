@@ -195,7 +195,7 @@ export interface ChartLineAdxNegCrossLayout {
 export interface ChartLineAdxNegCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxNegCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -298,7 +298,7 @@ export function normalizeLineAdxNegCrossLength(
 
 export function computeLineAdxNegCross(
   series: readonly ChartLineAdxNegCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): Array<number | null> {
   const cleaned = getLineAdxNegCrossFinitePoints(series);
   if (cleaned.length === 0) return [];
@@ -399,7 +399,7 @@ export function detectLineAdxNegCrossCrosses(
 
 export function runLineAdxNegCross(
   data: ChartLineAdxNegCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineAdxNegCrossRun {
   const cleaned = getLineAdxNegCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -469,7 +469,7 @@ export function runLineAdxNegCross(
 
 export interface ComputeLineAdxNegCrossLayoutOptions {
   data: ChartLineAdxNegCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -629,7 +629,7 @@ export function computeLineAdxNegCrossLayout(
 
 export function describeLineAdxNegCrossChart(
   data: ChartLineAdxNegCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineAdxNegCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

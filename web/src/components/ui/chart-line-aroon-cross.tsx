@@ -127,7 +127,7 @@ export interface ChartLineAroonCrossLayout {
 export interface ChartLineAroonCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAroonCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   upperBand?: number;
   lowerBand?: number;
   width?: number;
@@ -233,7 +233,7 @@ export interface LineAroonCrossChannels {
  */
 export function computeLineAroonCross(
   series: readonly ChartLineAroonCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineAroonCrossChannels {
   const cleaned = getLineAroonCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -314,7 +314,7 @@ export function detectLineAroonCrossCrosses(
 
 export function runLineAroonCross(
   data: ChartLineAroonCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineAroonCrossRun {
   const cleaned = getLineAroonCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -374,7 +374,7 @@ export function runLineAroonCross(
 
 export interface ComputeLineAroonCrossLayoutOptions {
   data: ChartLineAroonCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   upperBand?: number;
   lowerBand?: number;
   width?: number;
@@ -559,7 +559,7 @@ export function computeLineAroonCrossLayout(
 
 export function describeLineAroonCrossChart(
   data: ChartLineAroonCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineAroonCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

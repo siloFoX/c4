@@ -132,8 +132,8 @@ export interface ChartLineAccumulationCrossLayout {
 export interface ChartLineAccumulationCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAccumulationCrossPoint[];
-  barLength?: number;
-  signalLength?: number;
+  barLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -278,7 +278,7 @@ export interface LineAccumulationCrossChannels {
 
 export function computeLineAccumulationCross(
   series: readonly ChartLineAccumulationCrossPoint[] | null | undefined,
-  options: { barLength?: number; signalLength?: number } = {},
+  options: { barLength?: number | undefined; signalLength?: number | undefined } = {},
 ): LineAccumulationCrossChannels {
   const cleaned = getLineAccumulationCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -364,7 +364,7 @@ export function detectLineAccumulationCrossCrosses(
 
 export function runLineAccumulationCross(
   data: ChartLineAccumulationCrossPoint[],
-  options: { barLength?: number; signalLength?: number } = {},
+  options: { barLength?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineAccumulationCrossRun {
   const cleaned = getLineAccumulationCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -432,8 +432,8 @@ export function runLineAccumulationCross(
 
 export interface ComputeLineAccumulationCrossLayoutOptions {
   data: ChartLineAccumulationCrossPoint[];
-  barLength?: number;
-  signalLength?: number;
+  barLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -624,7 +624,7 @@ export function computeLineAccumulationCrossLayout(
 
 export function describeLineAccumulationCrossChart(
   data: ChartLineAccumulationCrossPoint[],
-  options: { barLength?: number; signalLength?: number } = {},
+  options: { barLength?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineAccumulationCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

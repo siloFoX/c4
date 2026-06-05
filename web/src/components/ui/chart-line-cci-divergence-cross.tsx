@@ -147,8 +147,8 @@ export interface ChartLineCciDivergenceCrossLayout {
 export interface ChartLineCciDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCciDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -279,7 +279,7 @@ export interface LineCciDivergenceCrossChannels {
 
 export function computeLineCciDivergenceCross(
   series: readonly ChartLineCciDivergenceCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineCciDivergenceCrossChannels {
   const cleaned = getLineCciDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) return { cci: [] };
@@ -326,7 +326,7 @@ export function detectLineCciDivergenceCrossCrosses(
 
 export function runLineCciDivergenceCross(
   data: ChartLineCciDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): ChartLineCciDivergenceCrossRun {
   const cleaned = getLineCciDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -417,8 +417,8 @@ export function runLineCciDivergenceCross(
 
 export interface ComputeLineCciDivergenceCrossLayoutOptions {
   data: ChartLineCciDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -601,7 +601,7 @@ export function computeLineCciDivergenceCrossLayout(
 
 export function describeLineCciDivergenceCrossChart(
   data: ChartLineCciDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineCciDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
