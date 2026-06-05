@@ -299,7 +299,17 @@ describe('<SessionsAttachedSection>', () => {
   it('renders the relative timestamp prefix when createdAt is set', () => {
     renderSection();
     const row = screen.getByText('w1').closest('button') as HTMLElement;
-    const dashSpans = within(row).getAllByText(/^-\s\S/);
+    // (TODO 11.210, v1.11.228) The dash-prefixed time block is now
+    // `<span>- <RelativeTime />...</span>` so the dash sits in the
+    // span's direct text node and the time string lives in a child
+    // <time> element. getByText's default `getNodeText` only sees the
+    // direct text content ('- '), which does not satisfy `/^-\s\S/`.
+    // Use a function matcher that probes the span's full textContent
+    // so the prefix-plus-relative-time pattern is preserved.
+    const dashSpans = within(row).getAllByText((_, element) => {
+      if (element?.tagName.toLowerCase() !== 'span') return false;
+      return /^-\s\S/.test((element.textContent ?? '').trim());
+    });
     expect(dashSpans.length).toBeGreaterThan(0);
   });
 

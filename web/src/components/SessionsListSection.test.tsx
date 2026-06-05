@@ -72,7 +72,15 @@ function renderSection(
   };
   const utils = render(<SessionsListSection {...props} />);
   const user = userEvent.setup();
-  return { ...utils, user, onSelect, onToggleGroup, props };
+  // (TODO 11.149, v1.11.167) The section now renders a read-only
+  // `Recent activity` <ol data-timeline> above the interactive
+  // `<ul className="divide-y divide-border">`. The timeline duplicates
+  // shortIds + descriptions, so any test that targets the interactive
+  // list scopes its query to `mainList` to skip the timeline.
+  const mainList = utils.container.querySelector(
+    'ul.divide-y',
+  ) as HTMLElement | null;
+  return { ...utils, user, onSelect, onToggleGroup, props, mainList };
 }
 
 describe('<SessionsListSection>', () => {
@@ -122,9 +130,9 @@ describe('<SessionsListSection>', () => {
   });
 
   it('uses the projectPath when present and falls back to projectDir otherwise', () => {
-    renderSection();
-    expect(screen.getByText('/repo/proj-a')).toBeInTheDocument();
-    expect(screen.getByText('proj-b')).toBeInTheDocument();
+    const { mainList } = renderSection();
+    expect(within(mainList!).getByText('/repo/proj-a')).toBeInTheDocument();
+    expect(within(mainList!).getByText('proj-b')).toBeInTheDocument();
   });
 
   it('shows the session count badge for each group', () => {
@@ -151,31 +159,31 @@ describe('<SessionsListSection>', () => {
   });
 
   it('hides the session rows for a collapsed group', () => {
-    renderSection({ collapsed: { 'proj-a': true } });
+    const { mainList } = renderSection({ collapsed: { 'proj-a': true } });
     expect(
-      screen.queryByText(/sid-aaaa/),
+      within(mainList!).queryByText(/sid-aaaa/),
     ).not.toBeInTheDocument();
   });
 
   it('still renders rows for non-collapsed sibling groups when one is collapsed', () => {
-    renderSection({ collapsed: { 'proj-a': true } });
-    expect(screen.getByText(/sid-cccc/)).toBeInTheDocument();
+    const { mainList } = renderSection({ collapsed: { 'proj-a': true } });
+    expect(within(mainList!).getByText(/sid-cccc/)).toBeInTheDocument();
   });
 
   it('renders the shortId for each session row', () => {
-    renderSection();
-    expect(screen.getByText(/sid-aaaa/)).toBeInTheDocument();
-    expect(screen.getByText(/sid-bbbb/)).toBeInTheDocument();
-    expect(screen.getByText(/sid-cccc/)).toBeInTheDocument();
+    const { mainList } = renderSection();
+    expect(within(mainList!).getByText(/sid-aaaa/)).toBeInTheDocument();
+    expect(within(mainList!).getByText(/sid-bbbb/)).toBeInTheDocument();
+    expect(within(mainList!).getByText(/sid-cccc/)).toBeInTheDocument();
   });
 
   it('renders the turn-count badge inside each session row', () => {
-    renderSection();
-    const sessionA = screen
+    const { mainList } = renderSection();
+    const sessionA = within(mainList!)
       .getByText(/sid-aaaa/)
       .closest('button') as HTMLElement;
     expect(within(sessionA).getByText('3')).toBeInTheDocument();
-    const sessionB = screen
+    const sessionB = within(mainList!)
       .getByText(/sid-bbbb/)
       .closest('button') as HTMLElement;
     expect(within(sessionB).getByText('7')).toBeInTheDocument();
@@ -189,39 +197,64 @@ describe('<SessionsListSection>', () => {
 
   it('does NOT render the snippet line when lastAssistantSnippet is empty', () => {
     const onlyB = { ...GROUP_B };
-    renderSection({ filteredGroups: [onlyB] });
-    const row = screen.getByText(/sid-cccc/).closest('button') as HTMLElement;
+    const { mainList } = renderSection({ filteredGroups: [onlyB] });
+    const row = within(mainList!)
+      .getByText(/sid-cccc/)
+      .closest('button') as HTMLElement;
     expect(within(row).queryByText('snippet')).not.toBeInTheDocument();
   });
 
   it('sets aria-current=true on the row matching selectedSessionId', () => {
-    renderSection({ selectedSessionId: 'sid-aaaaaaaa1111' });
-    const row = screen.getByText(/sid-aaaa/).closest('button') as HTMLElement;
+    const { mainList } = renderSection({
+      selectedSessionId: 'sid-aaaaaaaa1111',
+    });
+    const row = within(mainList!)
+      .getByText(/sid-aaaa/)
+      .closest('button') as HTMLElement;
     expect(row).toHaveAttribute('aria-current', 'true');
   });
 
   it('omits aria-current on every non-active row', () => {
-    renderSection({ selectedSessionId: 'sid-aaaaaaaa1111' });
-    const row = screen.getByText(/sid-bbbb/).closest('button') as HTMLElement;
+    const { mainList } = renderSection({
+      selectedSessionId: 'sid-aaaaaaaa1111',
+    });
+    const row = within(mainList!)
+      .getByText(/sid-bbbb/)
+      .closest('button') as HTMLElement;
     expect(row).not.toHaveAttribute('aria-current');
   });
 
   it('applies the active highlight class on the selected row', () => {
-    renderSection({ selectedSessionId: 'sid-aaaaaaaa1111' });
-    const row = screen.getByText(/sid-aaaa/).closest('button') as HTMLElement;
+    const { mainList } = renderSection({
+      selectedSessionId: 'sid-aaaaaaaa1111',
+    });
+    const row = within(mainList!)
+      .getByText(/sid-aaaa/)
+      .closest('button') as HTMLElement;
     expect(row.className).toMatch(/bg-accent/);
     expect(row.className).toMatch(/text-accent-foreground/);
   });
 
   it('applies the hover class on a non-selected row', () => {
-    renderSection({ selectedSessionId: 'sid-aaaaaaaa1111' });
-    const row = screen.getByText(/sid-bbbb/).closest('button') as HTMLElement;
-    expect(row.className).toMatch(/hover:bg-accent/);
+    const { mainList } = renderSection({
+      selectedSessionId: 'sid-aaaaaaaa1111',
+    });
+    const row = within(mainList!)
+      .getByText(/sid-bbbb/)
+      .closest('button') as HTMLElement;
+    // (TODO 11.165, v1.11.183) Rows migrated from a raw `<button class=
+    // "hover:bg-accent...">` to the ListItem primitive whose interactive
+    // root carries `hover:bg-muted/30` as the standard hover state.
+    // The intent (rows visibly respond to hover) is preserved; only
+    // the underlying token changed with the migration.
+    expect(row.className).toMatch(/hover:bg-muted/);
   });
 
   it('fires onSelect with the sessionId when a session row is clicked', async () => {
-    const { user, onSelect } = renderSection();
-    const row = screen.getByText(/sid-bbbb/).closest('button') as HTMLElement;
+    const { user, onSelect, mainList } = renderSection();
+    const row = within(mainList!)
+      .getByText(/sid-bbbb/)
+      .closest('button') as HTMLElement;
     await user.click(row);
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith('sid-bbbbbbbb2222');
@@ -289,8 +322,10 @@ describe('<SessionsListSection>', () => {
   });
 
   it('does not fire onToggleGroup when a session row is clicked', async () => {
-    const { user, onToggleGroup } = renderSection();
-    const row = screen.getByText(/sid-bbbb/).closest('button') as HTMLElement;
+    const { user, onToggleGroup, mainList } = renderSection();
+    const row = within(mainList!)
+      .getByText(/sid-bbbb/)
+      .closest('button') as HTMLElement;
     await user.click(row);
     expect(onToggleGroup).not.toHaveBeenCalled();
   });

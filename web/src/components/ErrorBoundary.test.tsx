@@ -406,7 +406,10 @@ describe('<ErrorBoundary>', () => {
         <Thrower message="boom-details" />
       </ErrorBoundary>,
     );
-    const trigger = screen.getByRole('button', { name: /stack trace/i });
+    // Exact 'Stack trace' name targets the Collapsible trigger only;
+    // the sibling 'Copy stack trace' button (v1.11.* clipboard helper)
+    // also matches /stack trace/i, hence the need for exact match.
+    const trigger = screen.getByRole('button', { name: 'Stack trace' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     // The <pre> is still in the DOM (Collapsible uses the `hidden`
     // attribute) so operators can find it once expanded.
@@ -420,7 +423,10 @@ describe('<ErrorBoundary>', () => {
         <Thrower message="boom-expand" />
       </ErrorBoundary>,
     );
-    const trigger = screen.getByRole('button', { name: /stack trace/i });
+    // Exact 'Stack trace' name targets the Collapsible trigger only;
+    // the sibling 'Copy stack trace' button (v1.11.* clipboard helper)
+    // also matches /stack trace/i, hence the need for exact match.
+    const trigger = screen.getByRole('button', { name: 'Stack trace' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     const user = userEvent.setup();
     await user.click(trigger);
