@@ -371,10 +371,10 @@ describe('<ChartLineKeltnerCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-keltner-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('20');
-    expect(root?.dataset.atrLength).toBe('10');
-    expect(root?.dataset.mult).toBe('2');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('20');
+    expect(root?.dataset['atrLength']).toBe('10');
+    expect(root?.dataset['mult']).toBe('2');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -384,7 +384,7 @@ describe('<ChartLineKeltnerCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-keltner-cross-pct"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {

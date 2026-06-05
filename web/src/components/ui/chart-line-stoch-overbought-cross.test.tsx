@@ -362,10 +362,10 @@ describe('<ChartLineStochOverboughtCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-stoch-overbought-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('14');
-    expect(root?.dataset.kSmoothing).toBe('3');
-    expect(root?.dataset.threshold).toBe('80');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('14');
+    expect(root?.dataset['kSmoothing']).toBe('3');
+    expect(root?.dataset['threshold']).toBe('80');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -375,7 +375,7 @@ describe('<ChartLineStochOverboughtCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-stoch-overbought-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {
