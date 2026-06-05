@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.1165] - 2026-06-05 -- CHORE: isolate i18n detectLocale empty-localStorage test from shared beforeEach (TODO 11.1147)
+
+src/lib/i18n.test.ts 'detectLocale falls back to the navigator
+language when localStorage is empty' failed (expected ko, got en)
+because the shared beforeEach calls setLocale(DEFAULT_LOCALE)
+after clearing localStorage, and setLocale persists back to
+localStorage via the same key detectLocale reads, so the test's
+documented empty-localStorage precondition didn't hold and
+detectLocale returned the saved default early (i18n.ts:26-27)
+without reaching the navigator fallback (i18n.ts:33). Source is
+correct. Fix: window.localStorage.removeItem(LOCALE_KEY) at the
+start of only this one case so the precondition holds; shared
+beforeEach unchanged; source untouched; assertion preserved
+verbatim. Verification: tsc 0, npm build green, vitest 1/1 file +
+30/30 cases pass.
+
 ## [1.11.1164] - 2026-06-05 -- CHORE: rewrite NewChatModal initial-focus test to be JSDOM-safe (TODO 11.1146)
 
 NewChatModal.test.tsx 'focuses the prompt textarea on mount'
