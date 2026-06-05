@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1143] - 2026-06-05 -- CHORE: fix 47 source-confirmed tsc strict-type errors in 15 chart-line test files (chart bucket batch 5) (TODO 11.1125)
+
+Fifth batch of the chart showcase tsc-debt clear. 15 chart-line
+indicator .test.tsx files held 47 errors total (32 TS4111 + 15
+TS2532). 10 files used the standard `dataset.X` -> `dataset['X']`
+bracket-access pattern (accumulation-cross, atr-cross-sig,
+donchian-cross-sig, fisher-cross-pct, mfi-cross-pct, obv-cross-sig,
+roc-cross-pct, rsi-cross-pct, vortex-cross, vwap-cross-pct). 5 files
+used 3x non-null `!` on `buttons[N]` after `toHaveLength(3)` on
+the legend toggle row (dpo-cross-sig, qstick-cross-sig,
+stc-mid-cross-sig, tsi-signal-cross, williams-r-cross-sig). Runtime-
+equivalent on DOMStringMap / pre-asserted-length arrays; no behaviour
+change, no assertion change. Fix scope was ONLY the 15 .test.tsx
+files -- no chart component .tsx was touched. No `as any`, no
+`ts-ignore`, no fresh `ts-expect-error`. Mandated verification:
+tsc --noEmit 598 -> 551 (-47, zero in the 15 files, zero new errors
+anywhere); vitest on the 15 files: 15/15 files pass, 857/857 tests
+pass. Zero NEW failures.
+
 ## [1.11.1142] - 2026-06-05 -- CHORE: fix 48 source-confirmed tsc strict-type errors in 13 chart-line test files (chart bucket batch 4) (TODO 11.1124)
 
 Fourth batch of the chart showcase tsc-debt clear. 13 chart-line
