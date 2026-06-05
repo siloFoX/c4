@@ -4,6 +4,21 @@
 
 (no entries -- next release window)
 
+## [1.11.1159] - 2026-06-05 -- CHORE: triage-and-fix 3 test files failing with TestingLibrary found-multiple-elements (TODO 11.1141)
+
+3 test files where queries matched multiple intentionally-rendered
+elements: ErrorBoundary (Collapsible trigger + Copy stack trace
+button share /stack trace/i), SessionsAttachedSection (RelativeTime
+component split the dash-prefixed time across two DOM nodes,
+TODO 11.210), SessionsListSection (Recent activity Timeline above
+the interactive list duplicates shortIds + descriptions,
+TODO 11.149; plus downstream ListItem hover-token migration
+TODO 11.165). All 15 failures classify as intended dual render
+or intended token migration -- zero real-duplication bugs.
+Touched ONLY the 3 dispatched test files, ZERO source files.
+Verification: tsc 0, npm run build green, vitest 3/3 files +
+83/83 tests pass.
+
 ## [1.11.1158] - 2026-06-05 -- CHORE: reconcile 2 stale count-assertion tests to verified-grown registry entries (TODO 11.1140)
 
 2 count-assertion tests drifted from their backing registries due
