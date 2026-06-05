@@ -72,8 +72,22 @@ describe('safe-area mobile viewport polish', () => {
     expect(src).toContain('pr-safe-r');
   });
 
-  it('web/package.json is bumped to 1.11.215', () => {
+  it('web/package.json is at or past the safe-area landing version 1.11.215', () => {
+    // The original assertion pinned the version to the release that
+    // shipped the safe-area work (1.11.215). After hundreds of
+    // subsequent bumps the literal pin is meaningless; what matters is
+    // that the safe-area work has not been reverted below its floor.
+    // Compare segment-by-segment so the floor stays load-bearing even
+    // as the major/minor lines move forward.
     const pkg = JSON.parse(read('package.json')) as { version: string };
-    expect(pkg.version).toBe('1.11.215');
+    const FLOOR = [1, 11, 215] as const;
+    const segs = pkg.version.split('.').map((s) => Number.parseInt(s, 10));
+    expect(segs.length).toBeGreaterThanOrEqual(3);
+    expect(Number.isFinite(segs[0])).toBe(true);
+    expect(Number.isFinite(segs[1])).toBe(true);
+    expect(Number.isFinite(segs[2])).toBe(true);
+    let cmp = 0;
+    for (let i = 0; i < 3 && cmp === 0; i += 1) cmp = segs[i]! - FLOOR[i]!;
+    expect(cmp).toBeGreaterThanOrEqual(0);
   });
 });
