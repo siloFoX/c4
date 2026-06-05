@@ -355,9 +355,9 @@ describe('<ChartLineAtrCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-atr-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('14');
-    expect(root?.dataset.signalLength).toBe('9');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('14');
+    expect(root?.dataset['signalLength']).toBe('9');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('renders an aria description', () => {
