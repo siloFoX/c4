@@ -118,9 +118,9 @@ export interface ChartLineStochCrossPctLayout {
 export interface ChartLineStochCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochCrossPctPoint[];
-  kLength?: number;
-  slowKLength?: number;
-  dLength?: number;
+  kLength?: number | undefined;
+  slowKLength?: number | undefined;
+  dLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -251,9 +251,9 @@ export interface LineStochCrossPctChannels {
 export function computeLineStochCrossPct(
   series: readonly ChartLineStochCrossPctPoint[] | null | undefined,
   options: {
-    kLength?: number;
-    slowKLength?: number;
-    dLength?: number;
+    kLength?: number | undefined;
+    slowKLength?: number | undefined;
+    dLength?: number | undefined;
   } = {},
 ): LineStochCrossPctChannels {
   const cleaned = getLineStochCrossPctFinitePoints(series);
@@ -313,9 +313,9 @@ export function classifyLineStochCrossPctRegime(
 export function runLineStochCrossPct(
   data: ChartLineStochCrossPctPoint[],
   options: {
-    kLength?: number;
-    slowKLength?: number;
-    dLength?: number;
+    kLength?: number | undefined;
+    slowKLength?: number | undefined;
+    dLength?: number | undefined;
   } = {},
 ): ChartLineStochCrossPctRun {
   const cleaned = getLineStochCrossPctFinitePoints(data);
@@ -387,9 +387,9 @@ export function runLineStochCrossPct(
 
 export interface ComputeLineStochCrossPctLayoutOptions {
   data: ChartLineStochCrossPctPoint[];
-  kLength?: number;
-  slowKLength?: number;
-  dLength?: number;
+  kLength?: number | undefined;
+  slowKLength?: number | undefined;
+  dLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -589,9 +589,9 @@ export function computeLineStochCrossPctLayout(
 export function describeLineStochCrossPctChart(
   data: ChartLineStochCrossPctPoint[],
   options: {
-    kLength?: number;
-    slowKLength?: number;
-    dLength?: number;
+    kLength?: number | undefined;
+    slowKLength?: number | undefined;
+    dLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochCrossPctFinitePoints(data);

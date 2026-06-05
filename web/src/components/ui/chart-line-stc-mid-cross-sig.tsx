@@ -154,12 +154,12 @@ export interface ChartLineStcMidCrossSigLayout {
 export interface ChartLineStcMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStcMidCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -368,11 +368,11 @@ export interface LineStcMidCrossSigChannels {
 export function computeLineStcMidCrossSig(
   series: readonly ChartLineStcMidCrossSigPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    kSmoothing?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    kSmoothing?: number | undefined;
   } = {},
 ): LineStcMidCrossSigChannels {
   const cleaned = getLineStcMidCrossSigFinitePoints(series);
@@ -463,12 +463,12 @@ export function detectLineStcMidCrossSigCrosses(
 export function runLineStcMidCrossSig(
   data: ChartLineStcMidCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStcMidCrossSigRun {
   const cleaned = getLineStcMidCrossSigFinitePoints(data);
@@ -572,12 +572,12 @@ export function runLineStcMidCrossSig(
 
 export interface ComputeLineStcMidCrossSigLayoutOptions {
   data: ChartLineStcMidCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -763,12 +763,12 @@ export function computeLineStcMidCrossSigLayout(
 export function describeLineStcMidCrossSigChart(
   data: ChartLineStcMidCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStcMidCrossSigFinitePoints(data);

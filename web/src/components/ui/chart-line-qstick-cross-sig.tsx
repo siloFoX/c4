@@ -136,8 +136,8 @@ export interface ChartLineQstickCrossSigLayout {
 export interface ChartLineQstickCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineQstickCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -274,7 +274,7 @@ export interface LineQstickCrossSigChannels {
 
 export function computeLineQstickCrossSig(
   series: readonly ChartLineQstickCrossSigPoint[] | null | undefined,
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): LineQstickCrossSigChannels {
   const cleaned = getLineQstickCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -328,7 +328,7 @@ export function detectLineQstickCrossSigCrosses(
 
 export function runLineQstickCrossSig(
   data: ChartLineQstickCrossSigPoint[],
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): ChartLineQstickCrossSigRun {
   const cleaned = getLineQstickCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -401,8 +401,8 @@ export function runLineQstickCrossSig(
 
 export interface ComputeLineQstickCrossSigLayoutOptions {
   data: ChartLineQstickCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -605,7 +605,7 @@ export function computeLineQstickCrossSigLayout(
 
 export function describeLineQstickCrossSigChart(
   data: ChartLineQstickCrossSigPoint[],
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): string {
   const cleaned = getLineQstickCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

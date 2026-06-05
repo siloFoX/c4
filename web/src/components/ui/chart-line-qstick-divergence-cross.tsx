@@ -152,8 +152,8 @@ export interface ChartLineQstickDivergenceCrossLayout {
 export interface ChartLineQstickDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineQstickDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -297,7 +297,7 @@ export interface LineQstickDivergenceCrossChannels {
 
 export function computeLineQstickDivergenceCross(
   series: readonly ChartLineQstickDivergenceCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineQstickDivergenceCrossChannels {
   const cleaned = getLineQstickDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -347,7 +347,7 @@ export function detectLineQstickDivergenceCrossCrosses(
 
 export function runLineQstickDivergenceCross(
   data: ChartLineQstickDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): ChartLineQstickDivergenceCrossRun {
   const cleaned = getLineQstickDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -443,8 +443,8 @@ export function runLineQstickDivergenceCross(
 
 export interface ComputeLineQstickDivergenceCrossLayoutOptions {
   data: ChartLineQstickDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -620,7 +620,7 @@ export function computeLineQstickDivergenceCrossLayout(
 
 export function describeLineQstickDivergenceCrossChart(
   data: ChartLineQstickDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineQstickDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

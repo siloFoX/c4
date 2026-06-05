@@ -152,11 +152,11 @@ export interface ChartLineStcOversoldCrossLayout {
 export interface ChartLineStcOversoldCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStcOversoldCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -362,10 +362,10 @@ export interface LineStcOversoldCrossChannels {
 export function computeLineStcOversoldCross(
   series: readonly ChartLineStcOversoldCrossPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
   } = {},
 ): LineStcOversoldCrossChannels {
   const cleaned = getLineStcOversoldCrossFinitePoints(series);
@@ -451,11 +451,11 @@ export function detectLineStcOversoldCrossCrosses(
 export function runLineStcOversoldCross(
   data: ChartLineStcOversoldCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStcOversoldCrossRun {
   const cleaned = getLineStcOversoldCrossFinitePoints(data);
@@ -549,11 +549,11 @@ export function runLineStcOversoldCross(
 
 export interface ComputeLineStcOversoldCrossLayoutOptions {
   data: ChartLineStcOversoldCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -724,11 +724,11 @@ export function computeLineStcOversoldCrossLayout(
 export function describeLineStcOversoldCrossChart(
   data: ChartLineStcOversoldCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStcOversoldCrossFinitePoints(data);

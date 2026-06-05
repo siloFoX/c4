@@ -122,8 +122,8 @@ export interface ChartLineRsiCrossPctLayout {
 export interface ChartLineRsiCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRsiCrossPctPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -295,8 +295,8 @@ export interface LineRsiCrossPctChannels {
 export function computeLineRsiCrossPct(
   series: readonly ChartLineRsiCrossPctPoint[] | null | undefined,
   options: {
-    length?: number;
-    signalLength?: number;
+    length?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineRsiCrossPctChannels {
   const cleaned = getLineRsiCrossPctFinitePoints(series);
@@ -365,7 +365,7 @@ export function classifyLineRsiCrossPctRegime(
 
 export function runLineRsiCrossPct(
   data: ChartLineRsiCrossPctPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineRsiCrossPctRun {
   const cleaned = getLineRsiCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -427,8 +427,8 @@ export function runLineRsiCrossPct(
 
 export interface ComputeLineRsiCrossPctLayoutOptions {
   data: ChartLineRsiCrossPctPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -626,7 +626,7 @@ export function computeLineRsiCrossPctLayout(
 
 export function describeLineRsiCrossPctChart(
   data: ChartLineRsiCrossPctPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineRsiCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

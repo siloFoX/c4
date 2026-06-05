@@ -151,9 +151,9 @@ export interface ChartLineRelativeVigorSignalLayout {
 export interface ChartLineRelativeVigorSignalProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRelativeVigorSignalPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -353,7 +353,7 @@ export function computeLineRelativeVigorSignal(
     | readonly ChartLineRelativeVigorSignalPoint[]
     | null
     | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineRelativeVigorSignalChannels {
   const cleaned = getLineRelativeVigorSignalFinitePoints(series);
   if (cleaned.length === 0) {
@@ -449,9 +449,9 @@ export function detectLineRelativeVigorSignalCrosses(
 export function runLineRelativeVigorSignal(
   data: ChartLineRelativeVigorSignalPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): ChartLineRelativeVigorSignalRun {
   const cleaned = getLineRelativeVigorSignalFinitePoints(data);
@@ -550,9 +550,9 @@ export function runLineRelativeVigorSignal(
 
 export interface ComputeLineRelativeVigorSignalLayoutOptions {
   data: ChartLineRelativeVigorSignalPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -743,9 +743,9 @@ export function computeLineRelativeVigorSignalLayout(
 export function describeLineRelativeVigorSignalChart(
   data: ChartLineRelativeVigorSignalPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineRelativeVigorSignalFinitePoints(data);

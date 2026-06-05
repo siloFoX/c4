@@ -216,9 +216,9 @@ export interface ChartLineStochCrossDivergenceLayout {
 export interface ChartLineStochCrossDivergenceProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochCrossDivergencePoint[];
-  period?: number;
-  smoothK?: number;
-  smoothD?: number;
+  period?: number | undefined;
+  smoothK?: number | undefined;
+  smoothD?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -383,7 +383,7 @@ export function computeLineStochCrossDivergence(
     | readonly ChartLineStochCrossDivergencePoint[]
     | null
     | undefined,
-  options: { period?: number; smoothK?: number; smoothD?: number } = {},
+  options: { period?: number | undefined; smoothK?: number | undefined; smoothD?: number | undefined } = {},
 ): StochCrossDivergenceChannels {
   const cleaned = getLineStochCrossDivergenceFinitePoints(series);
   if (cleaned.length === 0) {
@@ -486,7 +486,7 @@ export function detectLineStochCrossDivergenceCrosses(
 
 export function runLineStochCrossDivergence(
   data: ChartLineStochCrossDivergencePoint[],
-  options: { period?: number; smoothK?: number; smoothD?: number } = {},
+  options: { period?: number | undefined; smoothK?: number | undefined; smoothD?: number | undefined } = {},
 ): ChartLineStochCrossDivergenceRun {
   const cleaned = getLineStochCrossDivergenceFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -602,9 +602,9 @@ export function runLineStochCrossDivergence(
 
 export interface ComputeLineStochCrossDivergenceLayoutOptions {
   data: ChartLineStochCrossDivergencePoint[];
-  period?: number;
-  smoothK?: number;
-  smoothD?: number;
+  period?: number | undefined;
+  smoothK?: number | undefined;
+  smoothD?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -782,7 +782,7 @@ export function computeLineStochCrossDivergenceLayout(
 
 export function describeLineStochCrossDivergenceChart(
   data: ChartLineStochCrossDivergencePoint[],
-  options: { period?: number; smoothK?: number; smoothD?: number } = {},
+  options: { period?: number | undefined; smoothK?: number | undefined; smoothD?: number | undefined } = {},
 ): string {
   const cleaned = getLineStochCrossDivergenceFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

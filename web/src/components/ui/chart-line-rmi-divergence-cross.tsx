@@ -156,9 +156,9 @@ export interface ChartLineRmiDivergenceCrossLayout {
 export interface ChartLineRmiDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRmiDivergenceCrossPoint[];
-  length?: number;
-  momentumLength?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  momentumLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -339,7 +339,7 @@ export interface LineRmiDivergenceCrossChannels {
 
 export function computeLineRmiDivergenceCross(
   series: readonly ChartLineRmiDivergenceCrossPoint[] | null | undefined,
-  options: { length?: number; momentumLength?: number } = {},
+  options: { length?: number | undefined; momentumLength?: number | undefined } = {},
 ): LineRmiDivergenceCrossChannels {
   const cleaned = getLineRmiDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -393,9 +393,9 @@ export function detectLineRmiDivergenceCrossCrosses(
 export function runLineRmiDivergenceCross(
   data: ChartLineRmiDivergenceCrossPoint[],
   options: {
-    length?: number;
-    momentumLength?: number;
-    divergenceWindow?: number;
+    length?: number | undefined;
+    momentumLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineRmiDivergenceCrossRun {
   const cleaned = getLineRmiDivergenceCrossFinitePoints(data);
@@ -495,9 +495,9 @@ export function runLineRmiDivergenceCross(
 
 export interface ComputeLineRmiDivergenceCrossLayoutOptions {
   data: ChartLineRmiDivergenceCrossPoint[];
-  length?: number;
-  momentumLength?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  momentumLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -660,9 +660,9 @@ export function computeLineRmiDivergenceCrossLayout(
 export function describeLineRmiDivergenceCrossChart(
   data: ChartLineRmiDivergenceCrossPoint[],
   options: {
-    length?: number;
-    momentumLength?: number;
-    divergenceWindow?: number;
+    length?: number | undefined;
+    momentumLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineRmiDivergenceCrossFinitePoints(data);

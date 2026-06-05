@@ -159,10 +159,10 @@ export interface ChartLineStochCrossLayout {
 export interface ChartLineStochCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochCrossPoint[];
-  kLength?: number;
-  dLength?: number;
-  overboughtLevel?: number;
-  oversoldLevel?: number;
+  kLength?: number | undefined;
+  dLength?: number | undefined;
+  overboughtLevel?: number | undefined;
+  oversoldLevel?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -370,7 +370,7 @@ export interface LineStochCrossChannels {
 
 export function computeLineStochCross(
   series: readonly ChartLineStochCrossPoint[] | null | undefined,
-  options: { kLength?: number; dLength?: number } = {},
+  options: { kLength?: number | undefined; dLength?: number | undefined } = {},
 ): LineStochCrossChannels {
   const cleaned = getLineStochCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -460,10 +460,10 @@ export function classifyLineStochCrossTrigger(
 export function runLineStochCross(
   data: ChartLineStochCrossPoint[],
   options: {
-    kLength?: number;
-    dLength?: number;
-    overboughtLevel?: number;
-    oversoldLevel?: number;
+    kLength?: number | undefined;
+    dLength?: number | undefined;
+    overboughtLevel?: number | undefined;
+    oversoldLevel?: number | undefined;
   } = {},
 ): ChartLineStochCrossRun {
   const cleaned = getLineStochCrossFinitePoints(data);
@@ -561,10 +561,10 @@ export function runLineStochCross(
 
 export interface ComputeLineStochCrossLayoutOptions {
   data: ChartLineStochCrossPoint[];
-  kLength?: number;
-  dLength?: number;
-  overboughtLevel?: number;
-  oversoldLevel?: number;
+  kLength?: number | undefined;
+  dLength?: number | undefined;
+  overboughtLevel?: number | undefined;
+  oversoldLevel?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -737,10 +737,10 @@ export function computeLineStochCrossLayout(
 export function describeLineStochCrossChart(
   data: ChartLineStochCrossPoint[],
   options: {
-    kLength?: number;
-    dLength?: number;
-    overboughtLevel?: number;
-    oversoldLevel?: number;
+    kLength?: number | undefined;
+    dLength?: number | undefined;
+    overboughtLevel?: number | undefined;
+    oversoldLevel?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochCrossFinitePoints(data);

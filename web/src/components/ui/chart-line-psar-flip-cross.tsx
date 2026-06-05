@@ -203,8 +203,8 @@ export interface ChartLinePsarFlipCrossLayout {
 export interface ChartLinePsarFlipCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLinePsarFlipCrossPoint[];
-  step?: number;
-  maxStep?: number;
+  step?: number | undefined;
+  maxStep?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -299,7 +299,7 @@ export interface ComputeLinePsarFlipCrossResult {
 
 export function computeLinePsarFlipCross(
   series: readonly ChartLinePsarFlipCrossPoint[] | null | undefined,
-  options: { step?: number; maxStep?: number } = {},
+  options: { step?: number | undefined; maxStep?: number | undefined } = {},
 ): ComputeLinePsarFlipCrossResult {
   const cleaned = getLinePsarFlipCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -422,7 +422,7 @@ export function detectLinePsarFlipCrossCrosses(
 
 export function runLinePsarFlipCross(
   data: ChartLinePsarFlipCrossPoint[],
-  options: { step?: number; maxStep?: number } = {},
+  options: { step?: number | undefined; maxStep?: number | undefined } = {},
 ): ChartLinePsarFlipCrossRun {
   const cleaned = getLinePsarFlipCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -512,8 +512,8 @@ export function runLinePsarFlipCross(
 
 export interface ComputeLinePsarFlipCrossLayoutOptions {
   data: ChartLinePsarFlipCrossPoint[];
-  step?: number;
-  maxStep?: number;
+  step?: number | undefined;
+  maxStep?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -685,7 +685,7 @@ export function computeLinePsarFlipCrossLayout(
 
 export function describeLinePsarFlipCrossChart(
   data: ChartLinePsarFlipCrossPoint[],
-  options: { step?: number } = {},
+  options: { step?: number | undefined } = {},
 ): string {
   const cleaned = getLinePsarFlipCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

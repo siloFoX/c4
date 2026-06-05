@@ -154,11 +154,11 @@ export interface ChartLineStcOverboughtCrossLayout {
 export interface ChartLineStcOverboughtCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStcOverboughtCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -374,10 +374,10 @@ export interface LineStcOverboughtCrossChannels {
 export function computeLineStcOverboughtCross(
   series: readonly ChartLineStcOverboughtCrossPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
   } = {},
 ): LineStcOverboughtCrossChannels {
   const cleaned = getLineStcOverboughtCrossFinitePoints(series);
@@ -463,11 +463,11 @@ export function detectLineStcOverboughtCrossCrosses(
 export function runLineStcOverboughtCross(
   data: ChartLineStcOverboughtCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStcOverboughtCrossRun {
   const cleaned = getLineStcOverboughtCrossFinitePoints(data);
@@ -561,11 +561,11 @@ export function runLineStcOverboughtCross(
 
 export interface ComputeLineStcOverboughtCrossLayoutOptions {
   data: ChartLineStcOverboughtCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -736,11 +736,11 @@ export function computeLineStcOverboughtCrossLayout(
 export function describeLineStcOverboughtCrossChart(
   data: ChartLineStcOverboughtCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStcOverboughtCrossFinitePoints(data);

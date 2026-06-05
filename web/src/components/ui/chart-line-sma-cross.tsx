@@ -109,8 +109,8 @@ export interface ChartLineSmaCrossLayout {
 export interface ChartLineSmaCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineSmaCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -238,7 +238,7 @@ export interface LineSmaCrossChannels {
 
 export function computeLineSmaCross(
   series: readonly ChartLineSmaCrossPoint[] | null | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineSmaCrossChannels {
   const cleaned = getLineSmaCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -306,7 +306,7 @@ export function detectLineSmaCrossCrosses(
 
 export function runLineSmaCross(
   data: ChartLineSmaCrossPoint[],
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): ChartLineSmaCrossRun {
   const cleaned = getLineSmaCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -377,8 +377,8 @@ export function runLineSmaCross(
 
 export interface ComputeLineSmaCrossLayoutOptions {
   data: ChartLineSmaCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -526,7 +526,7 @@ export function computeLineSmaCrossLayout(
 
 export function describeLineSmaCrossChart(
   data: ChartLineSmaCrossPoint[],
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineSmaCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

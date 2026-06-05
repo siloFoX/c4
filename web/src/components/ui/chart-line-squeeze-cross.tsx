@@ -151,9 +151,9 @@ export interface ChartLineSqueezeCrossLayout {
 export interface ChartLineSqueezeCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineSqueezeCrossPoint[];
-  length?: number;
-  bbMult?: number;
-  kcMult?: number;
+  length?: number | undefined;
+  bbMult?: number | undefined;
+  kcMult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -283,7 +283,7 @@ export interface LineSqueezeCrossChannels {
 
 export function computeLineSqueezeCross(
   series: readonly ChartLineSqueezeCrossPoint[] | null | undefined,
-  options: { length?: number; bbMult?: number; kcMult?: number } = {},
+  options: { length?: number | undefined; bbMult?: number | undefined; kcMult?: number | undefined } = {},
 ): LineSqueezeCrossChannels {
   const cleaned = getLineSqueezeCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -391,7 +391,7 @@ export function detectLineSqueezeCrossCrosses(
 
 export function runLineSqueezeCross(
   data: ChartLineSqueezeCrossPoint[],
-  options: { length?: number; bbMult?: number; kcMult?: number } = {},
+  options: { length?: number | undefined; bbMult?: number | undefined; kcMult?: number | undefined } = {},
 ): ChartLineSqueezeCrossRun {
   const cleaned = getLineSqueezeCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -475,9 +475,9 @@ export function runLineSqueezeCross(
 
 export interface ComputeLineSqueezeCrossLayoutOptions {
   data: ChartLineSqueezeCrossPoint[];
-  length?: number;
-  bbMult?: number;
-  kcMult?: number;
+  length?: number | undefined;
+  bbMult?: number | undefined;
+  kcMult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -666,7 +666,7 @@ export function computeLineSqueezeCrossLayout(
 
 export function describeLineSqueezeCrossChart(
   data: ChartLineSqueezeCrossPoint[],
-  options: { length?: number; bbMult?: number; kcMult?: number } = {},
+  options: { length?: number | undefined; bbMult?: number | undefined; kcMult?: number | undefined } = {},
 ): string {
   const cleaned = getLineSqueezeCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -138,9 +138,9 @@ export interface ChartLineSmaPctLayout {
 export interface ChartLineSmaPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineSmaPctPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -291,7 +291,7 @@ export interface LineSmaPctChannels {
 
 export function computeLineSmaPct(
   series: readonly ChartLineSmaPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineSmaPctChannels {
   const cleaned = getLineSmaPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -371,9 +371,9 @@ export function detectLineSmaPctCrosses(
 export function runLineSmaPct(
   data: ChartLineSmaPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): ChartLineSmaPctRun {
   const cleaned = getLineSmaPctFinitePoints(data);
@@ -458,9 +458,9 @@ export function runLineSmaPct(
 
 export interface ComputeLineSmaPctLayoutOptions {
   data: ChartLineSmaPctPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -656,9 +656,9 @@ export function computeLineSmaPctLayout(
 export function describeLineSmaPctChart(
   data: ChartLineSmaPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineSmaPctFinitePoints(data);
