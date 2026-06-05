@@ -269,7 +269,7 @@ export interface LineUoOverboughtCrossChannels {
 
 export function computeLineUoOverboughtCross(
   series: readonly ChartLineUoOverboughtCrossPoint[] | null | undefined,
-  options: { short?: number; mid?: number; long?: number } = {},
+  options: { short?: number | undefined; mid?: number | undefined; long?: number | undefined } = {},
 ): LineUoOverboughtCrossChannels {
   const cleaned = getLineUoOverboughtCrossFinitePoints(series);
   const short = normalizeLineUoOverboughtCrossLength(
@@ -356,10 +356,10 @@ export function detectLineUoOverboughtCrossCrosses(
 export function runLineUoOverboughtCross(
   data: ChartLineUoOverboughtCrossPoint[],
   options: {
-    short?: number;
-    mid?: number;
-    long?: number;
-    threshold?: number;
+    short?: number | undefined;
+    mid?: number | undefined;
+    long?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineUoOverboughtCrossRun {
   const cleaned = getLineUoOverboughtCrossFinitePoints(data);
@@ -599,10 +599,10 @@ export function computeLineUoOverboughtCrossLayout(
 export function describeLineUoOverboughtCrossChart(
   data: ChartLineUoOverboughtCrossPoint[],
   options: {
-    short?: number;
-    mid?: number;
-    long?: number;
-    threshold?: number;
+    short?: number | undefined;
+    mid?: number | undefined;
+    long?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineUoOverboughtCrossFinitePoints(data);

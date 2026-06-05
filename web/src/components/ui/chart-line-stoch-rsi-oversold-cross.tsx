@@ -307,7 +307,7 @@ export function computeLineStochRsiOversoldCross(
     | readonly ChartLineStochRsiOversoldCrossPoint[]
     | null
     | undefined,
-  options: { rsiLength?: number; stochLength?: number } = {},
+  options: { rsiLength?: number | undefined; stochLength?: number | undefined } = {},
 ): LineStochRsiOversoldCrossChannels {
   const cleaned = getLineStochRsiOversoldCrossFinitePoints(series);
   const rsiLength = normalizeLineStochRsiOversoldCrossLength(
@@ -411,9 +411,9 @@ export function detectLineStochRsiOversoldCrossCrosses(
 export function runLineStochRsiOversoldCross(
   data: ChartLineStochRsiOversoldCrossPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    threshold?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStochRsiOversoldCrossRun {
   const cleaned = getLineStochRsiOversoldCrossFinitePoints(data);
@@ -656,9 +656,9 @@ export function computeLineStochRsiOversoldCrossLayout(
 export function describeLineStochRsiOversoldCrossChart(
   data: ChartLineStochRsiOversoldCrossPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    threshold?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochRsiOversoldCrossFinitePoints(data);

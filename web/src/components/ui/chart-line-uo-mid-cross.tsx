@@ -268,7 +268,7 @@ export interface LineUoMidCrossChannels {
 
 export function computeLineUoMidCross(
   series: readonly ChartLineUoMidCrossPoint[] | null | undefined,
-  options: { short?: number; mid?: number; long?: number } = {},
+  options: { short?: number | undefined; mid?: number | undefined; long?: number | undefined } = {},
 ): LineUoMidCrossChannels {
   const cleaned = getLineUoMidCrossFinitePoints(series);
   const short = normalizeLineUoMidCrossLength(
@@ -355,10 +355,10 @@ export function detectLineUoMidCrossCrosses(
 export function runLineUoMidCross(
   data: ChartLineUoMidCrossPoint[],
   options: {
-    short?: number;
-    mid?: number;
-    long?: number;
-    threshold?: number;
+    short?: number | undefined;
+    mid?: number | undefined;
+    long?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineUoMidCrossRun {
   const cleaned = getLineUoMidCrossFinitePoints(data);
@@ -597,10 +597,10 @@ export function computeLineUoMidCrossLayout(
 export function describeLineUoMidCrossChart(
   data: ChartLineUoMidCrossPoint[],
   options: {
-    short?: number;
-    mid?: number;
-    long?: number;
-    threshold?: number;
+    short?: number | undefined;
+    mid?: number | undefined;
+    long?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineUoMidCrossFinitePoints(data);

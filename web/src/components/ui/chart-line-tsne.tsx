@@ -408,9 +408,9 @@ export function computePcaProjection(
 
   const mean = new Array<number>(D).fill(0);
   for (const row of rows) {
-    for (let d = 0; d < D; d += 1) mean[d] += row[d]!;
+    for (let d = 0; d < D; d += 1) mean[d]! += row[d]!;
   }
-  for (let d = 0; d < D; d += 1) mean[d] /= n;
+  for (let d = 0; d < D; d += 1) mean[d]! /= n;
 
   const centered = rows.map((row) => row.map((v, d) => v - mean[d]!));
 

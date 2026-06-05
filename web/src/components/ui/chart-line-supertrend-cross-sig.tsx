@@ -310,7 +310,7 @@ export interface LineSupertrendCrossSigChannels {
 
 export function computeLineSupertrendCrossSig(
   series: readonly ChartLineSupertrendCrossSigPoint[] | null | undefined,
-  options: { length?: number; factor?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; factor?: number | undefined; signalLength?: number | undefined } = {},
 ): LineSupertrendCrossSigChannels {
   const cleaned = getLineSupertrendCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -382,7 +382,7 @@ export function computeLineSupertrendCrossSig(
     } else {
       direction = c > rawUpper ? 1 : -1;
     }
-    const st = direction === 1 ? lower : upper;
+    const st: number = direction === 1 ? lower : upper;
     supertrend[i] = posZero(st);
     prevUpper = upper;
     prevLower = lower;
@@ -436,7 +436,7 @@ export function detectLineSupertrendCrossSigCrosses(
 
 export function runLineSupertrendCrossSig(
   data: ChartLineSupertrendCrossSigPoint[],
-  options: { length?: number; factor?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; factor?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineSupertrendCrossSigRun {
   const cleaned = getLineSupertrendCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -707,7 +707,7 @@ export function computeLineSupertrendCrossSigLayout(
 
 export function describeLineSupertrendCrossSigChart(
   data: ChartLineSupertrendCrossSigPoint[],
-  options: { length?: number; factor?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; factor?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineSupertrendCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

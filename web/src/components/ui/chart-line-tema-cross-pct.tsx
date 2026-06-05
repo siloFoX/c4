@@ -235,7 +235,7 @@ export function applyLineTemaCrossPctEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -254,7 +254,7 @@ export interface LineTemaCrossPctChannels {
 
 export function computeLineTemaCrossPct(
   series: readonly ChartLineTemaCrossPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineTemaCrossPctChannels {
   const cleaned = getLineTemaCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -295,7 +295,7 @@ export function classifyLineTemaCrossPctRegime(
 
 export function runLineTemaCrossPct(
   data: ChartLineTemaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineTemaCrossPctRun {
   const cleaned = getLineTemaCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -533,7 +533,7 @@ export function computeLineTemaCrossPctLayout(
 
 export function describeLineTemaCrossPctChart(
   data: ChartLineTemaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineTemaCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

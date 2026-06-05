@@ -290,7 +290,7 @@ export interface LineTsiSignalCrossChannels {
 
 export function computeLineTsiSignalCross(
   series: readonly ChartLineTsiSignalCrossPoint[] | null | undefined,
-  options: { long?: number; short?: number; signal?: number } = {},
+  options: { long?: number | undefined; short?: number | undefined; signal?: number | undefined } = {},
 ): LineTsiSignalCrossChannels {
   const cleaned = getLineTsiSignalCrossFinitePoints(series);
   const long = normalizeLineTsiSignalCrossLength(
@@ -384,9 +384,9 @@ export function detectLineTsiSignalCrossCrosses(
 export function runLineTsiSignalCross(
   data: ChartLineTsiSignalCrossPoint[],
   options: {
-    long?: number;
-    short?: number;
-    signal?: number;
+    long?: number | undefined;
+    short?: number | undefined;
+    signal?: number | undefined;
   } = {},
 ): ChartLineTsiSignalCrossRun {
   const cleaned = getLineTsiSignalCrossFinitePoints(data);
@@ -635,9 +635,9 @@ export function computeLineTsiSignalCrossLayout(
 export function describeLineTsiSignalCrossChart(
   data: ChartLineTsiSignalCrossPoint[],
   options: {
-    long?: number;
-    short?: number;
-    signal?: number;
+    long?: number | undefined;
+    short?: number | undefined;
+    signal?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineTsiSignalCrossFinitePoints(data);

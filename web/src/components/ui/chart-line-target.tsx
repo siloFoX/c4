@@ -402,7 +402,7 @@ export function computeLineTargetLayout(
     const finiteSorted = arr
       .filter(isFinitePoint)
       .slice()
-      .sort((a, b) => a.x - b.x);
+      .sort((a: ChartLineTargetPoint, b: ChartLineTargetPoint) => a.x - b.x);
     const points: ChartLineTargetLayoutPoint[] = [];
     for (let j = 0; j < arr.length; j += 1) {
       const p = arr[j]!;

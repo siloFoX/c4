@@ -341,9 +341,9 @@ export interface LineVfiZeroCrossChannels {
 export function computeLineVfiZeroCross(
   series: readonly ChartLineVfiZeroCrossPoint[] | null | undefined,
   options: {
-    length?: number;
-    coef?: number;
-    maxVolumeCoef?: number;
+    length?: number | undefined;
+    coef?: number | undefined;
+    maxVolumeCoef?: number | undefined;
   } = {},
 ): LineVfiZeroCrossChannels {
   const cleaned = getLineVfiZeroCrossFinitePoints(series);
@@ -437,10 +437,10 @@ export function detectLineVfiZeroCrossCrosses(
 export function runLineVfiZeroCross(
   data: ChartLineVfiZeroCrossPoint[],
   options: {
-    length?: number;
-    coef?: number;
-    maxVolumeCoef?: number;
-    threshold?: number;
+    length?: number | undefined;
+    coef?: number | undefined;
+    maxVolumeCoef?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineVfiZeroCrossRun {
   const cleaned = getLineVfiZeroCrossFinitePoints(data);
@@ -699,10 +699,10 @@ export function computeLineVfiZeroCrossLayout(
 export function describeLineVfiZeroCrossChart(
   data: ChartLineVfiZeroCrossPoint[],
   options: {
-    length?: number;
-    coef?: number;
-    maxVolumeCoef?: number;
-    threshold?: number;
+    length?: number | undefined;
+    coef?: number | undefined;
+    maxVolumeCoef?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineVfiZeroCrossFinitePoints(data);

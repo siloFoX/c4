@@ -268,7 +268,7 @@ export interface LineUoZeroCrossChannels {
 
 export function computeLineUoZeroCross(
   series: readonly ChartLineUoZeroCrossPoint[] | null | undefined,
-  options: { short?: number; mid?: number; long?: number } = {},
+  options: { short?: number | undefined; mid?: number | undefined; long?: number | undefined } = {},
 ): LineUoZeroCrossChannels {
   const cleaned = getLineUoZeroCrossFinitePoints(series);
   const short = normalizeLineUoZeroCrossLength(
@@ -355,10 +355,10 @@ export function detectLineUoZeroCrossCrosses(
 export function runLineUoZeroCross(
   data: ChartLineUoZeroCrossPoint[],
   options: {
-    short?: number;
-    mid?: number;
-    long?: number;
-    threshold?: number;
+    short?: number | undefined;
+    mid?: number | undefined;
+    long?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineUoZeroCrossRun {
   const cleaned = getLineUoZeroCrossFinitePoints(data);
@@ -599,10 +599,10 @@ export function computeLineUoZeroCrossLayout(
 export function describeLineUoZeroCrossChart(
   data: ChartLineUoZeroCrossPoint[],
   options: {
-    short?: number;
-    mid?: number;
-    long?: number;
-    threshold?: number;
+    short?: number | undefined;
+    mid?: number | undefined;
+    long?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineUoZeroCrossFinitePoints(data);
