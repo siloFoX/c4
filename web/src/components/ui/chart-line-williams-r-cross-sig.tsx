@@ -383,10 +383,10 @@ export function detectLineWilliamsRCrossSigCrosses(
 export function runLineWilliamsRCrossSig(
   data: ChartLineWilliamsRCrossSigPoint[],
   options: {
-    length?: number;
-    signalLength?: number;
-    overboughtThreshold?: number;
-    oversoldThreshold?: number;
+    length?: number | undefined;
+    signalLength?: number | undefined;
+    overboughtThreshold?: number | undefined;
+    oversoldThreshold?: number | undefined;
   } = {},
 ): ChartLineWilliamsRCrossSigRun {
   const cleaned = getLineWilliamsRCrossSigFinitePoints(data);
@@ -684,10 +684,10 @@ export function computeLineWilliamsRCrossSigLayout(
 export function describeLineWilliamsRCrossSigChart(
   data: ChartLineWilliamsRCrossSigPoint[],
   options: {
-    length?: number;
-    signalLength?: number;
-    overboughtThreshold?: number;
-    oversoldThreshold?: number;
+    length?: number | undefined;
+    signalLength?: number | undefined;
+    overboughtThreshold?: number | undefined;
+    oversoldThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineWilliamsRCrossSigFinitePoints(data);

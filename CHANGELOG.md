@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1151] - 2026-06-05 -- CHORE: fix 43 source-confirmed tsc strict-type errors in 32 chart component files -- FOURTH component batch (TODO 11.1133)
+
+Fourth chart COMPONENT batch. 32 chart .tsx component files held 43
+errors total. Same proven PURE-TYPE method as 11.1130-11.1132.
+Error mix: TS2379 inline options `| undefined` per dispatch (most
+common), TS7022 self-ref `const next: number` annotations,
+TS6133/TS6196 unused removals (chart-line-anomaly highAnomalyColor +
+lowAnomalyColor, chart-pictogram headCy, chart-radial-bar
+totalThickness, chart-stacked-bar labelMargin, chart-sunburst
+InternalNode interface, chart-waterfall next), TS2322
+`axisLabels[i]!` in chart-radial-area + chart-radial-line,
+`adx[i]!` in chart-line-adx-divergence-cross, TS2532
+`pattern[k]!` / `phaseSums[k]!` in chart-line-decompose,
+`series[hovered]!` in chart-stream, TS2345
+`cumulativePercent[hovered]!` in chart-pareto. No `as any`,
+no `ts-ignore`. No rendered output change. Mandated verification:
+tsc --noEmit 234 -> 191 (-43, zero in the 32 files, zero
+`.test.*` errors anywhere, zero non-chart-component errors
+anywhere); vitest on 12 matching test files: 12/12 pass +
+809/809 tests pass; playwright e2e/gallery-no-crash.spec.ts:
+1 test passed.
+
 ## [1.11.1150] - 2026-06-05 -- CHORE: fix 48 source-confirmed tsc strict-type errors in 24 chart component files -- THIRD component batch (TODO 11.1132)
 
 Third chart COMPONENT batch. 24 chart .tsx component files held 48

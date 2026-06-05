@@ -255,9 +255,9 @@ export function computeLineDecomposeSeasonalPattern(
   let patternSum = 0;
   let patternValid = 0;
   for (let k = 0; k < p; k += 1) {
-    if (phaseCounts[k] > 0) {
-      pattern[k] = phaseSums[k] / phaseCounts[k];
-      patternSum += pattern[k];
+    if (phaseCounts[k]! > 0) {
+      pattern[k] = phaseSums[k]! / phaseCounts[k]!;
+      patternSum += pattern[k]!;
       patternValid += 1;
     }
   }
@@ -266,7 +266,7 @@ export function computeLineDecomposeSeasonalPattern(
   if (patternValid > 0) {
     const meanOfPattern = patternSum / patternValid;
     for (let k = 0; k < p; k += 1) {
-      pattern[k] -= meanOfPattern;
+      pattern[k] = pattern[k]! - meanOfPattern;
     }
   }
   return pattern;

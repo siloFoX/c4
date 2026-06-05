@@ -345,7 +345,7 @@ export interface WilliamsMidCrossSigChannels {
 
 export function computeLineWilliamsMidCrossSig(
   series: readonly ChartLineWilliamsMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): WilliamsMidCrossSigChannels {
   const cleaned = getLineWilliamsMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -425,7 +425,7 @@ export function detectLineWilliamsMidCrossSigCrosses(
 
 export function runLineWilliamsMidCrossSig(
   data: ChartLineWilliamsMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineWilliamsMidCrossSigRun {
   const cleaned = getLineWilliamsMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -696,7 +696,7 @@ export function computeLineWilliamsMidCrossSigLayout(
 
 export function describeLineWilliamsMidCrossSigChart(
   data: ChartLineWilliamsMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineWilliamsMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -293,7 +293,7 @@ export function computeRadialLineLayout(
   for (let i = 0; i < cyclicSteps; i++) {
     const angle = startAngle + (i / cyclicSteps) * Math.PI * 2;
     const label =
-      axisLabels && axisLabels[i] != null ? axisLabels[i] : String(i);
+      axisLabels && axisLabels[i] != null ? axisLabels[i]! : String(i);
     axisAngles.push({ angle, label, index: i });
   }
 

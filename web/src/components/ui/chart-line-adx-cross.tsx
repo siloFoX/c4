@@ -297,7 +297,7 @@ export function applyLineAdxCrossWilder(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed
           ? v
           : (smoothed * (length - 1) + v) / length;
@@ -508,9 +508,9 @@ export function detectLineAdxCrossEvents(
 export function runLineAdxCross(
   data: ChartLineAdxCrossPoint[],
   options: {
-    length?: number;
-    lowThreshold?: number;
-    highThreshold?: number;
+    length?: number | undefined;
+    lowThreshold?: number | undefined;
+    highThreshold?: number | undefined;
   } = {},
 ): ChartLineAdxCrossRun {
   const cleaned = getLineAdxCrossFinitePoints(data);
@@ -757,9 +757,9 @@ export function computeLineAdxCrossLayout(
 export function describeLineAdxCrossChart(
   data: ChartLineAdxCrossPoint[],
   options: {
-    length?: number;
-    lowThreshold?: number;
-    highThreshold?: number;
+    length?: number | undefined;
+    lowThreshold?: number | undefined;
+    highThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAdxCrossFinitePoints(data);

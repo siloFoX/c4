@@ -307,7 +307,6 @@ export const ChartWaterfall = forwardRef(function ChartWaterfall(
     }[] = [];
     for (let i = 0; i < steps.length - 1; i += 1) {
       const curr = steps[i]!;
-      const next = steps[i + 1]!;
       const xCurrEnd =
         padding + i * (barWidth + barGap) + barWidth;
       const xNextStart = padding + (i + 1) * (barWidth + barGap);

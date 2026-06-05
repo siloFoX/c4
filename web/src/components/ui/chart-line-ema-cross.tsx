@@ -238,7 +238,7 @@ export function applyLineEmaCrossEma(
         out[i] = posZero(ema);
       }
     } else {
-      const next = v === ema ? v : alpha * v + (1 - alpha) * ema;
+      const next: number = v === ema ? v : alpha * v + (1 - alpha) * ema;
       ema = next;
       out[i] = posZero(next);
     }
@@ -253,7 +253,7 @@ export interface LineEmaCrossChannels {
 
 export function computeLineEmaCross(
   series: readonly ChartLineEmaCrossPoint[] | null | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineEmaCrossChannels {
   const cleaned = getLineEmaCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -321,7 +321,7 @@ export function detectLineEmaCrossCrosses(
 
 export function runLineEmaCross(
   data: ChartLineEmaCrossPoint[],
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): ChartLineEmaCrossRun {
   const cleaned = getLineEmaCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -541,7 +541,7 @@ export function computeLineEmaCrossLayout(
 
 export function describeLineEmaCrossChart(
   data: ChartLineEmaCrossPoint[],
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineEmaCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

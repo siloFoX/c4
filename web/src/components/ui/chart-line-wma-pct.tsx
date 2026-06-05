@@ -362,9 +362,9 @@ export function detectLineWmaPctCrosses(
 export function runLineWmaPct(
   data: ChartLineWmaPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): ChartLineWmaPctRun {
   const cleaned = getLineWmaPctFinitePoints(data);
@@ -647,9 +647,9 @@ export function computeLineWmaPctLayout(
 export function describeLineWmaPctChart(
   data: ChartLineWmaPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineWmaPctFinitePoints(data);

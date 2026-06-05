@@ -288,7 +288,7 @@ export interface LineCoppockZeroCrossChannels {
 
 export function computeLineCoppockZeroCross(
   series: readonly ChartLineCoppockZeroCrossPoint[] | null | undefined,
-  options: { short?: number; long?: number; period?: number } = {},
+  options: { short?: number | undefined; long?: number | undefined; period?: number | undefined } = {},
 ): LineCoppockZeroCrossChannels {
   const cleaned = getLineCoppockZeroCrossFinitePoints(series);
   const shortN = normalizeLineCoppockZeroCrossLength(
@@ -388,10 +388,10 @@ export function detectLineCoppockZeroCrossCrosses(
 export function runLineCoppockZeroCross(
   data: ChartLineCoppockZeroCrossPoint[],
   options: {
-    short?: number;
-    long?: number;
-    period?: number;
-    threshold?: number;
+    short?: number | undefined;
+    long?: number | undefined;
+    period?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineCoppockZeroCrossRun {
   const cleaned = getLineCoppockZeroCrossFinitePoints(data);
@@ -651,10 +651,10 @@ export function computeLineCoppockZeroCrossLayout(
 export function describeLineCoppockZeroCrossChart(
   data: ChartLineCoppockZeroCrossPoint[],
   options: {
-    short?: number;
-    long?: number;
-    period?: number;
-    threshold?: number;
+    short?: number | undefined;
+    long?: number | undefined;
+    period?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineCoppockZeroCrossFinitePoints(data);

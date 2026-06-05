@@ -370,7 +370,7 @@ export function applyLineAdxDivergenceCrossAdx(
   }
   const adx = applyLineAdxDivergenceCrossSmaSeededRma(dx, length);
   for (let i = 0; i < n; i += 1) {
-    out[i] = adx[i];
+    out[i] = adx[i]!;
   }
   return out;
 }
@@ -432,7 +432,7 @@ export function detectLineAdxDivergenceCrossCrosses(
 
 export function runLineAdxDivergenceCross(
   data: ChartLineAdxDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): ChartLineAdxDivergenceCrossRun {
   const cleaned = getLineAdxDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -687,7 +687,7 @@ export function computeLineAdxDivergenceCrossLayout(
 
 export function describeLineAdxDivergenceCrossChart(
   data: ChartLineAdxDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineAdxDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -238,7 +238,7 @@ export function applyLineDemaPctEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -256,7 +256,7 @@ export interface LineDemaPctChannels {
 
 export function computeLineDemaPct(
   series: readonly ChartLineDemaPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineDemaPctChannels {
   const cleaned = getLineDemaPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -297,7 +297,7 @@ export function classifyLineDemaPctRegime(
 
 export function runLineDemaPct(
   data: ChartLineDemaPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineDemaPctRun {
   const cleaned = getLineDemaPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -531,7 +531,7 @@ export function computeLineDemaPctLayout(
 
 export function describeLineDemaPctChart(
   data: ChartLineDemaPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineDemaPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

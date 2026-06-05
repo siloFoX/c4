@@ -226,17 +226,6 @@ function buildArcPath(
   ].join(' ');
 }
 
-interface InternalNode {
-  node: ChartSunburstNode;
-  flatIndex: number;
-  parentId: string | null;
-  depth: number;
-  path: string[];
-  value: number;
-  startAngle: number;
-  endAngle: number;
-  inheritedColorIndex: number;
-}
 
 export function computeSunburstLayout(
   input: ComputeSunburstLayoutInput

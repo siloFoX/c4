@@ -249,7 +249,7 @@ export interface LineZlemaCrossPctChannels {
 
 export function computeLineZlemaCrossPct(
   series: readonly ChartLineZlemaCrossPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineZlemaCrossPctChannels {
   const cleaned = getLineZlemaCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -292,7 +292,7 @@ export function classifyLineZlemaCrossPctRegime(
 
 export function runLineZlemaCrossPct(
   data: ChartLineZlemaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineZlemaCrossPctRun {
   const cleaned = getLineZlemaCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -523,7 +523,7 @@ export function computeLineZlemaCrossPctLayout(
 
 export function describeLineZlemaCrossPctChart(
   data: ChartLineZlemaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineZlemaCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

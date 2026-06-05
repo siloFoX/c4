@@ -335,7 +335,7 @@ export const ChartPareto = forwardRef(function ChartPareto(
   const hoveredCategory =
     hovered !== null ? sorted[hovered] : null;
   const hoveredCum =
-    hovered !== null ? cumulativePercent[hovered] : null;
+    hovered !== null ? cumulativePercent[hovered]! : null;
 
   return (
     <div

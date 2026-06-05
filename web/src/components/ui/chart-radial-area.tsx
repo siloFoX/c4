@@ -412,7 +412,7 @@ export function computeRadialAreaLayout(
   for (let i = 0; i < steps; i++) {
     const angle = angleFor(i);
     const label =
-      axisLabels && axisLabels[i] != null ? axisLabels[i] : String(i);
+      axisLabels && axisLabels[i] != null ? axisLabels[i]! : String(i);
     axisAngles.push({ angle, label, index: i });
   }
 

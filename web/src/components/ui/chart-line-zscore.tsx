@@ -291,8 +291,8 @@ export function computeRollingZScores(
 }
 
 export interface RunLineZscoreOptions {
-  window?: number;
-  referenceLevel?: number;
+  window?: number | undefined;
+  referenceLevel?: number | undefined;
 }
 
 export function runLineZscore(
