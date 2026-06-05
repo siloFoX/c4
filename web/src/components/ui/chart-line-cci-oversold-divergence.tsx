@@ -227,8 +227,8 @@ export interface ChartLineCciOversoldDivergenceLayout {
 export interface ChartLineCciOversoldDivergenceProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCciOversoldDivergencePoint[];
-  period?: number;
-  oversoldLevel?: number;
+  period?: number | undefined;
+  oversoldLevel?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -346,7 +346,7 @@ export function normalizeLineCciOversoldDivergenceLevel(
 
 export function computeLineCciOversoldDivergence(
   series: readonly ChartLineCciOversoldDivergencePoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): Array<number | null> {
   const cleaned = getLineCciOversoldDivergenceFinitePoints(series);
   if (cleaned.length === 0) return [];
@@ -441,7 +441,7 @@ export function detectLineCciOversoldDivergenceCrosses(
 
 export function runLineCciOversoldDivergence(
   data: ChartLineCciOversoldDivergencePoint[],
-  options: { period?: number; oversoldLevel?: number } = {},
+  options: { period?: number | undefined; oversoldLevel?: number | undefined } = {},
 ): ChartLineCciOversoldDivergenceRun {
   const cleaned = getLineCciOversoldDivergenceFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -546,8 +546,8 @@ export function runLineCciOversoldDivergence(
 
 export interface ComputeLineCciOversoldDivergenceLayoutOptions {
   data: ChartLineCciOversoldDivergencePoint[];
-  period?: number;
-  oversoldLevel?: number;
+  period?: number | undefined;
+  oversoldLevel?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -733,7 +733,7 @@ export function computeLineCciOversoldDivergenceLayout(
 
 export function describeLineCciOversoldDivergenceChart(
   data: ChartLineCciOversoldDivergencePoint[],
-  options: { period?: number; oversoldLevel?: number } = {},
+  options: { period?: number | undefined; oversoldLevel?: number | undefined } = {},
 ): string {
   const cleaned = getLineCciOversoldDivergenceFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

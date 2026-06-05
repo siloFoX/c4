@@ -162,8 +162,8 @@ export interface ChartLineBollingerMidCrossSigLayout {
 export interface ChartLineBollingerMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineBollingerMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -306,7 +306,7 @@ export interface BollingerMidCrossSigChannels {
 
 export function computeLineBollingerMidCrossSig(
   series: readonly ChartLineBollingerMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): BollingerMidCrossSigChannels {
   const cleaned = getLineBollingerMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -369,7 +369,7 @@ export function detectLineBollingerMidCrossSigCrosses(
 
 export function runLineBollingerMidCrossSig(
   data: ChartLineBollingerMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineBollingerMidCrossSigRun {
   const cleaned = getLineBollingerMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -456,8 +456,8 @@ export function runLineBollingerMidCrossSig(
 
 export interface ComputeLineBollingerMidCrossSigLayoutOptions {
   data: ChartLineBollingerMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -657,7 +657,7 @@ export function computeLineBollingerMidCrossSigLayout(
 
 export function describeLineBollingerMidCrossSigChart(
   data: ChartLineBollingerMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineBollingerMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

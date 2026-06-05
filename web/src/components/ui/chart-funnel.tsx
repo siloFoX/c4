@@ -216,7 +216,7 @@ export function describeFunnelChart(
   const fp = (v: number) =>
     formatPercent ? formatPercent(v) : `${(v * 100).toFixed(1)}%`;
   const top = stages[0]!.value;
-  const parts = stages.map((s, i) => {
+  const parts = stages.map((s) => {
     const ofTop = getStageOfTop(top, s.value);
     return `${s.label} ${fv(s.value)} (${fp(ofTop)} of top)`;
   });

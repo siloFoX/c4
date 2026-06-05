@@ -138,9 +138,9 @@ export interface ChartLineAwesomeOverboughtCrossLayout {
 export interface ChartLineAwesomeOverboughtCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAwesomeOverboughtCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -293,7 +293,7 @@ export function computeLineAwesomeOverboughtCross(
     | readonly ChartLineAwesomeOverboughtCrossPoint[]
     | null
     | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineAwesomeOverboughtCrossChannels {
   const cleaned = getLineAwesomeOverboughtCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -354,9 +354,9 @@ export function detectLineAwesomeOverboughtCrossCrosses(
 export function runLineAwesomeOverboughtCross(
   data: ChartLineAwesomeOverboughtCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineAwesomeOverboughtCrossRun {
   const cleaned = getLineAwesomeOverboughtCrossFinitePoints(data);
@@ -434,9 +434,9 @@ export function runLineAwesomeOverboughtCross(
 
 export interface ComputeLineAwesomeOverboughtCrossLayoutOptions {
   data: ChartLineAwesomeOverboughtCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -624,9 +624,9 @@ export function computeLineAwesomeOverboughtCrossLayout(
 export function describeLineAwesomeOverboughtCrossChart(
   data: ChartLineAwesomeOverboughtCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAwesomeOverboughtCrossFinitePoints(data);

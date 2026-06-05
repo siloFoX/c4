@@ -189,9 +189,9 @@ export interface ChartLineAtrBreakoutCrossLayout {
 export interface ChartLineAtrBreakoutCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAtrBreakoutCrossPoint[];
-  period?: number;
-  baselineLength?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  baselineLength?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -354,9 +354,9 @@ export interface AtrBreakoutCrossChannels {
 export function computeLineAtrBreakoutCross(
   series: readonly ChartLineAtrBreakoutCrossPoint[] | null | undefined,
   options: {
-    period?: number;
-    baselineLength?: number;
-    multiplier?: number;
+    period?: number | undefined;
+    baselineLength?: number | undefined;
+    multiplier?: number | undefined;
   } = {},
 ): AtrBreakoutCrossChannels {
   const cleaned = getLineAtrBreakoutCrossFinitePoints(series);
@@ -449,9 +449,9 @@ export function detectLineAtrBreakoutCrossCrosses(
 export function runLineAtrBreakoutCross(
   data: ChartLineAtrBreakoutCrossPoint[],
   options: {
-    period?: number;
-    baselineLength?: number;
-    multiplier?: number;
+    period?: number | undefined;
+    baselineLength?: number | undefined;
+    multiplier?: number | undefined;
   } = {},
 ): ChartLineAtrBreakoutCrossRun {
   const cleaned = getLineAtrBreakoutCrossFinitePoints(data);
@@ -550,9 +550,9 @@ export function runLineAtrBreakoutCross(
 
 export interface ComputeLineAtrBreakoutCrossLayoutOptions {
   data: ChartLineAtrBreakoutCrossPoint[];
-  period?: number;
-  baselineLength?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  baselineLength?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -753,9 +753,9 @@ export function computeLineAtrBreakoutCrossLayout(
 export function describeLineAtrBreakoutCrossChart(
   data: ChartLineAtrBreakoutCrossPoint[],
   options: {
-    period?: number;
-    baselineLength?: number;
-    multiplier?: number;
+    period?: number | undefined;
+    baselineLength?: number | undefined;
+    multiplier?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAtrBreakoutCrossFinitePoints(data);

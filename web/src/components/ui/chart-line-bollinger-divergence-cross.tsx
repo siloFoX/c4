@@ -228,8 +228,8 @@ export interface ChartLineBollingerDivergenceCrossLayout {
 export interface ChartLineBollingerDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineBollingerDivergenceCrossPoint[];
-  period?: number;
-  numStdev?: number;
+  period?: number | undefined;
+  numStdev?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -367,7 +367,7 @@ export function computeLineBollingerDivergenceCross(
     | readonly ChartLineBollingerDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { period?: number; numStdev?: number } = {},
+  options: { period?: number | undefined; numStdev?: number | undefined } = {},
 ): BollingerDivergenceCrossChannels {
   const cleaned = getLineBollingerDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -483,7 +483,7 @@ export function detectLineBollingerDivergenceCrossCrosses(
 
 export function runLineBollingerDivergenceCross(
   data: ChartLineBollingerDivergenceCrossPoint[],
-  options: { period?: number; numStdev?: number } = {},
+  options: { period?: number | undefined; numStdev?: number | undefined } = {},
 ): ChartLineBollingerDivergenceCrossRun {
   const cleaned = getLineBollingerDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -594,8 +594,8 @@ export function runLineBollingerDivergenceCross(
 
 export interface ComputeLineBollingerDivergenceCrossLayoutOptions {
   data: ChartLineBollingerDivergenceCrossPoint[];
-  period?: number;
-  numStdev?: number;
+  period?: number | undefined;
+  numStdev?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -797,7 +797,7 @@ export function computeLineBollingerDivergenceCrossLayout(
 
 export function describeLineBollingerDivergenceCrossChart(
   data: ChartLineBollingerDivergenceCrossPoint[],
-  options: { period?: number; numStdev?: number } = {},
+  options: { period?: number | undefined; numStdev?: number | undefined } = {},
 ): string {
   const cleaned = getLineBollingerDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

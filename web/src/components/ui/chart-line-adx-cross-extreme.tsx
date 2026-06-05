@@ -139,9 +139,9 @@ export interface ChartLineAdxCrossExtremeLayout {
 export interface ChartLineAdxCrossExtremeProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxCrossExtremePoint[];
-  length?: number;
-  upperThreshold?: number;
-  lowerThreshold?: number;
+  length?: number | undefined;
+  upperThreshold?: number | undefined;
+  lowerThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -267,7 +267,7 @@ export interface LineAdxCrossExtremeChannels {
 
 export function computeLineAdxCrossExtreme(
   series: readonly ChartLineAdxCrossExtremePoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineAdxCrossExtremeChannels {
   const cleaned = getLineAdxCrossExtremeFinitePoints(series);
   if (cleaned.length === 0) {
@@ -380,9 +380,9 @@ export function detectLineAdxCrossExtremeCrosses(
 export function runLineAdxCrossExtreme(
   data: ChartLineAdxCrossExtremePoint[],
   options: {
-    length?: number;
-    upperThreshold?: number;
-    lowerThreshold?: number;
+    length?: number | undefined;
+    upperThreshold?: number | undefined;
+    lowerThreshold?: number | undefined;
   } = {},
 ): ChartLineAdxCrossExtremeRun {
   const cleaned = getLineAdxCrossExtremeFinitePoints(data);
@@ -455,9 +455,9 @@ export function runLineAdxCrossExtreme(
 
 export interface ComputeLineAdxCrossExtremeLayoutOptions {
   data: ChartLineAdxCrossExtremePoint[];
-  length?: number;
-  upperThreshold?: number;
-  lowerThreshold?: number;
+  length?: number | undefined;
+  upperThreshold?: number | undefined;
+  lowerThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -633,9 +633,9 @@ export function computeLineAdxCrossExtremeLayout(
 export function describeLineAdxCrossExtremeChart(
   data: ChartLineAdxCrossExtremePoint[],
   options: {
-    length?: number;
-    upperThreshold?: number;
-    lowerThreshold?: number;
+    length?: number | undefined;
+    upperThreshold?: number | undefined;
+    lowerThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAdxCrossExtremeFinitePoints(data);

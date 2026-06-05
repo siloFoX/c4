@@ -141,9 +141,9 @@ export interface ChartLineAtrChannelCrossLayout {
 export interface ChartLineAtrChannelCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAtrChannelCrossPoint[];
-  length?: number;
-  atrLength?: number;
-  mult?: number;
+  length?: number | undefined;
+  atrLength?: number | undefined;
+  mult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -315,7 +315,7 @@ export interface LineAtrChannelCrossChannels {
 
 export function computeLineAtrChannelCross(
   series: readonly ChartLineAtrChannelCrossPoint[] | null | undefined,
-  options: { length?: number; atrLength?: number; mult?: number } = {},
+  options: { length?: number | undefined; atrLength?: number | undefined; mult?: number | undefined } = {},
 ): LineAtrChannelCrossChannels {
   const cleaned = getLineAtrChannelCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -395,7 +395,7 @@ export function detectLineAtrChannelCrossCrosses(
 
 export function runLineAtrChannelCross(
   data: ChartLineAtrChannelCrossPoint[],
-  options: { length?: number; atrLength?: number; mult?: number } = {},
+  options: { length?: number | undefined; atrLength?: number | undefined; mult?: number | undefined } = {},
 ): ChartLineAtrChannelCrossRun {
   const cleaned = getLineAtrChannelCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -468,9 +468,9 @@ export function runLineAtrChannelCross(
 
 export interface ComputeLineAtrChannelCrossLayoutOptions {
   data: ChartLineAtrChannelCrossPoint[];
-  length?: number;
-  atrLength?: number;
-  mult?: number;
+  length?: number | undefined;
+  atrLength?: number | undefined;
+  mult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -667,7 +667,7 @@ export function computeLineAtrChannelCrossLayout(
 
 export function describeLineAtrChannelCrossChart(
   data: ChartLineAtrChannelCrossPoint[],
-  options: { length?: number; atrLength?: number; mult?: number } = {},
+  options: { length?: number | undefined; atrLength?: number | undefined; mult?: number | undefined } = {},
 ): string {
   const cleaned = getLineAtrChannelCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

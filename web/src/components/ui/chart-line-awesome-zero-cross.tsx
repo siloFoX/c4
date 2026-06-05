@@ -129,9 +129,9 @@ export interface ChartLineAwesomeZeroCrossLayout {
 export interface ChartLineAwesomeZeroCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAwesomeZeroCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -271,7 +271,7 @@ export interface LineAwesomeZeroCrossChannels {
 
 export function computeLineAwesomeZeroCross(
   series: readonly ChartLineAwesomeZeroCrossPoint[] | null | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineAwesomeZeroCrossChannels {
   const cleaned = getLineAwesomeZeroCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -332,9 +332,9 @@ export function detectLineAwesomeZeroCrossCrosses(
 export function runLineAwesomeZeroCross(
   data: ChartLineAwesomeZeroCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineAwesomeZeroCrossRun {
   const cleaned = getLineAwesomeZeroCrossFinitePoints(data);
@@ -410,9 +410,9 @@ export function runLineAwesomeZeroCross(
 
 export interface ComputeLineAwesomeZeroCrossLayoutOptions {
   data: ChartLineAwesomeZeroCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -598,9 +598,9 @@ export function computeLineAwesomeZeroCrossLayout(
 export function describeLineAwesomeZeroCrossChart(
   data: ChartLineAwesomeZeroCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAwesomeZeroCrossFinitePoints(data);

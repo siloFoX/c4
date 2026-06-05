@@ -181,9 +181,9 @@ export interface ChartLineAdxTrendCrossLayout {
 export interface ChartLineAdxTrendCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxTrendCrossPoint[];
-  period?: number;
-  lower?: number;
-  upper?: number;
+  period?: number | undefined;
+  lower?: number | undefined;
+  upper?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -313,7 +313,7 @@ export interface AdxTrendCrossChannels {
 
 export function computeLineAdxTrendCross(
   series: readonly ChartLineAdxTrendCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): AdxTrendCrossChannels {
   const cleaned = getLineAdxTrendCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -518,7 +518,7 @@ export function detectLineAdxTrendCrossCrosses(
 
 export function runLineAdxTrendCross(
   data: ChartLineAdxTrendCrossPoint[],
-  options: { period?: number; lower?: number; upper?: number } = {},
+  options: { period?: number | undefined; lower?: number | undefined; upper?: number | undefined } = {},
 ): ChartLineAdxTrendCrossRun {
   const cleaned = getLineAdxTrendCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -617,9 +617,9 @@ export function runLineAdxTrendCross(
 
 export interface ComputeLineAdxTrendCrossLayoutOptions {
   data: ChartLineAdxTrendCrossPoint[];
-  period?: number;
-  lower?: number;
-  upper?: number;
+  period?: number | undefined;
+  lower?: number | undefined;
+  upper?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -804,7 +804,7 @@ export function computeLineAdxTrendCrossLayout(
 
 export function describeLineAdxTrendCrossChart(
   data: ChartLineAdxTrendCrossPoint[],
-  options: { period?: number; lower?: number; upper?: number } = {},
+  options: { period?: number | undefined; lower?: number | undefined; upper?: number | undefined } = {},
 ): string {
   const cleaned = getLineAdxTrendCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

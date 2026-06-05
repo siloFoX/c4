@@ -127,7 +127,7 @@ export interface ChartLineAdxDiCrossLayout {
 export interface ChartLineAdxDiCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdxDiCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -245,7 +245,7 @@ export interface LineAdxDiCrossChannels {
 
 export function computeLineAdxDiCross(
   series: readonly ChartLineAdxDiCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineAdxDiCrossChannels {
   const cleaned = getLineAdxDiCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -346,7 +346,7 @@ export function detectLineAdxDiCrossCrosses(
 
 export function runLineAdxDiCross(
   data: ChartLineAdxDiCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineAdxDiCrossRun {
   const cleaned = getLineAdxDiCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -406,7 +406,7 @@ export function runLineAdxDiCross(
 
 export interface ComputeLineAdxDiCrossLayoutOptions {
   data: ChartLineAdxDiCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -579,7 +579,7 @@ export function computeLineAdxDiCrossLayout(
 
 export function describeLineAdxDiCrossChart(
   data: ChartLineAdxDiCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineAdxDiCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

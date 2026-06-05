@@ -4,6 +4,18 @@
 
 (no entries -- next release window)
 
+## [1.11.1156] - 2026-06-05 -- CHORE: fix 39 source-confirmed tsc strict-type errors in 39 chart component files -- FINAL component batch, tsc PROJECT-WIDE GREEN (TODO 11.1138)
+
+NINTH and FINAL chart COMPONENT batch. 39 chart .tsx component
+files: 36 TS2379 + 2 TS6133 + 1 TS2322. After this patch,
+`tsc --noEmit -p web/tsconfig.json` is **ZERO errors project-wide**
+(full build gate GREEN). Same proven PURE-TYPE method as
+11.1130-11.1137. No `as any`, no `as unknown as`, no `ts-ignore`,
+no fresh `ts-expect-error`. No rendered output change. Mandated
+verification: tsc --noEmit 39 -> 0 (-39, full project GREEN);
+vitest on 39 matching test files: 39/39 pass + 2303/2303 tests
+pass; playwright e2e/gallery-no-crash.spec.ts: 1 test passed.
+
 ## [1.11.1155] - 2026-06-05 -- CHORE: fix 42 source-confirmed tsc strict-type errors in 42 chart component files -- EIGHTH component batch (TODO 11.1137)
 
 Eighth chart COMPONENT batch. 42 chart .tsx component files: 41

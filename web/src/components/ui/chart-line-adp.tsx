@@ -138,9 +138,9 @@ export interface ChartLineAdpLayout {
 export interface ChartLineAdpProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineAdpPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -297,7 +297,7 @@ export interface LineAdpChannels {
 
 export function computeLineAdp(
   series: readonly ChartLineAdpPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineAdpChannels {
   const cleaned = getLineAdpFinitePoints(series);
   if (cleaned.length === 0) {
@@ -381,9 +381,9 @@ export function detectLineAdpCrosses(
 export function runLineAdp(
   data: ChartLineAdpPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): ChartLineAdpRun {
   const cleaned = getLineAdpFinitePoints(data);
@@ -475,9 +475,9 @@ export function runLineAdp(
 
 export interface ComputeLineAdpLayoutOptions {
   data: ChartLineAdpPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -639,9 +639,9 @@ export function computeLineAdpLayout(
 export function describeLineAdpChart(
   data: ChartLineAdpPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineAdpFinitePoints(data);

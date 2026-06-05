@@ -150,11 +150,11 @@ export interface ChartLineCciExtremeCrossLayout {
 export interface ChartLineCciExtremeCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCciExtremeCrossPoint[];
-  length?: number;
-  upperMild?: number;
-  lowerMild?: number;
-  upperExtreme?: number;
-  lowerExtreme?: number;
+  length?: number | undefined;
+  upperMild?: number | undefined;
+  lowerMild?: number | undefined;
+  upperExtreme?: number | undefined;
+  lowerExtreme?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -311,7 +311,7 @@ export interface LineCciExtremeCrossChannels {
 
 export function computeLineCciExtremeCross(
   series: readonly ChartLineCciExtremeCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineCciExtremeCrossChannels {
   const cleaned = getLineCciExtremeCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -392,11 +392,11 @@ export function detectLineCciExtremeCrossCrosses(
 export function runLineCciExtremeCross(
   data: ChartLineCciExtremeCrossPoint[],
   options: {
-    length?: number;
-    upperMild?: number;
-    lowerMild?: number;
-    upperExtreme?: number;
-    lowerExtreme?: number;
+    length?: number | undefined;
+    upperMild?: number | undefined;
+    lowerMild?: number | undefined;
+    upperExtreme?: number | undefined;
+    lowerExtreme?: number | undefined;
   } = {},
 ): ChartLineCciExtremeCrossRun {
   const cleaned = getLineCciExtremeCrossFinitePoints(data);
@@ -504,11 +504,11 @@ export function runLineCciExtremeCross(
 
 export interface ComputeLineCciExtremeCrossLayoutOptions {
   data: ChartLineCciExtremeCrossPoint[];
-  length?: number;
-  upperMild?: number;
-  lowerMild?: number;
-  upperExtreme?: number;
-  lowerExtreme?: number;
+  length?: number | undefined;
+  upperMild?: number | undefined;
+  lowerMild?: number | undefined;
+  upperExtreme?: number | undefined;
+  lowerExtreme?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -709,11 +709,11 @@ export function computeLineCciExtremeCrossLayout(
 export function describeLineCciExtremeCrossChart(
   data: ChartLineCciExtremeCrossPoint[],
   options: {
-    length?: number;
-    upperMild?: number;
-    lowerMild?: number;
-    upperExtreme?: number;
-    lowerExtreme?: number;
+    length?: number | undefined;
+    upperMild?: number | undefined;
+    lowerMild?: number | undefined;
+    upperExtreme?: number | undefined;
+    lowerExtreme?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineCciExtremeCrossFinitePoints(data);

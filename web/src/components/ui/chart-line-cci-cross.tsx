@@ -148,7 +148,7 @@ export interface ChartLineCciCrossLayout {
 export interface ChartLineCciCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCciCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -342,7 +342,7 @@ export interface LineCciCrossChannels {
 
 export function computeLineCciCross(
   series: readonly ChartLineCciCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineCciCrossChannels {
   const cleaned = getLineCciCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -410,7 +410,7 @@ export function detectLineCciCrossEvents(
 
 export function runLineCciCross(
   data: ChartLineCciCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineCciCrossRun {
   const cleaned = getLineCciCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -488,7 +488,7 @@ export function runLineCciCross(
 
 export interface ComputeLineCciCrossLayoutOptions {
   data: ChartLineCciCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -659,7 +659,7 @@ export function computeLineCciCrossLayout(
 
 export function describeLineCciCrossChart(
   data: ChartLineCciCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineCciCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

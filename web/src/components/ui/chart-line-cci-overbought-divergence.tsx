@@ -234,8 +234,8 @@ export interface ChartLineCciOverboughtDivergenceLayout {
 export interface ChartLineCciOverboughtDivergenceProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCciOverboughtDivergencePoint[];
-  period?: number;
-  overboughtLevel?: number;
+  period?: number | undefined;
+  overboughtLevel?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -353,7 +353,7 @@ export function normalizeLineCciOverboughtDivergenceLevel(
 
 export function computeLineCciOverboughtDivergence(
   series: readonly ChartLineCciOverboughtDivergencePoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): Array<number | null> {
   const cleaned = getLineCciOverboughtDivergenceFinitePoints(series);
   if (cleaned.length === 0) return [];
@@ -448,7 +448,7 @@ export function detectLineCciOverboughtDivergenceCrosses(
 
 export function runLineCciOverboughtDivergence(
   data: ChartLineCciOverboughtDivergencePoint[],
-  options: { period?: number; overboughtLevel?: number } = {},
+  options: { period?: number | undefined; overboughtLevel?: number | undefined } = {},
 ): ChartLineCciOverboughtDivergenceRun {
   const cleaned = getLineCciOverboughtDivergenceFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -553,8 +553,8 @@ export function runLineCciOverboughtDivergence(
 
 export interface ComputeLineCciOverboughtDivergenceLayoutOptions {
   data: ChartLineCciOverboughtDivergencePoint[];
-  period?: number;
-  overboughtLevel?: number;
+  period?: number | undefined;
+  overboughtLevel?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -737,7 +737,7 @@ export function computeLineCciOverboughtDivergenceLayout(
 
 export function describeLineCciOverboughtDivergenceChart(
   data: ChartLineCciOverboughtDivergencePoint[],
-  options: { period?: number; overboughtLevel?: number } = {},
+  options: { period?: number | undefined; overboughtLevel?: number | undefined } = {},
 ): string {
   const cleaned = getLineCciOverboughtDivergenceFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
