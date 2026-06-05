@@ -303,7 +303,7 @@ export interface WmaDivergenceCrossChannels {
 
 export function computeLineWmaDivergenceCross(
   series: readonly ChartLineWmaDivergenceCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): WmaDivergenceCrossChannels {
   const cleaned = getLineWmaDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) return { wma: [] };
@@ -379,7 +379,7 @@ export function detectLineWmaDivergenceCrossCrosses(
 
 export function runLineWmaDivergenceCross(
   data: ChartLineWmaDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineWmaDivergenceCrossRun {
   const cleaned = getLineWmaDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -648,7 +648,7 @@ export function computeLineWmaDivergenceCrossLayout(
 
 export function describeLineWmaDivergenceCrossChart(
   data: ChartLineWmaDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineWmaDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -255,7 +255,7 @@ export function applyLineDemaCrossEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -272,7 +272,7 @@ export interface LineDemaCrossChannels {
 
 export function computeLineDemaCross(
   series: readonly ChartLineDemaCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineDemaCrossChannels {
   const cleaned = getLineDemaCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -351,7 +351,7 @@ export function detectLineDemaCrossCrosses(
 
 export function runLineDemaCross(
   data: ChartLineDemaCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineDemaCrossRun {
   const cleaned = getLineDemaCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -612,7 +612,7 @@ export function computeLineDemaCrossLayout(
 
 export function describeLineDemaCrossChart(
   data: ChartLineDemaCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineDemaCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -344,7 +344,6 @@ export const ChartStackedBar = forwardRef(function ChartStackedBar(
     [activeHidden, categories, series],
   );
 
-  const labelMargin = showLabels ? 20 : 4;
   const xLabelMargin =
     activeOrientation === 'horizontal' && showLabels ? 50 : 0;
   const padLeft = padding + xLabelMargin;

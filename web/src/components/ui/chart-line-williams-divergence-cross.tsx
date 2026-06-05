@@ -327,7 +327,7 @@ export function computeLineWilliamsDivergenceCross(
     | readonly ChartLineWilliamsDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): WilliamsDivergenceCrossChannels {
   const cleaned = getLineWilliamsDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -419,7 +419,7 @@ export function detectLineWilliamsDivergenceCrossCrosses(
 
 export function runLineWilliamsDivergenceCross(
   data: ChartLineWilliamsDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineWilliamsDivergenceCrossRun {
   const cleaned = getLineWilliamsDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -689,7 +689,7 @@ export function computeLineWilliamsDivergenceCrossLayout(
 
 export function describeLineWilliamsDivergenceCrossChart(
   data: ChartLineWilliamsDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineWilliamsDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

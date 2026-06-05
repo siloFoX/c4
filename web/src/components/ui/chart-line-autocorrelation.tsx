@@ -390,8 +390,8 @@ export function findLineAutocorrelationDominantLag(
 }
 
 export interface RunLineAutocorrelationOptions {
-  maxLag?: number;
-  confidenceZ?: number;
+  maxLag?: number | undefined;
+  confidenceZ?: number | undefined;
 }
 
 export function runLineAutocorrelation(

@@ -307,7 +307,7 @@ export interface LineWmaCrossSigChannels {
 
 export function computeLineWmaCrossSig(
   series: readonly ChartLineWmaCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): LineWmaCrossSigChannels {
   const cleaned = getLineWmaCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -370,7 +370,7 @@ export function detectLineWmaCrossSigCrosses(
 
 export function runLineWmaCrossSig(
   data: ChartLineWmaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineWmaCrossSigRun {
   const cleaned = getLineWmaCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -649,7 +649,7 @@ export function computeLineWmaCrossSigLayout(
 
 export function describeLineWmaCrossSigChart(
   data: ChartLineWmaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineWmaCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

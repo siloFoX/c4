@@ -458,7 +458,7 @@ export function detectLineWilliamsOverboughtDivergenceCrosses(
 
 export function runLineWilliamsOverboughtDivergence(
   data: ChartLineWilliamsOverboughtDivergencePoint[],
-  options: { period?: number; overboughtLevel?: number } = {},
+  options: { period?: number | undefined; overboughtLevel?: number | undefined } = {},
 ): ChartLineWilliamsOverboughtDivergenceRun {
   const cleaned = getLineWilliamsOverboughtDivergenceFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -740,7 +740,7 @@ export function computeLineWilliamsOverboughtDivergenceLayout(
 
 export function describeLineWilliamsOverboughtDivergenceChart(
   data: ChartLineWilliamsOverboughtDivergencePoint[],
-  options: { period?: number; overboughtLevel?: number } = {},
+  options: { period?: number | undefined; overboughtLevel?: number | undefined } = {},
 ): string {
   const cleaned = getLineWilliamsOverboughtDivergenceFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -325,7 +325,7 @@ export const ChartStream = forwardRef(function ChartStream(
   );
 
   const hoveredSeries =
-    hovered !== null ? series[hovered] : null;
+    hovered !== null ? series[hovered]! : null;
   const hoveredValue =
     hoveredSeries !== null && hoveredX !== null
       ? hoveredSeries.data[hoveredX]

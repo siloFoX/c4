@@ -249,11 +249,6 @@ export const ChartRadialBar = forwardRef(function ChartRadialBar(
     [maxValue, series],
   );
   const outerRadius = Math.min(cx, cy) - padding;
-  const totalThickness =
-    series.length === 0
-      ? 0
-      : series.length * barWidth +
-        Math.max(0, series.length - 1) * barGap;
   // We render from outer-most ring -> inner-most ring as series order.
   // Each series occupies barWidth of radial thickness.
 

@@ -173,7 +173,6 @@ export function buildPictogramIconPath(
       const legSpread = size * 0.5;
       const legX = (size - legSpread) / 2;
       const headCx = half;
-      const headCy = headR;
       return [
         `M ${headCx} 0`,
         `A ${headR} ${headR} 0 1 1 ${headCx - 0.001} 0`,

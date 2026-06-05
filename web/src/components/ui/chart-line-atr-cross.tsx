@@ -298,7 +298,7 @@ export function applyLineAtrCrossWilder(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed
           ? v
           : (smoothed * (length - 1) + v) / length;
@@ -317,7 +317,7 @@ export interface LineAtrCrossChannels {
 
 export function computeLineAtrCross(
   series: readonly ChartLineAtrCrossPoint[] | null | undefined,
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): LineAtrCrossChannels {
   const cleaned = getLineAtrCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -390,7 +390,7 @@ export function detectLineAtrCrossCrosses(
 
 export function runLineAtrCross(
   data: ChartLineAtrCrossPoint[],
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): ChartLineAtrCrossRun {
   const cleaned = getLineAtrCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -635,7 +635,7 @@ export function computeLineAtrCrossLayout(
 
 export function describeLineAtrCrossChart(
   data: ChartLineAtrCrossPoint[],
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineAtrCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

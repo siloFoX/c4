@@ -300,8 +300,8 @@ export function detectLineWilliamsRMidCrossCrosses(
 export function runLineWilliamsRMidCross(
   data: ChartLineWilliamsRMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineWilliamsRMidCrossRun {
   const cleaned = getLineWilliamsRMidCrossFinitePoints(data);
@@ -535,8 +535,8 @@ export function computeLineWilliamsRMidCrossLayout(
 export function describeLineWilliamsRMidCrossChart(
   data: ChartLineWilliamsRMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineWilliamsRMidCrossFinitePoints(data);

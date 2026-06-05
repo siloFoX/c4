@@ -321,7 +321,7 @@ export interface LineBbPercentZeroCrossChannels {
 
 export function computeLineBbPercentZeroCross(
   series: readonly ChartLineBbPercentZeroCrossPoint[] | null | undefined,
-  options: { length?: number; mult?: number } = {},
+  options: { length?: number | undefined; mult?: number | undefined } = {},
 ): LineBbPercentZeroCrossChannels {
   const cleaned = getLineBbPercentZeroCrossFinitePoints(series);
   const length = normalizeLineBbPercentZeroCrossLength(
@@ -398,9 +398,9 @@ export function detectLineBbPercentZeroCrossCrosses(
 export function runLineBbPercentZeroCross(
   data: ChartLineBbPercentZeroCrossPoint[],
   options: {
-    length?: number;
-    mult?: number;
-    threshold?: number;
+    length?: number | undefined;
+    mult?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineBbPercentZeroCrossRun {
   const cleaned = getLineBbPercentZeroCrossFinitePoints(data);
@@ -655,9 +655,9 @@ export function computeLineBbPercentZeroCrossLayout(
 export function describeLineBbPercentZeroCrossChart(
   data: ChartLineBbPercentZeroCrossPoint[],
   options: {
-    length?: number;
-    mult?: number;
-    threshold?: number;
+    length?: number | undefined;
+    mult?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineBbPercentZeroCrossFinitePoints(data);

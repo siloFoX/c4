@@ -284,7 +284,7 @@ export interface LineWilliamsRCrossChannels {
 
 export function computeLineWilliamsRCross(
   series: readonly ChartLineWilliamsRCrossPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineWilliamsRCrossChannels {
   const cleaned = getLineWilliamsRCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -364,7 +364,7 @@ export function detectLineWilliamsRCrossCrosses(
 
 export function runLineWilliamsRCross(
   data: ChartLineWilliamsRCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineWilliamsRCrossRun {
   const cleaned = getLineWilliamsRCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -614,7 +614,7 @@ export function computeLineWilliamsRCrossLayout(
 
 export function describeLineWilliamsRCrossChart(
   data: ChartLineWilliamsRCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineWilliamsRCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
