@@ -324,8 +324,8 @@ describe('<ChartLineVortexCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-vortex-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('14');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('14');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -335,7 +335,7 @@ describe('<ChartLineVortexCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-vortex-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {

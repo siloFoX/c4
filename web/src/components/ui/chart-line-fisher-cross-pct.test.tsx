@@ -290,9 +290,9 @@ describe('<ChartLineFisherCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-fisher-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('10');
-    expect(root?.dataset.signalLength).toBe('9');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('10');
+    expect(root?.dataset['signalLength']).toBe('9');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('renders an aria description', () => {

@@ -415,9 +415,9 @@ describe('ChartLineStcMidCrossSig rendering', () => {
     const { container } = render(<ChartLineStcMidCrossSig data={data} />);
     const buttons = container.querySelectorAll('[data-series-id]');
     expect(buttons).toHaveLength(3);
-    expect(buttons[0].getAttribute('data-series-id')).toBe('price');
-    expect(buttons[1].getAttribute('data-series-id')).toBe('stc');
-    expect(buttons[2].getAttribute('data-series-id')).toBe('signal');
+    expect(buttons[0]!.getAttribute('data-series-id')).toBe('price');
+    expect(buttons[1]!.getAttribute('data-series-id')).toBe('stc');
+    expect(buttons[2]!.getAttribute('data-series-id')).toBe('signal');
   });
 
   it('toggles signal via legend click', () => {

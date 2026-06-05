@@ -322,9 +322,9 @@ describe('<ChartLineAccumulationCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-accumulation-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.barLength).toBe('2');
-    expect(root?.dataset.signalLength).toBe('9');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['barLength']).toBe('2');
+    expect(root?.dataset['signalLength']).toBe('9');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -334,7 +334,7 @@ describe('<ChartLineAccumulationCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-accumulation-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {

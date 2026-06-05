@@ -451,9 +451,9 @@ describe('ChartLineTsiSignalCross rendering', () => {
     );
     const buttons = container.querySelectorAll('[data-series-id]');
     expect(buttons).toHaveLength(3);
-    expect(buttons[0].getAttribute('data-series-id')).toBe('price');
-    expect(buttons[1].getAttribute('data-series-id')).toBe('tsi');
-    expect(buttons[2].getAttribute('data-series-id')).toBe('signal');
+    expect(buttons[0]!.getAttribute('data-series-id')).toBe('price');
+    expect(buttons[1]!.getAttribute('data-series-id')).toBe('tsi');
+    expect(buttons[2]!.getAttribute('data-series-id')).toBe('signal');
   });
 
   it('toggles series visibility via legend click', () => {
