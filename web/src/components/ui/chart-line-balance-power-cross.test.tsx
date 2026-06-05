@@ -330,9 +330,9 @@ describe('<ChartLineBalancePowerCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-balance-power-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.barLength).toBe('5');
-    expect(root?.dataset.smoothLength).toBe('3');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['barLength']).toBe('5');
+    expect(root?.dataset['smoothLength']).toBe('3');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -342,7 +342,7 @@ describe('<ChartLineBalancePowerCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-balance-power-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {
