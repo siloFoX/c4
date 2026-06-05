@@ -339,9 +339,9 @@ describe('<ChartLineCciCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-cci-cross-sig"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('20');
-    expect(root?.dataset.signalLength).toBe('9');
-    expect(root?.dataset.totalPoints).toBe('60');
+    expect(root?.dataset['length']).toBe('20');
+    expect(root?.dataset['signalLength']).toBe('9');
+    expect(root?.dataset['totalPoints']).toBe('60');
   });
 
   it('reports cross count as data attribute', () => {
@@ -351,7 +351,7 @@ describe('<ChartLineCciCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-cci-cross-sig"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {

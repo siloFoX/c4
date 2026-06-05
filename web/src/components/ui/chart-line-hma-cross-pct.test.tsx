@@ -286,8 +286,8 @@ describe('<ChartLineHmaCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-hma-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('9');
-    expect(root?.dataset.totalPoints).toBe('30');
+    expect(root?.dataset['length']).toBe('9');
+    expect(root?.dataset['totalPoints']).toBe('30');
   });
 
   it('reports regime counts as data attributes', () => {
@@ -297,8 +297,8 @@ describe('<ChartLineHmaCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-hma-cross-pct"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.aboveCount)).toBe(0);
-    expect(Number(root?.dataset.belowCount)).toBe(0);
+    expect(Number(root?.dataset['aboveCount'])).toBe(0);
+    expect(Number(root?.dataset['belowCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {
