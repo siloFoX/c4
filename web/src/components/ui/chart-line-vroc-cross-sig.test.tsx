@@ -352,9 +352,9 @@ describe('<ChartLineVrocCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-vroc-cross-sig"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('12');
-    expect(root?.dataset.signalLength).toBe('9');
-    expect(root?.dataset.totalPoints).toBe('60');
+    expect(root?.dataset['length']).toBe('12');
+    expect(root?.dataset['signalLength']).toBe('9');
+    expect(root?.dataset['totalPoints']).toBe('60');
   });
 
   it('reports cross count as data attribute', () => {
@@ -364,7 +364,7 @@ describe('<ChartLineVrocCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-vroc-cross-sig"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {

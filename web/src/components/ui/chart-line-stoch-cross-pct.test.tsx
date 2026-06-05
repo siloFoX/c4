@@ -320,10 +320,10 @@ describe('<ChartLineStochCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-stoch-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.kLength).toBe('14');
-    expect(root?.dataset.slowKLength).toBe('3');
-    expect(root?.dataset.dLength).toBe('3');
-    expect(root?.dataset.totalPoints).toBe('60');
+    expect(root?.dataset['kLength']).toBe('14');
+    expect(root?.dataset['slowKLength']).toBe('3');
+    expect(root?.dataset['dLength']).toBe('3');
+    expect(root?.dataset['totalPoints']).toBe('60');
   });
 
   it('renders an aria description', () => {
