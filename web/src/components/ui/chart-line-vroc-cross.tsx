@@ -266,7 +266,7 @@ export function applyLineVrocCrossEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -282,7 +282,7 @@ export interface LineVrocCrossChannels {
 
 export function computeLineVrocCross(
   series: readonly ChartLineVrocCrossPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineVrocCrossChannels {
   const cleaned = getLineVrocCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -365,7 +365,7 @@ export function detectLineVrocCrossCrosses(
 
 export function runLineVrocCross(
   data: ChartLineVrocCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineVrocCrossRun {
   const cleaned = getLineVrocCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -624,7 +624,7 @@ export function computeLineVrocCrossLayout(
 
 export function describeLineVrocCrossChart(
   data: ChartLineVrocCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineVrocCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

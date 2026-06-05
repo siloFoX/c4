@@ -239,9 +239,9 @@ export function classifyLineEwmaResidual(
 }
 
 export interface RunLineEwmaOptions {
-  alpha?: number;
-  span?: number;
-  initialEstimate?: number;
+  alpha?: number | undefined;
+  span?: number | undefined;
+  initialEstimate?: number | undefined;
 }
 
 export function resolveLineEwmaAlpha(options?: RunLineEwmaOptions): number {

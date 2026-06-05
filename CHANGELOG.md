@@ -4,6 +4,45 @@
 
 (no entries -- next release window)
 
+## [1.11.1148] - 2026-06-05 -- CHORE: fix 49 source-confirmed tsc strict-type errors in 14 chart component files -- FIRST component batch (TODO 11.1130)
+
+First chart COMPONENT batch (the test type-clean campaign is now
+followed by the component type-clean campaign). 14 chart .tsx
+component files held 49 errors. Pure-type fixes only:
+- TS2379 exactOptional (covered chart-line-ewma, chart-line-fft,
+  chart-line-rsi-cross-sig, chart-line-spectrogram,
+  chart-line-supertrend-flip-cross, chart-line-supertrend-mid-cross-sig,
+  chart-line-vroc-cross, chart-line-vsa-cross, chart-line-zlema-cross,
+  chart-violin): added `| undefined` to optional properties of the
+  TARGET options type defined in the same file, per the dispatch's
+  exact instruction. No call-site coalescing, no data-prop changes.
+- TS7022 self-ref implicit any (chart-line-rsi-cross-sig,
+  chart-line-supertrend-flip-cross,
+  chart-line-supertrend-mid-cross-sig, chart-line-vroc-cross,
+  chart-line-vsa-cross, chart-line-zlema-cross): added explicit
+  `: number` annotation on the flagged `const`.
+- TS7006 implicit any param (chart-line-forecast): 2x sort callback
+  param annotated with `ChartLineForecastPoint`.
+- TS18048 + TS2322 possibly-undefined (chart-line-keltner): non-null
+  `!` on the indexed array element, so subsequent `!== null`
+  narrows to `number`.
+- TS2322 narrow `null | undefined` (chart-line-supertrend): 6 sites
+  -> `!` non-null on indexed access.
+- TS2532 (chart-streamgraph): `totals[i]!`.
+- TS6133 unused (chart-line-fft `projectFreqX` +
+  `spectrumBarWidthRatio`, chart-line-forecast `finiteSample` ->
+  `_finiteSample` + `forecastDashArray` local,
+  chart-line-spectrogram `dominantColor` + `includeDc`,
+  chart-streamgraph `cur`, chart-violin `boxRight`): removed
+  genuinely-unused locals/params (no call sites, no JSX consumers).
+No `as any`, no `ts-ignore`, no fresh `ts-expect-error`. No
+rendered output change. Mandated verification: tsc --noEmit
+379 -> 330 (-49, zero in the 14 files, zero `.test.*` errors
+anywhere, zero non-chart-component errors anywhere); vitest on the
+14 matching test files: 14/14 files pass, 917/917 tests pass, zero
+NEW failures; playwright e2e/gallery-no-crash.spec.ts: 1 test
+passed (gallery still renders all tiles without crashing).
+
 ## [1.11.1147] - 2026-06-05 -- CHORE: fix 32 source-confirmed tsc strict-type errors in 32 chart test files -- FINAL chart bucket batch (TODO 11.1129)
 
 FINAL batch of the chart showcase tsc-debt clear. 32 chart .test.tsx

@@ -140,7 +140,7 @@ export function computeStreamgraphBaseline(
       }
       sumNumerator += (above + sCur / 2) * sCur;
     }
-    const offset = -(sumNumerator / totals[i]);
+    const offset = -(sumNumerator / totals[i]!);
     offsets[i] = offset;
     prev = offset;
   }
@@ -323,7 +323,6 @@ export function computeStreamgraphLayers(
   }
 
   for (let i = 0; i < sampleCount; i++) {
-    let cur = cumulativeBottoms[i] ?? 0;
     if (baseline === 'expand') {
       const t = totals[i] ?? 0;
       if (t > 0) {
@@ -334,7 +333,6 @@ export function computeStreamgraphLayers(
         }
       }
       cumulativeBottoms[i] = 0;
-      cur = 0;
     } else {
       for (let s = 0; s < visibleSeries.length; s++) {
         const raw = clampToZero(visibleSeries[s]!.series.data[i] ?? 0);

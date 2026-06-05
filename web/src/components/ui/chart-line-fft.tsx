@@ -283,7 +283,7 @@ export function computeLineFftDft(
 
 export function computeLineFftSpectrum(
   points: readonly ChartLineFftPoint[] | null | undefined,
-  options?: { detrend?: boolean; excludeDc?: boolean },
+  options?: { detrend?: boolean | undefined; excludeDc?: boolean | undefined },
 ): ChartLineFftSpectrum {
   const finite = getLineFftFinitePoints(points);
   if (finite.length < 2) {
@@ -526,8 +526,6 @@ export function computeLineFftLayout(
     timeX + ((x - xLo) / xRange) * timeWidth;
   const projectTimeY = (y: number): number =>
     timeY + innerHeight - ((y - yLo) / yRange) * innerHeight;
-  const projectFreqX = (f: number): number =>
-    spectrumX + (f / freqHi) * spectrumWidth;
   const projectMagY = (m: number): number =>
     timeY + innerHeight - (m / magHi) * innerHeight;
 
@@ -705,7 +703,6 @@ export const ChartLineFft = forwardRef<HTMLDivElement, ChartLineFftProps>(
       detrend = true,
       excludeDc = true,
       strokeWidth = DEFAULT_CHART_LINE_FFT_STROKE_WIDTH,
-      spectrumBarWidthRatio = DEFAULT_CHART_LINE_FFT_SPECTRUM_BAR_WIDTH_RATIO,
       dotRadius = DEFAULT_CHART_LINE_FFT_DOT_RADIUS,
       spectrumColor = DEFAULT_CHART_LINE_FFT_SPECTRUM_COLOR,
       dominantColor = DEFAULT_CHART_LINE_FFT_DOMINANT_COLOR,

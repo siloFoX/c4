@@ -473,13 +473,13 @@ export function computeLineSupertrendMidCrossSig(
       const basicUpper = hl2 + multiplier * a;
       const basicLower = hl2 - multiplier * a;
 
-      const finalUpper =
+      const finalUpper: number =
         prevFinalUpper == null ||
         basicUpper < prevFinalUpper ||
         (i > 0 && cleaned[i - 1]!.close > prevFinalUpper)
           ? basicUpper
           : prevFinalUpper;
-      const finalLower =
+      const finalLower: number =
         prevFinalLower == null ||
         basicLower > prevFinalLower ||
         (i > 0 && cleaned[i - 1]!.close < prevFinalLower)
@@ -550,9 +550,9 @@ export function detectLineSupertrendMidCrossSigCrosses(
 export function runLineSupertrendMidCrossSig(
   data: ChartLineSupertrendMidCrossSigPoint[],
   options: {
-    period?: number;
-    multiplier?: number;
-    signalLength?: number;
+    period?: number | undefined;
+    multiplier?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineSupertrendMidCrossSigRun {
   const cleaned = getLineSupertrendMidCrossSigFinitePoints(data);

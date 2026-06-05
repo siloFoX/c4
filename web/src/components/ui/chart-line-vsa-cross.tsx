@@ -316,7 +316,7 @@ export function applyLineVsaCrossEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -334,7 +334,7 @@ export interface LineVsaCrossChannels {
 
 export function computeLineVsaCross(
   series: readonly ChartLineVsaCrossPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineVsaCrossChannels {
   const cleaned = getLineVsaCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -438,7 +438,7 @@ export function detectLineVsaCrossCrosses(
 
 export function runLineVsaCross(
   data: ChartLineVsaCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineVsaCrossRun {
   const cleaned = getLineVsaCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -703,7 +703,7 @@ export function computeLineVsaCrossLayout(
 
 export function describeLineVsaCrossChart(
   data: ChartLineVsaCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineVsaCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

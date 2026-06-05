@@ -165,10 +165,10 @@ export function getViolinEvalPoints(
 export function getViolinStats(
   data: readonly number[],
   options: {
-    bandwidth?: number;
-    resolution?: number;
-    rangeMin?: number;
-    rangeMax?: number;
+    bandwidth?: number | undefined;
+    resolution?: number | undefined;
+    rangeMin?: number | undefined;
+    rangeMax?: number | undefined;
   } = {},
 ): ViolinStats {
   const finite = data.filter((v) => Number.isFinite(v));
@@ -518,7 +518,6 @@ export const ChartViolin = forwardRef(function ChartViolin(
           const yQ1 = yFor(stat.q1);
           const yQ3 = yFor(stat.q3);
           const boxLeft = centerX - boxHalfWidth;
-          const boxRight = centerX + boxHalfWidth;
           return (
             <g
               key={s.id}

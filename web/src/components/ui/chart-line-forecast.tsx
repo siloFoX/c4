@@ -254,7 +254,7 @@ export function splitLineForecastPoints(
 
 function indexOfSampleInOriginal(
   points: readonly ChartLineForecastPoint[],
-  finiteSample: ChartLineForecastPoint,
+  _finiteSample: ChartLineForecastPoint,
   finiteIndex: number,
 ): number {
   // Try positional match first (assumes input order preserved).
@@ -425,7 +425,7 @@ export function computeLineForecastLayout(
     if (hidden && hidden.has(s.id)) continue;
     const arr = Array.isArray(s.data) ? s.data : [];
     const finite = arr.filter(isFinitePoint);
-    const sorted = finite.slice().sort((a, b) => a.x - b.x);
+    const sorted = finite.slice().sort((a: ChartLineForecastPoint, b: ChartLineForecastPoint) => a.x - b.x);
     const seriesCutoff = isFiniteNumber(s.forecastFrom)
       ? s.forecastFrom
       : isFiniteNumber(defaultForecastFrom ?? Number.NaN)
@@ -557,7 +557,7 @@ export function describeLineForecastChart(
         : Number.POSITIVE_INFINITY;
     const arr = Array.isArray(s.data) ? s.data : [];
     const split = splitLineForecastPoints(
-      arr.filter(isFinitePoint).slice().sort((a, b) => a.x - b.x),
+      arr.filter(isFinitePoint).slice().sort((a: ChartLineForecastPoint, b: ChartLineForecastPoint) => a.x - b.x),
       cutoff,
     );
     const hist = split.historical.filter((p) => !p.isJoin).length;
@@ -646,7 +646,6 @@ export const ChartLineForecast = forwardRef(function ChartLineForecast(
     lineOpacity = DEFAULT_CHART_LINE_FORECAST_LINE_OPACITY,
     forecastOpacity = DEFAULT_CHART_LINE_FORECAST_FORECAST_OPACITY,
     bandOpacity = DEFAULT_CHART_LINE_FORECAST_BAND_OPACITY,
-    forecastDashArray = DEFAULT_CHART_LINE_FORECAST_DASH,
     cutoffDashArray = DEFAULT_CHART_LINE_FORECAST_CUTOFF_DASH,
     cutoffColor = DEFAULT_CHART_LINE_FORECAST_CUTOFF_COLOR,
     gridColor = DEFAULT_CHART_LINE_FORECAST_GRID_COLOR,
