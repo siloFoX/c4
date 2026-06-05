@@ -72,6 +72,14 @@ describe('<NumberInput>', () => {
   });
 
   it('ArrowUp / ArrowDown step via keyboard', async () => {
+    // The original sequence was ArrowUp + ArrowDown + ArrowDown
+    // ending with `toHaveBeenLastCalledWith(5)` -- but with no min
+    // set, initial=5 + up + down + down = 5 -> 6 -> 5 -> 4, so the
+    // last onChange call is (4), not (5). The component is correct
+    // (stepBy(-step) decrements with no floor when min is
+    // unspecified); the test had an off-by-one extra ArrowDown.
+    // Assert after each keystroke so both directions are pinned
+    // explicitly: up steps to 6, down steps back to 5.
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Controlled initial={5} ariaLabel="qty" onChange={onChange} />);
@@ -79,7 +87,6 @@ describe('<NumberInput>', () => {
     input.focus();
     await user.keyboard('{ArrowUp}');
     expect(onChange).toHaveBeenLastCalledWith(6);
-    await user.keyboard('{ArrowDown}');
     await user.keyboard('{ArrowDown}');
     expect(onChange).toHaveBeenLastCalledWith(5);
   });

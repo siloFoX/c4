@@ -4,6 +4,42 @@
 
 (no entries -- next release window)
 
+## [1.11.1163] - 2026-06-05 -- FIX(web): silent error-swallow in useScrollback + 1 stale ArrowDown test assertion (TODO 11.1145)
+
+Behavioral triage of 2 tests under the "may indicate a REAL
+product bug" bias produced one REAL source-bug fix and one stale
+test correction.
+
+Source bug (REAL): useScrollback's tab-change reset useEffect
+listed setActionMsg in its dep array. Consumers (including the
+real WorkerDetail.tsx:67) pass an inline arrow
+`(next) => setActionMsg(next)` for that prop, so the function
+identity flips every render. The effect therefore re-fires every
+render and calls setError(null) inside, racing the in-flight
+fetch's setError(<actualError>) and silently clobbering scrollback
+errors before the operator sees them. Minimal fix: capture
+setActionMsg in a useRef (refreshed per render so the value stays
+current), call setActionMsgRef.current(null) inside the effect,
+drop setActionMsg from the dep array. The effect now only fires
+when fetchScrollback (tab/workerName) or tab actually changes,
+preserving the "reset on tab change" contract while ending the
+per-render reset loop. Three failing assertions in
+src/lib/use-scrollback.test.ts now pass for the right reason
+(error string from data.error sticks; HTTP 500 thrown message
+sticks; parent-injected setError survives).
+
+Stale test (TEST FIX): number-input.test.tsx 'ArrowUp / ArrowDown
+step via keyboard' asserted toHaveBeenLastCalledWith(5) after
+ArrowUp + 2*ArrowDown starting from initial=5 (no min). Math is
+5->6->5->4, so the last onChange call is (4), not (5) -- an
+off-by-one extra ArrowDown in the test. Fix preserves the
+"both directions step" intent by asserting after each keystroke
+(up -> 6, down -> 5).
+
+Verification: tsc 0, npm build green, vitest 2/2 dispatched files
+pass + 41/41 cases, dependents (use-scrollback.test, WorkerDetail.
+test, number-input.test) 3/3 files + 78/78 cases pass.
+
 ## [1.11.1162] - 2026-06-05 -- CHORE: fix 3 fake-timer/clipboard test-infra failures across 2 files (TODO 11.1144)
 
 2 test files held 3 failing assertions, all TEST-INFRA bugs (not
