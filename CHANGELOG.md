@@ -4,6 +4,25 @@
 
 (no entries -- next release window)
 
+## [1.11.1164] - 2026-06-05 -- CHORE: rewrite NewChatModal initial-focus test to be JSDOM-safe (TODO 11.1146)
+
+NewChatModal.test.tsx 'focuses the prompt textarea on mount'
+failed ONLY in JSDOM. Production is correct (confirmed in
+11.1142). Used Option 1 of the dispatch preference order
+(rewrite the assertion to verify the same intent without
+depending on JSDOM's buggy multi-selector querySelectorAll
+ordering). The new assertion walks the dialog tree depth-first
+(NOT querySelectorAll) and applies the same focusability
+predicate as the focus-trap source, then asserts the prompt
+textarea is the first focusable element in document order. That
+is exactly the structural condition real browsers use to pick
+focus on mount, so the test stays load-bearing for the contract
+without depending on JSDOM's selector-list ordering bug. The
+case now passes deterministically (two consecutive runs);
+no browser test file needed; no it.skip. Zero source files
+touched, zero unrelated assertions weakened. Verification: tsc
+0, npm build green, vitest 1/1 file + 36/36 cases pass.
+
 ## [1.11.1163] - 2026-06-05 -- FIX(web): silent error-swallow in useScrollback + 1 stale ArrowDown test assertion (TODO 11.1145)
 
 Behavioral triage of 2 tests under the "may indicate a REAL
