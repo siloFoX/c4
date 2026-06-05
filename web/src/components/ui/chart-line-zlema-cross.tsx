@@ -268,7 +268,7 @@ export function applyLineZlemaCrossEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -285,7 +285,7 @@ export interface LineZlemaCrossChannels {
 
 export function computeLineZlemaCross(
   series: readonly ChartLineZlemaCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineZlemaCrossChannels {
   const cleaned = getLineZlemaCrossFinitePoints(series);
   const length = normalizeLineZlemaCrossLength(
@@ -366,7 +366,7 @@ export function detectLineZlemaCrossCrosses(
 
 export function runLineZlemaCross(
   data: ChartLineZlemaCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineZlemaCrossRun {
   const cleaned = getLineZlemaCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -625,7 +625,7 @@ export function computeLineZlemaCrossLayout(
 
 export function describeLineZlemaCrossChart(
   data: ChartLineZlemaCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineZlemaCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

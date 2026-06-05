@@ -301,12 +301,12 @@ export function computeLineSupertrend(
 
     if (firstIdx === -1) {
       firstIdx = i;
-      finalUpper[i] = basicUpper[i];
-      finalLower[i] = basicLower[i];
+      finalUpper[i] = basicUpper[i]!;
+      finalLower[i] = basicLower[i]!;
       const dir: ChartLineSupertrendDirection =
         i > 0 && values[i]! >= values[i - 1]! ? 'up' : 'down';
       direction[i] = dir;
-      supertrend[i] = dir === 'up' ? finalLower[i] : finalUpper[i];
+      supertrend[i] = dir === 'up' ? finalLower[i]! : finalUpper[i]!;
       continue;
     }
 
@@ -315,12 +315,12 @@ export function computeLineSupertrend(
     finalUpper[i] =
       (basicUpper[i] as number) < prevFinalUpper ||
       values[i - 1]! > prevFinalUpper
-        ? basicUpper[i]
+        ? basicUpper[i]!
         : prevFinalUpper;
     finalLower[i] =
       (basicLower[i] as number) > prevFinalLower ||
       values[i - 1]! < prevFinalLower
-        ? basicLower[i]
+        ? basicLower[i]!
         : prevFinalLower;
 
     const prevDir = direction[i - 1] as ChartLineSupertrendDirection;
@@ -331,7 +331,7 @@ export function computeLineSupertrend(
       dir = values[i]! >= (finalLower[i] as number) ? 'up' : 'down';
     }
     direction[i] = dir;
-    supertrend[i] = dir === 'up' ? finalLower[i] : finalUpper[i];
+    supertrend[i] = dir === 'up' ? finalLower[i]! : finalUpper[i]!;
     flip[i] = dir !== prevDir;
   }
 

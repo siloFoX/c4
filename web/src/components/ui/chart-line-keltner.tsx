@@ -403,8 +403,8 @@ export function computeLineKeltnerLayout(
     const m = run.middle[i]!;
     if (m < yLo) yLo = m;
     if (m > yHi) yHi = m;
-    const u = run.upper[i];
-    const l = run.lower[i];
+    const u = run.upper[i]!;
+    const l = run.lower[i]!;
     if (u !== null) {
       if (u < yLo) yLo = u;
       if (u > yHi) yHi = u;

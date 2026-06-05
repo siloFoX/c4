@@ -264,7 +264,7 @@ export function applyLineRsiCrossSigWilder(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed
           ? v
           : (smoothed * (length - 1) + v) / length;
@@ -311,7 +311,7 @@ export function applyLineRsiCrossSigEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -384,7 +384,7 @@ export interface LineRsiCrossSigChannels {
 
 export function computeLineRsiCrossSig(
   series: readonly ChartLineRsiCrossSigPoint[] | null | undefined,
-  options: { rsiLength?: number; signalLength?: number } = {},
+  options: { rsiLength?: number | undefined; signalLength?: number | undefined } = {},
 ): LineRsiCrossSigChannels {
   const cleaned = getLineRsiCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -463,7 +463,7 @@ export function detectLineRsiCrossSigCrosses(
 
 export function runLineRsiCrossSig(
   data: ChartLineRsiCrossSigPoint[],
-  options: { rsiLength?: number; signalLength?: number } = {},
+  options: { rsiLength?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineRsiCrossSigRun {
   const cleaned = getLineRsiCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -705,7 +705,7 @@ export function computeLineRsiCrossSigLayout(
 
 export function describeLineRsiCrossSigChart(
   data: ChartLineRsiCrossSigPoint[],
-  options: { rsiLength?: number; signalLength?: number } = {},
+  options: { rsiLength?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineRsiCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

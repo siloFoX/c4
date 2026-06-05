@@ -332,11 +332,11 @@ function dftMagnitudes(values: readonly number[]): number[] {
 export function computeLineSpectrogram(
   points: readonly ChartLineSpectrogramPoint[] | null | undefined,
   options?: {
-    windowSize?: number;
-    hopSize?: number;
-    windowMode?: ChartLineSpectrogramWindowMode;
-    detrend?: boolean;
-    excludeDc?: boolean;
+    windowSize?: number | undefined;
+    hopSize?: number | undefined;
+    windowMode?: ChartLineSpectrogramWindowMode | undefined;
+    detrend?: boolean | undefined;
+    excludeDc?: boolean | undefined;
   },
 ): ChartLineSpectrogramResult {
   const W = normaliseLineSpectrogramWindowSize(options?.windowSize);
@@ -514,7 +514,6 @@ export function computeLineSpectrogramLayout(
     lowColor = DEFAULT_CHART_LINE_SPECTROGRAM_LOW_COLOR,
     midColor = DEFAULT_CHART_LINE_SPECTROGRAM_MID_COLOR,
     highColor = DEFAULT_CHART_LINE_SPECTROGRAM_HIGH_COLOR,
-    dominantColor = DEFAULT_CHART_LINE_SPECTROGRAM_DOMINANT_COLOR,
     xMin: xMinOverride,
     xMax: xMaxOverride,
     yMin: yMinOverride,
@@ -640,7 +639,6 @@ export function computeLineSpectrogramLayout(
   // Spectrogram cells: each frame is a column, each bin is a row.
   // Optionally drop the DC bin (k=0) from the visualisation when
   // excludeDc=true (default).
-  const includeDc = !spectrogram.frames.some(() => false) && (excludeDc === false);
   const startBin = excludeDc === false ? 0 : 1;
   const visibleBins = Math.max(0, spectrogram.binCount - startBin);
   const numFrames = spectrogram.frames.length;

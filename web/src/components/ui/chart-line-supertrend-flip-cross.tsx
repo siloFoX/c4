@@ -340,7 +340,7 @@ export interface SupertrendFlipCrossChannels {
 
 export function computeLineSupertrendFlipCross(
   series: readonly ChartLineSupertrendFlipCrossPoint[] | null | undefined,
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): SupertrendFlipCrossChannels {
   const cleaned = getLineSupertrendFlipCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -406,13 +406,13 @@ export function computeLineSupertrendFlipCross(
       const basicUpper = hl2 + multiplier * a;
       const basicLower = hl2 - multiplier * a;
 
-      const finalUpper =
+      const finalUpper: number =
         prevFinalUpper == null ||
         basicUpper < prevFinalUpper ||
         (i > 0 && cleaned[i - 1]!.close > prevFinalUpper)
           ? basicUpper
           : prevFinalUpper;
-      const finalLower =
+      const finalLower: number =
         prevFinalLower == null ||
         basicLower > prevFinalLower ||
         (i > 0 && cleaned[i - 1]!.close < prevFinalLower)
@@ -472,7 +472,7 @@ export function detectLineSupertrendFlipCrossCrosses(
 
 export function runLineSupertrendFlipCross(
   data: ChartLineSupertrendFlipCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): ChartLineSupertrendFlipCrossRun {
   const cleaned = getLineSupertrendFlipCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -737,7 +737,7 @@ export function computeLineSupertrendFlipCrossLayout(
 
 export function describeLineSupertrendFlipCrossChart(
   data: ChartLineSupertrendFlipCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): string {
   const cleaned = getLineSupertrendFlipCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
