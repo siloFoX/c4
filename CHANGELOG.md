@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1145] - 2026-06-05 -- CHORE: fix 44 source-confirmed tsc strict-type errors in 22 chart-line test files (chart bucket batch 7) (TODO 11.1127)
+
+Seventh batch of the chart showcase tsc-debt clear. 22 chart-line
+indicator .test.tsx files held exactly 2 TS2532 errors each (44
+total) -- the same 2-button legend assertion pattern from prior
+batches: `buttons[0/1].getAttribute('data-series-id')` after
+`toHaveLength(2)`. Single sed pattern across all 22 files:
+`buttons[N].getAttribute` -> `buttons[N]!.getAttribute`. Files:
+macd-zero, mfi-{mid,overbought,oversold}, momentum-zero, ppo-zero,
+qstick-{mid,zero}, rmi-{mid,overbought,oversold,zero}, roc-zero,
+rsi-divergence, rsi-mid, schaff-{overbought,oversold,zero},
+stc-{mid,overbought,oversold}, stoch-mid-cross-sig. Runtime-
+equivalent; no behaviour change, no assertion change. Fix scope
+was ONLY the 22 .test.tsx files -- no chart component .tsx was
+touched. No `as any`, no `ts-ignore`, no fresh
+`ts-expect-error`. Mandated verification: tsc --noEmit 506 -> 462
+(-44, zero in the 22 files, zero new errors anywhere); vitest on
+the 22 files: 22/22 files pass, 1517/1517 tests pass. Zero NEW
+failures.
+
 ## [1.11.1144] - 2026-06-05 -- CHORE: fix 45 source-confirmed tsc strict-type errors in 20 chart-line test files (chart bucket batch 6) (TODO 11.1126)
 
 Sixth batch of the chart showcase tsc-debt clear. 20 chart-line
