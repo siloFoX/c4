@@ -421,8 +421,8 @@ describe('ChartLineStochMidCrossSig rendering', () => {
     const { container } = render(<ChartLineStochMidCrossSig data={data} />);
     const buttons = container.querySelectorAll('[data-series-id]');
     expect(buttons).toHaveLength(2);
-    expect(buttons[0].getAttribute('data-series-id')).toBe('price');
-    expect(buttons[1].getAttribute('data-series-id')).toBe('sigK');
+    expect(buttons[0]!.getAttribute('data-series-id')).toBe('price');
+    expect(buttons[1]!.getAttribute('data-series-id')).toBe('sigK');
   });
 
   it('toggles series visibility via legend click', () => {
