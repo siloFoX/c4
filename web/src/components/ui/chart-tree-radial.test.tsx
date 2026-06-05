@@ -720,7 +720,7 @@ describe('<ChartTreeRadial> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartTreeRadial root={ROOT} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-tree-radial');
+    expect(ref.current?.dataset['section']).toBe('chart-tree-radial');
   });
 
   it('has stable displayName', () => {
