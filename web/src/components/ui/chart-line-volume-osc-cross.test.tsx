@@ -334,9 +334,9 @@ describe('<ChartLineVolumeOscCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-volume-osc-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.shortLength).toBe('5');
-    expect(root?.dataset.longLength).toBe('10');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['shortLength']).toBe('5');
+    expect(root?.dataset['longLength']).toBe('10');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -346,7 +346,7 @@ describe('<ChartLineVolumeOscCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-volume-osc-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {
