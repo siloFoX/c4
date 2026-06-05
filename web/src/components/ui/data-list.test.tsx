@@ -108,13 +108,32 @@ describe('<DataList>', () => {
         ]}
       />,
     );
+    // userEvent.setup() installs its own clipboard simulation that
+    // overwrites the vi.fn() installed in beforeEach (the
+    // assertion failed with "is not a spy or a call to a spy"
+    // because the original mock was no longer on the
+    // navigator.clipboard surface that handleCopy reaches). Spy
+    // on the live clipboard surface AFTER userEvent has wired it
+    // up so the toHaveBeenCalledWith assertion targets the call
+    // that actually fires.
     const user = userEvent.setup();
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText');
     await user.click(screen.getByRole('button', { name: 'Copy Session' }));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('abc-123');
+    expect(writeSpy).toHaveBeenCalledWith('abc-123');
   });
 
   it('shows a Check icon transiently after copy and reverts after the timer', async () => {
-    vi.useFakeTimers();
+    // The previous shape -- `vi.useFakeTimers()` then
+    // `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`
+    // -- timed out at 5000ms because userEvent.click() awaits a
+    // chain of microtasks (pointer events + the async clipboard
+    // write inside handleCopy) and the sync `advanceTimersByTime`
+    // callback never gave the microtask queue a chance to drain.
+    // `shouldAdvanceTime: true` keeps wall-clock progress under
+    // fake timers, so userEvent's internal awaits resolve, while
+    // still letting `vi.advanceTimersByTime(1300)` deterministically
+    // fire the 1200ms revert setTimeout inside handleCopy.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     render(
       <DataList
         items={[
@@ -122,7 +141,7 @@ describe('<DataList>', () => {
         ]}
       />,
     );
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
     const btn = screen.getByRole('button', { name: 'Copy Session' });
     await user.click(btn);
     expect(btn.getAttribute('data-copied')).toBe('true');
