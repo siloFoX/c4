@@ -330,8 +330,8 @@ describe('<ChartLineAdxDiCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-adx-di-cross"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('14');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('14');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -341,7 +341,7 @@ describe('<ChartLineAdxDiCross />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-adx-di-cross"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {

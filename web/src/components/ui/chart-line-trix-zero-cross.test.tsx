@@ -444,8 +444,8 @@ describe('ChartLineTrixZeroCross rendering', () => {
     const { container } = render(<ChartLineTrixZeroCross data={data} />);
     const buttons = container.querySelectorAll('[data-series-id]');
     expect(buttons).toHaveLength(2);
-    expect(buttons[0].getAttribute('data-series-id')).toBe('price');
-    expect(buttons[1].getAttribute('data-series-id')).toBe('trix');
+    expect(buttons[0]!.getAttribute('data-series-id')).toBe('price');
+    expect(buttons[1]!.getAttribute('data-series-id')).toBe('trix');
   });
 
   it('toggles series visibility via legend click', () => {
