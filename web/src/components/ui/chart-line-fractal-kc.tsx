@@ -341,7 +341,7 @@ export function applyLineFractalKcWilder(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed
           ? v
           : (smoothed * (length - 1) + v) / length;
@@ -409,9 +409,9 @@ export interface LineFractalKcChannels {
 export function computeLineFractalKc(
   series: readonly ChartLineFractalKcPoint[] | null | undefined,
   options: {
-    atrLength?: number;
-    fractalLookback?: number;
-    multiplier?: number;
+    atrLength?: number | undefined;
+    fractalLookback?: number | undefined;
+    multiplier?: number | undefined;
   } = {},
 ): LineFractalKcChannels {
   const cleaned = getLineFractalKcFinitePoints(series);
@@ -553,9 +553,9 @@ export function detectLineFractalKcCrosses(
 export function runLineFractalKc(
   data: ChartLineFractalKcPoint[],
   options: {
-    atrLength?: number;
-    fractalLookback?: number;
-    multiplier?: number;
+    atrLength?: number | undefined;
+    fractalLookback?: number | undefined;
+    multiplier?: number | undefined;
   } = {},
 ): ChartLineFractalKcRun {
   const cleaned = getLineFractalKcFinitePoints(data);
@@ -832,9 +832,9 @@ export function computeLineFractalKcLayout(
 export function describeLineFractalKcChart(
   data: ChartLineFractalKcPoint[],
   options: {
-    atrLength?: number;
-    fractalLookback?: number;
-    multiplier?: number;
+    atrLength?: number | undefined;
+    fractalLookback?: number | undefined;
+    multiplier?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineFractalKcFinitePoints(data);

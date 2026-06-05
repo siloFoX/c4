@@ -280,7 +280,7 @@ export interface LineQstickZeroCrossChannels {
 
 export function computeLineQstickZeroCross(
   series: readonly ChartLineQstickZeroCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineQstickZeroCrossChannels {
   const cleaned = getLineQstickZeroCrossFinitePoints(series);
   const length = normalizeLineQstickZeroCrossLength(
@@ -326,8 +326,8 @@ export function detectLineQstickZeroCrossCrosses(
 export function runLineQstickZeroCross(
   data: ChartLineQstickZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineQstickZeroCrossRun {
   const cleaned = getLineQstickZeroCrossFinitePoints(data);
@@ -580,8 +580,8 @@ export function computeLineQstickZeroCrossLayout(
 export function describeLineQstickZeroCrossChart(
   data: ChartLineQstickZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineQstickZeroCrossFinitePoints(data);

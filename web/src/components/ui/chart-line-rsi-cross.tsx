@@ -276,7 +276,7 @@ export function applyLineRsiCrossWilder(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed
           ? v
           : (smoothed * (length - 1) + v) / length;
@@ -327,7 +327,7 @@ export interface LineRsiCrossChannels {
 
 export function computeLineRsiCross(
   series: readonly ChartLineRsiCrossPoint[] | null | undefined,
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): LineRsiCrossChannels {
   const cleaned = getLineRsiCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -401,7 +401,7 @@ export function detectLineRsiCrossCrosses(
 
 export function runLineRsiCross(
   data: ChartLineRsiCrossPoint[],
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): ChartLineRsiCrossRun {
   const cleaned = getLineRsiCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -637,7 +637,7 @@ export function computeLineRsiCrossLayout(
 
 export function describeLineRsiCrossChart(
   data: ChartLineRsiCrossPoint[],
-  options: { shortLength?: number; longLength?: number } = {},
+  options: { shortLength?: number | undefined; longLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineRsiCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

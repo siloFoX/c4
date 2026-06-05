@@ -290,9 +290,9 @@ export interface LineKamaCrossChannels {
 export function computeLineKamaCross(
   series: readonly ChartLineKamaCrossPoint[] | null | undefined,
   options: {
-    erLength?: number;
-    fastLength?: number;
-    slowLength?: number;
+    erLength?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): LineKamaCrossChannels {
   const cleaned = getLineKamaCrossFinitePoints(series);
@@ -359,7 +359,7 @@ export function computeLineKamaCross(
       deviation[i] = posZero(c - prevKama);
       continue;
     }
-    const next = prevKama + scVal * (c - prevKama);
+    const next: number = prevKama + scVal * (c - prevKama);
     kama[i] = posZero(next);
     prevKama = next;
     deviation[i] = posZero(c - next);
@@ -425,9 +425,9 @@ export function detectLineKamaCrossCrosses(
 export function runLineKamaCross(
   data: ChartLineKamaCrossPoint[],
   options: {
-    erLength?: number;
-    fastLength?: number;
-    slowLength?: number;
+    erLength?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): ChartLineKamaCrossRun {
   const cleaned = getLineKamaCrossFinitePoints(data);
@@ -708,9 +708,9 @@ export function computeLineKamaCrossLayout(
 export function describeLineKamaCrossChart(
   data: ChartLineKamaCrossPoint[],
   options: {
-    erLength?: number;
-    fastLength?: number;
-    slowLength?: number;
+    erLength?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKamaCrossFinitePoints(data);

@@ -665,8 +665,6 @@ export function computeLineFftWindowLayout(
     timeX + ((x - xLo) / xRange) * timeWidth;
   const projectTimeY = (y: number): number =>
     timeY + innerHeight - ((y - yLo) / yRange) * innerHeight;
-  const projectFreqX = (f: number): number =>
-    spectrumX + (f / freqHi) * spectrumWidth;
   const projectMagY = (m: number): number =>
     timeY + innerHeight - (m / magHi) * innerHeight;
 
@@ -874,7 +872,6 @@ export const ChartLineFftWindow = forwardRef<
     timePanelRatio = DEFAULT_CHART_LINE_FFT_WINDOW_TIME_PANEL_RATIO,
     strokeWidth = DEFAULT_CHART_LINE_FFT_WINDOW_STROKE_WIDTH,
     windowStrokeWidth = DEFAULT_CHART_LINE_FFT_WINDOW_WINDOW_STROKE_WIDTH,
-    spectrumBarWidthRatio = DEFAULT_CHART_LINE_FFT_WINDOW_BAR_WIDTH_RATIO,
     dotRadius = DEFAULT_CHART_LINE_FFT_WINDOW_DOT_RADIUS,
     spectrumColor = DEFAULT_CHART_LINE_FFT_WINDOW_SPECTRUM_COLOR,
     dominantColor = DEFAULT_CHART_LINE_FFT_WINDOW_DOMINANT_COLOR,

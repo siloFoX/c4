@@ -267,7 +267,7 @@ export function applyLinePpoCrossEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -286,9 +286,9 @@ export interface LinePpoCrossChannels {
 export function computeLinePpoCross(
   series: readonly ChartLinePpoCrossPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LinePpoCrossChannels {
   const cleaned = getLinePpoCrossFinitePoints(series);
@@ -379,9 +379,9 @@ export function detectLinePpoCrossCrosses(
 export function runLinePpoCross(
   data: ChartLinePpoCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLinePpoCrossRun {
   const cleaned = getLinePpoCrossFinitePoints(data);
@@ -649,9 +649,9 @@ export function computeLinePpoCrossLayout(
 export function describeLinePpoCrossChart(
   data: ChartLinePpoCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLinePpoCrossFinitePoints(data);

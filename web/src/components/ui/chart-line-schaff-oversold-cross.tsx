@@ -285,7 +285,7 @@ export function computeLineSchaffOversoldCross(
     | readonly ChartLineSchaffOversoldCrossPoint[]
     | null
     | undefined,
-  options: { cycle?: number; fast?: number; slow?: number } = {},
+  options: { cycle?: number | undefined; fast?: number | undefined; slow?: number | undefined } = {},
 ): LineSchaffOversoldCrossChannels {
   const cleaned = getLineSchaffOversoldCrossFinitePoints(series);
   const cycle = normalizeLineSchaffOversoldCrossLength(
@@ -408,10 +408,10 @@ export function detectLineSchaffOversoldCrossCrosses(
 export function runLineSchaffOversoldCross(
   data: ChartLineSchaffOversoldCrossPoint[],
   options: {
-    cycle?: number;
-    fast?: number;
-    slow?: number;
-    threshold?: number;
+    cycle?: number | undefined;
+    fast?: number | undefined;
+    slow?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineSchaffOversoldCrossRun {
   const cleaned = getLineSchaffOversoldCrossFinitePoints(data);
@@ -652,10 +652,10 @@ export function computeLineSchaffOversoldCrossLayout(
 export function describeLineSchaffOversoldCrossChart(
   data: ChartLineSchaffOversoldCrossPoint[],
   options: {
-    cycle?: number;
-    fast?: number;
-    slow?: number;
-    threshold?: number;
+    cycle?: number | undefined;
+    fast?: number | undefined;
+    slow?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineSchaffOversoldCrossFinitePoints(data);
