@@ -128,7 +128,7 @@ export interface ChartLineDonchianCrossLayout {
 export interface ChartLineDonchianCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDonchianCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -282,7 +282,7 @@ export interface LineDonchianCrossChannels {
 
 export function computeLineDonchianCross(
   series: readonly ChartLineDonchianCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineDonchianCrossChannels {
   const cleaned = getLineDonchianCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -354,7 +354,7 @@ export function detectLineDonchianCrossCrosses(
 
 export function runLineDonchianCross(
   data: ChartLineDonchianCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineDonchianCrossRun {
   const cleaned = getLineDonchianCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -428,7 +428,7 @@ export function runLineDonchianCross(
 
 export interface ComputeLineDonchianCrossLayoutOptions {
   data: ChartLineDonchianCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -570,7 +570,7 @@ export function computeLineDonchianCrossLayout(
 
 export function describeLineDonchianCrossChart(
   data: ChartLineDonchianCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineDonchianCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

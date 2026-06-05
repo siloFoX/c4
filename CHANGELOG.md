@@ -4,6 +4,20 @@
 
 (no entries -- next release window)
 
+## [1.11.1155] - 2026-06-05 -- CHORE: fix 42 source-confirmed tsc strict-type errors in 42 chart component files -- EIGHTH component batch (TODO 11.1137)
+
+Eighth chart COMPONENT batch. 42 chart .tsx component files: 41
+TS2379 (one per file) + 1 TS2322 in chart-line-fisher.tsx (loop-
+indexed access in bounds; non-null `!` is the pure-type fix).
+Same proven PURE-TYPE method as 11.1130-11.1136. All TS2379 fixes
+are inline options `{ X?: number }` -> `{ X?: number | undefined }`
+per dispatch instruction. No `as any`, no `as unknown as`, no
+`ts-ignore`. No rendered output change. Mandated verification:
+tsc --noEmit 81 -> 39 (-42, zero in the 42 files, zero `.test.*`
+errors anywhere, zero non-chart-component errors anywhere); vitest
+on 42 matching test files: 42/42 pass + 2528/2528 tests pass;
+playwright e2e/gallery-no-crash.spec.ts: 1 test passed.
+
 ## [1.11.1154] - 2026-06-05 -- CHORE: fix 42 source-confirmed tsc strict-type errors in 42 chart component files -- SEVENTH component batch (TODO 11.1136)
 
 Seventh chart COMPONENT batch. 42 chart .tsx component files held 42

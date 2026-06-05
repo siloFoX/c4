@@ -135,8 +135,8 @@ export interface ChartLineCmoCrossSigLayout {
 export interface ChartLineCmoCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCmoCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -296,7 +296,7 @@ export interface LineCmoCrossSigChannels {
 
 export function computeLineCmoCrossSig(
   series: readonly ChartLineCmoCrossSigPoint[] | null | undefined,
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): LineCmoCrossSigChannels {
   const cleaned = getLineCmoCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -348,7 +348,7 @@ export function detectLineCmoCrossSigCrosses(
 
 export function runLineCmoCrossSig(
   data: ChartLineCmoCrossSigPoint[],
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): ChartLineCmoCrossSigRun {
   const cleaned = getLineCmoCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -418,8 +418,8 @@ export function runLineCmoCrossSig(
 
 export interface ComputeLineCmoCrossSigLayoutOptions {
   data: ChartLineCmoCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -594,7 +594,7 @@ export function computeLineCmoCrossSigLayout(
 
 export function describeLineCmoCrossSigChart(
   data: ChartLineCmoCrossSigPoint[],
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): string {
   const cleaned = getLineCmoCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

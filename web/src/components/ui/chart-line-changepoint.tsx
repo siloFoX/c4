@@ -55,9 +55,9 @@ export interface ChartLineChangepointSeries {
   label: string;
   data: readonly ChartLineChangepointPoint[];
   color?: string;
-  minSegment?: number;
-  threshold?: number;
-  suppressionWindow?: number;
+  minSegment?: number | undefined;
+  threshold?: number | undefined;
+  suppressionWindow?: number | undefined;
 }
 
 export interface ChartLineChangepointDetection {
@@ -166,9 +166,9 @@ export interface ComputeLineChangepointLayoutOptions {
   height: number;
   padding: number;
   tickCount?: number;
-  minSegment?: number;
-  threshold?: number;
-  suppressionWindow?: number;
+  minSegment?: number | undefined;
+  threshold?: number | undefined;
+  suppressionWindow?: number | undefined;
   defaultColors?: readonly string[];
   segmentColors?: readonly string[];
   markerColor?: string;
@@ -183,9 +183,9 @@ export interface ChartLineChangepointProps {
   hiddenSeries?: ReadonlySet<string> | readonly string[];
   defaultHiddenSeries?: ReadonlySet<string> | readonly string[];
   onHiddenSeriesChange?: (hidden: ReadonlySet<string>) => void;
-  minSegment?: number;
-  threshold?: number;
-  suppressionWindow?: number;
+  minSegment?: number | undefined;
+  threshold?: number | undefined;
+  suppressionWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -323,7 +323,7 @@ function computeSegmentStats(
 
 export function computeLineChangepointScores(
   values: readonly number[] | null | undefined,
-  options?: { minSegment?: number },
+  options?: { minSegment?: number | undefined },
 ): (number | null)[] {
   if (!Array.isArray(values)) return [];
   const N = values.length;
@@ -346,9 +346,9 @@ export function computeLineChangepointScores(
 export function detectLineChangepoints(
   points: readonly ChartLineChangepointPoint[] | null | undefined,
   options?: {
-    minSegment?: number;
-    threshold?: number;
-    suppressionWindow?: number;
+    minSegment?: number | undefined;
+    threshold?: number | undefined;
+    suppressionWindow?: number | undefined;
   },
 ): ChartLineChangepointAnalysisResult {
   const minSeg = normaliseLineChangepointMinSegment(options?.minSegment);
@@ -702,9 +702,9 @@ export function describeLineChangepointChart(
   series: readonly ChartLineChangepointSeries[] | null | undefined,
   options?: {
     hidden?: ReadonlySet<string> | readonly string[];
-    minSegment?: number;
-    threshold?: number;
-    suppressionWindow?: number;
+    minSegment?: number | undefined;
+    threshold?: number | undefined;
+    suppressionWindow?: number | undefined;
     formatScore?: (n: number) => string;
   },
 ): string {

@@ -130,9 +130,9 @@ export interface ChartLineChoppinessCrossLayout {
 export interface ChartLineChoppinessCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineChoppinessCrossPoint[];
-  length?: number;
-  trendThreshold?: number;
-  chopThreshold?: number;
+  length?: number | undefined;
+  trendThreshold?: number | undefined;
+  chopThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -231,7 +231,7 @@ export function normalizeLineChoppinessCrossThreshold(
 
 export function computeLineChoppinessCross(
   series: readonly ChartLineChoppinessCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): { ci: Array<number | null> } {
   const cleaned = getLineChoppinessCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -304,9 +304,9 @@ export function detectLineChoppinessCrossCrosses(
 export function runLineChoppinessCross(
   data: ChartLineChoppinessCrossPoint[],
   options: {
-    length?: number;
-    trendThreshold?: number;
-    chopThreshold?: number;
+    length?: number | undefined;
+    trendThreshold?: number | undefined;
+    chopThreshold?: number | undefined;
   } = {},
 ): ChartLineChoppinessCrossRun {
   const cleaned = getLineChoppinessCrossFinitePoints(data);
@@ -379,9 +379,9 @@ export function runLineChoppinessCross(
 
 export interface ComputeLineChoppinessCrossLayoutOptions {
   data: ChartLineChoppinessCrossPoint[];
-  length?: number;
-  trendThreshold?: number;
-  chopThreshold?: number;
+  length?: number | undefined;
+  trendThreshold?: number | undefined;
+  chopThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -557,9 +557,9 @@ export function computeLineChoppinessCrossLayout(
 export function describeLineChoppinessCrossChart(
   data: ChartLineChoppinessCrossPoint[],
   options: {
-    length?: number;
-    trendThreshold?: number;
-    chopThreshold?: number;
+    length?: number | undefined;
+    trendThreshold?: number | undefined;
+    chopThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineChoppinessCrossFinitePoints(data);

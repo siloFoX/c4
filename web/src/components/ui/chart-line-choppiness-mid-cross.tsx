@@ -147,8 +147,8 @@ export interface ChartLineChoppinessMidCrossLayout {
 export interface ChartLineChoppinessMidCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineChoppinessMidCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -251,7 +251,7 @@ export function computeLineChoppinessMidCross(
     | readonly ChartLineChoppinessMidCrossPoint[]
     | null
     | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): { ci: Array<number | null> } {
   const cleaned = getLineChoppinessMidCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -330,8 +330,8 @@ export function detectLineChoppinessMidCrossCrosses(
 export function runLineChoppinessMidCross(
   data: ChartLineChoppinessMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineChoppinessMidCrossRun {
   const cleaned = getLineChoppinessMidCrossFinitePoints(data);
@@ -399,8 +399,8 @@ export function runLineChoppinessMidCross(
 
 export interface ComputeLineChoppinessMidCrossLayoutOptions {
   data: ChartLineChoppinessMidCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -568,8 +568,8 @@ export function computeLineChoppinessMidCrossLayout(
 export function describeLineChoppinessMidCrossChart(
   data: ChartLineChoppinessMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineChoppinessMidCrossFinitePoints(data);

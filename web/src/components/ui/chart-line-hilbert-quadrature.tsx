@@ -129,8 +129,8 @@ export interface ChartLineHilbertQuadratureLayout {
 export interface ChartLineHilbertQuadratureProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineHilbertQuadraturePoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -309,7 +309,7 @@ export interface LineHilbertQuadratureChannels {
 /** Compute the full quadrature pipeline. */
 export function computeLineHilbertQuadrature(
   series: readonly ChartLineHilbertQuadraturePoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineHilbertQuadratureChannels {
   const cleaned = getLineHilbertQuadratureFinitePoints(series);
   if (cleaned.length === 0) {
@@ -373,8 +373,8 @@ export function detectLineHilbertQuadratureCrosses(
 export function runLineHilbertQuadrature(
   data: ChartLineHilbertQuadraturePoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineHilbertQuadratureRun {
   const cleaned = getLineHilbertQuadratureFinitePoints(data);
@@ -451,8 +451,8 @@ export function runLineHilbertQuadrature(
 
 export interface ComputeLineHilbertQuadratureLayoutOptions {
   data: ChartLineHilbertQuadraturePoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -629,7 +629,7 @@ export function computeLineHilbertQuadratureLayout(
 
 export function describeLineHilbertQuadratureChart(
   data: ChartLineHilbertQuadraturePoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): string {
   const cleaned = getLineHilbertQuadratureFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

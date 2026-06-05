@@ -122,8 +122,8 @@ export interface ChartLineElderBullCrossLayout {
 export interface ChartLineElderBullCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineElderBullCrossPoint[];
-  length?: number;
-  highProxyLength?: number;
+  length?: number | undefined;
+  highProxyLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -264,7 +264,7 @@ export interface LineElderBullCrossChannels {
 
 export function computeLineElderBullCross(
   series: readonly ChartLineElderBullCrossPoint[] | null | undefined,
-  options: { length?: number; highProxyLength?: number } = {},
+  options: { length?: number | undefined; highProxyLength?: number | undefined } = {},
 ): LineElderBullCrossChannels {
   const cleaned = getLineElderBullCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -326,7 +326,7 @@ export function detectLineElderBullCrossCrosses(
 
 export function runLineElderBullCross(
   data: ChartLineElderBullCrossPoint[],
-  options: { length?: number; highProxyLength?: number } = {},
+  options: { length?: number | undefined; highProxyLength?: number | undefined } = {},
 ): ChartLineElderBullCrossRun {
   const cleaned = getLineElderBullCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -387,8 +387,8 @@ export function runLineElderBullCross(
 
 export interface ComputeLineElderBullCrossLayoutOptions {
   data: ChartLineElderBullCrossPoint[];
-  length?: number;
-  highProxyLength?: number;
+  length?: number | undefined;
+  highProxyLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -564,7 +564,7 @@ export function computeLineElderBullCrossLayout(
 
 export function describeLineElderBullCrossChart(
   data: ChartLineElderBullCrossPoint[],
-  options: { length?: number; highProxyLength?: number } = {},
+  options: { length?: number | undefined; highProxyLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineElderBullCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

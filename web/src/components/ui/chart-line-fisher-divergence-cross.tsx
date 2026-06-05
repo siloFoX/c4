@@ -158,9 +158,9 @@ export interface ChartLineFisherDivergenceCrossLayout {
 export interface ChartLineFisherDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineFisherDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
-  clampLimit?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
+  clampLimit?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -313,7 +313,7 @@ export interface LineFisherDivergenceCrossChannels {
 
 export function computeLineFisherDivergenceCross(
   series: readonly ChartLineFisherDivergenceCrossPoint[] | null | undefined,
-  options: { length?: number; clampLimit?: number } = {},
+  options: { length?: number | undefined; clampLimit?: number | undefined } = {},
 ): LineFisherDivergenceCrossChannels {
   const cleaned = getLineFisherDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -371,9 +371,9 @@ export function detectLineFisherDivergenceCrossCrosses(
 export function runLineFisherDivergenceCross(
   data: ChartLineFisherDivergenceCrossPoint[],
   options: {
-    length?: number;
-    divergenceWindow?: number;
-    clampLimit?: number;
+    length?: number | undefined;
+    divergenceWindow?: number | undefined;
+    clampLimit?: number | undefined;
   } = {},
 ): ChartLineFisherDivergenceCrossRun {
   const cleaned = getLineFisherDivergenceCrossFinitePoints(data);
@@ -475,9 +475,9 @@ export function runLineFisherDivergenceCross(
 
 export interface ComputeLineFisherDivergenceCrossLayoutOptions {
   data: ChartLineFisherDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
-  clampLimit?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
+  clampLimit?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -643,9 +643,9 @@ export function computeLineFisherDivergenceCrossLayout(
 export function describeLineFisherDivergenceCrossChart(
   data: ChartLineFisherDivergenceCrossPoint[],
   options: {
-    length?: number;
-    divergenceWindow?: number;
-    clampLimit?: number;
+    length?: number | undefined;
+    divergenceWindow?: number | undefined;
+    clampLimit?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineFisherDivergenceCrossFinitePoints(data);

@@ -216,8 +216,8 @@ export interface ChartLineCmoZeroCrossSigLayout {
 export interface ChartLineCmoZeroCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCmoZeroCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -318,7 +318,7 @@ export interface ComputeLineCmoZeroCrossSigResult {
 
 export function computeLineCmoZeroCrossSig(
   series: readonly ChartLineCmoZeroCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ComputeLineCmoZeroCrossSigResult {
   const cleaned = getLineCmoZeroCrossSigFinitePoints(series);
   if (cleaned.length === 0) return { cmo: [], signal: [] };
@@ -420,7 +420,7 @@ export function detectLineCmoZeroCrossSigCrosses(
 
 export function runLineCmoZeroCrossSig(
   data: ChartLineCmoZeroCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineCmoZeroCrossSigRun {
   const cleaned = getLineCmoZeroCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -515,8 +515,8 @@ export function runLineCmoZeroCrossSig(
 
 export interface ComputeLineCmoZeroCrossSigLayoutOptions {
   data: ChartLineCmoZeroCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -695,7 +695,7 @@ export function computeLineCmoZeroCrossSigLayout(
 
 export function describeLineCmoZeroCrossSigChart(
   data: ChartLineCmoZeroCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineCmoZeroCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
