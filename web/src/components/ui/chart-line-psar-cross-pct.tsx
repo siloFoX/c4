@@ -113,8 +113,8 @@ export interface ChartLinePsarCrossPctLayout {
 export interface ChartLinePsarCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLinePsarCrossPctPoint[];
-  afStep?: number;
-  afMax?: number;
+  afStep?: number | undefined;
+  afMax?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -205,7 +205,7 @@ export interface LinePsarCrossPctChannels {
 
 export function computeLinePsarCrossPct(
   series: readonly ChartLinePsarCrossPctPoint[] | null | undefined,
-  options: { afStep?: number; afMax?: number } = {},
+  options: { afStep?: number | undefined; afMax?: number | undefined } = {},
 ): LinePsarCrossPctChannels {
   const cleaned = getLinePsarCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -297,7 +297,7 @@ export function classifyLinePsarCrossPctRegime(
 
 export function runLinePsarCrossPct(
   data: ChartLinePsarCrossPctPoint[],
-  options: { afStep?: number; afMax?: number } = {},
+  options: { afStep?: number | undefined; afMax?: number | undefined } = {},
 ): ChartLinePsarCrossPctRun {
   const cleaned = getLinePsarCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -356,8 +356,8 @@ export function runLinePsarCrossPct(
 
 export interface ComputeLinePsarCrossPctLayoutOptions {
   data: ChartLinePsarCrossPctPoint[];
-  afStep?: number;
-  afMax?: number;
+  afStep?: number | undefined;
+  afMax?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -534,7 +534,7 @@ export function computeLinePsarCrossPctLayout(
 
 export function describeLinePsarCrossPctChart(
   data: ChartLinePsarCrossPctPoint[],
-  options: { afStep?: number; afMax?: number } = {},
+  options: { afStep?: number | undefined; afMax?: number | undefined } = {},
 ): string {
   const cleaned = getLinePsarCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

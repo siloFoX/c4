@@ -149,9 +149,9 @@ export interface ChartLineKeltnerCrossPctLayout {
 export interface ChartLineKeltnerCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKeltnerCrossPctPoint[];
-  length?: number;
-  atrLength?: number;
-  mult?: number;
+  length?: number | undefined;
+  atrLength?: number | undefined;
+  mult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -341,7 +341,7 @@ export interface LineKeltnerCrossPctChannels {
 
 export function computeLineKeltnerCrossPct(
   series: readonly ChartLineKeltnerCrossPctPoint[] | null | undefined,
-  options: { length?: number; atrLength?: number; mult?: number } = {},
+  options: { length?: number | undefined; atrLength?: number | undefined; mult?: number | undefined } = {},
 ): LineKeltnerCrossPctChannels {
   const cleaned = getLineKeltnerCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -425,7 +425,7 @@ export function detectLineKeltnerCrossPctCrosses(
 
 export function runLineKeltnerCrossPct(
   data: ChartLineKeltnerCrossPctPoint[],
-  options: { length?: number; atrLength?: number; mult?: number } = {},
+  options: { length?: number | undefined; atrLength?: number | undefined; mult?: number | undefined } = {},
 ): ChartLineKeltnerCrossPctRun {
   const cleaned = getLineKeltnerCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -500,9 +500,9 @@ export function runLineKeltnerCrossPct(
 
 export interface ComputeLineKeltnerCrossPctLayoutOptions {
   data: ChartLineKeltnerCrossPctPoint[];
-  length?: number;
-  atrLength?: number;
-  mult?: number;
+  length?: number | undefined;
+  atrLength?: number | undefined;
+  mult?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -712,7 +712,7 @@ export function computeLineKeltnerCrossPctLayout(
 
 export function describeLineKeltnerCrossPctChart(
   data: ChartLineKeltnerCrossPctPoint[],
-  options: { length?: number; atrLength?: number; mult?: number } = {},
+  options: { length?: number | undefined; atrLength?: number | undefined; mult?: number | undefined } = {},
 ): string {
   const cleaned = getLineKeltnerCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

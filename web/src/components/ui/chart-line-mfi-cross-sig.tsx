@@ -133,8 +133,8 @@ export interface ChartLineMfiCrossSigLayout {
 export interface ChartLineMfiCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMfiCrossSigPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   overbought?: number;
   oversold?: number;
   width?: number;
@@ -284,7 +284,7 @@ export interface LineMfiCrossSigChannels {
 
 export function computeLineMfiCrossSig(
   series: readonly ChartLineMfiCrossSigPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineMfiCrossSigChannels {
   const cleaned = getLineMfiCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -372,7 +372,7 @@ export function detectLineMfiCrossSigCrosses(
 
 export function runLineMfiCrossSig(
   data: ChartLineMfiCrossSigPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineMfiCrossSigRun {
   const cleaned = getLineMfiCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -437,8 +437,8 @@ export function runLineMfiCrossSig(
 
 export interface ComputeLineMfiCrossSigLayoutOptions {
   data: ChartLineMfiCrossSigPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   overbought?: number;
   oversold?: number;
   width?: number;
@@ -617,7 +617,7 @@ export function computeLineMfiCrossSigLayout(
 
 export function describeLineMfiCrossSigChart(
   data: ChartLineMfiCrossSigPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineMfiCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

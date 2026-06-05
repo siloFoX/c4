@@ -127,7 +127,7 @@ export interface ChartLineMomentumCrossLayout {
 export interface ChartLineMomentumCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMomentumCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -222,7 +222,7 @@ export interface LineMomentumCrossChannels {
 
 export function computeLineMomentumCross(
   series: readonly ChartLineMomentumCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineMomentumCrossChannels {
   const cleaned = getLineMomentumCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -291,7 +291,7 @@ export function detectLineMomentumCrossCrosses(
 
 export function runLineMomentumCross(
   data: ChartLineMomentumCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineMomentumCrossRun {
   const cleaned = getLineMomentumCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -354,7 +354,7 @@ export function runLineMomentumCross(
 
 export interface ComputeLineMomentumCrossLayoutOptions {
   data: ChartLineMomentumCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -525,7 +525,7 @@ export function computeLineMomentumCrossLayout(
 
 export function describeLineMomentumCrossChart(
   data: ChartLineMomentumCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineMomentumCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

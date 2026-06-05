@@ -146,7 +146,7 @@ export interface ChartLineObvDivergenceCrossLayout {
 export interface ChartLineObvDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineObvDivergenceCrossPoint[];
-  divergenceWindow?: number;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -307,7 +307,7 @@ export function detectLineObvDivergenceCrossCrosses(
 
 export function runLineObvDivergenceCross(
   data: ChartLineObvDivergenceCrossPoint[],
-  options: { divergenceWindow?: number } = {},
+  options: { divergenceWindow?: number | undefined } = {},
 ): ChartLineObvDivergenceCrossRun {
   const cleaned = getLineObvDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -393,7 +393,7 @@ export function runLineObvDivergenceCross(
 
 export interface ComputeLineObvDivergenceCrossLayoutOptions {
   data: ChartLineObvDivergenceCrossPoint[];
-  divergenceWindow?: number;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -570,7 +570,7 @@ export function computeLineObvDivergenceCrossLayout(
 
 export function describeLineObvDivergenceCrossChart(
   data: ChartLineObvDivergenceCrossPoint[],
-  options: { divergenceWindow?: number } = {},
+  options: { divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineObvDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

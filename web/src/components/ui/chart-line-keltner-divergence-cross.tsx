@@ -217,8 +217,8 @@ export interface ChartLineKeltnerDivergenceCrossLayout {
 export interface ChartLineKeltnerDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKeltnerDivergenceCrossPoint[];
-  period?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -407,7 +407,7 @@ export function computeLineKeltnerDivergenceCross(
     | readonly ChartLineKeltnerDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): KeltnerDivergenceCrossChannels {
   const cleaned = getLineKeltnerDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -539,7 +539,7 @@ export function detectLineKeltnerDivergenceCrossCrosses(
 
 export function runLineKeltnerDivergenceCross(
   data: ChartLineKeltnerDivergenceCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): ChartLineKeltnerDivergenceCrossRun {
   const cleaned = getLineKeltnerDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -651,8 +651,8 @@ export function runLineKeltnerDivergenceCross(
 
 export interface ComputeLineKeltnerDivergenceCrossLayoutOptions {
   data: ChartLineKeltnerDivergenceCrossPoint[];
-  period?: number;
-  multiplier?: number;
+  period?: number | undefined;
+  multiplier?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -853,7 +853,7 @@ export function computeLineKeltnerDivergenceCrossLayout(
 
 export function describeLineKeltnerDivergenceCrossChart(
   data: ChartLineKeltnerDivergenceCrossPoint[],
-  options: { period?: number; multiplier?: number } = {},
+  options: { period?: number | undefined; multiplier?: number | undefined } = {},
 ): string {
   const cleaned = getLineKeltnerDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

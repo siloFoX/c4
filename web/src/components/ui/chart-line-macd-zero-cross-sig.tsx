@@ -152,10 +152,10 @@ export interface ChartLineMacdZeroCrossSigLayout {
 export interface ChartLineMacdZeroCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMacdZeroCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -313,9 +313,9 @@ export interface LineMacdZeroCrossSigChannels {
 export function computeLineMacdZeroCrossSig(
   series: readonly ChartLineMacdZeroCrossSigPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineMacdZeroCrossSigChannels {
   const cleaned = getLineMacdZeroCrossSigFinitePoints(series);
@@ -389,10 +389,10 @@ export function detectLineMacdZeroCrossSigCrosses(
 export function runLineMacdZeroCrossSig(
   data: ChartLineMacdZeroCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineMacdZeroCrossSigRun {
   const cleaned = getLineMacdZeroCrossSigFinitePoints(data);
@@ -489,10 +489,10 @@ export function runLineMacdZeroCrossSig(
 
 export interface ComputeLineMacdZeroCrossSigLayoutOptions {
   data: ChartLineMacdZeroCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -693,10 +693,10 @@ export function computeLineMacdZeroCrossSigLayout(
 export function describeLineMacdZeroCrossSigChart(
   data: ChartLineMacdZeroCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMacdZeroCrossSigFinitePoints(data);

@@ -129,9 +129,9 @@ export interface ChartLineMacdCrossSigLayout {
 export interface ChartLineMacdCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMacdCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -278,9 +278,9 @@ export interface LineMacdCrossSigChannels {
 export function computeLineMacdCrossSig(
   series: readonly ChartLineMacdCrossSigPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineMacdCrossSigChannels {
   const cleaned = getLineMacdCrossSigFinitePoints(series);
@@ -360,9 +360,9 @@ export function detectLineMacdCrossSigCrosses(
 export function runLineMacdCrossSig(
   data: ChartLineMacdCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineMacdCrossSigRun {
   const cleaned = getLineMacdCrossSigFinitePoints(data);
@@ -438,9 +438,9 @@ export function runLineMacdCrossSig(
 
 export interface ComputeLineMacdCrossSigLayoutOptions {
   data: ChartLineMacdCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -637,9 +637,9 @@ export function computeLineMacdCrossSigLayout(
 export function describeLineMacdCrossSigChart(
   data: ChartLineMacdCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMacdCrossSigFinitePoints(data);

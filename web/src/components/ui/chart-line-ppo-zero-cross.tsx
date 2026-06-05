@@ -134,9 +134,9 @@ export interface ChartLinePpoZeroCrossLayout {
 export interface ChartLinePpoZeroCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLinePpoZeroCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -281,7 +281,7 @@ export interface LinePpoZeroCrossChannels {
 
 export function computeLinePpoZeroCross(
   series: readonly ChartLinePpoZeroCrossPoint[] | null | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LinePpoZeroCrossChannels {
   const cleaned = getLinePpoZeroCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -346,9 +346,9 @@ export function detectLinePpoZeroCrossCrosses(
 export function runLinePpoZeroCross(
   data: ChartLinePpoZeroCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLinePpoZeroCrossRun {
   const cleaned = getLinePpoZeroCrossFinitePoints(data);
@@ -424,9 +424,9 @@ export function runLinePpoZeroCross(
 
 export interface ComputeLinePpoZeroCrossLayoutOptions {
   data: ChartLinePpoZeroCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -610,9 +610,9 @@ export function computeLinePpoZeroCrossLayout(
 export function describeLinePpoZeroCrossChart(
   data: ChartLinePpoZeroCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLinePpoZeroCrossFinitePoints(data);

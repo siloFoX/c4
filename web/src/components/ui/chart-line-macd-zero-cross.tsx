@@ -130,9 +130,9 @@ export interface ChartLineMacdZeroCrossLayout {
 export interface ChartLineMacdZeroCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMacdZeroCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -279,7 +279,7 @@ export interface LineMacdZeroCrossChannels {
 
 export function computeLineMacdZeroCross(
   series: readonly ChartLineMacdZeroCrossPoint[] | null | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineMacdZeroCrossChannels {
   const cleaned = getLineMacdZeroCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -340,9 +340,9 @@ export function detectLineMacdZeroCrossCrosses(
 export function runLineMacdZeroCross(
   data: ChartLineMacdZeroCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineMacdZeroCrossRun {
   const cleaned = getLineMacdZeroCrossFinitePoints(data);
@@ -418,9 +418,9 @@ export function runLineMacdZeroCross(
 
 export interface ComputeLineMacdZeroCrossLayoutOptions {
   data: ChartLineMacdZeroCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -605,9 +605,9 @@ export function computeLineMacdZeroCrossLayout(
 export function describeLineMacdZeroCrossChart(
   data: ChartLineMacdZeroCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMacdZeroCrossFinitePoints(data);

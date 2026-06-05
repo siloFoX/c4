@@ -201,10 +201,10 @@ export interface ChartLineIchimokuMidCrossSigLayout {
 export interface ChartLineIchimokuMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineIchimokuMidCrossSigPoint[];
-  tenkanPeriod?: number;
-  kijunPeriod?: number;
-  senkouBPeriod?: number;
-  signalLength?: number;
+  tenkanPeriod?: number | undefined;
+  kijunPeriod?: number | undefined;
+  senkouBPeriod?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -384,10 +384,10 @@ export interface IchimokuMidCrossSigChannels {
 export function computeLineIchimokuMidCrossSig(
   series: readonly ChartLineIchimokuMidCrossSigPoint[] | null | undefined,
   options: {
-    tenkanPeriod?: number;
-    kijunPeriod?: number;
-    senkouBPeriod?: number;
-    signalLength?: number;
+    tenkanPeriod?: number | undefined;
+    kijunPeriod?: number | undefined;
+    senkouBPeriod?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): IchimokuMidCrossSigChannels {
   const cleaned = getLineIchimokuMidCrossSigFinitePoints(series);
@@ -491,10 +491,10 @@ export function detectLineIchimokuMidCrossSigCrosses(
 export function runLineIchimokuMidCrossSig(
   data: ChartLineIchimokuMidCrossSigPoint[],
   options: {
-    tenkanPeriod?: number;
-    kijunPeriod?: number;
-    senkouBPeriod?: number;
-    signalLength?: number;
+    tenkanPeriod?: number | undefined;
+    kijunPeriod?: number | undefined;
+    senkouBPeriod?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineIchimokuMidCrossSigRun {
   const cleaned = getLineIchimokuMidCrossSigFinitePoints(data);
@@ -598,10 +598,10 @@ export function runLineIchimokuMidCrossSig(
 
 export interface ComputeLineIchimokuMidCrossSigLayoutOptions {
   data: ChartLineIchimokuMidCrossSigPoint[];
-  tenkanPeriod?: number;
-  kijunPeriod?: number;
-  senkouBPeriod?: number;
-  signalLength?: number;
+  tenkanPeriod?: number | undefined;
+  kijunPeriod?: number | undefined;
+  senkouBPeriod?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -803,10 +803,10 @@ export function computeLineIchimokuMidCrossSigLayout(
 export function describeLineIchimokuMidCrossSigChart(
   data: ChartLineIchimokuMidCrossSigPoint[],
   options: {
-    tenkanPeriod?: number;
-    kijunPeriod?: number;
-    senkouBPeriod?: number;
-    signalLength?: number;
+    tenkanPeriod?: number | undefined;
+    kijunPeriod?: number | undefined;
+    senkouBPeriod?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineIchimokuMidCrossSigFinitePoints(data);

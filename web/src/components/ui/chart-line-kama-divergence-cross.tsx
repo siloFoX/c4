@@ -204,9 +204,9 @@ export interface ChartLineKamaDivergenceCrossLayout {
 export interface ChartLineKamaDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKamaDivergenceCrossPoint[];
-  period?: number;
-  fastLength?: number;
-  slowLength?: number;
+  period?: number | undefined;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -308,9 +308,9 @@ export interface KamaDivergenceCrossChannels {
 export function computeLineKamaDivergenceCross(
   series: readonly ChartLineKamaDivergenceCrossPoint[] | null | undefined,
   options: {
-    period?: number;
-    fastLength?: number;
-    slowLength?: number;
+    period?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): KamaDivergenceCrossChannels {
   const cleaned = getLineKamaDivergenceCrossFinitePoints(series);
@@ -433,9 +433,9 @@ export function detectLineKamaDivergenceCrossCrosses(
 export function runLineKamaDivergenceCross(
   data: ChartLineKamaDivergenceCrossPoint[],
   options: {
-    period?: number;
-    fastLength?: number;
-    slowLength?: number;
+    period?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): ChartLineKamaDivergenceCrossRun {
   const cleaned = getLineKamaDivergenceCrossFinitePoints(data);
@@ -548,9 +548,9 @@ export function runLineKamaDivergenceCross(
 
 export interface ComputeLineKamaDivergenceCrossLayoutOptions {
   data: ChartLineKamaDivergenceCrossPoint[];
-  period?: number;
-  fastLength?: number;
-  slowLength?: number;
+  period?: number | undefined;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -729,9 +729,9 @@ export function computeLineKamaDivergenceCrossLayout(
 export function describeLineKamaDivergenceCrossChart(
   data: ChartLineKamaDivergenceCrossPoint[],
   options: {
-    period?: number;
-    fastLength?: number;
-    slowLength?: number;
+    period?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKamaDivergenceCrossFinitePoints(data);

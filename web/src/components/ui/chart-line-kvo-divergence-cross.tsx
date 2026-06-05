@@ -162,9 +162,9 @@ export interface ChartLineKvoDivergenceCrossLayout {
 export interface ChartLineKvoDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKvoDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -343,7 +343,7 @@ export interface LineKvoDivergenceCrossChannels {
 
 export function computeLineKvoDivergenceCross(
   series: readonly ChartLineKvoDivergenceCrossPoint[] | null | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineKvoDivergenceCrossChannels {
   const cleaned = getLineKvoDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -407,9 +407,9 @@ export function detectLineKvoDivergenceCrossCrosses(
 export function runLineKvoDivergenceCross(
   data: ChartLineKvoDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineKvoDivergenceCrossRun {
   const cleaned = getLineKvoDivergenceCrossFinitePoints(data);
@@ -512,9 +512,9 @@ export function runLineKvoDivergenceCross(
 
 export interface ComputeLineKvoDivergenceCrossLayoutOptions {
   data: ChartLineKvoDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -691,9 +691,9 @@ export function computeLineKvoDivergenceCrossLayout(
 export function describeLineKvoDivergenceCrossChart(
   data: ChartLineKvoDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKvoDivergenceCrossFinitePoints(data);

@@ -140,9 +140,9 @@ export interface ChartLineNetVolumeLayout {
 export interface ChartLineNetVolumeProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineNetVolumePoint[];
-  length?: number;
-  overbought?: number;
-  oversold?: number;
+  length?: number | undefined;
+  overbought?: number | undefined;
+  oversold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -288,7 +288,7 @@ export interface LineNetVolumeChannels {
 /** Compute the full pipeline. */
 export function computeLineNetVolume(
   series: readonly ChartLineNetVolumePoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineNetVolumeChannels {
   const cleaned = getLineNetVolumeFinitePoints(series);
   if (cleaned.length === 0) {
@@ -391,9 +391,9 @@ export function detectLineNetVolumeCrosses(
 export function runLineNetVolume(
   data: ChartLineNetVolumePoint[],
   options: {
-    length?: number;
-    overbought?: number;
-    oversold?: number;
+    length?: number | undefined;
+    overbought?: number | undefined;
+    oversold?: number | undefined;
   } = {},
 ): ChartLineNetVolumeRun {
   const cleaned = getLineNetVolumeFinitePoints(data);
@@ -481,9 +481,9 @@ export function runLineNetVolume(
 
 export interface ComputeLineNetVolumeLayoutOptions {
   data: ChartLineNetVolumePoint[];
-  length?: number;
-  overbought?: number;
-  oversold?: number;
+  length?: number | undefined;
+  overbought?: number | undefined;
+  oversold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -646,9 +646,9 @@ export function computeLineNetVolumeLayout(
 export function describeLineNetVolumeChart(
   data: ChartLineNetVolumePoint[],
   options: {
-    length?: number;
-    overbought?: number;
-    oversold?: number;
+    length?: number | undefined;
+    overbought?: number | undefined;
+    oversold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineNetVolumeFinitePoints(data);

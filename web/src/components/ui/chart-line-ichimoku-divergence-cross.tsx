@@ -207,9 +207,9 @@ export interface ChartLineIchimokuDivergenceCrossLayout {
 export interface ChartLineIchimokuDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineIchimokuDivergenceCrossPoint[];
-  tenkanLength?: number;
-  kijunLength?: number;
-  senkouBLength?: number;
+  tenkanLength?: number | undefined;
+  kijunLength?: number | undefined;
+  senkouBLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -359,9 +359,9 @@ export function computeLineIchimokuDivergenceCross(
     | null
     | undefined,
   options: {
-    tenkanLength?: number;
-    kijunLength?: number;
-    senkouBLength?: number;
+    tenkanLength?: number | undefined;
+    kijunLength?: number | undefined;
+    senkouBLength?: number | undefined;
   } = {},
 ): IchimokuDivergenceCrossChannels {
   const cleaned = getLineIchimokuDivergenceCrossFinitePoints(series);
@@ -484,9 +484,9 @@ export function detectLineIchimokuDivergenceCrossCrosses(
 export function runLineIchimokuDivergenceCross(
   data: ChartLineIchimokuDivergenceCrossPoint[],
   options: {
-    tenkanLength?: number;
-    kijunLength?: number;
-    senkouBLength?: number;
+    tenkanLength?: number | undefined;
+    kijunLength?: number | undefined;
+    senkouBLength?: number | undefined;
   } = {},
 ): ChartLineIchimokuDivergenceCrossRun {
   const cleaned = getLineIchimokuDivergenceCrossFinitePoints(data);
@@ -603,9 +603,9 @@ export function runLineIchimokuDivergenceCross(
 
 export interface ComputeLineIchimokuDivergenceCrossLayoutOptions {
   data: ChartLineIchimokuDivergenceCrossPoint[];
-  tenkanLength?: number;
-  kijunLength?: number;
-  senkouBLength?: number;
+  tenkanLength?: number | undefined;
+  kijunLength?: number | undefined;
+  senkouBLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -785,9 +785,9 @@ export function computeLineIchimokuDivergenceCrossLayout(
 export function describeLineIchimokuDivergenceCrossChart(
   data: ChartLineIchimokuDivergenceCrossPoint[],
   options: {
-    tenkanLength?: number;
-    kijunLength?: number;
-    senkouBLength?: number;
+    tenkanLength?: number | undefined;
+    kijunLength?: number | undefined;
+    senkouBLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineIchimokuDivergenceCrossFinitePoints(data);
