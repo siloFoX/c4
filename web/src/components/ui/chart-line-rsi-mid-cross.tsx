@@ -138,8 +138,8 @@ export interface ChartLineRsiMidCrossLayout {
 export interface ChartLineRsiMidCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRsiMidCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -273,7 +273,7 @@ export interface LineRsiMidCrossChannels {
 
 export function computeLineRsiMidCross(
   series: readonly ChartLineRsiMidCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineRsiMidCrossChannels {
   const cleaned = getLineRsiMidCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -343,8 +343,8 @@ export function detectLineRsiMidCrossCrosses(
 export function runLineRsiMidCross(
   data: ChartLineRsiMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineRsiMidCrossRun {
   const cleaned = getLineRsiMidCrossFinitePoints(data);
@@ -412,8 +412,8 @@ export function runLineRsiMidCross(
 
 export interface ComputeLineRsiMidCrossLayoutOptions {
   data: ChartLineRsiMidCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -579,8 +579,8 @@ export function computeLineRsiMidCrossLayout(
 export function describeLineRsiMidCrossChart(
   data: ChartLineRsiMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineRsiMidCrossFinitePoints(data);

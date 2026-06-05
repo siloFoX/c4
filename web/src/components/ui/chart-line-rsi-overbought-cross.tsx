@@ -131,8 +131,8 @@ export interface ChartLineRsiOverboughtCrossLayout {
 export interface ChartLineRsiOverboughtCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRsiOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -257,7 +257,7 @@ export interface LineRsiOverboughtCrossChannels {
 
 export function computeLineRsiOverboughtCross(
   series: readonly ChartLineRsiOverboughtCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineRsiOverboughtCrossChannels {
   const cleaned = getLineRsiOverboughtCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -331,7 +331,7 @@ export function detectLineRsiOverboughtCrossCrosses(
 
 export function runLineRsiOverboughtCross(
   data: ChartLineRsiOverboughtCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): ChartLineRsiOverboughtCrossRun {
   const cleaned = getLineRsiOverboughtCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -398,8 +398,8 @@ export function runLineRsiOverboughtCross(
 
 export interface ComputeLineRsiOverboughtCrossLayoutOptions {
   data: ChartLineRsiOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -566,7 +566,7 @@ export function computeLineRsiOverboughtCrossLayout(
 
 export function describeLineRsiOverboughtCrossChart(
   data: ChartLineRsiOverboughtCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): string {
   const cleaned = getLineRsiOverboughtCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -132,9 +132,9 @@ export interface ChartLineStochMidCrossSigLayout {
 export interface ChartLineStochMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochMidCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -279,7 +279,7 @@ export function computeLineStochMidCrossSig(
     | readonly ChartLineStochMidCrossSigPoint[]
     | null
     | undefined,
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): LineStochMidCrossSigChannels {
   const cleaned = getLineStochMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -348,9 +348,9 @@ export function detectLineStochMidCrossSigCrosses(
 export function runLineStochMidCrossSig(
   data: ChartLineStochMidCrossSigPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStochMidCrossSigRun {
   const cleaned = getLineStochMidCrossSigFinitePoints(data);
@@ -427,9 +427,9 @@ export function runLineStochMidCrossSig(
 
 export interface ComputeLineStochMidCrossSigLayoutOptions {
   data: ChartLineStochMidCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -595,9 +595,9 @@ export function computeLineStochMidCrossSigLayout(
 export function describeLineStochMidCrossSigChart(
   data: ChartLineStochMidCrossSigPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochMidCrossSigFinitePoints(data);

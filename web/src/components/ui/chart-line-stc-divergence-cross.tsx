@@ -170,11 +170,11 @@ export interface ChartLineStcDivergenceCrossLayout {
 export interface ChartLineStcDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStcDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -386,10 +386,10 @@ export interface LineStcDivergenceCrossChannels {
 export function computeLineStcDivergenceCross(
   series: readonly ChartLineStcDivergenceCrossPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
   } = {},
 ): LineStcDivergenceCrossChannels {
   const cleaned = getLineStcDivergenceCrossFinitePoints(series);
@@ -478,11 +478,11 @@ export function detectLineStcDivergenceCrossCrosses(
 export function runLineStcDivergenceCross(
   data: ChartLineStcDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineStcDivergenceCrossRun {
   const cleaned = getLineStcDivergenceCrossFinitePoints(data);
@@ -610,11 +610,11 @@ export function runLineStcDivergenceCross(
 
 export interface ComputeLineStcDivergenceCrossLayoutOptions {
   data: ChartLineStcDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -780,10 +780,10 @@ export function computeLineStcDivergenceCrossLayout(
 export function describeLineStcDivergenceCrossChart(
   data: ChartLineStcDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStcDivergenceCrossFinitePoints(data);

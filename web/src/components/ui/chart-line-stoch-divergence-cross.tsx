@@ -146,8 +146,8 @@ export interface ChartLineStochDivergenceCrossLayout {
 export interface ChartLineStochDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -278,7 +278,7 @@ export interface LineStochDivergenceCrossChannels {
 
 export function computeLineStochDivergenceCross(
   series: readonly ChartLineStochDivergenceCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineStochDivergenceCrossChannels {
   const cleaned = getLineStochDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -327,7 +327,7 @@ export function detectLineStochDivergenceCrossCrosses(
 
 export function runLineStochDivergenceCross(
   data: ChartLineStochDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): ChartLineStochDivergenceCrossRun {
   const cleaned = getLineStochDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -420,8 +420,8 @@ export function runLineStochDivergenceCross(
 
 export interface ComputeLineStochDivergenceCrossLayoutOptions {
   data: ChartLineStochDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -583,7 +583,7 @@ export function computeLineStochDivergenceCrossLayout(
 
 export function describeLineStochDivergenceCrossChart(
   data: ChartLineStochDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineStochDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -146,8 +146,8 @@ export interface ChartLineRsiDivergenceCrossLayout {
 export interface ChartLineRsiDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRsiDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -298,7 +298,7 @@ export function computeLineRsiDivergenceCross(
     | readonly ChartLineRsiDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineRsiDivergenceCrossChannels {
   const cleaned = getLineRsiDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -347,7 +347,7 @@ export function detectLineRsiDivergenceCrossCrosses(
 
 export function runLineRsiDivergenceCross(
   data: ChartLineRsiDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): ChartLineRsiDivergenceCrossRun {
   const cleaned = getLineRsiDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -439,8 +439,8 @@ export function runLineRsiDivergenceCross(
 
 export interface ComputeLineRsiDivergenceCrossLayoutOptions {
   data: ChartLineRsiDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -601,7 +601,7 @@ export function computeLineRsiDivergenceCrossLayout(
 
 export function describeLineRsiDivergenceCrossChart(
   data: ChartLineRsiDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineRsiDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

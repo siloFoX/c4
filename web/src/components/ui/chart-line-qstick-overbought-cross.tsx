@@ -132,8 +132,8 @@ export interface ChartLineQstickOverboughtCrossLayout {
 export interface ChartLineQstickOverboughtCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineQstickOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -280,7 +280,7 @@ export function computeLineQstickOverboughtCross(
     | readonly ChartLineQstickOverboughtCrossPoint[]
     | null
     | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineQstickOverboughtCrossChannels {
   const cleaned = getLineQstickOverboughtCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -325,7 +325,7 @@ export function detectLineQstickOverboughtCrossCrosses(
 
 export function runLineQstickOverboughtCross(
   data: ChartLineQstickOverboughtCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): ChartLineQstickOverboughtCrossRun {
   const cleaned = getLineQstickOverboughtCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -397,8 +397,8 @@ export function runLineQstickOverboughtCross(
 
 export interface ComputeLineQstickOverboughtCrossLayoutOptions {
   data: ChartLineQstickOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -586,7 +586,7 @@ export function computeLineQstickOverboughtCrossLayout(
 
 export function describeLineQstickOverboughtCrossChart(
   data: ChartLineQstickOverboughtCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): string {
   const cleaned = getLineQstickOverboughtCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

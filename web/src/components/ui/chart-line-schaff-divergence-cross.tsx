@@ -161,11 +161,11 @@ export interface ChartLineSchaffDivergenceCrossLayout {
 export interface ChartLineSchaffDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineSchaffDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -372,10 +372,10 @@ export interface LineSchaffDivergenceCrossChannels {
 export function computeLineSchaffDivergenceCross(
   series: readonly ChartLineSchaffDivergenceCrossPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
   } = {},
 ): LineSchaffDivergenceCrossChannels {
   const cleaned = getLineSchaffDivergenceCrossFinitePoints(series);
@@ -449,11 +449,11 @@ export function detectLineSchaffDivergenceCrossCrosses(
 export function runLineSchaffDivergenceCross(
   data: ChartLineSchaffDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineSchaffDivergenceCrossRun {
   const cleaned = getLineSchaffDivergenceCrossFinitePoints(data);
@@ -568,11 +568,11 @@ export function runLineSchaffDivergenceCross(
 
 export interface ComputeLineSchaffDivergenceCrossLayoutOptions {
   data: ChartLineSchaffDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -738,10 +738,10 @@ export function computeLineSchaffDivergenceCrossLayout(
 export function describeLineSchaffDivergenceCrossChart(
   data: ChartLineSchaffDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineSchaffDivergenceCrossFinitePoints(data);

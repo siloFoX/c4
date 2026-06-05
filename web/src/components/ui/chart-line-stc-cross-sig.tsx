@@ -137,11 +137,11 @@ export interface ChartLineStcCrossSigLayout {
 export interface ChartLineStcCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStcCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  kSmoothing?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -335,11 +335,11 @@ export interface LineStcCrossSigChannels {
 export function computeLineStcCrossSig(
   series: readonly ChartLineStcCrossSigPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    kSmoothing?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    kSmoothing?: number | undefined;
   } = {},
 ): LineStcCrossSigChannels {
   const cleaned = getLineStcCrossSigFinitePoints(series);
@@ -422,11 +422,11 @@ export function detectLineStcCrossSigCrosses(
 export function runLineStcCrossSig(
   data: ChartLineStcCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    kSmoothing?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    kSmoothing?: number | undefined;
   } = {},
 ): ChartLineStcCrossSigRun {
   const cleaned = getLineStcCrossSigFinitePoints(data);
@@ -522,11 +522,11 @@ export function runLineStcCrossSig(
 
 export interface ComputeLineStcCrossSigLayoutOptions {
   data: ChartLineStcCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  cycleLength?: number;
-  factor?: number;
-  kSmoothing?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  cycleLength?: number | undefined;
+  factor?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -705,11 +705,11 @@ export function computeLineStcCrossSigLayout(
 export function describeLineStcCrossSigChart(
   data: ChartLineStcCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    cycleLength?: number;
-    factor?: number;
-    kSmoothing?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    cycleLength?: number | undefined;
+    factor?: number | undefined;
+    kSmoothing?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStcCrossSigFinitePoints(data);

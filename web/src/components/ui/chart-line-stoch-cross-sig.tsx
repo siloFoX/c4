@@ -131,9 +131,9 @@ export interface ChartLineStochCrossSigLayout {
 export interface ChartLineStochCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineStochCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  signalLength?: number | undefined;
   overbought?: number;
   oversold?: number;
   width?: number;
@@ -320,9 +320,9 @@ export interface LineStochCrossSigChannels {
 export function computeLineStochCrossSig(
   series: readonly ChartLineStochCrossSigPoint[] | null | undefined,
   options: {
-    length?: number;
-    kSmoothing?: number;
-    signalLength?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineStochCrossSigChannels {
   const cleaned = getLineStochCrossSigFinitePoints(series);
@@ -407,9 +407,9 @@ export function detectLineStochCrossSigCrosses(
 export function runLineStochCrossSig(
   data: ChartLineStochCrossSigPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    signalLength?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineStochCrossSigRun {
   const cleaned = getLineStochCrossSigFinitePoints(data);
@@ -484,9 +484,9 @@ export function runLineStochCrossSig(
 
 export interface ComputeLineStochCrossSigLayoutOptions {
   data: ChartLineStochCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
+  signalLength?: number | undefined;
   overbought?: number;
   oversold?: number;
   width?: number;
@@ -674,9 +674,9 @@ export function computeLineStochCrossSigLayout(
 export function describeLineStochCrossSigChart(
   data: ChartLineStochCrossSigPoint[],
   options: {
-    length?: number;
-    kSmoothing?: number;
-    signalLength?: number;
+    length?: number | undefined;
+    kSmoothing?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochCrossSigFinitePoints(data);

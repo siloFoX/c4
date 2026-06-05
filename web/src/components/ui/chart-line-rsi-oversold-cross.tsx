@@ -133,8 +133,8 @@ export interface ChartLineRsiOversoldCrossLayout {
 export interface ChartLineRsiOversoldCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRsiOversoldCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -259,7 +259,7 @@ export interface LineRsiOversoldCrossChannels {
 
 export function computeLineRsiOversoldCross(
   series: readonly ChartLineRsiOversoldCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineRsiOversoldCrossChannels {
   const cleaned = getLineRsiOversoldCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -333,7 +333,7 @@ export function detectLineRsiOversoldCrossCrosses(
 
 export function runLineRsiOversoldCross(
   data: ChartLineRsiOversoldCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): ChartLineRsiOversoldCrossRun {
   const cleaned = getLineRsiOversoldCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -400,8 +400,8 @@ export function runLineRsiOversoldCross(
 
 export interface ComputeLineRsiOversoldCrossLayoutOptions {
   data: ChartLineRsiOversoldCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -568,7 +568,7 @@ export function computeLineRsiOversoldCrossLayout(
 
 export function describeLineRsiOversoldCrossChart(
   data: ChartLineRsiOversoldCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): string {
   const cleaned = getLineRsiOversoldCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

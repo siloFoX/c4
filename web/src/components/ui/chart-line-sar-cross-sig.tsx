@@ -191,9 +191,9 @@ export interface ChartLineSarCrossSigLayout {
 export interface ChartLineSarCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineSarCrossSigPoint[];
-  step?: number;
-  maxStep?: number;
-  signalLength?: number;
+  step?: number | undefined;
+  maxStep?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -301,7 +301,7 @@ export interface ComputeLineSarCrossSigResult {
 
 export function computeLineSarCrossSig(
   series: readonly ChartLineSarCrossSigPoint[] | null | undefined,
-  options: { step?: number; maxStep?: number; signalLength?: number } = {},
+  options: { step?: number | undefined; maxStep?: number | undefined; signalLength?: number | undefined } = {},
 ): ComputeLineSarCrossSigResult {
   const cleaned = getLineSarCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -451,7 +451,7 @@ export function detectLineSarCrossSigCrosses(
 
 export function runLineSarCrossSig(
   data: ChartLineSarCrossSigPoint[],
-  options: { step?: number; maxStep?: number; signalLength?: number } = {},
+  options: { step?: number | undefined; maxStep?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineSarCrossSigRun {
   const cleaned = getLineSarCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -556,9 +556,9 @@ export function runLineSarCrossSig(
 
 export interface ComputeLineSarCrossSigLayoutOptions {
   data: ChartLineSarCrossSigPoint[];
-  step?: number;
-  maxStep?: number;
-  signalLength?: number;
+  step?: number | undefined;
+  maxStep?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -750,7 +750,7 @@ export function computeLineSarCrossSigLayout(
 
 export function describeLineSarCrossSigChart(
   data: ChartLineSarCrossSigPoint[],
-  options: { step?: number; signalLength?: number } = {},
+  options: { step?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineSarCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -131,8 +131,8 @@ export interface ChartLineQstickOversoldCrossLayout {
 export interface ChartLineQstickOversoldCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineQstickOversoldCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -274,7 +274,7 @@ export interface LineQstickOversoldCrossChannels {
 
 export function computeLineQstickOversoldCross(
   series: readonly ChartLineQstickOversoldCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineQstickOversoldCrossChannels {
   const cleaned = getLineQstickOversoldCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -319,7 +319,7 @@ export function detectLineQstickOversoldCrossCrosses(
 
 export function runLineQstickOversoldCross(
   data: ChartLineQstickOversoldCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): ChartLineQstickOversoldCrossRun {
   const cleaned = getLineQstickOversoldCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -389,8 +389,8 @@ export function runLineQstickOversoldCross(
 
 export interface ComputeLineQstickOversoldCrossLayoutOptions {
   data: ChartLineQstickOversoldCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -577,7 +577,7 @@ export function computeLineQstickOversoldCrossLayout(
 
 export function describeLineQstickOversoldCrossChart(
   data: ChartLineQstickOversoldCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): string {
   const cleaned = getLineQstickOversoldCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -230,7 +230,7 @@ export interface ChartLineRocDivergenceCrossLayout {
 export interface ChartLineRocDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineRocDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -322,7 +322,7 @@ export function normalizeLineRocDivergenceCrossLength(
 
 export function computeLineRocDivergenceCross(
   series: readonly ChartLineRocDivergenceCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): Array<number | null> {
   const cleaned = getLineRocDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) return [];
@@ -403,7 +403,7 @@ export function detectLineRocDivergenceCrossCrosses(
 
 export function runLineRocDivergenceCross(
   data: ChartLineRocDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineRocDivergenceCrossRun {
   const cleaned = getLineRocDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -494,7 +494,7 @@ export function runLineRocDivergenceCross(
 
 export interface ComputeLineRocDivergenceCrossLayoutOptions {
   data: ChartLineRocDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -673,7 +673,7 @@ export function computeLineRocDivergenceCrossLayout(
 
 export function describeLineRocDivergenceCrossChart(
   data: ChartLineRocDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineRocDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';
