@@ -284,7 +284,7 @@ export interface LineRmiZeroCrossChannels {
 
 export function computeLineRmiZeroCross(
   series: readonly ChartLineRmiZeroCrossPoint[] | null | undefined,
-  options: { length?: number; lookback?: number } = {},
+  options: { length?: number | undefined; lookback?: number | undefined } = {},
 ): LineRmiZeroCrossChannels {
   const cleaned = getLineRmiZeroCrossFinitePoints(series);
   const length = normalizeLineRmiZeroCrossLength(
@@ -360,9 +360,9 @@ export function detectLineRmiZeroCrossCrosses(
 export function runLineRmiZeroCross(
   data: ChartLineRmiZeroCrossPoint[],
   options: {
-    length?: number;
-    lookback?: number;
-    threshold?: number;
+    length?: number | undefined;
+    lookback?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineRmiZeroCrossRun {
   const cleaned = getLineRmiZeroCrossFinitePoints(data);
@@ -599,9 +599,9 @@ export function computeLineRmiZeroCrossLayout(
 export function describeLineRmiZeroCrossChart(
   data: ChartLineRmiZeroCrossPoint[],
   options: {
-    length?: number;
-    lookback?: number;
-    threshold?: number;
+    length?: number | undefined;
+    lookback?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineRmiZeroCrossFinitePoints(data);

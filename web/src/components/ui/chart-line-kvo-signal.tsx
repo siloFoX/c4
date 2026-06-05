@@ -291,7 +291,7 @@ export function applyLineKvoSignalEma(
         out[i] = posZero(ema);
       }
     } else {
-      const next = v === ema ? v : alpha * v + (1 - alpha) * ema;
+      const next: number = v === ema ? v : alpha * v + (1 - alpha) * ema;
       ema = next;
       out[i] = posZero(next);
     }
@@ -337,9 +337,9 @@ export interface LineKvoSignalChannels {
 export function computeLineKvoSignal(
   series: readonly ChartLineKvoSignalPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineKvoSignalChannels {
   const cleaned = getLineKvoSignalFinitePoints(series);
@@ -431,9 +431,9 @@ export function detectLineKvoSignalCrosses(
 export function runLineKvoSignal(
   data: ChartLineKvoSignalPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineKvoSignalRun {
   const cleaned = getLineKvoSignalFinitePoints(data);
@@ -708,9 +708,9 @@ export function computeLineKvoSignalLayout(
 export function describeLineKvoSignalChart(
   data: ChartLineKvoSignalPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKvoSignalFinitePoints(data);

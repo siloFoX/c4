@@ -282,7 +282,7 @@ export interface LineQstickMidCrossChannels {
 
 export function computeLineQstickMidCross(
   series: readonly ChartLineQstickMidCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineQstickMidCrossChannels {
   const cleaned = getLineQstickMidCrossFinitePoints(series);
   const length = normalizeLineQstickMidCrossLength(
@@ -328,8 +328,8 @@ export function detectLineQstickMidCrossCrosses(
 export function runLineQstickMidCross(
   data: ChartLineQstickMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineQstickMidCrossRun {
   const cleaned = getLineQstickMidCrossFinitePoints(data);
@@ -582,8 +582,8 @@ export function computeLineQstickMidCrossLayout(
 export function describeLineQstickMidCrossChart(
   data: ChartLineQstickMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineQstickMidCrossFinitePoints(data);

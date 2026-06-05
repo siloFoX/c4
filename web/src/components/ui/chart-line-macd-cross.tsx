@@ -261,7 +261,7 @@ export function applyLineMacdCrossEma(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed ? v : alpha * v + (1 - alpha) * smoothed;
       smoothed = next;
       out[i] = posZero(next);
@@ -278,9 +278,9 @@ export interface LineMacdCrossChannels {
 export function computeLineMacdCross(
   series: readonly ChartLineMacdCrossPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineMacdCrossChannels {
   const cleaned = getLineMacdCrossFinitePoints(series);
@@ -373,9 +373,9 @@ export function detectLineMacdCrossCrosses(
 export function runLineMacdCross(
   data: ChartLineMacdCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineMacdCrossRun {
   const cleaned = getLineMacdCrossFinitePoints(data);
@@ -646,9 +646,9 @@ export function computeLineMacdCrossLayout(
 export function describeLineMacdCrossChart(
   data: ChartLineMacdCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMacdCrossFinitePoints(data);

@@ -4,6 +4,26 @@
 
 (no entries -- next release window)
 
+## [1.11.1150] - 2026-06-05 -- CHORE: fix 48 source-confirmed tsc strict-type errors in 24 chart component files -- THIRD component batch (TODO 11.1132)
+
+Third chart COMPONENT batch. 24 chart .tsx component files held 48
+errors total (exactly 2 each). Same proven PURE-TYPE method.
+Error mix: TS2379 (most common -- inline options got `| undefined`
+per dispatch), TS7022 self-ref `const next: number` annotations,
+TS6133 unused (chart-line-fft-window `projectFreqX` +
+`spectrumBarWidthRatio`, chart-line-residual `positiveColor` +
+`negativeColor`). No `as any`, no `ts-ignore`. No rendered
+output change. Files: chart-line-{ema-pct, fft-window, fisher-{mid,
+overbought,oversold,zero}-cross, fractal-kc, kama-{cross,pct},
+kc-percent-zero-cross, kvo-signal, macd-{cross,cross-pct}-cross,
+ppo-cross, qstick-{mid,zero}-cross, residual, rmi-{mid,overbought,
+oversold,zero}-cross, rsi-cross, schaff-{overbought,oversold}-cross}.
+Mandated verification: tsc --noEmit 282 -> 234 (-48, zero in the 24
+files, zero `.test.*` errors anywhere, zero non-chart-component
+errors anywhere); vitest on 16 matching test files: 16/16 pass +
+1152/1152 tests pass; playwright e2e/gallery-no-crash.spec.ts:
+1 test passed.
+
 ## [1.11.1149] - 2026-06-05 -- CHORE: fix 48 source-confirmed tsc strict-type errors in 24 chart component files -- SECOND component batch (TODO 11.1131)
 
 Second chart COMPONENT batch. 24 chart .tsx component files held 48

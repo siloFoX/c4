@@ -255,9 +255,9 @@ export interface LineKamaPctChannels {
 export function computeLineKamaPct(
   series: readonly ChartLineKamaPctPoint[] | null | undefined,
   options: {
-    erLength?: number;
-    fastLength?: number;
-    slowLength?: number;
+    erLength?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): LineKamaPctChannels {
   const cleaned = getLineKamaPctFinitePoints(series);
@@ -318,7 +318,7 @@ export function computeLineKamaPct(
     }
     if (prevKama == null) continue;
     const scVal = sc[i];
-    const next =
+    const next: number =
       scVal == null ? prevKama : prevKama + scVal * (c - prevKama);
     kama[i] = posZero(next);
     prevKama = next;
@@ -344,9 +344,9 @@ export function classifyLineKamaPctRegime(
 export function runLineKamaPct(
   data: ChartLineKamaPctPoint[],
   options: {
-    erLength?: number;
-    fastLength?: number;
-    slowLength?: number;
+    erLength?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): ChartLineKamaPctRun {
   const cleaned = getLineKamaPctFinitePoints(data);
@@ -600,9 +600,9 @@ export function computeLineKamaPctLayout(
 export function describeLineKamaPctChart(
   data: ChartLineKamaPctPoint[],
   options: {
-    erLength?: number;
-    fastLength?: number;
-    slowLength?: number;
+    erLength?: number | undefined;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKamaPctFinitePoints(data);

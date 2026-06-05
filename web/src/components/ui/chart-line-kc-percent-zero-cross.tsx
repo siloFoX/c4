@@ -312,7 +312,7 @@ export interface LineKcPercentZeroCrossChannels {
 
 export function computeLineKcPercentZeroCross(
   series: readonly ChartLineKcPercentZeroCrossPoint[] | null | undefined,
-  options: { length?: number; mult?: number } = {},
+  options: { length?: number | undefined; mult?: number | undefined } = {},
 ): LineKcPercentZeroCrossChannels {
   const cleaned = getLineKcPercentZeroCrossFinitePoints(series);
   const length = normalizeLineKcPercentZeroCrossLength(
@@ -410,9 +410,9 @@ export function detectLineKcPercentZeroCrossCrosses(
 export function runLineKcPercentZeroCross(
   data: ChartLineKcPercentZeroCrossPoint[],
   options: {
-    length?: number;
-    mult?: number;
-    threshold?: number;
+    length?: number | undefined;
+    mult?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineKcPercentZeroCrossRun {
   const cleaned = getLineKcPercentZeroCrossFinitePoints(data);
@@ -666,9 +666,9 @@ export function computeLineKcPercentZeroCrossLayout(
 export function describeLineKcPercentZeroCrossChart(
   data: ChartLineKcPercentZeroCrossPoint[],
   options: {
-    length?: number;
-    mult?: number;
-    threshold?: number;
+    length?: number | undefined;
+    mult?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKcPercentZeroCrossFinitePoints(data);

@@ -303,7 +303,7 @@ export function computeLineFisherOverboughtCross(
     | readonly ChartLineFisherOverboughtCrossPoint[]
     | null
     | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineFisherOverboughtCrossChannels {
   const cleaned = getLineFisherOverboughtCrossFinitePoints(series);
   const length = normalizeLineFisherOverboughtCrossLength(
@@ -358,8 +358,8 @@ export function detectLineFisherOverboughtCrossCrosses(
 export function runLineFisherOverboughtCross(
   data: ChartLineFisherOverboughtCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineFisherOverboughtCrossRun {
   const cleaned = getLineFisherOverboughtCrossFinitePoints(data);
@@ -615,8 +615,8 @@ export function computeLineFisherOverboughtCrossLayout(
 export function describeLineFisherOverboughtCrossChart(
   data: ChartLineFisherOverboughtCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineFisherOverboughtCrossFinitePoints(data);

@@ -289,7 +289,7 @@ export interface LineFisherMidCrossChannels {
 
 export function computeLineFisherMidCross(
   series: readonly ChartLineFisherMidCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineFisherMidCrossChannels {
   const cleaned = getLineFisherMidCrossFinitePoints(series);
   const length = normalizeLineFisherMidCrossLength(
@@ -344,8 +344,8 @@ export function detectLineFisherMidCrossCrosses(
 export function runLineFisherMidCross(
   data: ChartLineFisherMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineFisherMidCrossRun {
   const cleaned = getLineFisherMidCrossFinitePoints(data);
@@ -597,8 +597,8 @@ export function computeLineFisherMidCrossLayout(
 export function describeLineFisherMidCrossChart(
   data: ChartLineFisherMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineFisherMidCrossFinitePoints(data);

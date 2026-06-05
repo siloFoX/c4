@@ -287,7 +287,7 @@ export function computeLineRmiOverboughtCross(
     | readonly ChartLineRmiOverboughtCrossPoint[]
     | null
     | undefined,
-  options: { length?: number; lookback?: number } = {},
+  options: { length?: number | undefined; lookback?: number | undefined } = {},
 ): LineRmiOverboughtCrossChannels {
   const cleaned = getLineRmiOverboughtCrossFinitePoints(series);
   const length = normalizeLineRmiOverboughtCrossLength(
@@ -363,9 +363,9 @@ export function detectLineRmiOverboughtCrossCrosses(
 export function runLineRmiOverboughtCross(
   data: ChartLineRmiOverboughtCrossPoint[],
   options: {
-    length?: number;
-    lookback?: number;
-    threshold?: number;
+    length?: number | undefined;
+    lookback?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineRmiOverboughtCrossRun {
   const cleaned = getLineRmiOverboughtCrossFinitePoints(data);
@@ -600,9 +600,9 @@ export function computeLineRmiOverboughtCrossLayout(
 export function describeLineRmiOverboughtCrossChart(
   data: ChartLineRmiOverboughtCrossPoint[],
   options: {
-    length?: number;
-    lookback?: number;
-    threshold?: number;
+    length?: number | undefined;
+    lookback?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineRmiOverboughtCrossFinitePoints(data);

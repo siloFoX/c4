@@ -286,7 +286,7 @@ export interface LineFisherZeroCrossChannels {
 
 export function computeLineFisherZeroCross(
   series: readonly ChartLineFisherZeroCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineFisherZeroCrossChannels {
   const cleaned = getLineFisherZeroCrossFinitePoints(series);
   const length = normalizeLineFisherZeroCrossLength(
@@ -341,8 +341,8 @@ export function detectLineFisherZeroCrossCrosses(
 export function runLineFisherZeroCross(
   data: ChartLineFisherZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineFisherZeroCrossRun {
   const cleaned = getLineFisherZeroCrossFinitePoints(data);
@@ -593,8 +593,8 @@ export function computeLineFisherZeroCrossLayout(
 export function describeLineFisherZeroCrossChart(
   data: ChartLineFisherZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineFisherZeroCrossFinitePoints(data);

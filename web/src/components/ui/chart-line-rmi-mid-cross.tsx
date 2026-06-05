@@ -285,7 +285,7 @@ export interface LineRmiMidCrossChannels {
 
 export function computeLineRmiMidCross(
   series: readonly ChartLineRmiMidCrossPoint[] | null | undefined,
-  options: { length?: number; lookback?: number } = {},
+  options: { length?: number | undefined; lookback?: number | undefined } = {},
 ): LineRmiMidCrossChannels {
   const cleaned = getLineRmiMidCrossFinitePoints(series);
   const length = normalizeLineRmiMidCrossLength(
@@ -361,9 +361,9 @@ export function detectLineRmiMidCrossCrosses(
 export function runLineRmiMidCross(
   data: ChartLineRmiMidCrossPoint[],
   options: {
-    length?: number;
-    lookback?: number;
-    threshold?: number;
+    length?: number | undefined;
+    lookback?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineRmiMidCrossRun {
   const cleaned = getLineRmiMidCrossFinitePoints(data);
@@ -597,9 +597,9 @@ export function computeLineRmiMidCrossLayout(
 export function describeLineRmiMidCrossChart(
   data: ChartLineRmiMidCrossPoint[],
   options: {
-    length?: number;
-    lookback?: number;
-    threshold?: number;
+    length?: number | undefined;
+    lookback?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineRmiMidCrossFinitePoints(data);

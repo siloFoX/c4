@@ -267,7 +267,7 @@ export function applyLineEmaPctEma(
         out[i] = posZero(ema);
       }
     } else {
-      const next = v === ema ? v : alpha * v + (1 - alpha) * ema;
+      const next: number = v === ema ? v : alpha * v + (1 - alpha) * ema;
       ema = next;
       out[i] = posZero(next);
     }
@@ -363,9 +363,9 @@ export function detectLineEmaPctCrosses(
 export function runLineEmaPct(
   data: ChartLineEmaPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): ChartLineEmaPctRun {
   const cleaned = getLineEmaPctFinitePoints(data);
@@ -648,9 +648,9 @@ export function computeLineEmaPctLayout(
 export function describeLineEmaPctChart(
   data: ChartLineEmaPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineEmaPctFinitePoints(data);
