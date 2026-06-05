@@ -14,6 +14,7 @@ const ALL_VIEWS: TopView[] = [
   'chat',
   'workflows',
   'features',
+  'gallery',
   'settings',
 ];
 

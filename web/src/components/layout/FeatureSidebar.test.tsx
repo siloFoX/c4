@@ -138,15 +138,18 @@ describe('<FeatureSidebar>', () => {
   it('filters the feature list by the typed query (matches label, id, and description)', async () => {
     const user = userEvent.setup();
     renderSidebar();
-    // "scribe" matches the Scribe feature (via label/id) AND the Auto
-    // feature (via description: "...autonomous manager + scribe..."), so
-    // the filter is OR-of-three across label/description/id.
+    // "scribe" matches the Scribe feature (via label/id), the Auto
+    // feature (via description: "...autonomous manager + scribe..."), AND
+    // the Settings feature (via description: "...theme, locale, scribe,
+    // notifications, feature flags..."), so the filter is OR-of-three
+    // across label/description/id.
     await user.type(screen.getByLabelText('Filter features'), 'scribe');
     const nav = screen.getByRole('navigation', { name: 'Feature pages' });
     const buttons = within(nav).getAllByRole('button');
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(3);
     expect(buttons.some((b) => /Scribe/.test(b.textContent ?? ''))).toBe(true);
     expect(buttons.some((b) => /Auto/.test(b.textContent ?? ''))).toBe(true);
+    expect(buttons.some((b) => /Settings/.test(b.textContent ?? ''))).toBe(true);
   });
 
   it('renders the "no match" copy when the filter has no matches', async () => {

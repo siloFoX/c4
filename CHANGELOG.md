@@ -4,6 +4,21 @@
 
 (no entries -- next release window)
 
+## [1.11.1158] - 2026-06-05 -- CHORE: reconcile 2 stale count-assertion tests to verified-grown registry entries (TODO 11.1140)
+
+2 count-assertion tests drifted from their backing registries due
+to documented growth. Each delta verified against source before
+editing. TopTabs.test.tsx: `ALL_VIEWS` missing the `gallery` view
+(TODO 11.1081, v1.11.1099 - ChartLineGallery showcase, fully wired
+via TopView union, TABS array, App.tsx render branch, keyboard
+shortcut, i18n keys). FeatureSidebar.test.tsx: `scribe` filter
+now matches 3 features (scribe via id+label, auto via description,
+settings-page via description - all 3 real registered FeatureDef
+entries with categories + loaders). Touched ONLY the 2 dispatched
+test files, ZERO source files. Verification: tsc --noEmit 0
+(PROJECT-WIDE GREEN preserved); npm run build green; vitest 2/2
+files + 54/54 tests pass.
+
 ## [1.11.1157] - 2026-06-05 -- CHORE: reconcile 3 stale render-snapshot test files to verified-shipped behavior (TODO 11.1139)
 
 3 snapshot test files (Sidebar / Button / Tooltip) drifted from
