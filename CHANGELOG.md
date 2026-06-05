@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.1160] - 2026-06-05 -- CHORE: triage-and-fix 3 likely-stale component tests, classify stale-vs-real-bug (TODO 11.1142)
+
+3 likely-stale tests triaged. 2 STALE (WikiBulkPublishRow class
+expectation drifted by TODO 11.147 v1.11.165 Separator migration;
+safe-area test pinned an obsolete release version 1.11.215) -
+both fixed test-only via class-selector retarget and version
+floor check. 1 REAL ENV BUG (NewChatModal focus test fails due to
+a JSDOM-specific quirk where querySelectorAll on FOCUSABLE_SELECTOR
+including `summary:not(:disabled)` returns out-of-document-order
+results, making useFocusTrap pick the model select instead of the
+textarea; production browsers return correct order so prod focus
+is unaffected) - left failing per contract, reported in the patch
++ commit body for a future source-side fix. Touched ONLY the 2
+fixable test files, ZERO source files. Verification: tsc 0,
+npm run build green, vitest 2/3 files pass + 71/72 tests pass.
+
 ## [1.11.1159] - 2026-06-05 -- CHORE: triage-and-fix 3 test files failing with TestingLibrary found-multiple-elements (TODO 11.1141)
 
 3 test files where queries matched multiple intentionally-rendered

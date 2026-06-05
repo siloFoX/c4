@@ -242,11 +242,17 @@ describe('<WikiBulkPublishRow>', () => {
     expect(screen.queryByText('git commit')).not.toBeInTheDocument();
   });
 
-  it('wraps the row in a flex container with the border-t and pt-2 classes', () => {
+  it('wraps the row in a flex container with the pt-2 class, divider owned by the Separator primitive', () => {
+    // (TODO 11.147, v1.11.165) The row is now `<><Separator /><div
+    // class="flex flex-wrap items-center gap-2 pt-2 ...">...</div></>`.
+    // `container.firstChild` is the Separator (a `<div role="...">`,
+    // not the flex wrapper); the prior `border-t` class moved into the
+    // Separator primitive. Target the flex container directly by its
+    // `flex` class so the assertion survives that migration.
     const { container } = renderRow();
-    const wrapper = container.firstChild as HTMLElement;
+    const wrapper = container.querySelector('div.flex') as HTMLElement;
+    expect(wrapper).not.toBeNull();
     expect(wrapper).toHaveClass('flex');
-    expect(wrapper).toHaveClass('border-t');
     expect(wrapper).toHaveClass('pt-2');
   });
 
