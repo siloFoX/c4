@@ -4,6 +4,28 @@
 
 (no entries -- next release window)
 
+## [1.11.1146] - 2026-06-05 -- CHORE: fix 51 source-confirmed tsc strict-type errors in 26 chart showcase test files (chart bucket batch 8) (TODO 11.1128)
+
+Eighth batch of the chart showcase tsc-debt clear. 26 chart .test.tsx
+files held 51 errors total (48 TS2532 + 3 TS4111). 24 chart-line
+files used the standard 2-button legend assertion pattern
+`buttons[N].getAttribute` -> `buttons[N]!.getAttribute` after
+`toHaveLength(2)` (48 sites). chart-donut (2 sites) and
+chart-tree-radial (1 site) used `.dataset.section` ->
+`.dataset['section']` bracket access on HTMLElement.dataset.
+Files: adx-strength-cross, awesome-{overbought,oversold,zero},
+bb-percent-zero, cci-{extreme,mid,overbought,oversold},
+choppiness-mid, cmo-{mid,overbought,oversold,zero}, coppock-zero,
+dpo-{mid,overbought,zero}, fisher-{mid,overbought,oversold,zero},
+kc-percent-zero, macd-divergence + chart-donut + chart-tree-radial.
+Runtime-equivalent; no behaviour change, no assertion change. Fix
+scope was ONLY the 26 .test.tsx files -- no chart component .tsx was
+touched. No `as any`, no `ts-ignore`, no fresh
+`ts-expect-error`. Mandated verification: tsc --noEmit 462 -> 411
+(-51, zero in the 26 files, zero new errors anywhere); vitest on
+the 26 files: 26/26 files pass, 1793/1793 tests pass. Zero NEW
+failures.
+
 ## [1.11.1145] - 2026-06-05 -- CHORE: fix 44 source-confirmed tsc strict-type errors in 22 chart-line test files (chart bucket batch 7) (TODO 11.1127)
 
 Seventh batch of the chart showcase tsc-debt clear. 22 chart-line

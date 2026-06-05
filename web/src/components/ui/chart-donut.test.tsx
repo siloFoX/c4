@@ -382,7 +382,7 @@ describe('<ChartDonut> component', () => {
       <ChartDonut slices={SAMPLE} ariaLabel="Test donut" />
     );
     const region = getByRole('region', { name: 'Test donut' });
-    expect(region.dataset.section).toBe('chart-donut');
+    expect(region.dataset['section']).toBe('chart-donut');
   });
 
   it('renders one arc per visible positive slice', () => {
@@ -716,7 +716,7 @@ describe('<ChartDonut> component', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartDonut slices={SAMPLE} ref={ref} />);
     expect(ref.current).not.toBeNull();
-    expect(ref.current?.dataset.section).toBe('chart-donut');
+    expect(ref.current?.dataset['section']).toBe('chart-donut');
   });
 
   it('has a stable displayName', () => {
