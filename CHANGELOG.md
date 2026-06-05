@@ -4,6 +4,29 @@
 
 (no entries -- next release window)
 
+## [1.11.1149] - 2026-06-05 -- CHORE: fix 48 source-confirmed tsc strict-type errors in 24 chart component files -- SECOND component batch (TODO 11.1131)
+
+Second chart COMPONENT batch. 24 chart .tsx component files held 48
+errors total (exactly 2 each). Same proven PURE-TYPE method as
+11.1130. Error mix: TS2379 (most common -- inline options types in
+run/compute helpers got `| undefined` added to each optional prop
+per dispatch's exact instruction; 22 files), TS7022 self-referential
+implicit any (`const next: number` / `const st: number` annotations
+to break inference cycles; 9 sites across 9 files), TS7006 (2x
+`(a: T, b: T)` annotation on sort callback in chart-line-target),
+TS2532 (2x `mean[d]!` non-null on indexed array in chart-line-tsne).
+No `as any`, no `ts-ignore`, no fresh `ts-expect-error`. No
+rendered output change. Files: chart-line-{schaff-zero-cross,
+smi-double, stc-mid-cross, stoch-rsi-{cross,overbought-cross,oversold-cross},
+supertrend-{cross,cross-sig,cross-pct}, target, tema-{pct,cross-pct},
+trix-{cross,double-smoothed}, tsi-{overbought,oversold,signal,zero}-cross,
+tsne, uo-{mid,overbought,oversold,zero}-cross, vfi-zero-cross}.
+Mandated verification: tsc --noEmit 330 -> 282 (-48, zero in the 24
+files, zero `.test.*` errors anywhere, zero non-chart-component
+errors anywhere); vitest on 18 matching test files: 18/18 pass +
+1193/1193 tests pass; playwright e2e/gallery-no-crash.spec.ts:
+1 test passed (gallery renders all tiles without crashing).
+
 ## [1.11.1148] - 2026-06-05 -- CHORE: fix 49 source-confirmed tsc strict-type errors in 14 chart component files -- FIRST component batch (TODO 11.1130)
 
 First chart COMPONENT batch (the test type-clean campaign is now

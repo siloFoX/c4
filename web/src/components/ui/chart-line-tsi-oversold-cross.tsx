@@ -277,7 +277,7 @@ export interface LineTsiOversoldCrossChannels {
 
 export function computeLineTsiOversoldCross(
   series: readonly ChartLineTsiOversoldCrossPoint[] | null | undefined,
-  options: { long?: number; short?: number } = {},
+  options: { long?: number | undefined; short?: number | undefined } = {},
 ): LineTsiOversoldCrossChannels {
   const cleaned = getLineTsiOversoldCrossFinitePoints(series);
   const long = normalizeLineTsiOversoldCrossLength(
@@ -353,9 +353,9 @@ export function detectLineTsiOversoldCrossCrosses(
 export function runLineTsiOversoldCross(
   data: ChartLineTsiOversoldCrossPoint[],
   options: {
-    long?: number;
-    short?: number;
-    threshold?: number;
+    long?: number | undefined;
+    short?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineTsiOversoldCrossRun {
   const cleaned = getLineTsiOversoldCrossFinitePoints(data);
@@ -589,9 +589,9 @@ export function computeLineTsiOversoldCrossLayout(
 export function describeLineTsiOversoldCrossChart(
   data: ChartLineTsiOversoldCrossPoint[],
   options: {
-    long?: number;
-    short?: number;
-    threshold?: number;
+    long?: number | undefined;
+    short?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineTsiOversoldCrossFinitePoints(data);

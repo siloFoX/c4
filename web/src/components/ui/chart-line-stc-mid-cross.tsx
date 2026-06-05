@@ -304,7 +304,7 @@ export interface LineStcMidCrossChannels {
 
 export function computeLineStcMidCross(
   series: readonly ChartLineStcMidCrossPoint[] | null | undefined,
-  options: { cycle?: number; fast?: number; slow?: number } = {},
+  options: { cycle?: number | undefined; fast?: number | undefined; slow?: number | undefined } = {},
 ): LineStcMidCrossChannels {
   const cleaned = getLineStcMidCrossFinitePoints(series);
   const cycle = normalizeLineStcMidCrossLength(
@@ -429,10 +429,10 @@ export function detectLineStcMidCrossCrosses(
 export function runLineStcMidCross(
   data: ChartLineStcMidCrossPoint[],
   options: {
-    cycle?: number;
-    fast?: number;
-    slow?: number;
-    threshold?: number;
+    cycle?: number | undefined;
+    fast?: number | undefined;
+    slow?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineStcMidCrossRun {
   const cleaned = getLineStcMidCrossFinitePoints(data);
@@ -670,10 +670,10 @@ export function computeLineStcMidCrossLayout(
 export function describeLineStcMidCrossChart(
   data: ChartLineStcMidCrossPoint[],
   options: {
-    cycle?: number;
-    fast?: number;
-    slow?: number;
-    threshold?: number;
+    cycle?: number | undefined;
+    fast?: number | undefined;
+    slow?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStcMidCrossFinitePoints(data);

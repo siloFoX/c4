@@ -312,7 +312,7 @@ export function applyLineTrixDoubleSmoothedEma(
         out[i] = posZero(ema);
       }
     } else {
-      const next = v === ema ? v : alpha * v + (1 - alpha) * ema;
+      const next: number = v === ema ? v : alpha * v + (1 - alpha) * ema;
       ema = next;
       out[i] = posZero(next);
     }
@@ -444,10 +444,10 @@ export function detectLineTrixDoubleSmoothedCrosses(
 export function runLineTrixDoubleSmoothed(
   data: ChartLineTrixDoubleSmoothedPoint[],
   options: {
-    length?: number;
-    signalLength?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    signalLength?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): ChartLineTrixDoubleSmoothedRun {
   const cleaned = getLineTrixDoubleSmoothedFinitePoints(data);
@@ -739,10 +739,10 @@ export function computeLineTrixDoubleSmoothedLayout(
 export function describeLineTrixDoubleSmoothedChart(
   data: ChartLineTrixDoubleSmoothedPoint[],
   options: {
-    length?: number;
-    signalLength?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    signalLength?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineTrixDoubleSmoothedFinitePoints(data);

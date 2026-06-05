@@ -285,7 +285,7 @@ export interface LineTsiZeroCrossChannels {
 
 export function computeLineTsiZeroCross(
   series: readonly ChartLineTsiZeroCrossPoint[] | null | undefined,
-  options: { long?: number; short?: number } = {},
+  options: { long?: number | undefined; short?: number | undefined } = {},
 ): LineTsiZeroCrossChannels {
   const cleaned = getLineTsiZeroCrossFinitePoints(series);
   const long = normalizeLineTsiZeroCrossLength(
@@ -365,9 +365,9 @@ export function detectLineTsiZeroCrossCrosses(
 export function runLineTsiZeroCross(
   data: ChartLineTsiZeroCrossPoint[],
   options: {
-    long?: number;
-    short?: number;
-    threshold?: number;
+    long?: number | undefined;
+    short?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineTsiZeroCrossRun {
   const cleaned = getLineTsiZeroCrossFinitePoints(data);
@@ -604,9 +604,9 @@ export function computeLineTsiZeroCrossLayout(
 export function describeLineTsiZeroCrossChart(
   data: ChartLineTsiZeroCrossPoint[],
   options: {
-    long?: number;
-    short?: number;
-    threshold?: number;
+    long?: number | undefined;
+    short?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineTsiZeroCrossFinitePoints(data);

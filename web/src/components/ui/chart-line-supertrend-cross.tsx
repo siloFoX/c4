@@ -298,7 +298,7 @@ export function applyLineSupertrendCrossWilder(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed
           ? v
           : (smoothed * (length - 1) + v) / length;
@@ -347,7 +347,7 @@ export interface LineSupertrendCrossChannels {
 
 export function computeLineSupertrendCross(
   series: readonly ChartLineSupertrendCrossPoint[] | null | undefined,
-  options: { length?: number; multiplier?: number } = {},
+  options: { length?: number | undefined; multiplier?: number | undefined } = {},
 ): LineSupertrendCrossChannels {
   const cleaned = getLineSupertrendCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -467,7 +467,7 @@ export function detectLineSupertrendCrossFlips(
 
 export function runLineSupertrendCross(
   data: ChartLineSupertrendCrossPoint[],
-  options: { length?: number; multiplier?: number } = {},
+  options: { length?: number | undefined; multiplier?: number | undefined } = {},
 ): ChartLineSupertrendCrossRun {
   const cleaned = getLineSupertrendCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -746,7 +746,7 @@ export function computeLineSupertrendCrossLayout(
 
 export function describeLineSupertrendCrossChart(
   data: ChartLineSupertrendCrossPoint[],
-  options: { length?: number; multiplier?: number } = {},
+  options: { length?: number | undefined; multiplier?: number | undefined } = {},
 ): string {
   const cleaned = getLineSupertrendCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

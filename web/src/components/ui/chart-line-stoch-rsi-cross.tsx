@@ -323,7 +323,7 @@ export function applyLineStochRsiCrossWilder(
         out[i] = posZero(smoothed);
       }
     } else {
-      const next =
+      const next: number =
         v === smoothed
           ? v
           : (smoothed * (length - 1) + v) / length;
@@ -574,12 +574,12 @@ export function detectLineStochRsiCrossCrosses(
 export function runLineStochRsiCross(
   data: ChartLineStochRsiCrossPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    kSmooth?: number;
-    dSmooth?: number;
-    overboughtLevel?: number;
-    oversoldLevel?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    kSmooth?: number | undefined;
+    dSmooth?: number | undefined;
+    overboughtLevel?: number | undefined;
+    oversoldLevel?: number | undefined;
   } = {},
 ): ChartLineStochRsiCrossRun {
   const cleaned = getLineStochRsiCrossFinitePoints(data);
@@ -883,12 +883,12 @@ export function computeLineStochRsiCrossLayout(
 export function describeLineStochRsiCrossChart(
   data: ChartLineStochRsiCrossPoint[],
   options: {
-    rsiLength?: number;
-    stochLength?: number;
-    kSmooth?: number;
-    dSmooth?: number;
-    overboughtLevel?: number;
-    oversoldLevel?: number;
+    rsiLength?: number | undefined;
+    stochLength?: number | undefined;
+    kSmooth?: number | undefined;
+    dSmooth?: number | undefined;
+    overboughtLevel?: number | undefined;
+    oversoldLevel?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineStochRsiCrossFinitePoints(data);

@@ -355,7 +355,7 @@ export function applyLineSmiDoubleEma(
         out[i] = posZero(ema);
       }
     } else {
-      const next = v === ema ? v : alpha * v + (1 - alpha) * ema;
+      const next: number = v === ema ? v : alpha * v + (1 - alpha) * ema;
       ema = next;
       out[i] = posZero(next);
     }
@@ -509,11 +509,11 @@ export function detectLineSmiDoubleCrosses(
 export function runLineSmiDouble(
   data: ChartLineSmiDoublePoint[],
   options: {
-    length?: number;
-    smoothLength1?: number;
-    smoothLength2?: number;
-    overbought?: number;
-    oversold?: number;
+    length?: number | undefined;
+    smoothLength1?: number | undefined;
+    smoothLength2?: number | undefined;
+    overbought?: number | undefined;
+    oversold?: number | undefined;
   } = {},
 ): ChartLineSmiDoubleRun {
   const cleaned = getLineSmiDoubleFinitePoints(data);
@@ -785,11 +785,11 @@ export function computeLineSmiDoubleLayout(
 export function describeLineSmiDoubleChart(
   data: ChartLineSmiDoublePoint[],
   options: {
-    length?: number;
-    smoothLength1?: number;
-    smoothLength2?: number;
-    overbought?: number;
-    oversold?: number;
+    length?: number | undefined;
+    smoothLength1?: number | undefined;
+    smoothLength2?: number | undefined;
+    overbought?: number | undefined;
+    oversold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineSmiDoubleFinitePoints(data);

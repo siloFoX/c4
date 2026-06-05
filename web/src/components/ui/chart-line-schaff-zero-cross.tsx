@@ -302,7 +302,7 @@ export interface LineSchaffZeroCrossChannels {
 
 export function computeLineSchaffZeroCross(
   series: readonly ChartLineSchaffZeroCrossPoint[] | null | undefined,
-  options: { cycle?: number; fast?: number; slow?: number } = {},
+  options: { cycle?: number | undefined; fast?: number | undefined; slow?: number | undefined } = {},
 ): LineSchaffZeroCrossChannels {
   const cleaned = getLineSchaffZeroCrossFinitePoints(series);
   const cycle = normalizeLineSchaffZeroCrossLength(
@@ -427,10 +427,10 @@ export function detectLineSchaffZeroCrossCrosses(
 export function runLineSchaffZeroCross(
   data: ChartLineSchaffZeroCrossPoint[],
   options: {
-    cycle?: number;
-    fast?: number;
-    slow?: number;
-    threshold?: number;
+    cycle?: number | undefined;
+    fast?: number | undefined;
+    slow?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineSchaffZeroCrossRun {
   const cleaned = getLineSchaffZeroCrossFinitePoints(data);
@@ -672,10 +672,10 @@ export function computeLineSchaffZeroCrossLayout(
 export function describeLineSchaffZeroCrossChart(
   data: ChartLineSchaffZeroCrossPoint[],
   options: {
-    cycle?: number;
-    fast?: number;
-    slow?: number;
-    threshold?: number;
+    cycle?: number | undefined;
+    fast?: number | undefined;
+    slow?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineSchaffZeroCrossFinitePoints(data);
