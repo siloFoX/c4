@@ -187,8 +187,8 @@ export interface ChartLineDpoMidCrossSigLayout {
 export interface ChartLineDpoMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDpoMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -328,7 +328,7 @@ export interface DpoMidCrossSigChannels {
 
 export function computeLineDpoMidCrossSig(
   series: readonly ChartLineDpoMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): DpoMidCrossSigChannels {
   const cleaned = getLineDpoMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -404,7 +404,7 @@ export function detectLineDpoMidCrossSigCrosses(
 
 export function runLineDpoMidCrossSig(
   data: ChartLineDpoMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineDpoMidCrossSigRun {
   const cleaned = getLineDpoMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -491,8 +491,8 @@ export function runLineDpoMidCrossSig(
 
 export interface ComputeLineDpoMidCrossSigLayoutOptions {
   data: ChartLineDpoMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -697,7 +697,7 @@ export function computeLineDpoMidCrossSigLayout(
 
 export function describeLineDpoMidCrossSigChart(
   data: ChartLineDpoMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineDpoMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

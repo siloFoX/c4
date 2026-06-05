@@ -122,8 +122,8 @@ export interface ChartLineElderBearCrossLayout {
 export interface ChartLineElderBearCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineElderBearCrossPoint[];
-  length?: number;
-  lowProxyLength?: number;
+  length?: number | undefined;
+  lowProxyLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -264,7 +264,7 @@ export interface LineElderBearCrossChannels {
 
 export function computeLineElderBearCross(
   series: readonly ChartLineElderBearCrossPoint[] | null | undefined,
-  options: { length?: number; lowProxyLength?: number } = {},
+  options: { length?: number | undefined; lowProxyLength?: number | undefined } = {},
 ): LineElderBearCrossChannels {
   const cleaned = getLineElderBearCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -326,7 +326,7 @@ export function detectLineElderBearCrossCrosses(
 
 export function runLineElderBearCross(
   data: ChartLineElderBearCrossPoint[],
-  options: { length?: number; lowProxyLength?: number } = {},
+  options: { length?: number | undefined; lowProxyLength?: number | undefined } = {},
 ): ChartLineElderBearCrossRun {
   const cleaned = getLineElderBearCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -387,8 +387,8 @@ export function runLineElderBearCross(
 
 export interface ComputeLineElderBearCrossLayoutOptions {
   data: ChartLineElderBearCrossPoint[];
-  length?: number;
-  lowProxyLength?: number;
+  length?: number | undefined;
+  lowProxyLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -564,7 +564,7 @@ export function computeLineElderBearCrossLayout(
 
 export function describeLineElderBearCrossChart(
   data: ChartLineElderBearCrossPoint[],
-  options: { length?: number; lowProxyLength?: number } = {},
+  options: { length?: number | undefined; lowProxyLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineElderBearCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

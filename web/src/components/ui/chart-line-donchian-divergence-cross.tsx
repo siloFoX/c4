@@ -221,7 +221,7 @@ export interface ChartLineDonchianDivergenceCrossLayout {
 export interface ChartLineDonchianDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDonchianDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -349,7 +349,7 @@ export function computeLineDonchianDivergenceCross(
     | readonly ChartLineDonchianDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): DonchianDivergenceCrossChannels {
   const cleaned = getLineDonchianDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -444,7 +444,7 @@ export function detectLineDonchianDivergenceCrossCrosses(
 
 export function runLineDonchianDivergenceCross(
   data: ChartLineDonchianDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineDonchianDivergenceCrossRun {
   const cleaned = getLineDonchianDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -545,7 +545,7 @@ export function runLineDonchianDivergenceCross(
 
 export interface ComputeLineDonchianDivergenceCrossLayoutOptions {
   data: ChartLineDonchianDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -746,7 +746,7 @@ export function computeLineDonchianDivergenceCrossLayout(
 
 export function describeLineDonchianDivergenceCrossChart(
   data: ChartLineDonchianDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineDonchianDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -183,8 +183,8 @@ export interface ChartLineDonchianMidCrossSigLayout {
 export interface ChartLineDonchianMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDonchianMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -388,7 +388,7 @@ export interface DonchianMidCrossSigChannels {
 
 export function computeLineDonchianMidCrossSig(
   series: readonly ChartLineDonchianMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): DonchianMidCrossSigChannels {
   const cleaned = getLineDonchianMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -460,7 +460,7 @@ export function detectLineDonchianMidCrossSigCrosses(
 
 export function runLineDonchianMidCrossSig(
   data: ChartLineDonchianMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineDonchianMidCrossSigRun {
   const cleaned = getLineDonchianMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -553,8 +553,8 @@ export function runLineDonchianMidCrossSig(
 
 export interface ComputeLineDonchianMidCrossSigLayoutOptions {
   data: ChartLineDonchianMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -754,7 +754,7 @@ export function computeLineDonchianMidCrossSigLayout(
 
 export function describeLineDonchianMidCrossSigChart(
   data: ChartLineDonchianMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineDonchianMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

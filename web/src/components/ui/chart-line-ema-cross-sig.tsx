@@ -138,8 +138,8 @@ export interface ChartLineEmaCrossSigLayout {
 export interface ChartLineEmaCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineEmaCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -314,7 +314,7 @@ export interface LineEmaCrossSigChannels {
 
 export function computeLineEmaCrossSig(
   series: readonly ChartLineEmaCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): LineEmaCrossSigChannels {
   const cleaned = getLineEmaCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -377,7 +377,7 @@ export function detectLineEmaCrossSigCrosses(
 
 export function runLineEmaCrossSig(
   data: ChartLineEmaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineEmaCrossSigRun {
   const cleaned = getLineEmaCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -459,8 +459,8 @@ export function runLineEmaCrossSig(
 
 export interface ComputeLineEmaCrossSigLayoutOptions {
   data: ChartLineEmaCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -656,7 +656,7 @@ export function computeLineEmaCrossSigLayout(
 
 export function describeLineEmaCrossSigChart(
   data: ChartLineEmaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineEmaCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

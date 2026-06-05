@@ -136,8 +136,8 @@ export interface ChartLineFractalChannelLayout {
 export interface ChartLineFractalChannelProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineFractalChannelPoint[];
-  length?: number;
-  fractalLookback?: number;
+  length?: number | undefined;
+  fractalLookback?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -297,8 +297,8 @@ export interface LineFractalChannelChannels {
 export function computeLineFractalChannel(
   series: readonly ChartLineFractalChannelPoint[] | null | undefined,
   options: {
-    length?: number;
-    fractalLookback?: number;
+    length?: number | undefined;
+    fractalLookback?: number | undefined;
   } = {},
 ): LineFractalChannelChannels {
   const cleaned = getLineFractalChannelFinitePoints(series);
@@ -428,8 +428,8 @@ export function detectLineFractalChannelCrosses(
 export function runLineFractalChannel(
   data: ChartLineFractalChannelPoint[],
   options: {
-    length?: number;
-    fractalLookback?: number;
+    length?: number | undefined;
+    fractalLookback?: number | undefined;
   } = {},
 ): ChartLineFractalChannelRun {
   const cleaned = getLineFractalChannelFinitePoints(data);
@@ -531,8 +531,8 @@ export function runLineFractalChannel(
 
 export interface ComputeLineFractalChannelLayoutOptions {
   data: ChartLineFractalChannelPoint[];
-  length?: number;
-  fractalLookback?: number;
+  length?: number | undefined;
+  fractalLookback?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -685,8 +685,8 @@ export function computeLineFractalChannelLayout(
 export function describeLineFractalChannelChart(
   data: ChartLineFractalChannelPoint[],
   options: {
-    length?: number;
-    fractalLookback?: number;
+    length?: number | undefined;
+    fractalLookback?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineFractalChannelFinitePoints(data);

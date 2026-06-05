@@ -129,8 +129,8 @@ export interface ChartLineDpoOversoldCrossLayout {
 export interface ChartLineDpoOversoldCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDpoOversoldCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -268,7 +268,7 @@ export interface LineDpoOversoldCrossChannels {
 
 export function computeLineDpoOversoldCross(
   series: readonly ChartLineDpoOversoldCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineDpoOversoldCrossChannels {
   const cleaned = getLineDpoOversoldCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -325,7 +325,7 @@ export function detectLineDpoOversoldCrossCrosses(
 
 export function runLineDpoOversoldCross(
   data: ChartLineDpoOversoldCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): ChartLineDpoOversoldCrossRun {
   const cleaned = getLineDpoOversoldCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -394,8 +394,8 @@ export function runLineDpoOversoldCross(
 
 export interface ComputeLineDpoOversoldCrossLayoutOptions {
   data: ChartLineDpoOversoldCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -581,7 +581,7 @@ export function computeLineDpoOversoldCrossLayout(
 
 export function describeLineDpoOversoldCrossChart(
   data: ChartLineDpoOversoldCrossPoint[],
-  options: { length?: number; threshold?: number } = {},
+  options: { length?: number | undefined; threshold?: number | undefined } = {},
 ): string {
   const cleaned = getLineDpoOversoldCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

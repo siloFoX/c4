@@ -186,7 +186,7 @@ export interface ChartLineHmaDivergenceCrossLayout {
 export interface ChartLineHmaDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineHmaDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -316,7 +316,7 @@ export interface HmaDivergenceCrossChannels {
 
 export function computeLineHmaDivergenceCross(
   series: readonly ChartLineHmaDivergenceCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): HmaDivergenceCrossChannels {
   const cleaned = getLineHmaDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -405,7 +405,7 @@ export function detectLineHmaDivergenceCrossCrosses(
 
 export function runLineHmaDivergenceCross(
   data: ChartLineHmaDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineHmaDivergenceCrossRun {
   const cleaned = getLineHmaDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -503,7 +503,7 @@ export function runLineHmaDivergenceCross(
 
 export interface ComputeLineHmaDivergenceCrossLayoutOptions {
   data: ChartLineHmaDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -679,7 +679,7 @@ export function computeLineHmaDivergenceCrossLayout(
 
 export function describeLineHmaDivergenceCrossChart(
   data: ChartLineHmaDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineHmaDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

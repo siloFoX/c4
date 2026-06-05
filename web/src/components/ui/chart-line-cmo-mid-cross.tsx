@@ -132,8 +132,8 @@ export interface ChartLineCmoMidCrossLayout {
 export interface ChartLineCmoMidCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCmoMidCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -235,7 +235,7 @@ export interface LineCmoMidCrossChannels {
 
 export function computeLineCmoMidCross(
   series: readonly ChartLineCmoMidCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineCmoMidCrossChannels {
   const cleaned = getLineCmoMidCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -306,8 +306,8 @@ export function detectLineCmoMidCrossCrosses(
 export function runLineCmoMidCross(
   data: ChartLineCmoMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineCmoMidCrossRun {
   const cleaned = getLineCmoMidCrossFinitePoints(data);
@@ -375,8 +375,8 @@ export function runLineCmoMidCross(
 
 export interface ComputeLineCmoMidCrossLayoutOptions {
   data: ChartLineCmoMidCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -539,8 +539,8 @@ export function computeLineCmoMidCrossLayout(
 export function describeLineCmoMidCrossChart(
   data: ChartLineCmoMidCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineCmoMidCrossFinitePoints(data);

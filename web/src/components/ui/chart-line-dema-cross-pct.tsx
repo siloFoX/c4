@@ -106,7 +106,7 @@ export interface ChartLineDemaCrossPctLayout {
 export interface ChartLineDemaCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDemaCrossPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -247,7 +247,7 @@ export interface LineDemaCrossPctChannels {
 
 export function computeLineDemaCrossPct(
   series: readonly ChartLineDemaCrossPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineDemaCrossPctChannels {
   const cleaned = getLineDemaCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -289,7 +289,7 @@ export function classifyLineDemaCrossPctRegime(
 
 export function runLineDemaCrossPct(
   data: ChartLineDemaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineDemaCrossPctRun {
   const cleaned = getLineDemaCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -343,7 +343,7 @@ export function runLineDemaCrossPct(
 
 export interface ComputeLineDemaCrossPctLayoutOptions {
   data: ChartLineDemaCrossPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -518,7 +518,7 @@ export function computeLineDemaCrossPctLayout(
 
 export function describeLineDemaCrossPctChart(
   data: ChartLineDemaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineDemaCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

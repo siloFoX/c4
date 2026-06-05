@@ -131,9 +131,9 @@ export interface ChartLineHlOscLayout {
 export interface ChartLineHlOscProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineHlOscPoint[];
-  length?: number;
-  highThreshold?: number;
-  lowThreshold?: number;
+  length?: number | undefined;
+  highThreshold?: number | undefined;
+  lowThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -279,7 +279,7 @@ export interface LineHlOscChannels {
 /** Compute the highSma, lowSma, and osc channels. */
 export function computeLineHlOsc(
   series: readonly ChartLineHlOscPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineHlOscChannels {
   const cleaned = getLineHlOscFinitePoints(series);
   if (cleaned.length === 0) {
@@ -351,9 +351,9 @@ export function detectLineHlOscCrosses(
 export function runLineHlOsc(
   data: ChartLineHlOscPoint[],
   options: {
-    length?: number;
-    highThreshold?: number;
-    lowThreshold?: number;
+    length?: number | undefined;
+    highThreshold?: number | undefined;
+    lowThreshold?: number | undefined;
   } = {},
 ): ChartLineHlOscRun {
   const cleaned = getLineHlOscFinitePoints(data);
@@ -436,9 +436,9 @@ export function runLineHlOsc(
 
 export interface ComputeLineHlOscLayoutOptions {
   data: ChartLineHlOscPoint[];
-  length?: number;
-  highThreshold?: number;
-  lowThreshold?: number;
+  length?: number | undefined;
+  highThreshold?: number | undefined;
+  lowThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -607,9 +607,9 @@ export function computeLineHlOscLayout(
 export function describeLineHlOscChart(
   data: ChartLineHlOscPoint[],
   options: {
-    length?: number;
-    highThreshold?: number;
-    lowThreshold?: number;
+    length?: number | undefined;
+    highThreshold?: number | undefined;
+    lowThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineHlOscFinitePoints(data);

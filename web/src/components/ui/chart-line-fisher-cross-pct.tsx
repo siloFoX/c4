@@ -125,8 +125,8 @@ export interface ChartLineFisherCrossPctLayout {
 export interface ChartLineFisherCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineFisherCrossPctPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -273,7 +273,7 @@ export interface LineFisherCrossPctChannels {
 
 export function computeLineFisherCrossPct(
   series: readonly ChartLineFisherCrossPctPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineFisherCrossPctChannels {
   const cleaned = getLineFisherCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -340,7 +340,7 @@ export function classifyLineFisherCrossPctRegime(
 
 export function runLineFisherCrossPct(
   data: ChartLineFisherCrossPctPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineFisherCrossPctRun {
   const cleaned = getLineFisherCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -405,8 +405,8 @@ export function runLineFisherCrossPct(
 
 export interface ComputeLineFisherCrossPctLayoutOptions {
   data: ChartLineFisherCrossPctPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -604,7 +604,7 @@ export function computeLineFisherCrossPctLayout(
 
 export function describeLineFisherCrossPctChart(
   data: ChartLineFisherCrossPctPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineFisherCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

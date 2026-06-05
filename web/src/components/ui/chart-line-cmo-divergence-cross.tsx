@@ -145,8 +145,8 @@ export interface ChartLineCmoDivergenceCrossLayout {
 export interface ChartLineCmoDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineCmoDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -275,7 +275,7 @@ export interface LineCmoDivergenceCrossChannels {
 
 export function computeLineCmoDivergenceCross(
   series: readonly ChartLineCmoDivergenceCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineCmoDivergenceCrossChannels {
   const cleaned = getLineCmoDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -324,7 +324,7 @@ export function detectLineCmoDivergenceCrossCrosses(
 
 export function runLineCmoDivergenceCross(
   data: ChartLineCmoDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): ChartLineCmoDivergenceCrossRun {
   const cleaned = getLineCmoDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -415,8 +415,8 @@ export function runLineCmoDivergenceCross(
 
 export interface ComputeLineCmoDivergenceCrossLayoutOptions {
   data: ChartLineCmoDivergenceCrossPoint[];
-  length?: number;
-  divergenceWindow?: number;
+  length?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -577,7 +577,7 @@ export function computeLineCmoDivergenceCrossLayout(
 
 export function describeLineCmoDivergenceCrossChart(
   data: ChartLineCmoDivergenceCrossPoint[],
-  options: { length?: number; divergenceWindow?: number } = {},
+  options: { length?: number | undefined; divergenceWindow?: number | undefined } = {},
 ): string {
   const cleaned = getLineCmoDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

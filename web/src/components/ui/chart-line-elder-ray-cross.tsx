@@ -128,8 +128,8 @@ export interface ChartLineElderRayCrossLayout {
 export interface ChartLineElderRayCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineElderRayCrossPoint[];
-  length?: number;
-  highProxyLength?: number;
+  length?: number | undefined;
+  highProxyLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -273,7 +273,7 @@ export interface LineElderRayCrossChannels {
 
 export function computeLineElderRayCross(
   series: readonly ChartLineElderRayCrossPoint[] | null | undefined,
-  options: { length?: number; highProxyLength?: number } = {},
+  options: { length?: number | undefined; highProxyLength?: number | undefined } = {},
 ): LineElderRayCrossChannels {
   const cleaned = getLineElderRayCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -352,7 +352,7 @@ export function detectLineElderRayCrossCrosses(
 
 export function runLineElderRayCross(
   data: ChartLineElderRayCrossPoint[],
-  options: { length?: number; highProxyLength?: number } = {},
+  options: { length?: number | undefined; highProxyLength?: number | undefined } = {},
 ): ChartLineElderRayCrossRun {
   const cleaned = getLineElderRayCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -422,8 +422,8 @@ export function runLineElderRayCross(
 
 export interface ComputeLineElderRayCrossLayoutOptions {
   data: ChartLineElderRayCrossPoint[];
-  length?: number;
-  highProxyLength?: number;
+  length?: number | undefined;
+  highProxyLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -619,7 +619,7 @@ export function computeLineElderRayCrossLayout(
 
 export function describeLineElderRayCrossChart(
   data: ChartLineElderRayCrossPoint[],
-  options: { length?: number; highProxyLength?: number } = {},
+  options: { length?: number | undefined; highProxyLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineElderRayCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

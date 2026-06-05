@@ -140,8 +140,8 @@ export interface ChartLineEhlersFisherCrossLayout {
 export interface ChartLineEhlersFisherCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineEhlersFisherCrossPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -290,7 +290,7 @@ export interface LineEhlersFisherCrossChannels {
 
 export function computeLineEhlersFisherCross(
   series: readonly ChartLineEhlersFisherCrossPoint[] | null | undefined,
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): LineEhlersFisherCrossChannels {
   const cleaned = getLineEhlersFisherCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -380,7 +380,7 @@ export function detectLineEhlersFisherCrossCrosses(
 
 export function runLineEhlersFisherCross(
   data: ChartLineEhlersFisherCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineEhlersFisherCrossRun {
   const cleaned = getLineEhlersFisherCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -449,8 +449,8 @@ export function runLineEhlersFisherCross(
 
 export interface ComputeLineEhlersFisherCrossLayoutOptions {
   data: ChartLineEhlersFisherCrossPoint[];
-  length?: number;
-  signalLength?: number;
+  length?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -647,7 +647,7 @@ export function computeLineEhlersFisherCrossLayout(
 
 export function describeLineEhlersFisherCrossChart(
   data: ChartLineEhlersFisherCrossPoint[],
-  options: { length?: number; signalLength?: number } = {},
+  options: { length?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineEhlersFisherCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

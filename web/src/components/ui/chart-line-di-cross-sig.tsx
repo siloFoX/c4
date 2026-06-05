@@ -194,7 +194,7 @@ export interface ChartLineDiCrossSigLayout {
 export interface ChartLineDiCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDiCrossSigPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -308,7 +308,7 @@ export interface ComputeLineDiCrossSigResult {
 
 export function computeLineDiCrossSig(
   series: readonly ChartLineDiCrossSigPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ComputeLineDiCrossSigResult {
   const cleaned = getLineDiCrossSigFinitePoints(series);
   if (cleaned.length === 0) return { plusDI: [], minusDI: [] };
@@ -428,7 +428,7 @@ export function detectLineDiCrossSigCrosses(
 
 export function runLineDiCrossSig(
   data: ChartLineDiCrossSigPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineDiCrossSigRun {
   const cleaned = getLineDiCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -518,7 +518,7 @@ export function runLineDiCrossSig(
 
 export interface ComputeLineDiCrossSigLayoutOptions {
   data: ChartLineDiCrossSigPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -698,7 +698,7 @@ export function computeLineDiCrossSigLayout(
 
 export function describeLineDiCrossSigChart(
   data: ChartLineDiCrossSigPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineDiCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

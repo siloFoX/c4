@@ -109,7 +109,7 @@ export interface ChartLineHmaCrossPctLayout {
 export interface ChartLineHmaCrossPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineHmaCrossPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -234,7 +234,7 @@ export interface LineHmaCrossPctChannels {
 
 export function computeLineHmaCrossPct(
   series: readonly ChartLineHmaCrossPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineHmaCrossPctChannels {
   const cleaned = getLineHmaCrossPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -279,7 +279,7 @@ export function classifyLineHmaCrossPctRegime(
 
 export function runLineHmaCrossPct(
   data: ChartLineHmaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineHmaCrossPctRun {
   const cleaned = getLineHmaCrossPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -333,7 +333,7 @@ export function runLineHmaCrossPct(
 
 export interface ComputeLineHmaCrossPctLayoutOptions {
   data: ChartLineHmaCrossPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -508,7 +508,7 @@ export function computeLineHmaCrossPctLayout(
 
 export function describeLineHmaCrossPctChart(
   data: ChartLineHmaCrossPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineHmaCrossPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

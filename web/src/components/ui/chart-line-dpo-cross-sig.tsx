@@ -138,8 +138,8 @@ export interface ChartLineDpoCrossSigLayout {
 export interface ChartLineDpoCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDpoCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -277,7 +277,7 @@ export interface LineDpoCrossSigChannels {
 
 export function computeLineDpoCrossSig(
   series: readonly ChartLineDpoCrossSigPoint[] | null | undefined,
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): LineDpoCrossSigChannels {
   const cleaned = getLineDpoCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -343,7 +343,7 @@ export function detectLineDpoCrossSigCrosses(
 
 export function runLineDpoCrossSig(
   data: ChartLineDpoCrossSigPoint[],
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): ChartLineDpoCrossSigRun {
   const cleaned = getLineDpoCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -415,8 +415,8 @@ export function runLineDpoCrossSig(
 
 export interface ComputeLineDpoCrossSigLayoutOptions {
   data: ChartLineDpoCrossSigPoint[];
-  length?: number;
-  kSmoothing?: number;
+  length?: number | undefined;
+  kSmoothing?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -618,7 +618,7 @@ export function computeLineDpoCrossSigLayout(
 
 export function describeLineDpoCrossSigChart(
   data: ChartLineDpoCrossSigPoint[],
-  options: { length?: number; kSmoothing?: number } = {},
+  options: { length?: number | undefined; kSmoothing?: number | undefined } = {},
 ): string {
   const cleaned = getLineDpoCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

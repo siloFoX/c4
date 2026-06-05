@@ -135,8 +135,8 @@ export interface ChartLineDpoZeroCrossLayout {
 export interface ChartLineDpoZeroCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineDpoZeroCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -274,7 +274,7 @@ export interface LineDpoZeroCrossChannels {
 
 export function computeLineDpoZeroCross(
   series: readonly ChartLineDpoZeroCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineDpoZeroCrossChannels {
   const cleaned = getLineDpoZeroCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -333,8 +333,8 @@ export function detectLineDpoZeroCrossCrosses(
 export function runLineDpoZeroCross(
   data: ChartLineDpoZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineDpoZeroCrossRun {
   const cleaned = getLineDpoZeroCrossFinitePoints(data);
@@ -403,8 +403,8 @@ export function runLineDpoZeroCross(
 
 export interface ComputeLineDpoZeroCrossLayoutOptions {
   data: ChartLineDpoZeroCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -587,8 +587,8 @@ export function computeLineDpoZeroCrossLayout(
 export function describeLineDpoZeroCrossChart(
   data: ChartLineDpoZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineDpoZeroCrossFinitePoints(data);

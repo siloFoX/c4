@@ -227,7 +227,7 @@ export function computeLineFisher(
     prevFisher = f;
   }
   for (let i = 1; i < n; i += 1) {
-    trigger[i] = fisher[i - 1];
+    trigger[i] = fisher[i - 1]!;
   }
   return { fisher, trigger };
 }

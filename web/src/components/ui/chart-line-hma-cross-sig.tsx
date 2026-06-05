@@ -146,8 +146,8 @@ export interface ChartLineHmaCrossSigLayout {
 export interface ChartLineHmaCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineHmaCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -336,7 +336,7 @@ export interface LineHmaCrossSigChannels {
 
 export function computeLineHmaCrossSig(
   series: readonly ChartLineHmaCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): LineHmaCrossSigChannels {
   const cleaned = getLineHmaCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -399,7 +399,7 @@ export function detectLineHmaCrossSigCrosses(
 
 export function runLineHmaCrossSig(
   data: ChartLineHmaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineHmaCrossSigRun {
   const cleaned = getLineHmaCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -482,8 +482,8 @@ export function runLineHmaCrossSig(
 
 export interface ComputeLineHmaCrossSigLayoutOptions {
   data: ChartLineHmaCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -679,7 +679,7 @@ export function computeLineHmaCrossSigLayout(
 
 export function describeLineHmaCrossSigChart(
   data: ChartLineHmaCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineHmaCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

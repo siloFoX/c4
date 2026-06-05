@@ -132,7 +132,7 @@ export interface ChartLineFisherCrossLayout {
 export interface ChartLineFisherCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineFisherCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -246,7 +246,7 @@ export interface LineFisherCrossChannels {
 
 export function computeLineFisherCross(
   series: readonly ChartLineFisherCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineFisherCrossChannels {
   const cleaned = getLineFisherCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -359,7 +359,7 @@ export function detectLineFisherCrossCrosses(
 
 export function runLineFisherCross(
   data: ChartLineFisherCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineFisherCrossRun {
   const cleaned = getLineFisherCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -428,7 +428,7 @@ export function runLineFisherCross(
 
 export interface ComputeLineFisherCrossLayoutOptions {
   data: ChartLineFisherCrossPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -612,7 +612,7 @@ export function computeLineFisherCrossLayout(
 
 export function describeLineFisherCrossChart(
   data: ChartLineFisherCrossPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineFisherCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

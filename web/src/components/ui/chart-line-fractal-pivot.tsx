@@ -114,7 +114,7 @@ export interface ChartLineFractalPivotLayout {
 export interface ChartLineFractalPivotProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineFractalPivotPoint[];
-  fractalLookback?: number;
+  fractalLookback?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -254,7 +254,7 @@ export interface LineFractalPivotChannels {
 
 export function computeLineFractalPivot(
   series: readonly ChartLineFractalPivotPoint[] | null | undefined,
-  options: { fractalLookback?: number } = {},
+  options: { fractalLookback?: number | undefined } = {},
 ): LineFractalPivotChannels {
   const cleaned = getLineFractalPivotFinitePoints(series);
   if (cleaned.length === 0) {
@@ -289,7 +289,7 @@ export function classifyLineFractalPivotKind(
 
 export function runLineFractalPivot(
   data: ChartLineFractalPivotPoint[],
-  options: { fractalLookback?: number } = {},
+  options: { fractalLookback?: number | undefined } = {},
 ): ChartLineFractalPivotRun {
   const cleaned = getLineFractalPivotFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -355,7 +355,7 @@ export function runLineFractalPivot(
 
 export interface ComputeLineFractalPivotLayoutOptions {
   data: ChartLineFractalPivotPoint[];
-  fractalLookback?: number;
+  fractalLookback?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -481,7 +481,7 @@ export function computeLineFractalPivotLayout(
 
 export function describeLineFractalPivotChart(
   data: ChartLineFractalPivotPoint[],
-  options: { fractalLookback?: number } = {},
+  options: { fractalLookback?: number | undefined } = {},
 ): string {
   const cleaned = getLineFractalPivotFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

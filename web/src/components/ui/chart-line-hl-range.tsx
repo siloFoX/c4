@@ -125,9 +125,9 @@ export interface ChartLineHlRangeLayout {
 export interface ChartLineHlRangeProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineHlRangePoint[];
-  length?: number;
-  highThreshold?: number;
-  lowThreshold?: number;
+  length?: number | undefined;
+  highThreshold?: number | undefined;
+  lowThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -291,7 +291,7 @@ export interface LineHlRangeChannels {
 /** Compute the per-bar range and the rolling SMA channels. */
 export function computeLineHlRange(
   series: readonly ChartLineHlRangePoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineHlRangeChannels {
   const cleaned = getLineHlRangeFinitePoints(series);
   if (cleaned.length === 0) {
@@ -353,9 +353,9 @@ export function detectLineHlRangeCrosses(
 export function runLineHlRange(
   data: ChartLineHlRangePoint[],
   options: {
-    length?: number;
-    highThreshold?: number;
-    lowThreshold?: number;
+    length?: number | undefined;
+    highThreshold?: number | undefined;
+    lowThreshold?: number | undefined;
   } = {},
 ): ChartLineHlRangeRun {
   const cleaned = getLineHlRangeFinitePoints(data);
@@ -439,9 +439,9 @@ export function runLineHlRange(
 
 export interface ComputeLineHlRangeLayoutOptions {
   data: ChartLineHlRangePoint[];
-  length?: number;
-  highThreshold?: number;
-  lowThreshold?: number;
+  length?: number | undefined;
+  highThreshold?: number | undefined;
+  lowThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -611,9 +611,9 @@ export function computeLineHlRangeLayout(
 export function describeLineHlRangeChart(
   data: ChartLineHlRangePoint[],
   options: {
-    length?: number;
-    highThreshold?: number;
-    lowThreshold?: number;
+    length?: number | undefined;
+    highThreshold?: number | undefined;
+    lowThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineHlRangeFinitePoints(data);
