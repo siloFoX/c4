@@ -37,14 +37,6 @@ const linearUp = (count: number): ChartLineFractalKcPoint[] =>
     close: i + 1,
   }));
 
-const linearDown = (count: number): ChartLineFractalKcPoint[] =>
-  Array.from({ length: count }, (_, i) => ({
-    x: i,
-    high: count - i,
-    low: count - i,
-    close: count - i,
-  }));
-
 /**
  * CONSTANT-SPREAD anchor: high = baseLow + spread, low = baseLow,
  * close = midpoint (baseLow + spread/2). TR is `spread` from index 0

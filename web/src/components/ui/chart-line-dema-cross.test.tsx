@@ -23,9 +23,6 @@ const constBar = (count: number, K: number): ChartLineDemaCrossPoint[] =>
 const linearUp = (count: number): ChartLineDemaCrossPoint[] =>
   Array.from({ length: count }, (_, i) => ({ x: i, close: i + 1 }));
 
-const linearDown = (count: number): ChartLineDemaCrossPoint[] =>
-  Array.from({ length: count }, (_, i) => ({ x: i, close: count - i }));
-
 describe('getLineDemaCrossFinitePoints', () => {
   it('empty for null', () => {
     expect(getLineDemaCrossFinitePoints(null)).toEqual([]);

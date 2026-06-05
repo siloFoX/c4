@@ -652,7 +652,7 @@ describe('<ChartIcicle> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartIcicle root={ROOT} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-icicle');
+    expect(ref.current?.dataset['section']).toBe('chart-icicle');
   });
 
   it('has stable displayName', () => {

@@ -493,7 +493,7 @@ describe('computeLineBandLayout', () => {
 describe('describeLineBandChart', () => {
   it('returns "No data" when no series or bands', () => {
     expect(describeLineBandChart([], [])).toBe('No data');
-    expect(describeLineBandChart(null, null)).toBe('No data');
+    expect(describeLineBandChart(null, undefined)).toBe('No data');
   });
 
   it('summarises series + bands', () => {

@@ -65,20 +65,6 @@ const buildQuadraticUp = (
     close: i * i,
   }));
 
-// Quadratic acceleration then linear continuation: CCI rises into
-// overbought zone during the quadratic phase, then declines during the
-// linear phase while price still rises (divergent-bearish at overbought).
-const buildDeceleratingAfterPeak = (
-  n: number,
-): ChartLineCciOverboughtDivergencePoint[] => {
-  const breakpoint = Math.floor(n / 2);
-  const lastQuad = (breakpoint - 1) * (breakpoint - 1);
-  return Array.from({ length: n }, (_, i) => {
-    const c = i < breakpoint ? i * i : lastQuad + (i - breakpoint + 1);
-    return { x: i, high: c + 1, low: c - 1, close: c };
-  });
-};
-
 describe('ChartLineCciOverboughtDivergence defaults', () => {
   it('exports canonical dimensions', () => {
     expect(DEFAULT_CHART_LINE_CCI_OVERBOUGHT_DIVERGENCE_WIDTH).toBe(720);

@@ -663,7 +663,7 @@ describe('<ChartPolarArea> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartPolarArea wedges={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-polar-area');
+    expect(ref.current?.dataset['section']).toBe('chart-polar-area');
   });
 
   it('has stable displayName', () => {

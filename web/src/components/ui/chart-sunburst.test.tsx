@@ -619,7 +619,7 @@ describe('<ChartSunburst> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartSunburst root={ROOT} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-sunburst');
+    expect(ref.current?.dataset['section']).toBe('chart-sunburst');
   });
 
   it('has stable displayName', () => {

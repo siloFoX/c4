@@ -720,7 +720,7 @@ describe('<ChartBubble> component', () => {
   it('forwards ref to root', () => {
     const ref = createRef<HTMLDivElement>();
     render(<ChartBubble data={SAMPLE} ref={ref} />);
-    expect(ref.current?.dataset.section).toBe('chart-bubble');
+    expect(ref.current?.dataset['section']).toBe('chart-bubble');
   });
 
   it('has stable displayName', () => {

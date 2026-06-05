@@ -20,7 +20,6 @@ import {
 } from './chart-line-volume-trend-cross';
 
 const PERIOD = 20;
-const WARMUP = PERIOD; // first cross at i = period
 
 const buildConst = (
   n: number,

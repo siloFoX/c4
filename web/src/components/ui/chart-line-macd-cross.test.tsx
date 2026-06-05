@@ -25,9 +25,6 @@ const constBar = (count: number, K: number): ChartLineMacdCrossPoint[] =>
 const linearUp = (count: number): ChartLineMacdCrossPoint[] =>
   Array.from({ length: count }, (_, i) => ({ x: i, close: i + 1 }));
 
-const linearDown = (count: number): ChartLineMacdCrossPoint[] =>
-  Array.from({ length: count }, (_, i) => ({ x: i, close: count - i }));
-
 describe('getLineMacdCrossFinitePoints', () => {
   it('returns empty for null', () => {
     expect(getLineMacdCrossFinitePoints(null)).toEqual([]);
