@@ -21,9 +21,6 @@ const constSeries = (n: number, K: number): ChartLineVolumeOscCrossSigPoint[] =>
 const linearUpSeries = (n: number): ChartLineVolumeOscCrossSigPoint[] =>
   Array.from({ length: n }, (_, i) => ({ x: i, close: i + 1 }));
 
-const linearDownSeries = (n: number): ChartLineVolumeOscCrossSigPoint[] =>
-  Array.from({ length: n }, (_, i) => ({ x: i, close: n - i }));
-
 describe('getLineVolumeOscCrossSigFinitePoints', () => {
   it('returns empty array for null input', () => {
     expect(getLineVolumeOscCrossSigFinitePoints(null)).toEqual([]);
@@ -330,10 +327,10 @@ describe('<ChartLineVolumeOscCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-volume-osc-cross-sig"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.shortLength).toBe('5');
-    expect(root?.dataset.longLength).toBe('10');
-    expect(root?.dataset.signalLength).toBe('4');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['shortLength']).toBe('5');
+    expect(root?.dataset['longLength']).toBe('10');
+    expect(root?.dataset['signalLength']).toBe('4');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports cross count as data attribute', () => {
@@ -343,7 +340,7 @@ describe('<ChartLineVolumeOscCrossSig />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-volume-osc-cross-sig"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.crossCount)).toBe(0);
+    expect(Number(root?.dataset['crossCount'])).toBe(0);
   });
 
   it('renders aria description', () => {

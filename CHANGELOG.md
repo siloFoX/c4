@@ -4,6 +4,22 @@
 
 (no entries -- next release window)
 
+## [1.11.1139] - 2026-06-05 -- CHORE: fix 32 source-confirmed tsc strict-type errors in 6 chart-line test files (chart bucket batch 1) (TODO 11.1121)
+
+First batch of the chart showcase tsc-debt clear. 6 chart-line
+indicator .test.tsx files held 32 errors total: 31x TS4111 (index-
+signature bracket access on `HTMLElement.dataset.<key>` lookups) and
+1x TS6133 (unused `linearDownSeries` helper in
+chart-line-volume-osc-cross-sig.test.tsx). All TS4111 fixes are pure
+`dataset.X` -> `dataset['X']` bracket access on the
+`data-section` deserialization assertions; no behaviour change, no
+assertion change. Fix scope was ONLY the 6 .test.tsx files -- no
+chart component .tsx source was touched. No `as any`, no
+`ts-ignore`, no fresh `ts-expect-error`. Mandated verification:
+tsc --noEmit total 775 -> 743 (-32, zero in the 6 files, zero new
+errors anywhere); vitest on the 6 files: 6/6 files pass, 333/333
+tests pass. Zero NEW failures.
+
 ## [1.11.1138] - 2026-06-04 -- CHORE: fix 16 source-confirmed tsc strict-type errors in 15 test files -- FINAL test-nit batch (TODO 11.1120)
 
 FINAL batch of the test type-clean campaign. After this commit

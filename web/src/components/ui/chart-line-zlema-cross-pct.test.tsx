@@ -304,9 +304,9 @@ describe('<ChartLineZlemaCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-zlema-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('14');
-    expect(root?.dataset.lag).toBe('6');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('14');
+    expect(root?.dataset['lag']).toBe('6');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports regime counts as data attributes', () => {
@@ -316,8 +316,8 @@ describe('<ChartLineZlemaCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-zlema-cross-pct"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.aboveCount)).toBe(0);
-    expect(Number(root?.dataset.belowCount)).toBe(0);
+    expect(Number(root?.dataset['aboveCount'])).toBe(0);
+    expect(Number(root?.dataset['belowCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {
