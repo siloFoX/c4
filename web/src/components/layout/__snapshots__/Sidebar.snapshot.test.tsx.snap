@@ -10,6 +10,7 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
   >
     <div
       class="c4-scroll overflow-y-auto overflow-x-hidden flex min-h-0 flex-1 flex-col md:px-2 md:py-3 p-4"
+      data-axis="y"
       data-scrollarea-size="auto"
       data-section="scroll-area"
       data-shadows="false"
@@ -21,6 +22,7 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
           class="relative inline-flex"
           data-arrow="false"
           data-placement="bottom"
+          data-portal="false"
           data-section="tooltip"
           data-tooltip-root="true"
           data-visible="false"
@@ -71,7 +73,9 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
           </button>
           <span
             aria-label="Tooltip"
-            class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity top-full left-1/2 -translate-x-1/2 mt-1.5 opacity-0"
+            class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute top-full left-1/2 -translate-x-1/2 mt-1.5 opacity-0"
+            data-placement="bottom"
+            data-tooltip-body="true"
             data-visible="false"
             id=":r1:"
             role="tooltip"
@@ -85,9 +89,11 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
               <span
                 data-kbd="true"
                 data-platform="other"
+                data-size="md"
               >
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   Ctrl
                 </kbd>
@@ -98,7 +104,8 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
                    + 
                 </span>
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   B
                 </kbd>
@@ -111,9 +118,11 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
               <span
                 data-kbd="true"
                 data-platform="other"
+                data-size="md"
               >
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   Ctrl
                 </kbd>
@@ -124,7 +133,8 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
                    + 
                 </span>
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   \\
                 </kbd>
@@ -141,6 +151,7 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
             class="relative inline-flex"
             data-arrow="false"
             data-placement="right"
+            data-portal="false"
             data-section="tooltip"
             data-tooltip-root="true"
             data-visible="false"
@@ -187,7 +198,9 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
             </button>
             <span
               aria-label="List view"
-              class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity left-full top-1/2 -translate-y-1/2 ml-1.5 opacity-0"
+              class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute left-full top-1/2 -translate-y-1/2 ml-1.5 opacity-0"
+              data-placement="right"
+              data-tooltip-body="true"
               data-visible="false"
               id=":r2:"
               role="tooltip"
@@ -199,6 +212,7 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
             class="relative inline-flex"
             data-arrow="false"
             data-placement="right"
+            data-portal="false"
             data-section="tooltip"
             data-tooltip-root="true"
             data-visible="false"
@@ -254,7 +268,9 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the collapsed-sta
             </button>
             <span
               aria-label="Tree view"
-              class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity left-full top-1/2 -translate-y-1/2 ml-1.5 opacity-0"
+              class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute left-full top-1/2 -translate-y-1/2 ml-1.5 opacity-0"
+              data-placement="right"
+              data-tooltip-body="true"
               data-visible="false"
               id=":r3:"
               role="tooltip"
@@ -289,6 +305,7 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the expanded-stat
   >
     <div
       class="c4-scroll overflow-y-auto overflow-x-hidden flex min-h-0 flex-1 flex-col p-4"
+      data-axis="y"
       data-scrollarea-size="auto"
       data-section="scroll-area"
       data-shadows="false"
@@ -305,6 +322,7 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the expanded-stat
           class="relative inline-flex"
           data-arrow="false"
           data-placement="bottom"
+          data-portal="false"
           data-section="tooltip"
           data-tooltip-root="true"
           data-visible="false"
@@ -355,7 +373,9 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the expanded-stat
           </button>
           <span
             aria-label="Tooltip"
-            class="pointer-events-none absolute z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity top-full left-1/2 -translate-x-1/2 mt-1.5 opacity-0"
+            class="pointer-events-none z-50 max-w-[260px] whitespace-pre-line rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md transition-opacity absolute top-full left-1/2 -translate-x-1/2 mt-1.5 opacity-0"
+            data-placement="bottom"
+            data-tooltip-body="true"
             data-visible="false"
             id=":r0:"
             role="tooltip"
@@ -369,9 +389,11 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the expanded-stat
               <span
                 data-kbd="true"
                 data-platform="other"
+                data-size="md"
               >
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   Ctrl
                 </kbd>
@@ -382,7 +404,8 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the expanded-stat
                    + 
                 </span>
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   B
                 </kbd>
@@ -395,9 +418,11 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the expanded-stat
               <span
                 data-kbd="true"
                 data-platform="other"
+                data-size="md"
               >
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   Ctrl
                 </kbd>
@@ -408,7 +433,8 @@ exports[`<Sidebar> snapshots (collapsed vs expanded) > matches the expanded-stat
                    + 
                 </span>
                 <kbd
-                  class="inline-flex items-center rounded border bg-muted text-muted-foreground px-1.5 text-xs font-mono"
+                  class="inline-flex items-center rounded border bg-muted text-muted-foreground font-mono px-1.5 text-xs"
+                  data-size="md"
                 >
                   \\
                 </kbd>

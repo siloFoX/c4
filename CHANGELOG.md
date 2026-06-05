@@ -4,6 +4,19 @@
 
 (no entries -- next release window)
 
+## [1.11.1157] - 2026-06-05 -- CHORE: reconcile 3 stale render-snapshot test files to verified-shipped behavior (TODO 11.1139)
+
+3 snapshot test files (Sidebar / Button / Tooltip) drifted from
+current rendered output due to documented prior feature work
+(TODO 11.308 Button enhancements, TODO 11.360 Tooltip Radix-style,
+TODO 11.378 Kbd size scale, TODO 11.382 ScrollArea axis). Per the
+strict contract, every one of the 17 failing diffs was examined
+against the component source + recent git log and classified as
+INTENDED (deliberate shipped change) before any update. ZERO
+diffs SUSPECT, ZERO source files touched. Verification: tsc
+--noEmit stays at 0 (PROJECT-WIDE GREEN); npm run build green;
+vitest on the 3 files: 3/3 pass + 19/19 tests pass.
+
 ## [1.11.1156] - 2026-06-05 -- CHORE: fix 39 source-confirmed tsc strict-type errors in 39 chart component files -- FINAL component batch, tsc PROJECT-WIDE GREEN (TODO 11.1138)
 
 NINTH and FINAL chart COMPONENT batch. 39 chart .tsx component
