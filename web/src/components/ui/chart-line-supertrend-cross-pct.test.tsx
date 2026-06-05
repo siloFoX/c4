@@ -321,9 +321,9 @@ describe('<ChartLineSupertrendCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-supertrend-cross-pct"]',
     ) as HTMLElement | null;
-    expect(root?.dataset.length).toBe('10');
-    expect(root?.dataset.factor).toBe('3');
-    expect(root?.dataset.totalPoints).toBe('40');
+    expect(root?.dataset['length']).toBe('10');
+    expect(root?.dataset['factor']).toBe('3');
+    expect(root?.dataset['totalPoints']).toBe('40');
   });
 
   it('reports regime counts as data attributes', () => {
@@ -333,8 +333,8 @@ describe('<ChartLineSupertrendCrossPct />', () => {
     const root = container.querySelector(
       '[data-section="chart-line-supertrend-cross-pct"]',
     ) as HTMLElement | null;
-    expect(Number(root?.dataset.aboveCount)).toBe(0);
-    expect(Number(root?.dataset.belowCount)).toBe(0);
+    expect(Number(root?.dataset['aboveCount'])).toBe(0);
+    expect(Number(root?.dataset['belowCount'])).toBe(0);
   });
 
   it('renders an aria description', () => {
