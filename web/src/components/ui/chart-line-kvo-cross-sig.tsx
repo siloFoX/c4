@@ -143,9 +143,9 @@ export interface ChartLineKvoCrossSigLayout {
 export interface ChartLineKvoCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKvoCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -296,9 +296,9 @@ export interface LineKvoCrossSigChannels {
 export function computeLineKvoCrossSig(
   series: readonly ChartLineKvoCrossSigPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineKvoCrossSigChannels {
   const cleaned = getLineKvoCrossSigFinitePoints(series);
@@ -389,9 +389,9 @@ export function detectLineKvoCrossSigCrosses(
 export function runLineKvoCrossSig(
   data: ChartLineKvoCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineKvoCrossSigRun {
   const cleaned = getLineKvoCrossSigFinitePoints(data);
@@ -468,9 +468,9 @@ export function runLineKvoCrossSig(
 
 export interface ComputeLineKvoCrossSigLayoutOptions {
   data: ChartLineKvoCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -666,9 +666,9 @@ export function computeLineKvoCrossSigLayout(
 export function describeLineKvoCrossSigChart(
   data: ChartLineKvoCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKvoCrossSigFinitePoints(data);

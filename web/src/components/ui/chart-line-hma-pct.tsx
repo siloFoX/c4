@@ -110,7 +110,7 @@ export interface ChartLineHmaPctLayout {
 export interface ChartLineHmaPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineHmaPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -235,7 +235,7 @@ export interface LineHmaPctChannels {
 
 export function computeLineHmaPct(
   series: readonly ChartLineHmaPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineHmaPctChannels {
   const cleaned = getLineHmaPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -279,7 +279,7 @@ export function classifyLineHmaPctRegime(
 
 export function runLineHmaPct(
   data: ChartLineHmaPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): ChartLineHmaPctRun {
   const cleaned = getLineHmaPctFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -333,7 +333,7 @@ export function runLineHmaPct(
 
 export interface ComputeLineHmaPctLayoutOptions {
   data: ChartLineHmaPctPoint[];
-  length?: number;
+  length?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -507,7 +507,7 @@ export function computeLineHmaPctLayout(
 
 export function describeLineHmaPctChart(
   data: ChartLineHmaPctPoint[],
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): string {
   const cleaned = getLineHmaPctFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

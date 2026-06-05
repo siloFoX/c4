@@ -126,8 +126,8 @@ export interface ChartLineMomentumZeroCrossLayout {
 export interface ChartLineMomentumZeroCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMomentumZeroCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -229,7 +229,7 @@ export interface LineMomentumZeroCrossChannels {
 
 export function computeLineMomentumZeroCross(
   series: readonly ChartLineMomentumZeroCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineMomentumZeroCrossChannels {
   const cleaned = getLineMomentumZeroCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -281,8 +281,8 @@ export function detectLineMomentumZeroCrossCrosses(
 export function runLineMomentumZeroCross(
   data: ChartLineMomentumZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineMomentumZeroCrossRun {
   const cleaned = getLineMomentumZeroCrossFinitePoints(data);
@@ -350,8 +350,8 @@ export function runLineMomentumZeroCross(
 
 export interface ComputeLineMomentumZeroCrossLayoutOptions {
   data: ChartLineMomentumZeroCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -536,8 +536,8 @@ export function computeLineMomentumZeroCrossLayout(
 export function describeLineMomentumZeroCrossChart(
   data: ChartLineMomentumZeroCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMomentumZeroCrossFinitePoints(data);

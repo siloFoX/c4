@@ -171,8 +171,8 @@ export interface ChartLineKeltnerMidCrossSigLayout {
 export interface ChartLineKeltnerMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKeltnerMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -374,7 +374,7 @@ export interface KeltnerMidCrossSigChannels {
 
 export function computeLineKeltnerMidCrossSig(
   series: readonly ChartLineKeltnerMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): KeltnerMidCrossSigChannels {
   const cleaned = getLineKeltnerMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -437,7 +437,7 @@ export function detectLineKeltnerMidCrossSigCrosses(
 
 export function runLineKeltnerMidCrossSig(
   data: ChartLineKeltnerMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineKeltnerMidCrossSigRun {
   const cleaned = getLineKeltnerMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -524,8 +524,8 @@ export function runLineKeltnerMidCrossSig(
 
 export interface ComputeLineKeltnerMidCrossSigLayoutOptions {
   data: ChartLineKeltnerMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -725,7 +725,7 @@ export function computeLineKeltnerMidCrossSigLayout(
 
 export function describeLineKeltnerMidCrossSigChart(
   data: ChartLineKeltnerMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineKeltnerMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

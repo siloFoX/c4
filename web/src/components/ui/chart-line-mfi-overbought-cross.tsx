@@ -143,8 +143,8 @@ export interface ChartLineMfiOverboughtCrossLayout {
 export interface ChartLineMfiOverboughtCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMfiOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -246,7 +246,7 @@ export interface LineMfiOverboughtCrossChannels {
 
 export function computeLineMfiOverboughtCross(
   series: readonly ChartLineMfiOverboughtCrossPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineMfiOverboughtCrossChannels {
   const cleaned = getLineMfiOverboughtCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -323,8 +323,8 @@ export function detectLineMfiOverboughtCrossCrosses(
 export function runLineMfiOverboughtCross(
   data: ChartLineMfiOverboughtCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineMfiOverboughtCrossRun {
   const cleaned = getLineMfiOverboughtCrossFinitePoints(data);
@@ -392,8 +392,8 @@ export function runLineMfiOverboughtCross(
 
 export interface ComputeLineMfiOverboughtCrossLayoutOptions {
   data: ChartLineMfiOverboughtCrossPoint[];
-  length?: number;
-  threshold?: number;
+  length?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -561,8 +561,8 @@ export function computeLineMfiOverboughtCrossLayout(
 export function describeLineMfiOverboughtCrossChart(
   data: ChartLineMfiOverboughtCrossPoint[],
   options: {
-    length?: number;
-    threshold?: number;
+    length?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMfiOverboughtCrossFinitePoints(data);

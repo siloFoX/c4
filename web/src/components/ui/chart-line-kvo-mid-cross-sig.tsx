@@ -141,10 +141,10 @@ export interface ChartLineKvoMidCrossSigLayout {
 export interface ChartLineKvoMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKvoMidCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -301,9 +301,9 @@ export interface LineKvoMidCrossSigChannels {
 export function computeLineKvoMidCrossSig(
   series: readonly ChartLineKvoMidCrossSigPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    kSmoothing?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    kSmoothing?: number | undefined;
   } = {},
 ): LineKvoMidCrossSigChannels {
   const cleaned = getLineKvoMidCrossSigFinitePoints(series);
@@ -394,10 +394,10 @@ export function detectLineKvoMidCrossSigCrosses(
 export function runLineKvoMidCrossSig(
   data: ChartLineKvoMidCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): ChartLineKvoMidCrossSigRun {
   const cleaned = getLineKvoMidCrossSigFinitePoints(data);
@@ -484,10 +484,10 @@ export function runLineKvoMidCrossSig(
 
 export interface ComputeLineKvoMidCrossSigLayoutOptions {
   data: ChartLineKvoMidCrossSigPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  kSmoothing?: number;
-  threshold?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  kSmoothing?: number | undefined;
+  threshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -693,10 +693,10 @@ export function computeLineKvoMidCrossSigLayout(
 export function describeLineKvoMidCrossSigChart(
   data: ChartLineKvoMidCrossSigPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    kSmoothing?: number;
-    threshold?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    kSmoothing?: number | undefined;
+    threshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKvoMidCrossSigFinitePoints(data);

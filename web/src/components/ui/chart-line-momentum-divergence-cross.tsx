@@ -216,7 +216,7 @@ export interface ChartLineMomentumDivergenceCrossLayout {
 export interface ChartLineMomentumDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMomentumDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -308,7 +308,7 @@ export function normalizeLineMomentumDivergenceCrossLength(
 
 export function computeLineMomentumDivergenceCross(
   series: readonly ChartLineMomentumDivergenceCrossPoint[] | null | undefined,
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): Array<number | null> {
   const cleaned = getLineMomentumDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) return [];
@@ -387,7 +387,7 @@ export function detectLineMomentumDivergenceCrossCrosses(
 
 export function runLineMomentumDivergenceCross(
   data: ChartLineMomentumDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): ChartLineMomentumDivergenceCrossRun {
   const cleaned = getLineMomentumDivergenceCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -484,7 +484,7 @@ export function runLineMomentumDivergenceCross(
 
 export interface ComputeLineMomentumDivergenceCrossLayoutOptions {
   data: ChartLineMomentumDivergenceCrossPoint[];
-  period?: number;
+  period?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -665,7 +665,7 @@ export function computeLineMomentumDivergenceCrossLayout(
 
 export function describeLineMomentumDivergenceCrossChart(
   data: ChartLineMomentumDivergenceCrossPoint[],
-  options: { period?: number } = {},
+  options: { period?: number | undefined } = {},
 ): string {
   const cleaned = getLineMomentumDivergenceCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -177,8 +177,8 @@ export interface ChartLineMomentumMidCrossSigLayout {
 export interface ChartLineMomentumMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMomentumMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -326,7 +326,7 @@ export interface MomentumMidCrossSigChannels {
 
 export function computeLineMomentumMidCrossSig(
   series: readonly ChartLineMomentumMidCrossSigPoint[] | null | undefined,
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): MomentumMidCrossSigChannels {
   const cleaned = getLineMomentumMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -394,7 +394,7 @@ export function detectLineMomentumMidCrossSigCrosses(
 
 export function runLineMomentumMidCrossSig(
   data: ChartLineMomentumMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): ChartLineMomentumMidCrossSigRun {
   const cleaned = getLineMomentumMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -481,8 +481,8 @@ export function runLineMomentumMidCrossSig(
 
 export interface ComputeLineMomentumMidCrossSigLayoutOptions {
   data: ChartLineMomentumMidCrossSigPoint[];
-  period?: number;
-  signalLength?: number;
+  period?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -683,7 +683,7 @@ export function computeLineMomentumMidCrossSigLayout(
 
 export function describeLineMomentumMidCrossSigChart(
   data: ChartLineMomentumMidCrossSigPoint[],
-  options: { period?: number; signalLength?: number } = {},
+  options: { period?: number | undefined; signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineMomentumMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

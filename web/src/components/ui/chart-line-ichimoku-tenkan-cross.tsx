@@ -220,9 +220,9 @@ export interface ChartLineIchimokuTenkanCrossLayout {
 export interface ChartLineIchimokuTenkanCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineIchimokuTenkanCrossPoint[];
-  tenkanPeriod?: number;
-  kijunPeriod?: number;
-  senkouBPeriod?: number;
+  tenkanPeriod?: number | undefined;
+  kijunPeriod?: number | undefined;
+  senkouBPeriod?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -372,9 +372,9 @@ export interface IchimokuTenkanCrossChannels {
 export function computeLineIchimokuTenkanCross(
   series: readonly ChartLineIchimokuTenkanCrossPoint[] | null | undefined,
   options: {
-    tenkanPeriod?: number;
-    kijunPeriod?: number;
-    senkouBPeriod?: number;
+    tenkanPeriod?: number | undefined;
+    kijunPeriod?: number | undefined;
+    senkouBPeriod?: number | undefined;
   } = {},
 ): IchimokuTenkanCrossChannels {
   const cleaned = getLineIchimokuTenkanCrossFinitePoints(series);
@@ -467,9 +467,9 @@ export function detectLineIchimokuTenkanCrossCrosses(
 export function runLineIchimokuTenkanCross(
   data: ChartLineIchimokuTenkanCrossPoint[],
   options: {
-    tenkanPeriod?: number;
-    kijunPeriod?: number;
-    senkouBPeriod?: number;
+    tenkanPeriod?: number | undefined;
+    kijunPeriod?: number | undefined;
+    senkouBPeriod?: number | undefined;
   } = {},
 ): ChartLineIchimokuTenkanCrossRun {
   const cleaned = getLineIchimokuTenkanCrossFinitePoints(data);
@@ -570,9 +570,9 @@ export function runLineIchimokuTenkanCross(
 
 export interface ComputeLineIchimokuTenkanCrossLayoutOptions {
   data: ChartLineIchimokuTenkanCrossPoint[];
-  tenkanPeriod?: number;
-  kijunPeriod?: number;
-  senkouBPeriod?: number;
+  tenkanPeriod?: number | undefined;
+  kijunPeriod?: number | undefined;
+  senkouBPeriod?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -782,9 +782,9 @@ export function computeLineIchimokuTenkanCrossLayout(
 export function describeLineIchimokuTenkanCrossChart(
   data: ChartLineIchimokuTenkanCrossPoint[],
   options: {
-    tenkanPeriod?: number;
-    kijunPeriod?: number;
-    senkouBPeriod?: number;
+    tenkanPeriod?: number | undefined;
+    kijunPeriod?: number | undefined;
+    senkouBPeriod?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineIchimokuTenkanCrossFinitePoints(data);

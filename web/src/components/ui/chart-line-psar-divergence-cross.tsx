@@ -166,10 +166,10 @@ export interface ChartLinePsarDivergenceCrossLayout {
 export interface ChartLinePsarDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLinePsarDivergenceCrossPoint[];
-  step?: number;
-  maxStep?: number;
-  warmupLength?: number;
-  divergenceWindow?: number;
+  step?: number | undefined;
+  maxStep?: number | undefined;
+  warmupLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -364,9 +364,9 @@ export interface LinePsarDivergenceCrossChannels {
 export function computeLinePsarDivergenceCross(
   series: readonly ChartLinePsarDivergenceCrossPoint[] | null | undefined,
   options: {
-    step?: number;
-    maxStep?: number;
-    warmupLength?: number;
+    step?: number | undefined;
+    maxStep?: number | undefined;
+    warmupLength?: number | undefined;
   } = {},
 ): LinePsarDivergenceCrossChannels {
   const cleaned = getLinePsarDivergenceCrossFinitePoints(series);
@@ -432,10 +432,10 @@ export function detectLinePsarDivergenceCrossCrosses(
 export function runLinePsarDivergenceCross(
   data: ChartLinePsarDivergenceCrossPoint[],
   options: {
-    step?: number;
-    maxStep?: number;
-    warmupLength?: number;
-    divergenceWindow?: number;
+    step?: number | undefined;
+    maxStep?: number | undefined;
+    warmupLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLinePsarDivergenceCrossRun {
   const cleaned = getLinePsarDivergenceCrossFinitePoints(data);
@@ -543,10 +543,10 @@ export function runLinePsarDivergenceCross(
 
 export interface ComputeLinePsarDivergenceCrossLayoutOptions {
   data: ChartLinePsarDivergenceCrossPoint[];
-  step?: number;
-  maxStep?: number;
-  warmupLength?: number;
-  divergenceWindow?: number;
+  step?: number | undefined;
+  maxStep?: number | undefined;
+  warmupLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -727,10 +727,10 @@ export function computeLinePsarDivergenceCrossLayout(
 export function describeLinePsarDivergenceCrossChart(
   data: ChartLinePsarDivergenceCrossPoint[],
   options: {
-    step?: number;
-    maxStep?: number;
-    warmupLength?: number;
-    divergenceWindow?: number;
+    step?: number | undefined;
+    maxStep?: number | undefined;
+    warmupLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLinePsarDivergenceCrossFinitePoints(data);

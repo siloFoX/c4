@@ -136,7 +136,7 @@ export interface ChartLineObvCrossLayout {
 export interface ChartLineObvCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineObvCrossPoint[];
-  signalLength?: number;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -296,7 +296,7 @@ export interface LineObvCrossChannels {
 
 export function computeLineObvCross(
   series: readonly ChartLineObvCrossPoint[] | null | undefined,
-  options: { signalLength?: number } = {},
+  options: { signalLength?: number | undefined } = {},
 ): LineObvCrossChannels {
   const cleaned = getLineObvCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -367,7 +367,7 @@ export function detectLineObvCrossCrosses(
 
 export function runLineObvCross(
   data: ChartLineObvCrossPoint[],
-  options: { signalLength?: number } = {},
+  options: { signalLength?: number | undefined } = {},
 ): ChartLineObvCrossRun {
   const cleaned = getLineObvCrossFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -436,7 +436,7 @@ export function runLineObvCross(
 
 export interface ComputeLineObvCrossLayoutOptions {
   data: ChartLineObvCrossPoint[];
-  signalLength?: number;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -619,7 +619,7 @@ export function computeLineObvCrossLayout(
 
 export function describeLineObvCrossChart(
   data: ChartLineObvCrossPoint[],
-  options: { signalLength?: number } = {},
+  options: { signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineObvCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

@@ -158,10 +158,10 @@ export interface ChartLineKamaCrossSigLayout {
 export interface ChartLineKamaCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineKamaCrossSigPoint[];
-  efficiencyPeriod?: number;
-  fastPeriod?: number;
-  slowPeriod?: number;
-  signalLength?: number;
+  efficiencyPeriod?: number | undefined;
+  fastPeriod?: number | undefined;
+  slowPeriod?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -342,10 +342,10 @@ export interface LineKamaCrossSigChannels {
 export function computeLineKamaCrossSig(
   series: readonly ChartLineKamaCrossSigPoint[] | null | undefined,
   options: {
-    efficiencyPeriod?: number;
-    fastPeriod?: number;
-    slowPeriod?: number;
-    signalLength?: number;
+    efficiencyPeriod?: number | undefined;
+    fastPeriod?: number | undefined;
+    slowPeriod?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineKamaCrossSigChannels {
   const cleaned = getLineKamaCrossSigFinitePoints(series);
@@ -423,10 +423,10 @@ export function detectLineKamaCrossSigCrosses(
 export function runLineKamaCrossSig(
   data: ChartLineKamaCrossSigPoint[],
   options: {
-    efficiencyPeriod?: number;
-    fastPeriod?: number;
-    slowPeriod?: number;
-    signalLength?: number;
+    efficiencyPeriod?: number | undefined;
+    fastPeriod?: number | undefined;
+    slowPeriod?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineKamaCrossSigRun {
   const cleaned = getLineKamaCrossSigFinitePoints(data);
@@ -524,10 +524,10 @@ export function runLineKamaCrossSig(
 
 export interface ComputeLineKamaCrossSigLayoutOptions {
   data: ChartLineKamaCrossSigPoint[];
-  efficiencyPeriod?: number;
-  fastPeriod?: number;
-  slowPeriod?: number;
-  signalLength?: number;
+  efficiencyPeriod?: number | undefined;
+  fastPeriod?: number | undefined;
+  slowPeriod?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -726,10 +726,10 @@ export function computeLineKamaCrossSigLayout(
 export function describeLineKamaCrossSigChart(
   data: ChartLineKamaCrossSigPoint[],
   options: {
-    efficiencyPeriod?: number;
-    fastPeriod?: number;
-    slowPeriod?: number;
-    signalLength?: number;
+    efficiencyPeriod?: number | undefined;
+    fastPeriod?: number | undefined;
+    slowPeriod?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineKamaCrossSigFinitePoints(data);

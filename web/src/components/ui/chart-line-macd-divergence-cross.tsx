@@ -148,9 +148,9 @@ export interface ChartLineMacdDivergenceCrossLayout {
 export interface ChartLineMacdDivergenceCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMacdDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -298,7 +298,7 @@ export function computeLineMacdDivergenceCross(
     | readonly ChartLineMacdDivergenceCrossPoint[]
     | null
     | undefined,
-  options: { fastLength?: number; slowLength?: number } = {},
+  options: { fastLength?: number | undefined; slowLength?: number | undefined } = {},
 ): LineMacdDivergenceCrossChannels {
   const cleaned = getLineMacdDivergenceCrossFinitePoints(series);
   if (cleaned.length === 0) {
@@ -362,9 +362,9 @@ export function detectLineMacdDivergenceCrossCrosses(
 export function runLineMacdDivergenceCross(
   data: ChartLineMacdDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): ChartLineMacdDivergenceCrossRun {
   const cleaned = getLineMacdDivergenceCrossFinitePoints(data);
@@ -465,9 +465,9 @@ export function runLineMacdDivergenceCross(
 
 export interface ComputeLineMacdDivergenceCrossLayoutOptions {
   data: ChartLineMacdDivergenceCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  divergenceWindow?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  divergenceWindow?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -653,9 +653,9 @@ export function computeLineMacdDivergenceCrossLayout(
 export function describeLineMacdDivergenceCrossChart(
   data: ChartLineMacdDivergenceCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    divergenceWindow?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    divergenceWindow?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMacdDivergenceCrossFinitePoints(data);

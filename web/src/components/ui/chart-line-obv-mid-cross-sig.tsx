@@ -179,7 +179,7 @@ export interface ChartLineObvMidCrossSigLayout {
 export interface ChartLineObvMidCrossSigProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineObvMidCrossSigPoint[];
-  signalLength?: number;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -322,7 +322,7 @@ export interface ObvMidCrossSigChannels {
 
 export function computeLineObvMidCrossSig(
   series: readonly ChartLineObvMidCrossSigPoint[] | null | undefined,
-  options: { signalLength?: number } = {},
+  options: { signalLength?: number | undefined } = {},
 ): ObvMidCrossSigChannels {
   const cleaned = getLineObvMidCrossSigFinitePoints(series);
   if (cleaned.length === 0) {
@@ -392,7 +392,7 @@ export function detectLineObvMidCrossSigCrosses(
 
 export function runLineObvMidCrossSig(
   data: ChartLineObvMidCrossSigPoint[],
-  options: { signalLength?: number } = {},
+  options: { signalLength?: number | undefined } = {},
 ): ChartLineObvMidCrossSigRun {
   const cleaned = getLineObvMidCrossSigFinitePoints(data);
   const series = [...cleaned].sort((a, b) => a.x - b.x);
@@ -469,7 +469,7 @@ export function runLineObvMidCrossSig(
 
 export interface ComputeLineObvMidCrossSigLayoutOptions {
   data: ChartLineObvMidCrossSigPoint[];
-  signalLength?: number;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -665,7 +665,7 @@ export function computeLineObvMidCrossSigLayout(
 
 export function describeLineObvMidCrossSigChart(
   data: ChartLineObvMidCrossSigPoint[],
-  options: { signalLength?: number } = {},
+  options: { signalLength?: number | undefined } = {},
 ): string {
   const cleaned = getLineObvMidCrossSigFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

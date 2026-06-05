@@ -165,9 +165,9 @@ export interface ChartLinePsarCrossLayout {
 export interface ChartLinePsarCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLinePsarCrossPoint[];
-  afInitial?: number;
-  afStep?: number;
-  afMax?: number;
+  afInitial?: number | undefined;
+  afStep?: number | undefined;
+  afMax?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -284,9 +284,9 @@ export interface LinePsarCrossChannels {
 export function computeLinePsarCross(
   series: readonly ChartLinePsarCrossPoint[] | null | undefined,
   options: {
-    afInitial?: number;
-    afStep?: number;
-    afMax?: number;
+    afInitial?: number | undefined;
+    afStep?: number | undefined;
+    afMax?: number | undefined;
   } = {},
 ): LinePsarCrossChannels {
   const cleaned = getLinePsarCrossFinitePoints(series);
@@ -411,9 +411,9 @@ export function detectLinePsarCrossFlips(
 export function runLinePsarCross(
   data: ChartLinePsarCrossPoint[],
   options: {
-    afInitial?: number;
-    afStep?: number;
-    afMax?: number;
+    afInitial?: number | undefined;
+    afStep?: number | undefined;
+    afMax?: number | undefined;
   } = {},
 ): ChartLinePsarCrossRun {
   const cleaned = getLinePsarCrossFinitePoints(data);
@@ -499,9 +499,9 @@ export function runLinePsarCross(
 
 export interface ComputeLinePsarCrossLayoutOptions {
   data: ChartLinePsarCrossPoint[];
-  afInitial?: number;
-  afStep?: number;
-  afMax?: number;
+  afInitial?: number | undefined;
+  afStep?: number | undefined;
+  afMax?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -691,7 +691,7 @@ export function computeLinePsarCrossLayout(
 
 export function describeLinePsarCrossChart(
   data: ChartLinePsarCrossPoint[],
-  options: { afInitial?: number; afStep?: number; afMax?: number } = {},
+  options: { afInitial?: number | undefined; afStep?: number | undefined; afMax?: number | undefined } = {},
 ): string {
   const cleaned = getLinePsarCrossFinitePoints(data);
   if (cleaned.length === 0) return 'No data';

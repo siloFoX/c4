@@ -144,9 +144,9 @@ export interface ChartLineMacdHistCrossLayout {
 export interface ChartLineMacdHistCrossProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMacdHistCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -296,9 +296,9 @@ export interface LineMacdHistCrossChannels {
 export function computeLineMacdHistCross(
   series: readonly ChartLineMacdHistCrossPoint[] | null | undefined,
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): LineMacdHistCrossChannels {
   const cleaned = getLineMacdHistCrossFinitePoints(series);
@@ -377,9 +377,9 @@ export function detectLineMacdHistCrossCrosses(
 export function runLineMacdHistCross(
   data: ChartLineMacdHistCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): ChartLineMacdHistCrossRun {
   const cleaned = getLineMacdHistCrossFinitePoints(data);
@@ -458,9 +458,9 @@ export function runLineMacdHistCross(
 
 export interface ComputeLineMacdHistCrossLayoutOptions {
   data: ChartLineMacdHistCrossPoint[];
-  fastLength?: number;
-  slowLength?: number;
-  signalLength?: number;
+  fastLength?: number | undefined;
+  slowLength?: number | undefined;
+  signalLength?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -646,9 +646,9 @@ export function computeLineMacdHistCrossLayout(
 export function describeLineMacdHistCrossChart(
   data: ChartLineMacdHistCrossPoint[],
   options: {
-    fastLength?: number;
-    slowLength?: number;
-    signalLength?: number;
+    fastLength?: number | undefined;
+    slowLength?: number | undefined;
+    signalLength?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMacdHistCrossFinitePoints(data);

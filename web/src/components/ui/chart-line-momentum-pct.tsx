@@ -124,9 +124,9 @@ export interface ChartLineMomentumPctLayout {
 export interface ChartLineMomentumPctProps
   extends Omit<SVGProps<SVGSVGElement>, 'ref' | 'children'> {
   data: ChartLineMomentumPctPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -235,7 +235,7 @@ export interface LineMomentumPctChannels {
 /** Compute prior, delta, momentum channels. */
 export function computeLineMomentumPct(
   series: readonly ChartLineMomentumPctPoint[] | null | undefined,
-  options: { length?: number } = {},
+  options: { length?: number | undefined } = {},
 ): LineMomentumPctChannels {
   const cleaned = getLineMomentumPctFinitePoints(series);
   if (cleaned.length === 0) {
@@ -318,9 +318,9 @@ export function detectLineMomentumPctCrosses(
 export function runLineMomentumPct(
   data: ChartLineMomentumPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): ChartLineMomentumPctRun {
   const cleaned = getLineMomentumPctFinitePoints(data);
@@ -405,9 +405,9 @@ export function runLineMomentumPct(
 
 export interface ComputeLineMomentumPctLayoutOptions {
   data: ChartLineMomentumPctPoint[];
-  length?: number;
-  bullishThreshold?: number;
-  bearishThreshold?: number;
+  length?: number | undefined;
+  bullishThreshold?: number | undefined;
+  bearishThreshold?: number | undefined;
   width?: number;
   height?: number;
   padding?: number;
@@ -585,9 +585,9 @@ export function computeLineMomentumPctLayout(
 export function describeLineMomentumPctChart(
   data: ChartLineMomentumPctPoint[],
   options: {
-    length?: number;
-    bullishThreshold?: number;
-    bearishThreshold?: number;
+    length?: number | undefined;
+    bullishThreshold?: number | undefined;
+    bearishThreshold?: number | undefined;
   } = {},
 ): string {
   const cleaned = getLineMomentumPctFinitePoints(data);
